@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { densityDilutionFactor, type CosmologyState } from './cosmology'
 import DensityLayer from './DensityLayer'
 import MilkyWayLayer from './MilkyWayLayer'
+import LocalGroupLayer from './LocalGroupLayer'
 import { DENSITY_STYLE_LABELS, type DensityStyle } from './colormaps'
 
 /**
@@ -190,7 +191,8 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
 
         <div style={{ position: 'relative', width: '100%', maxWidth: 640, aspectRatio: '1/1' }}>
           <DensityLayer style={densityStyle} opacity={densityPresence} halfWidthMpc={halfWidthMpc} />
-          <MilkyWayLayer halfWidthMpc={halfWidthMpc} opacity={densityPresence} />
+          <LocalGroupLayer halfWidthMpc={halfWidthMpc} opacity={densityPresence} style={densityStyle} />
+          <MilkyWayLayer halfWidthMpc={halfWidthMpc} opacity={densityPresence} style={densityStyle} />
           <canvas
             ref={canvasRef}
             width={640}
@@ -253,9 +255,9 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
             — dilution de densité ×{dilution.toLocaleString('fr-FR', { maximumFractionDigits: dilution > 100 ? 0 : 1 })} par rapport à aujourd'hui.
           </p>
           <p style={{ fontSize: 10, color: '#555' }}>
-            Voie lactée (modèle partagé avec « Le silence du cosmos ») + 4 layers procéduraux avec
-            héritage hiérarchique et fondu au zoom. Le temps n'affecte pas encore visuellement la densité
-            — prochaine étape.
+            Voie lactée + Groupe Local (galaxies voisines réelles, positions angulaires simplifiées) +
+            4 layers procéduraux avec héritage hiérarchique. Le temps n'affecte pas encore visuellement
+            la densité — prochaine étape.
           </p>
         </div>
       </div>
