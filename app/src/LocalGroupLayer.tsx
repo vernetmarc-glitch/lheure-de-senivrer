@@ -103,7 +103,7 @@ export default function LocalGroupLayer({ halfWidthMpc, opacity, style }: LocalG
           const rad = (gal.angleDeg * Math.PI) / 180
           const x = originX + Math.cos(rad) * gal.distanceMpc * scale
           const y = originY + Math.sin(rad) * gal.distanceMpc * scale
-          const rPx = Math.max(gal.radiusMpc * scale, gal.isReal ? 1.2 : 0.8)
+          const rPx = Math.max(gal.radiusMpc * scale, gal.isReal ? 5 : 3)
           if (x < -rPx || x > size + rPx || y < -rPx || y > size + rPx) continue
 
           const [cr, cg, cb] = colorForValue(gal.brightness, style)
