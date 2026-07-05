@@ -3,74 +3,86 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Calibration — Groupe Local vs densité L2</title>
+<title>Calibration — transition Groupe Local → L2</title>
 <style>
   html, body { margin: 0; padding: 0; background: #05050a; color: #eee; font-family: system-ui, sans-serif; height: 100%; overflow: hidden; }
   .wrap { padding: 8px 10px; display: flex; flex-direction: column; height: 100dvh; box-sizing: border-box; }
   h1 { font-size: 11px; font-weight: 600; margin: 0 0 3px; color: #ccc; }
   p.note { font-size: 9px; color: #888; margin: 0 0 6px; }
-  .views { display: flex; gap: 6px; }
-  .view { flex: 1; min-width: 0; }
-  .view h2 { font-size: 9px; color: #999; margin: 0 0 2px; font-weight: 500; }
-  canvas { width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 6px; display: block; }
-  .stat { font-size: 9px; color: #777; margin-top: 2px; font-family: monospace; }
-  .controls { margin-top: 8px; flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 6px; }
+  .mainview { position: relative; width: 42%; margin: 0 auto; }
+  .mainview canvas { width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 6px; display: block; }
+  .refs { display: flex; gap: 6px; margin-top: 6px; }
+  .ref { flex: 1; }
+  .ref h2 { font-size: 8px; color: #888; margin: 0 0 2px; font-weight: 500; }
+  .ref canvas { width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 5px; display: block; opacity: 0.85; }
+  .stat { font-size: 9px; color: #777; margin-top: 2px; font-family: monospace; text-align: center; }
+  .controls { margin-top: 8px; flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 5px; }
   .ctrl { display: flex; align-items: center; gap: 6px; }
-  .ctrl label { font-size: 10px; color: #bbb; width: 150px; flex-shrink: 0; line-height: 1.2; }
-  .ctrl input[type=range] { flex: 1; height: 20px; }
-  .ctrl .val { font-size: 10px; color: #7fd1ff; width: 34px; flex-shrink: 0; text-align: right; font-family: monospace; }
+  .ctrl label { font-size: 9.5px; color: #bbb; width: 145px; flex-shrink: 0; line-height: 1.15; }
+  .ctrl input[type=range] { flex: 1; height: 18px; }
+  .ctrl .val { font-size: 9.5px; color: #7fd1ff; width: 32px; flex-shrink: 0; text-align: right; font-family: monospace; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Calibration Groupe Local ↔ densité L2 — 10 Mpc de demi-champ</h1>
-  <p class="note">Les deux vues sont calculées à partir du MÊME catalogue de points, aucun bruit indépendant.</p>
+  <h1>Transition Groupe Local (KDE) → densité L2</h1>
+  <p class="note">Vue principale = mélange réel au niveau de zoom choisi. Références = les deux extrêmes purs.</p>
 
-  <div class="views">
-    <div class="view">
-      <h2>Densité (KDE du catalogue)</h2>
-      <canvas id="canvasDensity" width="256" height="256"></canvas>
-      <div class="stat" id="statDensity"></div>
+  <div class="mainview">
+    <canvas id="canvasBlend" width="320" height="320"></canvas>
+  </div>
+  <div class="stat" id="statBlend"></div>
+
+  <div class="refs">
+    <div class="ref">
+      <h2>KDE pure (Groupe Local)</h2>
+      <canvas id="canvasKde" width="160" height="160"></canvas>
     </div>
-    <div class="view">
-      <h2>Galaxies simulées (glow)</h2>
-      <canvas id="canvasPoints" width="256" height="256"></canvas>
-      <div class="stat" id="statPoints"></div>
+    <div class="ref">
+      <h2>L2 brute (référence lointaine)</h2>
+      <canvas id="canvasL2" width="160" height="160"></canvas>
     </div>
   </div>
 
   <div class="controls">
     <div class="ctrl">
-      <label>Taille des galaxies (Mpc)</label>
+      <label>Position simulée (demi-champ, Mpc)</label>
+      <input type="range" id="posSlider" min="3" max="25" step="0.1" value="10" />
+      <span class="val" id="posVal">10.0</span>
+    </div>
+    <div class="ctrl">
+      <label>Frontière du fondu (Mpc)</label>
+      <input type="range" id="edgeSlider" min="5" max="20" step="0.5" value="10" />
+      <span class="val" id="edgeVal">10.0</span>
+    </div>
+    <div class="ctrl">
+      <label>Largeur du fondu (Mpc)</label>
+      <input type="range" id="widthSlider" min="0.5" max="12" step="0.25" value="4" />
+      <span class="val" id="widthVal">4.0</span>
+    </div>
+    <div class="ctrl">
+      <label>Grain L2 minimum (près KDE)</label>
+      <input type="range" id="grainSlider" min="0" max="1" step="0.02" value="0.25" />
+      <span class="val" id="grainVal">0.25</span>
+    </div>
+    <div class="ctrl">
+      <label>Taille galaxies KDE (Mpc)</label>
       <input type="range" id="sizeSlider" min="0.05" max="1.5" step="0.01" value="0.3" />
       <span class="val" id="sizeVal">0.30</span>
     </div>
     <div class="ctrl">
-      <label>Contraste / amplitude</label>
+      <label>Amplitude KDE</label>
       <input type="range" id="ampSlider" min="0.5" max="6" step="0.1" value="3" />
       <span class="val" id="ampVal">3.0</span>
-    </div>
-    <div class="ctrl">
-      <label>Glow au bord (10 Mpc)</label>
-      <input type="range" id="glowEdgeSlider" min="0.3" max="4" step="0.1" value="1.5" />
-      <span class="val" id="glowEdgeVal">1.5</span>
-    </div>
-    <div class="ctrl">
-      <label>Glow au centre (0 Mpc)</label>
-      <input type="range" id="glowCenterSlider" min="0.1" max="4" step="0.1" value="0.8" />
-      <span class="val" id="glowCenterVal">0.8</span>
-    </div>
-    <div class="ctrl">
-      <label>Position simulée</label>
-      <input type="range" id="posSlider" min="0" max="1" step="0.01" value="1" />
-      <span class="val" id="posVal">1.00</span>
     </div>
   </div>
 </div>
 
 <script>
-const HALF_WIDTH_MPC = 10;
-const GRID_N = 200; // résolution de calcul de la KDE (indépendante de L2 : plus de dépendance au bruit)
+const L2_MAX_MPC = 30;
+const L2_TEXTURE_SIZE = 512;
+const KDE_GRID_N = 200;
+const REF_HALF_WIDTH = 20; // champ de vue fixe pour les vignettes de référence
 
 const ASTRO_STOPS = [
   [0,0,0], [0x17,0x0a,0x05], [0x4a,0x1f,0x0a], [0xa8,0x48,0x0f], [0xe8,0xa1,0x3a], [0xff,0xf3,0xd6]
@@ -83,57 +95,68 @@ function colorForValue(t) {
   const a = ASTRO_STOPS[idx], b = ASTRO_STOPS[idx+1];
   return [a[0]+(b[0]-a[0])*frac, a[1]+(b[1]-a[1])*frac, a[2]+(b[2]-a[2])*frac];
 }
-function averageBrightness(ctx, size) {
-  const data = ctx.getImageData(0,0,size,size).data;
+function averageBrightness(ctx, w, h) {
+  const data = ctx.getImageData(0,0,w,h).data;
   let sum = 0;
   for (let i=0;i<data.length;i+=4) sum += (data[i]+data[i+1]+data[i+2])/3;
   return sum / (data.length/4);
 }
+function smoothstep(e0, e1, x) {
+  const t = Math.min(Math.max((x-e0)/(e1-e0), 0), 1);
+  return t*t*(3-2*t);
+}
 
 let catalog = [];
-fetch('data/local_group_catalog.json').then(r=>r.json()).then(data => {
-  catalog = data.filter(g => g.distanceMpc <= HALF_WIDTH_MPC * 1.05);
+let l2Gray = null, l2W = 0, l2H = 0;
+
+Promise.all([
+  fetch('data/local_group_catalog.json').then(r=>r.json()),
+  new Promise((resolve) => {
+    const img = new Image();
+    img.src = 'data/density_l2.png';
+    img.onload = () => {
+      const off = document.createElement('canvas');
+      off.width = img.naturalWidth; off.height = img.naturalHeight;
+      const octx = off.getContext('2d');
+      octx.drawImage(img,0,0);
+      l2Gray = octx.getImageData(0,0,off.width, off.height);
+      l2W = off.width; l2H = off.height;
+      resolve();
+    };
+  })
+]).then(([cat]) => {
+  catalog = cat;
   drawAll();
 });
 
-// --- Vue gauche : KDE — somme de gaussiennes CENTRÉES AUX MÊMES POSITIONS
-// que les points de droite. Aucune autre source de données. ---
-function drawDensity() {
-  const canvas = document.getElementById('canvasDensity');
-  const ctx = canvas.getContext('2d');
-  if (!catalog.length) return;
-
+// Rend la KDE dans un canvas de taille size x size, pour un demi-champ donné (Mpc)
+function renderKde(size, halfWidthMpc) {
   const sigmaMpc = parseFloat(document.getElementById('sizeSlider').value);
   const amp = parseFloat(document.getElementById('ampSlider').value);
-  const pixelSizeMpc = (2*HALF_WIDTH_MPC) / GRID_N;
+  const n = KDE_GRID_N;
+  const pixelSizeMpc = (2*halfWidthMpc)/n;
+  const field = new Float64Array(n*n);
+  const visible = catalog.filter(g => g.distanceMpc <= halfWidthMpc*1.2);
 
-  const field = new Float64Array(GRID_N*GRID_N);
-  for (const gal of catalog) {
+  for (const gal of visible) {
     const rad = gal.angleDeg*Math.PI/180;
-    const gx = Math.cos(rad)*gal.distanceMpc;
-    const gy = Math.sin(rad)*gal.distanceMpc;
+    const gx = Math.cos(rad)*gal.distanceMpc, gy = Math.sin(rad)*gal.distanceMpc;
     const peakAmp = Math.log(1 + gal.brightness*amp);
-    // Limiter le calcul au voisinage de la galaxie (perf)
-    const spanPx = Math.ceil((sigmaMpc*4)/pixelSizeMpc);
-    const cx = Math.round(GRID_N/2 + gx/pixelSizeMpc);
-    const cy = Math.round(GRID_N/2 + gy/pixelSizeMpc);
-    for (let y=Math.max(0,cy-spanPx); y<Math.min(GRID_N,cy+spanPx); y++){
-      for (let x=Math.max(0,cx-spanPx); x<Math.min(GRID_N,cx+spanPx); x++){
-        const xMpc = (x-GRID_N/2)*pixelSizeMpc, yMpc = (y-GRID_N/2)*pixelSizeMpc;
-        const d2 = (xMpc-gx)**2 + (yMpc-gy)**2;
-        field[y*GRID_N+x] += peakAmp * Math.exp(-d2/(2*sigmaMpc*sigmaMpc));
+    const spanPx = Math.max(2, Math.ceil((sigmaMpc*4)/pixelSizeMpc));
+    const cx = Math.round(n/2 + gx/pixelSizeMpc), cy = Math.round(n/2 + gy/pixelSizeMpc);
+    for (let y=Math.max(0,cy-spanPx); y<Math.min(n,cy+spanPx); y++){
+      for (let x=Math.max(0,cx-spanPx); x<Math.min(n,cx+spanPx); x++){
+        const xMpc=(x-n/2)*pixelSizeMpc, yMpc=(y-n/2)*pixelSizeMpc;
+        const d2=(xMpc-gx)**2+(yMpc-gy)**2;
+        field[y*n+x] += peakAmp*Math.exp(-d2/(2*sigmaMpc*sigmaMpc));
       }
     }
   }
+  let vmax=0.05; for (let i=0;i<field.length;i++) if(field[i]>vmax) vmax=field[i];
 
-  let vmax = 0;
-  for (let i=0;i<field.length;i++) if (field[i]>vmax) vmax=field[i];
-  vmax = Math.max(vmax, 0.01);
-
-  const tmp = document.createElement('canvas');
-  tmp.width = GRID_N; tmp.height = GRID_N;
+  const tmp = document.createElement('canvas'); tmp.width=n; tmp.height=n;
   const tctx = tmp.getContext('2d');
-  const out = tctx.createImageData(GRID_N, GRID_N);
+  const out = tctx.createImageData(n,n);
   for (let i=0;i<field.length;i++){
     const v = field[i]/vmax;
     const [r,g,b] = colorForValue(v);
@@ -141,67 +164,99 @@ function drawDensity() {
   }
   tctx.putImageData(out,0,0);
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(tmp, 0, 0, canvas.width, canvas.height);
-  document.getElementById('statDensity').textContent = 'Moy. ' + averageBrightness(ctx, canvas.width).toFixed(0) + '/255';
+  const result = document.createElement('canvas'); result.width=size; result.height=size;
+  result.getContext('2d').drawImage(tmp,0,0,size,size);
+  return result;
 }
 
-// --- Vue droite : mêmes points, rendus en glow ponctuel ---
-function drawPoints() {
-  const canvas = document.getElementById('canvasPoints');
-  const ctx = canvas.getContext('2d');
-  const size = canvas.width;
-  ctx.clearRect(0,0,size,size);
-  ctx.fillStyle = 'rgb(0,0,0)';
-  ctx.fillRect(0,0,size,size);
-  if (!catalog.length) return;
+// Rend un crop colorisé de la texture L2 pour un demi-champ donné (Mpc), avec
+// un niveau de "grain" réglable (0 = complètement lissé vers sa moyenne locale, 1 = brut)
+function renderL2(size, halfWidthMpc, grain) {
+  const frac = Math.min(halfWidthMpc / L2_MAX_MPC, 1);
+  const cropSize = Math.max(2, Math.round(L2_TEXTURE_SIZE * frac));
+  const start = Math.round((L2_TEXTURE_SIZE - cropSize)/2);
 
-  const scale = size/2/HALF_WIDTH_MPC;
-  const originX = size/2, originY = size/2;
-  const sigmaMpc = parseFloat(document.getElementById('sizeSlider').value);
-  const amp = parseFloat(document.getElementById('ampSlider').value);
-  const glowEdge = parseFloat(document.getElementById('glowEdgeSlider').value);
-  const glowCenter = parseFloat(document.getElementById('glowCenterSlider').value);
-  const pos = parseFloat(document.getElementById('posSlider').value);
-  const glow = glowEdge + (glowCenter - glowEdge) * pos;
-
-  for (const gal of catalog) {
-    const rad = gal.angleDeg*Math.PI/180;
-    const x = originX + Math.cos(rad)*gal.distanceMpc*scale;
-    const y = originY + Math.sin(rad)*gal.distanceMpc*scale;
-    const rPx = sigmaMpc * scale * glow * 2.2; // ~ portée visuelle équivalente à la gaussienne (2.2 sigma)
-    if (x<-rPx || x>size+rPx || y<-rPx || y>size+rPx) continue;
-
-    const peak = Math.min(Math.log(1+gal.brightness*amp)/Math.log(1+amp), 1);
-    const [r,g,b] = colorForValue(peak);
-    const gradient = ctx.createRadialGradient(x,y,0,x,y,rPx);
-    gradient.addColorStop(0, `rgba(${r},${g},${b},0.95)`);
-    gradient.addColorStop(0.5, `rgba(${r},${g},${b},0.35)`);
-    gradient.addColorStop(1, `rgba(${r},${g},${b},0)`);
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(x,y,rPx,0,Math.PI*2);
-    ctx.fill();
+  const sharp = document.createElement('canvas'); sharp.width=size; sharp.height=size;
+  const sctx = sharp.getContext('2d');
+  const out = sctx.createImageData(size,size);
+  for (let y=0;y<size;y++){
+    for (let x=0;x<size;x++){
+      const srcX = start + Math.floor(x/size*cropSize);
+      const srcY = start + Math.floor(y/size*cropSize);
+      const v = l2Gray.data[(srcY*l2W+srcX)*4]/255;
+      const [r,g,b] = colorForValue(v);
+      const idx=(y*size+x)*4;
+      out.data[idx]=r; out.data[idx+1]=g; out.data[idx+2]=b; out.data[idx+3]=255;
+    }
   }
-  document.getElementById('statPoints').textContent = 'Moy. ' + averageBrightness(ctx, size).toFixed(0) + '/255';
+  sctx.putImageData(out,0,0);
+
+  if (grain >= 0.999) return sharp;
+
+  const blurred = document.createElement('canvas'); blurred.width=size; blurred.height=size;
+  const bctx = blurred.getContext('2d');
+  bctx.filter = `blur(${size*0.09}px)`;
+  bctx.drawImage(sharp, 0, 0);
+  bctx.filter = 'none';
+
+  const mixed = document.createElement('canvas'); mixed.width=size; mixed.height=size;
+  const mctx = mixed.getContext('2d');
+  mctx.drawImage(blurred, 0, 0);
+  mctx.globalAlpha = grain;
+  mctx.drawImage(sharp, 0, 0);
+  mctx.globalAlpha = 1;
+  return mixed;
 }
 
-function drawAll(){ drawDensity(); drawPoints(); }
+function drawAll() {
+  if (!catalog.length || !l2Gray) return;
 
-function bind(id, labelId, digits, onInput) {
+  const pos = parseFloat(document.getElementById('posSlider').value);
+  const edge = parseFloat(document.getElementById('edgeSlider').value);
+  const width = parseFloat(document.getElementById('widthSlider').value);
+  const grainMin = parseFloat(document.getElementById('grainSlider').value);
+
+  const wL2 = smoothstep(edge - width/2, edge + width/2, pos);
+  const wKde = 1 - wL2;
+  const grain = 1 - wKde * (1 - grainMin);
+
+  const blendCanvas = document.getElementById('canvasBlend');
+  const bctx = blendCanvas.getContext('2d');
+  const size = blendCanvas.width;
+  bctx.clearRect(0,0,size,size);
+
+  const l2Layer = renderL2(size, pos, grain);
+  const kdeLayer = renderKde(size, pos);
+
+  bctx.globalAlpha = wL2;
+  bctx.drawImage(l2Layer, 0, 0);
+  bctx.globalAlpha = wKde;
+  bctx.drawImage(kdeLayer, 0, 0);
+  bctx.globalAlpha = 1;
+
+  document.getElementById('statBlend').textContent =
+    `Poids KDE=${wKde.toFixed(2)} / L2=${wL2.toFixed(2)} — grain L2=${grain.toFixed(2)} — moy. ${averageBrightness(bctx,size,size).toFixed(0)}/255`;
+
+  const kdeRef = document.getElementById('canvasKde');
+  kdeRef.getContext('2d').drawImage(renderKde(kdeRef.width, REF_HALF_WIDTH), 0, 0);
+  const l2Ref = document.getElementById('canvasL2');
+  l2Ref.getContext('2d').drawImage(renderL2(l2Ref.width, REF_HALF_WIDTH, 1), 0, 0);
+}
+
+function bind(id, labelId, digits) {
   const el = document.getElementById(id);
   const label = document.getElementById(labelId);
   el.addEventListener('input', () => {
     label.textContent = parseFloat(el.value).toFixed(digits);
-    onInput();
+    drawAll();
   });
 }
-bind('sizeSlider','sizeVal',2, drawAll);
-bind('ampSlider','ampVal',1, drawAll);
-bind('glowEdgeSlider','glowEdgeVal',1, drawPoints);
-bind('glowCenterSlider','glowCenterVal',1, drawPoints);
-bind('posSlider','posVal',2, drawPoints);
+bind('posSlider','posVal',1);
+bind('edgeSlider','edgeVal',1);
+bind('widthSlider','widthVal',1);
+bind('grainSlider','grainVal',2);
+bind('sizeSlider','sizeVal',2);
+bind('ampSlider','ampVal',1);
 </script>
 </body>
 </html>
