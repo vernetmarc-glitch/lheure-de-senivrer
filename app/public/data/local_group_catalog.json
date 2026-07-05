@@ -1,0 +1,506 @@
+[
+  {
+    "name": "Androm\u00e8de (M31)",
+    "distanceMpc": 0.78,
+    "radiusMpc": 0.034,
+    "angleDeg": 20,
+    "brightness": 0.9,
+    "isReal": true
+  },
+  {
+    "name": "Triangulum (M33)",
+    "distanceMpc": 0.84,
+    "radiusMpc": 0.0092,
+    "angleDeg": 55,
+    "brightness": 0.7,
+    "isReal": true
+  },
+  {
+    "name": "Grand Nuage de Magellan",
+    "distanceMpc": 0.05,
+    "radiusMpc": 0.0022,
+    "angleDeg": 200,
+    "brightness": 0.75,
+    "isReal": true
+  },
+  {
+    "name": "Petit Nuage de Magellan",
+    "distanceMpc": 0.061,
+    "radiusMpc": 0.0011,
+    "angleDeg": 210,
+    "brightness": 0.65,
+    "isReal": true
+  },
+  {
+    "name": "Naine du Sagittaire",
+    "distanceMpc": 0.024,
+    "radiusMpc": 0.0015,
+    "angleDeg": 320,
+    "brightness": 0.5,
+    "isReal": true
+  },
+  {
+    "name": "NGC 6822",
+    "distanceMpc": 0.46,
+    "radiusMpc": 0.001,
+    "angleDeg": 110,
+    "brightness": 0.55,
+    "isReal": true
+  },
+  {
+    "name": "IC 10",
+    "distanceMpc": 0.66,
+    "radiusMpc": 0.0008,
+    "angleDeg": 150,
+    "brightness": 0.5,
+    "isReal": true
+  },
+  {
+    "name": "Leo I",
+    "distanceMpc": 0.82,
+    "radiusMpc": 0.0005,
+    "angleDeg": 290,
+    "brightness": 0.45,
+    "isReal": true
+  },
+  {
+    "name": null,
+    "distanceMpc": 9.811180969867976,
+    "radiusMpc": 0.0012159181408148022,
+    "angleDeg": 214.2035560145904,
+    "brightness": 0.7403340065343981,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 7.5084523809169,
+    "radiusMpc": 0.0007912268575267262,
+    "angleDeg": 64.09659732728888,
+    "brightness": 0.32894360380974813,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 9.06541433635708,
+    "radiusMpc": 0.0011218726187193007,
+    "angleDeg": 18.30863286194009,
+    "brightness": 0.6829010512907017,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 2.9337605398870537,
+    "radiusMpc": 0.0005328290613383808,
+    "angleDeg": 319.1805491143912,
+    "brightness": 0.6686613756042137,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 6.863936909994607,
+    "radiusMpc": 0.000881675206439302,
+    "angleDeg": 28.312181797980497,
+    "brightness": 0.5952783421881574,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 4.499941985105938,
+    "radiusMpc": 0.0013643581596429846,
+    "angleDeg": 27.23258405819967,
+    "brightness": 0.7445518798977686,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 6.198397888854678,
+    "radiusMpc": 0.0009773677229166422,
+    "angleDeg": 197.58728391288702,
+    "brightness": 0.32235777808187777,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 9.706882089620471,
+    "radiusMpc": 0.000518887207522728,
+    "angleDeg": 213.50381363749213,
+    "brightness": 0.6450047048430134,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 1.3596195266765982,
+    "radiusMpc": 0.0013692849112594359,
+    "angleDeg": 160.72411525958609,
+    "brightness": 0.6711731723031962,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 2.8813147407081345,
+    "radiusMpc": 0.0009811407214256201,
+    "angleDeg": 279.1520500022151,
+    "brightness": 0.3243632942921841,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 6.399668854731293,
+    "radiusMpc": 0.0014697374190277962,
+    "angleDeg": 136.95167374770313,
+    "brightness": 0.5562637049702313,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 1.5031502068520513,
+    "radiusMpc": 0.0008738606049465295,
+    "angleDeg": 68.35580371520608,
+    "brightness": 0.5470266826666648,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 7.081748687619496,
+    "radiusMpc": 0.0008636268211166078,
+    "angleDeg": 236.12576738077047,
+    "brightness": 0.7840559412502395,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 1.6290133965093039,
+    "radiusMpc": 0.0003849450867759079,
+    "angleDeg": 32.93901970956974,
+    "brightness": 0.3346483514015349,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 8.93929989663831,
+    "radiusMpc": 0.0006577187967585129,
+    "angleDeg": 320.2699701925207,
+    "brightness": 0.7099507054989562,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 5.151581505095643,
+    "radiusMpc": 0.0012842910075002588,
+    "angleDeg": 243.97216103773087,
+    "brightness": 0.4567304040551935,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 2.7452231963406275,
+    "radiusMpc": 0.00031566817699755584,
+    "angleDeg": 82.4157386641183,
+    "brightness": 0.4076586666612365,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 6.142029463256534,
+    "radiusMpc": 0.0011762235596117583,
+    "angleDeg": 218.02211151179628,
+    "brightness": 0.6247595042348426,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 4.938892076800215,
+    "radiusMpc": 0.0004708334508821384,
+    "angleDeg": 140.89723729155136,
+    "brightness": 0.42647510976308317,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 6.747533898557774,
+    "radiusMpc": 0.0005772845059939212,
+    "angleDeg": 325.1763095699807,
+    "brightness": 0.3584022475698538,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 9.239190205336719,
+    "radiusMpc": 0.0008288626393704206,
+    "angleDeg": 255.45571105235396,
+    "brightness": 0.5745920190646243,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 5.966255859055956,
+    "radiusMpc": 0.0008641547080157589,
+    "angleDeg": 161.97735530938263,
+    "brightness": 0.5521346778247771,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 3.9903514878869197,
+    "radiusMpc": 0.0005356723584171012,
+    "angleDeg": 127.01837241634723,
+    "brightness": 0.43449978994611854,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 2.2935357706682353,
+    "radiusMpc": 0.0014344224585117308,
+    "angleDeg": 305.59405146715966,
+    "brightness": 0.328157978221873,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 4.493450781560877,
+    "radiusMpc": 0.00043934510109752223,
+    "angleDeg": 49.84991532288472,
+    "brightness": 0.5691159188167376,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 7.947991432114932,
+    "radiusMpc": 0.0010975674773658038,
+    "angleDeg": 212.50877747877257,
+    "brightness": 0.33496578383531145,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 4.341348645949564,
+    "radiusMpc": 0.0013559769588368596,
+    "angleDeg": 41.76380837922182,
+    "brightness": 0.7672052755894008,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 1.9063999229846467,
+    "radiusMpc": 0.0010536871097378206,
+    "angleDeg": 346.38641826261,
+    "brightness": 0.6713126431292602,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 5.829475431324525,
+    "radiusMpc": 0.0008515247221654177,
+    "angleDeg": 41.782201805222996,
+    "brightness": 0.6594652517230379,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 1.9226704173416698,
+    "radiusMpc": 0.0008828205400223553,
+    "angleDeg": 349.06527686688764,
+    "brightness": 0.7186329478458648,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 8.061895274644023,
+    "radiusMpc": 0.001145891076720397,
+    "angleDeg": 310.7127111274773,
+    "brightness": 0.5179708873340609,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 7.259499574045747,
+    "radiusMpc": 0.0005171338972306402,
+    "angleDeg": 150.43766934785978,
+    "brightness": 0.5193975994282065,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 7.691342395331364,
+    "radiusMpc": 0.0006647193437317876,
+    "angleDeg": 105.83894470450902,
+    "brightness": 0.6968905427972232,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 1.0448386949431554,
+    "radiusMpc": 0.0005913462926461644,
+    "angleDeg": 60.991583839453945,
+    "brightness": 0.5416205708368813,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 3.3183026600437433,
+    "radiusMpc": 0.001238448500277478,
+    "angleDeg": 243.98562062357277,
+    "brightness": 0.7060038238540554,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 8.905889136750037,
+    "radiusMpc": 0.001037397308349638,
+    "angleDeg": 347.6410993328571,
+    "brightness": 0.6995865060918707,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 5.579734270068624,
+    "radiusMpc": 0.0010756965860801609,
+    "angleDeg": 359.77882539269,
+    "brightness": 0.6041839353624536,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 2.4017109404355765,
+    "radiusMpc": 0.0005485121418723876,
+    "angleDeg": 239.21825488439976,
+    "brightness": 0.4399354798510075,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 4.973652309858133,
+    "radiusMpc": 0.0011545121478680465,
+    "angleDeg": 128.07817385002627,
+    "brightness": 0.4507589550871247,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 9.024930549126898,
+    "radiusMpc": 0.0009735321648656832,
+    "angleDeg": 196.78241857210637,
+    "brightness": 0.7531968808088034,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 8.555456414507116,
+    "radiusMpc": 0.0008199417262759407,
+    "angleDeg": 245.38669106322433,
+    "brightness": 0.4776201589037699,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 6.954449309393917,
+    "radiusMpc": 0.0006345266242505107,
+    "angleDeg": 254.9843731697987,
+    "brightness": 0.6614041866655918,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 8.003735290371592,
+    "radiusMpc": 0.001259517094713471,
+    "angleDeg": 70.26640787713208,
+    "brightness": 0.7569837520959761,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 1.4721191641936824,
+    "radiusMpc": 0.0009453282317571684,
+    "angleDeg": 36.645178423501875,
+    "brightness": 0.3139914231186621,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 4.439622289081723,
+    "radiusMpc": 0.0004227857929283256,
+    "angleDeg": 26.484152737490056,
+    "brightness": 0.37250310070081327,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 1.608915295475755,
+    "radiusMpc": 0.0006793869998324433,
+    "angleDeg": 260.8979083711122,
+    "brightness": 0.5297050324033665,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 9.685463382532001,
+    "radiusMpc": 0.0007906758899369195,
+    "angleDeg": 5.230983619398302,
+    "brightness": 0.7919437712582464,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 4.660277103752174,
+    "radiusMpc": 0.0009733813813011343,
+    "angleDeg": 27.491530698603746,
+    "brightness": 0.3511813213840018,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 8.408293391086723,
+    "radiusMpc": 0.0005320924371475316,
+    "angleDeg": 209.69693493773042,
+    "brightness": 0.3813878390657019,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 6.673821987999469,
+    "radiusMpc": 0.0009994468794479227,
+    "angleDeg": 62.81385714654953,
+    "brightness": 0.3978216698602625,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 5.303793505944103,
+    "radiusMpc": 0.0013577906554450468,
+    "angleDeg": 26.567168135691833,
+    "brightness": 0.7436110966903662,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 6.698436145004585,
+    "radiusMpc": 0.0010041417110911864,
+    "angleDeg": 62.67729615847452,
+    "brightness": 0.398283193601608,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 8.067940429237776,
+    "radiusMpc": 0.0009561300146023364,
+    "angleDeg": 224.60993868166622,
+    "brightness": 0.5544090910261348,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 4.860989712082855,
+    "radiusMpc": 0.0007993777885752756,
+    "angleDeg": 92.11689024840167,
+    "brightness": 0.49798390111649754,
+    "isReal": false
+  },
+  {
+    "name": null,
+    "distanceMpc": 8.041925301519882,
+    "radiusMpc": 0.00043950426708695277,
+    "angleDeg": 104.2766259268585,
+    "brightness": 0.6665536762698341,
+    "isReal": false
+  }
+]
