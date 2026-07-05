@@ -264,7 +264,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 48 }}>
         <span style={{ fontSize: 10, color: '#999', writingMode: 'vertical-rl', marginBottom: 4 }}>zoom +</span>
-        <div style={{ width: 40, height: 460, position: 'relative' }}>
+        <div style={{ width: 40, height: 460, position: 'relative', touchAction: 'none' }}>
           <input
             type="range"
             min={Math.log10(MIN_HALF_WIDTH_MPC)}
@@ -280,6 +280,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
               left: '50%',
               transform: 'translate(-50%, -50%) rotate(90deg)',
               margin: 0,
+              touchAction: 'none',
             }}
           />
         </div>
