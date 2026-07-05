@@ -206,6 +206,21 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
               display: 'block',
             }}
           />
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 8,
+              left: 10,
+              fontSize: 11,
+              color: layer.color,
+              background: 'rgba(0,0,0,0.45)',
+              padding: '2px 8px',
+              borderRadius: 4,
+              pointerEvents: 'none',
+            }}
+          >
+            {layer.name}
+          </div>
         </div>
 
         <div style={{ marginTop: 12, maxWidth: 640 }}>
@@ -261,9 +276,6 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           />
         </div>
         <span style={{ fontSize: 10, color: '#999', writingMode: 'vertical-rl', marginTop: 4 }}>zoom −</span>
-        <div style={{ fontSize: 10, color: layer.color, textAlign: 'center', marginTop: 8, writingMode: 'vertical-rl' }}>
-          {layer.name}
-        </div>
       </div>
     </div>
   )
