@@ -4,7 +4,6 @@ import { buildLookupTable, type DensityStyle } from './colormaps'
 interface DensityLayerProps {
   style: DensityStyle
   opacity: number // 0-1, "présence" du fond
-  size: number // taille d'affichage en pixels (carré)
 }
 
 /**
@@ -15,7 +14,7 @@ interface DensityLayerProps {
  * entièrement côté client à chaque changement de style — pas de round-trip
  * serveur, changement instantané.
  */
-export default function DensityLayer({ style, opacity, size }: DensityLayerProps) {
+export default function DensityLayer({ style, opacity }: DensityLayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const grayDataRef = useRef<ImageData | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -66,8 +65,8 @@ export default function DensityLayer({ style, opacity, size }: DensityLayerProps
         position: 'absolute',
         top: 0,
         left: 0,
-        width: size,
-        height: size,
+        width: '100%',
+        height: '100%',
         opacity,
         borderRadius: 8,
       }}
