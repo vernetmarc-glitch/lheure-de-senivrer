@@ -115,6 +115,31 @@ def export_layer_png(log_density, vmin, vmax, path):
     Image.fromarray(img_data, mode="L").save(path)
 
 
+def apply_local_group_anchor(field, max_mpc, n, anchor_radius_mpc=3.0, overdensity_factor=1.7):
+    """Force la région centrale de L2 (rayon = taille réelle du Groupe Local,
+    ~3 Mpc) à converger vers une densité cible reflétant la légère surdensité
+    connue de notre environnement local, au lieu de laisser le champ aléatoire
+    décider seul à cet endroit. Transition lisse (smoothstep), aucun effet
+    au-delà de ~1.3x le rayon d'ancrage.
+
+    Le facteur de surdensité (1.7x la densité moyenne) est une estimation
+    illustrative — le Groupe Local est modeste comparé à un amas riche
+    (Coma, Virgo), mais plus dense que la moyenne cosmique. Ajustable si le
+    rendu ne convainc pas visuellement.
+    """
+    pixel_size_mpc = (2 * max_mpc) / n
+    yy, xx = np.indices((n, n))
+    cx, cy = n / 2, n / 2
+    r_mpc = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2) * pixel_size_mpc
+
+    fade_end = anchor_radius_mpc * 1.3
+    t = np.clip((fade_end - r_mpc) / (fade_end - anchor_radius_mpc), 0, 1)
+    weight = t * t * (3 - 2 * t)  # smoothstep, 1 au centre, 0 au-dela de fade_end
+
+    target_value = np.log(overdensity_factor) + field.var() / 2.0
+    return field * (1 - weight) + target_value * weight
+
+
 def main():
     fields = {}
     prev_spec = None
@@ -133,6 +158,9 @@ def main():
                 N, 2 * spec["max_mpc"], spec["seed"], highpass_k=k_transition
             )
             field = normalize_variance(coarse_trend) * 0.6 + normalize_variance(detail) * 0.9
+
+        if spec["key"] == "l2":
+            field = apply_local_group_anchor(field, spec["max_mpc"], N)
 
         fields[spec["key"]] = field
         prev_spec = spec
