@@ -60,7 +60,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [logHalfWidth, setLogHalfWidth] = useState(Math.log10(MAX_HALF_WIDTH_MPC))
   const [densityStyle, setDensityStyle] = useState<DensityStyle>('astro')
-  const [densityPresence, setDensityPresence] = useState(0.45) // "moins lumineux" par défaut
+  const [densityPresence, setDensityPresence] = useState(1.0)
   const halfWidthMpc = Math.pow(10, logHalfWidth)
   const layer = activeLayer(halfWidthMpc)
   const dilution = densityDilutionFactor(cosmology.a)
