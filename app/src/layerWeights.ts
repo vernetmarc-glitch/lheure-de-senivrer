@@ -9,9 +9,11 @@ export const LAYER_ORDER = ['milkyway', 'localgroup', 'l2', 'l3', 'l4', 'l4b', '
 export type LayerKey = (typeof LAYER_ORDER)[number]
 
 // Frontières (Mpc comobiles) entre layers consécutifs, dans l'ordre de LAYER_ORDER.
-// 0.1 Mpc : la Voie lactée (rayon ~0,016 Mpc) cède la place aux galaxies voisines
-// du Groupe Local (Andromède, M33, etc., réparties jusqu'à ~1 Mpc).
-export const LAYER_EDGES_MPC = [0.1, 3, 30, 150, 300, 2100]
+// 0.1 Mpc : la Voie lactée cède la place aux galaxies du Groupe Local.
+// 10 Mpc (et non 3, la taille réelle du Groupe Local) : laisse de la place à une
+// population procédurale complémentaire de galaxies (1-10 Mpc) qui prolonge la
+// visibilité de galaxies individuelles avant de basculer sur le champ continu L2.
+export const LAYER_EDGES_MPC = [0.1, 10, 30, 150, 300, 2100]
 
 const FADE_WIDTH_DEX = 0.15 // largeur de la zone de fondu, en décades (log10)
 
