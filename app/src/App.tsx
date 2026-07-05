@@ -7,6 +7,7 @@ import {
   minAgeGyr,
   type CosmologyTable,
 } from './cosmology'
+import UniverseMap from './UniverseMap'
 
 function fmt(n: number, digits = 3): string {
   if (Math.abs(n) >= 1000) return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })
@@ -14,6 +15,7 @@ function fmt(n: number, digits = 3): string {
 }
 
 export default function App() {
+  const [tab, setTab] = useState<'carte' | 'diagnostic'>('carte')
   const [table, setTable] = useState<CosmologyTable | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [tGyr, setTGyr] = useState(13.8)
@@ -53,79 +55,120 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: 'system-ui, sans-serif', color: '#eee', background: '#05050a', minHeight: '100vh', padding: 24 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600 }}>Carte de l'univers observable — Phase 1 : moteur cosmologique</h1>
-      <p style={{ color: '#999', maxWidth: 640, fontSize: 14 }}>
-        Outil de debug pour valider le moteur cosmologique avant de construire le rendu final de la carte
-        (grille comobile, zoom, layers de densité). Comparez les valeurs ci-dessous à celles du document
-        d'architecture (§3.4 et §3.6).
-      </p>
+      <h1 style={{ fontSize: 20, fontWeight: 600 }}>Carte de l'univers observable</h1>
 
-      <div style={{ margin: '24px 0' }}>
-        <label style={{ display: 'block', marginBottom: 8, fontSize: 14 }}>
-          Curseur temporel — âge de l'univers : <strong>{fmt(tGyr, 4)} Ga</strong> (z = {fmt(state.z, 3)})
-        </label>
-        <input
-          type="range"
-          min={tMin}
-          max={tMax}
-          step={(tMax - tMin) / 2000}
-          value={tGyr}
-          onChange={(e) => setTGyr(Number(e.target.value))}
-          style={{ width: '100%', maxWidth: 640 }}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', maxWidth: 640, fontSize: 11, color: '#777' }}>
-          <span>Recombinaison ({fmt(tMin, 5)} Ga)</span>
-          <span>Aujourd'hui ({fmt(tMax, 3)} Ga)</span>
-        </div>
+      <div style={{ display: 'flex', gap: 8, margin: '12px 0 20px' }}>
+        <TabButton active={tab === 'carte'} onClick={() => setTab('carte')}>
+          Carte (Phase 2)
+        </TabButton>
+        <TabButton active={tab === 'diagnostic'} onClick={() => setTab('diagnostic')}>
+          Diagnostic cosmologique (Phase 1)
+        </TabButton>
       </div>
 
-      <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-        <table style={{ borderCollapse: 'collapse', fontSize: 13 }}>
-          <tbody>
-            <Row label="Facteur d'échelle a(t)" value={state.a.toExponential(4)} />
-            <Row label="Redshift z" value={fmt(state.z, 3)} />
-            <Row label="Dilution densité (1/a³)" value={fmt(densityDilutionFactor(state.a), 2)} />
-            <SectionRow label="Horizon des particules" />
-            <Row label="Rayon comobile" value={`${fmt(state.chiParticleComovingMpc)} Mpc`} />
-            <Row label="Rayon propre (distance actuelle)" value={`${fmt(state.chiParticleProperGly, 3)} Gal`} />
-            <SectionRow label="Sphère de Hubble" />
-            <Row label="Rayon comobile" value={`${fmt(state.rHubbleComovingMpc)} Mpc`} />
-            <Row label="Rayon propre" value={`${fmt(state.rHubbleProperGly, 3)} Gal`} />
-            <SectionRow label="Horizon des événements" />
-            <Row label="Rayon comobile" value={`${fmt(state.chiEventComovingMpc)} Mpc`} />
-            <Row label="Rayon propre" value={`${fmt(state.chiEventProperGly, 3)} Gal`} />
-          </tbody>
-        </table>
-
+      {tab === 'carte' && (
         <div>
-          <svg width={svgSize} height={svgSize} style={{ background: '#0a0a14', borderRadius: 8 }}>
-            <circle cx={svgSize / 2} cy={svgSize / 2} r={2} fill="#fff" />
-            {spheres.map((s) => (
-              <circle
-                key={s.label}
-                cx={svgSize / 2}
-                cy={svgSize / 2}
-                r={Math.max(s.radius * scale, 1)}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={1.5}
-              />
-            ))}
-          </svg>
-          <div style={{ fontSize: 11, marginTop: 8 }}>
-            {spheres.map((s) => (
-              <div key={s.label} style={{ color: s.color }}>
-                ● {s.label}
-              </div>
-            ))}
-          </div>
-          <p style={{ fontSize: 11, color: '#666', maxWidth: 320 }}>
-            Aperçu à échelle relative (auto-ajustée), pas encore la grille comobile fixe finale —
-            ce sera l'objet de la Phase 2.
+          <p style={{ color: '#999', maxWidth: 640, fontSize: 14, marginTop: 0 }}>
+            Grille comobile fixe — le temps est figé à aujourd'hui pour l'instant (curseur temporel à venir
+            en Phase 3). Zoomez pour parcourir les échelles, du Groupe Local jusqu'à l'univers observable.
           </p>
+          <UniverseMap />
         </div>
-      </div>
+      )}
+
+      {tab === 'diagnostic' && (
+        <div>
+          <p style={{ color: '#999', maxWidth: 640, fontSize: 14, marginTop: 0 }}>
+            Outil de debug pour valider le moteur cosmologique. Comparez les valeurs ci-dessous à celles du
+            document d'architecture (§3.4 et §3.6).
+          </p>
+
+          <div style={{ margin: '24px 0' }}>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 14 }}>
+              Curseur temporel — âge de l'univers : <strong>{fmt(tGyr, 4)} Ga</strong> (z = {fmt(state.z, 3)})
+            </label>
+            <input
+              type="range"
+              min={tMin}
+              max={tMax}
+              step={(tMax - tMin) / 2000}
+              value={tGyr}
+              onChange={(e) => setTGyr(Number(e.target.value))}
+              style={{ width: '100%', maxWidth: 640 }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', maxWidth: 640, fontSize: 11, color: '#777' }}>
+              <span>Recombinaison ({fmt(tMin, 5)} Ga)</span>
+              <span>Aujourd'hui ({fmt(tMax, 3)} Ga)</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+            <table style={{ borderCollapse: 'collapse', fontSize: 13 }}>
+              <tbody>
+                <Row label="Facteur d'échelle a(t)" value={state.a.toExponential(4)} />
+                <Row label="Redshift z" value={fmt(state.z, 3)} />
+                <Row label="Dilution densité (1/a³)" value={fmt(densityDilutionFactor(state.a), 2)} />
+                <SectionRow label="Horizon des particules" />
+                <Row label="Rayon comobile" value={`${fmt(state.chiParticleComovingMpc)} Mpc`} />
+                <Row label="Rayon propre (distance actuelle)" value={`${fmt(state.chiParticleProperGly, 3)} Gal`} />
+                <SectionRow label="Sphère de Hubble" />
+                <Row label="Rayon comobile" value={`${fmt(state.rHubbleComovingMpc)} Mpc`} />
+                <Row label="Rayon propre" value={`${fmt(state.rHubbleProperGly, 3)} Gal`} />
+                <SectionRow label="Horizon des événements" />
+                <Row label="Rayon comobile" value={`${fmt(state.chiEventComovingMpc)} Mpc`} />
+                <Row label="Rayon propre" value={`${fmt(state.chiEventProperGly, 3)} Gal`} />
+              </tbody>
+            </table>
+
+            <div>
+              <svg width={svgSize} height={svgSize} style={{ background: '#0a0a14', borderRadius: 8 }}>
+                <circle cx={svgSize / 2} cy={svgSize / 2} r={2} fill="#fff" />
+                {spheres.map((s) => (
+                  <circle
+                    key={s.label}
+                    cx={svgSize / 2}
+                    cy={svgSize / 2}
+                    r={Math.max(s.radius * scale, 1)}
+                    fill="none"
+                    stroke={s.color}
+                    strokeWidth={1.5}
+                  />
+                ))}
+              </svg>
+              <div style={{ fontSize: 11, marginTop: 8 }}>
+                {spheres.map((s) => (
+                  <div key={s.label} style={{ color: s.color }}>
+                    ● {s.label}
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: 11, color: '#666', maxWidth: 320 }}>
+                Aperçu à échelle relative (auto-ajustée), pas la grille comobile fixe (voir l'onglet Carte).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: active ? '#2a2a3a' : 'transparent',
+        color: active ? '#fff' : '#999',
+        border: '1px solid #333',
+        borderRadius: 6,
+        padding: '6px 14px',
+        fontSize: 13,
+        cursor: 'pointer',
+      }}
+    >
+      {children}
+    </button>
   )
 }
 
