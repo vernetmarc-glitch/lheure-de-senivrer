@@ -18,6 +18,7 @@ lui être indépendant — exactement l'exigence d'héritage du projet.
 import numpy as np
 from PIL import Image
 from scipy.ndimage import zoom as ndi_zoom
+from generate_local_group_catalog import build_catalog
 
 OMEGA_M = 0.315
 H = 0.674
@@ -115,17 +116,37 @@ def export_layer_png(log_density, vmin, vmax, path):
     Image.fromarray(img_data, mode="L").save(path)
 
 
-def apply_local_group_anchor(field, max_mpc, n, anchor_radius_mpc=3.0, overdensity_factor=1.7):
-    """Force la région centrale de L2 (rayon = taille réelle du Groupe Local,
-    ~3 Mpc) à converger vers une densité cible reflétant la légère surdensité
-    connue de notre environnement local, au lieu de laisser le champ aléatoire
-    décider seul à cet endroit. Transition lisse (smoothstep), aucun effet
-    au-delà de ~1.3x le rayon d'ancrage.
+def build_structured_anchor_field(catalog, max_mpc, n):
+    """Construit un champ 2D avec une bosse de densité (gaussienne) à la
+    position de chaque galaxie du catalogue, au lieu d'une simple valeur
+    constante — pour que L2 reproduise la STRUCTURE (les pics de densité
+    locaux) du Groupe Local, pas seulement sa densité moyenne."""
+    pixel_size_mpc = (2 * max_mpc) / n
+    yy, xx = np.indices((n, n))
+    cx, cy = n / 2, n / 2
+    x_mpc = (xx - cx) * pixel_size_mpc
+    y_mpc = (yy - cy) * pixel_size_mpc
 
-    Le facteur de surdensité (1.7x la densité moyenne) est une estimation
-    illustrative — le Groupe Local est modeste comparé à un amas riche
-    (Coma, Virgo), mais plus dense que la moyenne cosmique. Ajustable si le
-    rendu ne convainc pas visuellement.
+    field = np.zeros((n, n))
+    for gal in catalog:
+        angle_rad = np.radians(gal["angleDeg"])
+        gx = np.cos(angle_rad) * gal["distanceMpc"]
+        gy = np.sin(angle_rad) * gal["distanceMpc"]
+        # Largeur de la bosse : plus grande qu'un pixel pour rester visible/lisse,
+        # modulée par la "brillance" (les objets plus brillants ont une influence
+        # un peu plus étendue, sans que ce soit une vraie taille physique).
+        sigma_mpc = 0.25 + gal["brightness"] * 0.25
+        peak_factor = 1.0 + gal["brightness"] * 4.0  # contraste local visé
+        amplitude = np.log(peak_factor)
+        field += amplitude * np.exp(-((x_mpc - gx) ** 2 + (y_mpc - gy) ** 2) / (2 * sigma_mpc ** 2))
+    return field
+
+
+def apply_local_group_anchor(field, max_mpc, n, catalog, anchor_radius_mpc=10.0):
+    """Force la région centrale de L2 (jusqu'à ~10 Mpc, cf. layerWeights.ts) à
+    suivre la structure du catalogue de galaxies du Groupe Local (positions
+    réelles + population procédurale complémentaire), avec une transition
+    lisse (smoothstep) vers le champ purement statistique au-delà.
     """
     pixel_size_mpc = (2 * max_mpc) / n
     yy, xx = np.indices((n, n))
@@ -134,10 +155,10 @@ def apply_local_group_anchor(field, max_mpc, n, anchor_radius_mpc=3.0, overdensi
 
     fade_end = anchor_radius_mpc * 1.3
     t = np.clip((fade_end - r_mpc) / (fade_end - anchor_radius_mpc), 0, 1)
-    weight = t * t * (3 - 2 * t)  # smoothstep, 1 au centre, 0 au-dela de fade_end
+    weight = t * t * (3 - 2 * t)
 
-    target_value = np.log(overdensity_factor) + field.var() / 2.0
-    return field * (1 - weight) + target_value * weight
+    structured_target = build_structured_anchor_field(catalog, max_mpc, n)
+    return field * (1 - weight) + structured_target * weight
 
 
 def main():
@@ -160,7 +181,8 @@ def main():
             field = normalize_variance(coarse_trend) * 0.6 + normalize_variance(detail) * 0.9
 
         if spec["key"] == "l2":
-            field = apply_local_group_anchor(field, spec["max_mpc"], N)
+            catalog = build_catalog()
+            field = apply_local_group_anchor(field, spec["max_mpc"], N, catalog)
 
         fields[spec["key"]] = field
         prev_spec = spec
