@@ -118,9 +118,11 @@ def export_layer_png(log_density, vmin, vmax, path):
 
 def build_structured_anchor_field(catalog, max_mpc, n):
     """Construit un champ 2D avec une bosse de densité (gaussienne) à la
-    position de chaque galaxie du catalogue, au lieu d'une simple valeur
-    constante — pour que L2 reproduise la STRUCTURE (les pics de densité
-    locaux) du Groupe Local, pas seulement sa densité moyenne."""
+    position de chaque galaxie du catalogue. Chaque bosse est localisée
+    (naturellement quasi nulle loin de son centre) : pas besoin de masque
+    radial global, le champ résultant est déjà nul au-delà de ~10 Mpc (portée
+    du catalogue), donc pas de frontière circulaire artificielle.
+    """
     pixel_size_mpc = (2 * max_mpc) / n
     yy, xx = np.indices((n, n))
     cx, cy = n / 2, n / 2
@@ -132,33 +134,26 @@ def build_structured_anchor_field(catalog, max_mpc, n):
         angle_rad = np.radians(gal["angleDeg"])
         gx = np.cos(angle_rad) * gal["distanceMpc"]
         gy = np.sin(angle_rad) * gal["distanceMpc"]
-        # Largeur de la bosse : plus grande qu'un pixel pour rester visible/lisse,
-        # modulée par la "brillance" (les objets plus brillants ont une influence
-        # un peu plus étendue, sans que ce soit une vraie taille physique).
-        sigma_mpc = 0.25 + gal["brightness"] * 0.25
-        peak_factor = 1.0 + gal["brightness"] * 4.0  # contraste local visé
+        # Sigma réduit (0.08-0.15 Mpc, contre 0.25-0.5 avant) : rapproche la
+        # taille apparente de ces bosses de celle des vraies galaxies rendues
+        # sur le layer Groupe Local, pour limiter le saut de taille à la
+        # transition entre les deux layers.
+        sigma_mpc = 0.08 + gal["brightness"] * 0.07
+        peak_factor = 1.0 + gal["brightness"] * 4.0
         amplitude = np.log(peak_factor)
         field += amplitude * np.exp(-((x_mpc - gx) ** 2 + (y_mpc - gy) ** 2) / (2 * sigma_mpc ** 2))
     return field
 
 
-def apply_local_group_anchor(field, max_mpc, n, catalog, anchor_radius_mpc=10.0):
-    """Force la région centrale de L2 (jusqu'à ~10 Mpc, cf. layerWeights.ts) à
-    suivre la structure du catalogue de galaxies du Groupe Local (positions
-    réelles + population procédurale complémentaire), avec une transition
-    lisse (smoothstep) vers le champ purement statistique au-delà.
+def apply_local_group_anchor(field, max_mpc, n, catalog):
+    """Ajoute les bosses de densité du catalogue PAR-DESSUS le champ aléatoire
+    existant (additif), au lieu de le remplacer. Le bruit fin d'origine reste
+    donc présent partout, y compris entre les bosses — même "finesse" de
+    texture qu'en périphérie, avec juste des pics supplémentaires localisés
+    aux positions réelles/procédurales du catalogue.
     """
-    pixel_size_mpc = (2 * max_mpc) / n
-    yy, xx = np.indices((n, n))
-    cx, cy = n / 2, n / 2
-    r_mpc = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2) * pixel_size_mpc
-
-    fade_end = anchor_radius_mpc * 1.3
-    t = np.clip((fade_end - r_mpc) / (fade_end - anchor_radius_mpc), 0, 1)
-    weight = t * t * (3 - 2 * t)
-
     structured_target = build_structured_anchor_field(catalog, max_mpc, n)
-    return field * (1 - weight) + structured_target * weight
+    return field + structured_target
 
 
 def main():
