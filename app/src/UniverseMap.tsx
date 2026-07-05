@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { densityDilutionFactor, type CosmologyState } from './cosmology'
+import DensityLayer from './DensityLayer'
+import { DENSITY_STYLE_LABELS, type DensityStyle } from './colormaps'
 
 /**
  * Phase 2 (grille comobile + zoom) + Phase 3 (temps + effets d'expansion).
@@ -57,6 +59,8 @@ interface UniverseMapProps {
 export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange }: UniverseMapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [logHalfWidth, setLogHalfWidth] = useState(Math.log10(MAX_HALF_WIDTH_MPC))
+  const [densityStyle, setDensityStyle] = useState<DensityStyle>('astro')
+  const [densityPresence, setDensityPresence] = useState(0.45) // "moins lumineux" par défaut
   const halfWidthMpc = Math.pow(10, logHalfWidth)
   const layer = activeLayer(halfWidthMpc)
   const dilution = densityDilutionFactor(cosmology.a)
@@ -89,8 +93,11 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
     const cx = size / 2
     const cy = size / 2
 
-    const densityGlow = Math.min(0.10, 0.015 * Math.log10(dilution + 1))
-    ctx.fillStyle = `rgb(${5 + densityGlow * 400}, ${5 + densityGlow * 300}, ${10 + densityGlow * 500})`
+    // Fond transparent : la couche de densité (DensityLayer) est affichée en dessous.
+    // On garde juste une très légère brume, modulée par la dilution, pour le confort visuel.
+    ctx.clearRect(0, 0, size, size)
+    const densityGlow = Math.min(0.08, 0.012 * Math.log10(dilution + 1))
+    ctx.fillStyle = `rgba(10, 10, 20, ${0.15 + densityGlow})`
     ctx.fillRect(0, 0, size, size)
 
     ctx.strokeStyle = 'rgba(255,255,255,0.12)'
@@ -148,12 +155,55 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <canvas
-          ref={canvasRef}
-          width={640}
-          height={640}
-          style={{ width: '100%', maxWidth: 640, aspectRatio: '1/1', borderRadius: 8, touchAction: 'none', display: 'block' }}
-        />
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, color: '#999' }}>Style :</span>
+          {(Object.keys(DENSITY_STYLE_LABELS) as DensityStyle[]).map((s) => (
+            <button
+              key={s}
+              onClick={() => setDensityStyle(s)}
+              style={{
+                background: densityStyle === s ? '#2a2a3a' : 'transparent',
+                color: densityStyle === s ? '#fff' : '#999',
+                border: '1px solid #333',
+                borderRadius: 6,
+                padding: '3px 10px',
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              {DENSITY_STYLE_LABELS[s]}
+            </button>
+          ))}
+          <span style={{ fontSize: 11, color: '#999', marginLeft: 12 }}>Présence du fond :</span>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.02}
+            value={densityPresence}
+            onChange={(e) => setDensityPresence(Number(e.target.value))}
+            style={{ width: 100 }}
+          />
+        </div>
+
+        <div style={{ position: 'relative', width: '100%', maxWidth: 640, aspectRatio: '1/1' }}>
+          <DensityLayer style={densityStyle} opacity={densityPresence} size={640} />
+          <canvas
+            ref={canvasRef}
+            width={640}
+            height={640}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              borderRadius: 8,
+              touchAction: 'none',
+              display: 'block',
+            }}
+          />
+        </div>
 
         <div style={{ marginTop: 12, maxWidth: 640 }}>
           <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>
@@ -177,6 +227,10 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
             1 case de grille ({formatDistance(gridStepMpc)} comobiles) représentait alors une distance physique
             réelle de <strong>{gridStepPhysicalGly < 0.001 ? (gridStepPhysicalGly * 1e6).toFixed(0) + ' al' : gridStepPhysicalGly.toFixed(4) + ' Gal'}</strong>{' '}
             — dilution de densité ×{dilution.toLocaleString('fr-FR', { maximumFractionDigits: dilution > 100 ? 0 : 1 })} par rapport à aujourd'hui.
+          </p>
+          <p style={{ fontSize: 10, color: '#555' }}>
+            Note : le fond de densité affiché ici est un champ de démonstration unique (échelle « Toile
+            cosmique »), pas encore lié au zoom ni aux 5 layers — ce sera la suite de la Phase 4.
           </p>
         </div>
       </div>
