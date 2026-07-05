@@ -24,7 +24,7 @@ NEARBY_GALAXIES = [
 ]
 
 
-def generate_field_galaxies(seed=20260705, count=55):
+def generate_field_galaxies(seed=20260705, count=90):
     rng = np.random.default_rng(seed)
     galaxies = []
     for _ in range(count):
