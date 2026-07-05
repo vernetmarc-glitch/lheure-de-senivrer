@@ -187,7 +187,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
         </div>
 
         <div style={{ position: 'relative', width: '100%', maxWidth: 640, aspectRatio: '1/1' }}>
-          <DensityLayer style={densityStyle} opacity={densityPresence} />
+          <DensityLayer style={densityStyle} opacity={densityPresence} halfWidthMpc={halfWidthMpc} />
           <canvas
             ref={canvasRef}
             width={640}
@@ -229,8 +229,9 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
             — dilution de densité ×{dilution.toLocaleString('fr-FR', { maximumFractionDigits: dilution > 100 ? 0 : 1 })} par rapport à aujourd'hui.
           </p>
           <p style={{ fontSize: 10, color: '#555' }}>
-            Note : le fond de densité affiché ici est un champ de démonstration unique (échelle « Toile
-            cosmique »), pas encore lié au zoom ni aux 5 layers — ce sera la suite de la Phase 4.
+            4 layers procéduraux (héritage hiérarchique entre échelles) avec fondu au zoom sur les
+            frontières d'échelle. Le layer 1 (local) n'est pas encore procédural. Le temps n'affecte pas
+            encore visuellement la densité — prochaine étape.
           </p>
         </div>
       </div>
