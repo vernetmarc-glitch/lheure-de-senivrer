@@ -69,10 +69,11 @@ export default function App() {
       {tab === 'carte' && (
         <div>
           <p style={{ color: '#999', maxWidth: 640, fontSize: 14, marginTop: 0 }}>
-            Grille comobile fixe — le temps est figé à aujourd'hui pour l'instant (curseur temporel à venir
-            en Phase 3). Zoomez pour parcourir les échelles, du Groupe Local jusqu'à l'univers observable.
+            Grille comobile fixe. Zoom vertical à droite, curseur temporel horizontal sous la carte —
+            observez le cercle de l'horizon des particules grandir et la densité se diluer en remontant
+            le temps.
           </p>
-          <UniverseMap />
+          <UniverseMap cosmology={state} tGyr={tGyr} tMin={tMin} tMax={tMax} onTimeChange={setTGyr} />
         </div>
       )}
 
