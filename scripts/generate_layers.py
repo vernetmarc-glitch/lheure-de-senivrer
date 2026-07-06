@@ -25,7 +25,7 @@ H = 0.674
 NS = 0.965
 GAMMA = OMEGA_M * H
 
-N = 512  # résolution commune à tous les layers
+N = 768  # 512 * 1.5 (MARGIN_FACTOR) : compense exactement la marge pour garder la même finesse de détail qu'avant son ajout
 
 # Marge de sécurité : les textures sont générées avec une étendue physique
 # plus grande que leur frontière "logique" (utilisée pour le poids des layers
