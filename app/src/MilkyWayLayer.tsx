@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { getLayerWeights } from './layerWeights'
 import { colorForValue, type DensityStyle } from './colormaps'
 import { onGalaxyReady, type GalaxyStar, type GalaxyModelApi } from './galaxyModelLoader'
+import { generateNearbyGalaxyStars } from './nearbyGalaxyStars'
+import { useRealGalaxyCatalog } from './useRealGalaxyCatalog'
 
 const LY_PER_MPC = 3.26156e6
 
@@ -20,6 +22,7 @@ export default function MilkyWayLayer({ halfWidthMpc, opacity, style, width, hei
   const gmRef = useRef<GalaxyModelApi | null>(null)
   const rafRef = useRef<number | null>(null)
   const [ready, setReady] = useState(false)
+  const catalog = useRealGalaxyCatalog()
 
   useEffect(() => {
     return onGalaxyReady((stars, gm) => {
@@ -74,12 +77,49 @@ export default function MilkyWayLayer({ halfWidthMpc, opacity, style, width, hei
         ctx.fill()
       }
       ctx.globalAlpha = 1
+
+      // --- Galaxies réelles voisines (Nuages de Magellan, Naine du
+      // Sagittaire...) : elles ne disparaissent pas juste parce qu'on zoome
+      // sur la Voie lactée — elles restent physiquement là. Même générateur
+      // que LocalGroupLayer, à l'échelle année-lumière au lieu du Mpc.
+      if (catalog) {
+        for (const gal of catalog) {
+          const distanceLy = gal.distanceMpc * LY_PER_MPC
+          const radiusLy = gal.radiusMpc * LY_PER_MPC
+          const rad = (gal.angleDeg * Math.PI) / 180
+          const centerX = originX + Math.cos(rad) * distanceLy * scale
+          const centerY = originY + Math.sin(rad) * distanceLy * scale
+          const galRadiusPx = radiusLy * scale
+          if (
+            centerX < -galRadiusPx - margin ||
+            centerX > W + galRadiusPx + margin ||
+            centerY < -galRadiusPx - margin ||
+            centerY > H + galRadiusPx + margin
+          )
+            continue
+
+          const seed = (gal.name?.length ?? 1) * 7919 + Math.round(gal.distanceMpc * 100000)
+          const galStars = generateNearbyGalaxyStars(gal.name ?? '', gal.radiusMpc, gal.brightness, seed)
+          for (const s of galStars) {
+            const x = centerX + s.dx * radiusLy * scale
+            const y = centerY + s.dy * radiusLy * scale
+            const r = Math.max(0.35 * dpr, galRadiusPx * 0.02)
+            const [cr, cg, cb] = colorForValue(Math.min(s.b + gal.brightness * 0.2, 1), style)
+            ctx.fillStyle = `rgb(${cr},${cg},${cb})`
+            ctx.globalAlpha = Math.min(s.b + 0.25, 1)
+            ctx.beginPath()
+            ctx.arc(x, y, r, 0, Math.PI * 2)
+            ctx.fill()
+          }
+        }
+        ctx.globalAlpha = 1
+      }
     })
 
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [halfWidthMpc, ready, weight, style, width, height, dpr])
+  }, [halfWidthMpc, ready, weight, style, width, height, dpr, catalog])
 
   return (
     <canvas
