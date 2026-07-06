@@ -3,7 +3,7 @@ import { type DensityStyle } from './colormaps'
 import { getLayerWeights } from './layerWeights'
 import { processDensityField } from './densityStyle'
 
-const STYLE_WORKING_RES = 256 // résolution utilisée lors de la calibration (glow-test.html)
+const STYLE_WORKING_RES = 384 // 256 * 1.5 (MARGIN_FACTOR) : garde la même finesse relative qu'avant la marge
 
 // Marge de génération des textures (cf. scripts/generate_layers.py et
 // generate_local_group_texture.py) : chaque texture couvre en réalité
