@@ -19,10 +19,10 @@ from generate_local_group_catalog import build_catalog
 N = 512
 MAX_MPC = 2.4  # cf. layerWeights.ts : frontiere Groupe Local / L2
 
-SIZE_MPC = 0.05      # sigma du halo : petit et distinct (etait 0.59 en live)
+SIZE_MPC = 0.02       # sigma du halo, calé sur le rayon reel de la Voie lactee (~0.016 Mpc)
 AMPLITUDE = 3.5
-HALO_SCALE = 1.0
-CORE_SCALE = 1.3     # aligne sur la derniere valeur calibree en direct
+HALO_SCALE = 0.55     # reduit : les halos donnaient l'impression que les galaxies se touchaient
+CORE_SCALE = 1.0
 
 
 def build_field(catalog, max_mpc, n):
