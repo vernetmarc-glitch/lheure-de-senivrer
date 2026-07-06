@@ -111,23 +111,8 @@ export default function DensityLayer({ style, opacity, halfWidthMpc }: DensityLa
       const start = Math.round((n - cropSize) / 2)
 
       ctx.globalAlpha = w
-
-      // Flou dynamique sur L2 uniquement : à mesure qu'on approche de la
-      // frontière avec le Groupe Local (layer de points, sans détail fin),
-      // on supprime progressivement les hautes fréquences du champ de
-      // densité pour que la transition se fasse entre deux textures de
-      // "granularité" comparable, plutôt que fin -> flou brutalement.
-      if (layer.key === 'l2') {
-        const MAX_BLUR_PX = 10
-        const blurPx = MAX_BLUR_PX * weights.localgroup
-        ctx.filter = blurPx > 0.05 ? `blur(${blurPx}px)` : 'none'
-      } else {
-        ctx.filter = 'none'
-      }
-
       ctx.drawImage(source, start, start, cropSize, cropSize, 0, 0, W, H)
     }
-    ctx.filter = 'none'
     ctx.globalAlpha = 1
   }
 
