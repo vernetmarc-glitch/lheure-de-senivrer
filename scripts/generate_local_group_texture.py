@@ -21,8 +21,8 @@ MAX_MPC = 2.4  # cf. layerWeights.ts : frontiere Groupe Local / L2
 
 SIZE_MPC = 0.02       # sigma du halo, calé sur le rayon reel de la Voie lactee (~0.016 Mpc)
 AMPLITUDE = 3.5
-HALO_SCALE = 0.55     # reduit : les halos donnaient l'impression que les galaxies se touchaient
-CORE_SCALE = 1.0
+HALO_SCALE = 0.85     # remonte (etait 0.55) pour mieux voir les galaxies, tout en restant petit
+CORE_SCALE = 1.1
 
 
 def build_field(catalog, max_mpc, n):
