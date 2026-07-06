@@ -10,12 +10,14 @@ export type LayerKey = (typeof LAYER_ORDER)[number]
 
 // Frontières (Mpc comobiles) entre layers consécutifs, dans l'ordre de LAYER_ORDER.
 // 0.1 Mpc : la Voie lactée cède la place aux galaxies du Groupe Local.
-// 10 Mpc (et non 3, la taille réelle du Groupe Local) : laisse de la place à une
-// population procédurale complémentaire de galaxies (1-10 Mpc) qui prolonge la
-// visibilité de galaxies individuelles avant de basculer sur le champ continu L2.
-export const LAYER_EDGES_MPC = [0.1, 10, 30, 150, 300, 2100]
+// 2.4 Mpc : frontière Groupe Local -> L2, calibrée avec l'outil glow-test.html
+// (KDE avec halo+point central vs texture L2), largeur de fondu ~4 Mpc.
+export const LAYER_EDGES_MPC = [0.1, 2.4, 30, 150, 300, 2100]
 
-const FADE_WIDTH_DEX = 0.15 // largeur de la zone de fondu, en décades (log10)
+const DEFAULT_FADE_WIDTH_DEX = 0.15 // largeur par défaut, en décades (log10)
+// Largeur spécifique pour la frontière Groupe Local/L2 (index 1), calibrée à
+// ~4 Mpc de large centrée sur 2.4 Mpc (cf. glow-test.html).
+const FADE_WIDTHS_DEX = [DEFAULT_FADE_WIDTH_DEX, 0.52, DEFAULT_FADE_WIDTH_DEX, DEFAULT_FADE_WIDTH_DEX, DEFAULT_FADE_WIDTH_DEX, DEFAULT_FADE_WIDTH_DEX]
 
 function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1)
@@ -26,7 +28,7 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
 export function getLayerWeights(halfWidthMpc: number): Record<LayerKey, number> {
   const x = Math.log10(halfWidthMpc)
   const logEdges = LAYER_EDGES_MPC.map(Math.log10)
-  const gates = logEdges.map((e) => smoothstep(e - FADE_WIDTH_DEX, e + FADE_WIDTH_DEX, x))
+  const gates = logEdges.map((e, i) => smoothstep(e - FADE_WIDTHS_DEX[i], e + FADE_WIDTHS_DEX[i], x))
 
   const weights: Partial<Record<LayerKey, number>> = {}
   let remaining = 1
