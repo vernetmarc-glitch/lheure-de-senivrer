@@ -158,24 +158,6 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
       ctx.font = `bold ${11 * DPR}px monospace`
       ctx.fillText('Horizon des particules', cx + 6 * DPR, cy - horizonRPx + 14 * DPR)
     }
-
-    // Le marqueur de position s'estompe aux grandes échelles.
-    const markerFadeStart = 300
-    const markerFadeEnd = 14570
-    const markerT = Math.min(
-      Math.max(
-        (Math.log10(halfWidthMpc) - Math.log10(markerFadeStart)) /
-          (Math.log10(markerFadeEnd) - Math.log10(markerFadeStart)),
-        0
-      ),
-      1
-    )
-    const markerAlpha = 1 - markerT * 0.92
-
-    ctx.fillStyle = `rgba(255,255,255,${markerAlpha})`
-    ctx.beginPath()
-    ctx.arc(cx, cy, 3 * DPR, 0, Math.PI * 2)
-    ctx.fill()
   }, [halfWidthMpc, gridStepMpc, cosmology, dilution, width, height])
 
   return (
