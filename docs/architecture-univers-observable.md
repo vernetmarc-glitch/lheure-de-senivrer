@@ -228,7 +228,7 @@ Le facteur de dilution 1/a³ (§3.3) s'applique **après** la génération spati
 
 Objectif : rendre perceptibles, par le mouvement, les trois sphères et la distinction entre "vitesse de la lumière" et "vitesse d'éloignement dû à l'expansion" — une distinction qui reste abstraite tant qu'elle n'est montrée qu'à travers des formules ou des cercles statiques.
 
-### 8.1 Traceur de rayon lumineux (cône de lumière passé)
+### 7.1 Traceur de rayon lumineux (cône de lumière passé)
 
 - L'utilisateur clique un point de la carte (une galaxie, un emplacement quelconque) à une époque donnée.
 - Le rayon lumineux émis vers nous à ce moment est tracé comme un point qui se déplace vers le centre, avec le temps qui avance sur le curseur.
@@ -236,35 +236,35 @@ Objectif : rendre perceptibles, par le mouvement, les trois sphères et la disti
 - Effet pédagogique recherché : montrer que le trajet du photon vers nous n'est pas une ligne droite à vitesse comobile constante — il illustre concrètement l'intégrale qui définit l'horizon des particules (§3.4).
 - Variante : proposer un point "aux limites de l'horizon des particules actuel" pré-sélectionné, dont le rayon retrace exactement 13,8 milliards d'années de trajet jusqu'à nous, timé sur le curseur.
 
-### 8.2 Traceur de cône de lumière futur (horizon des événements)
+### 7.2 Traceur de cône de lumière futur (horizon des événements)
 
 - Même principe que 8.1 mais projeté vers l'avenir : on choisit un point aujourd'hui et on anime la propagation d'un photon émis maintenant vers l'extérieur.
 - Si le point choisi est en-deçà de l'horizon des événements actuel, le photon continue de s'éloigner en distance comobile indéfiniment (jamais de convergence) — visuellement, on voit le point lumineux ralentir sa progression comobile sans jamais s'arrêter tout à fait, illustrant que "s'éloigner indéfiniment sans jamais atteindre une limite" correspond à "être dans notre cône de causalité futur".
 - Si le point choisi est au-delà, le photon **n'avance plus du tout en coordonnées comobiles au-delà d'un certain point** — utile pour matérialiser concrètement ce que signifie "cette région ne recevra jamais notre lumière".
 
-### 8.3 Galaxie traceur franchissant les sphères
+### 7.3 Galaxie traceur franchissant les sphères
 
 - Placer un marqueur fixe en coordonnées comobiles (une galaxie choisie par l'utilisateur ou une galaxie repère prédéfinie, par exemple à 5 Gpc comobile).
 - En faisant défiler le curseur temporel, le marqueur change d'état visuel selon sa position relative aux trois sphères à cet instant (à l'intérieur / à l'extérieur de chacune), par exemple via un code couleur ou une icône qui change.
 - Effet recherché : rendre concret le fait qu'une même galaxie peut être visible mais en récession superluminale (hors sphère de Hubble, dans horizon des particules), ou destinée à ne jamais nous envoyer de nouvelle lumière (hors horizon des événements).
 - Un effet de "décalage vers le rouge croissant puis quasi-figement" (analogie avec la chute dans un trou noir) peut accompagner le franchissement de l'horizon des événements par un objet qui s'en approche.
 
-### 8.4 Time-lapse automatique (lecture continue)
+### 7.4 Time-lapse automatique (lecture continue)
 
 - Bouton "lecture" qui anime automatiquement le curseur temporel de la recombinaison à aujourd'hui (et au-delà, en mode prospectif, si souhaité).
 - Vitesse réglable, avec pause automatique aux instants clés déjà identifiés dans les tables (retournement de la sphère de Hubble, équivalence matière/énergie noire, etc.).
 
-### 8.5 Zoom guidé — "suivre une sphère"
+### 7.5 Zoom guidé — "suivre une sphère"
 
 - Bouton "isoler"/"suivre" par sphère (mentionné en §3.7) : ajuste automatiquement le niveau de zoom en continu pendant la lecture du time-lapse, pour garder la sphère choisie visible en permanence à une taille constante à l'écran.
 - Particulièrement utile pour la sphère de Hubble (dont le comportement croissant-puis-décroissant est sinon difficile à suivre visuellement si le zoom reste fixe).
 
-### 8.6 Visualisation explicite "vitesse de la lumière vs vitesse d'expansion"
+### 7.6 Visualisation explicite "vitesse de la lumière vs vitesse d'expansion"
 
 - Superposer, à un point donné de la carte, un repère mobile représentant "ce qu'un photon aurait parcouru en un temps donné à vitesse comobile constante" à côté du repère réel (qui suit `ds = c dt/a(t)`).
 - Permet de visualiser directement l'écart entre les deux, et donc pourquoi certaines régions sont en récession superluminale sans que rien ne dépasse localement la vitesse de la lumière.
 
-### 8.7 Priorisation suggérée pour un premier prototype
+### 7.7 Priorisation suggérée pour un premier prototype
 
 1. Time-lapse automatique (8.4) — base indispensable, réutilise directement les tables déjà définies (§3.4, §3.6).
 2. Galaxie(s) traceur(s) franchissant les sphères (8.3) — fort impact pédagogique, complexité modérée.
@@ -273,7 +273,46 @@ Objectif : rendre perceptibles, par le mouvement, les trois sphères et la disti
 
 ---
 
-## 8. Résumé des formules clés (aide-mémoire)
+## 9. Proposition retenue — distension spatiale réelle en fonction du temps
+
+**Statut : validé en discussion, pas encore implémenté (en attente d'un correctif de netteté au moment de la rédaction).**
+
+### 9.1 Le problème
+
+Le système de coordonnées comobiles fixes (§2) était un choix délibéré : un point ne bouge jamais à l'écran, seule sa luminosité change avec le temps (dilution ×1/a³, §3.3). Ce choix reste valide pour l'objectif initial, mais une demande complémentaire est apparue : **voir l'espace se comprimer visuellement** en remontant vers le Big Bang, pas seulement s'assombrir/s'illuminer sur place. Autrement dit, passer d'un rendu "en distance comobile" à un rendu "en distance physique réelle" (proper distance), qui elle se contracte authentiquement avec a(t).
+
+Précision importante actée en discussion : cet effet est **indépendant** de la question de la croissance des structures (formation hiérarchique bottom-up, §7 — non traitée ici, mise de côté pour l'instant). Il s'agit uniquement de la distension métrique de l'espace, pas de l'évolution du contraste des structures.
+
+### 9.2 Principe d'implémentation
+
+Un seul point de conversion centralisé est utilisé par tous les composants de rendu (grille, textures de densité, Voie lactée, Groupe Local, cercle d'horizon) :
+
+```
+pxPerMpc_actuel  = écran / (2 × halfWidthMpc)
+pxPerMpc_nouveau = écran / (2 × halfWidthMpc / a(t))
+```
+
+En divisant le champ de vue comobile par `a(t)`, on affiche mécaniquement une zone comobile plus grande dans le même espace écran quand `a(t) < 1` (passé) — ce qui fait rétrécir visuellement tout ce qui est fixe en comobile vers le centre. À `a(t) = 1` (aujourd'hui), aucune distorsion : le rendu est identique à l'existant. La distorsion n'apparaît qu'en remontant le temps.
+
+**Pourquoi une seule formule suffit** : parce que tous les composants (DensityLayer, MilkyWayLayer, LocalGroupLayer, la grille et le cercle d'horizon dans UniverseMap) dérivent déjà leur échelle px/Mpc d'un seul et même calcul. Modifier ce calcul centralement propage l'effet partout sans toucher au reste du code de chaque composant.
+
+### 9.3 Complémentarité avec la dilution de densité
+
+Cet effet de compression spatiale et la dilution de densité (1/a³, déjà implémentée) sont **complémentaires, pas redondants** :
+- La compression fait rétrécir l'espace visuellement (effet géométrique).
+- La dilution fait que ce qui reste visible est plus dense/lumineux (effet de densité).
+
+Combinés, ils donnent l'impression d'un univers qui se comprime ET s'embrase en remontant vers le Big Bang — cohérent avec l'intuition physique de départ du projet (cf. §1 et les tout premiers échanges de cadrage).
+
+### 9.4 Points à vérifier à l'implémentation
+
+- Vérifier que le cercle de l'horizon des particules (déjà dynamique, §3.4) reste cohérent visuellement avec cette compression additionnelle — les deux évoluent avec le temps mais via des mécanismes distincts (l'horizon via son propre calcul physique, ce nouvel effet via la conversion px/Mpc).
+- Vérifier le comportement aux limites (a(t) très petit, proche de la recombinaison) : la formule doit rester stable numériquement.
+- Décider si l'effet doit s'appliquer de façon identique à tous les layers ou si certains éléments (par ex. les étiquettes de texte, si réintroduites) doivent rester lisibles indépendamment de la compression.
+
+---
+
+## 10. Résumé des formules clés (aide-mémoire)
 
 ```
 Facteur d'échelle :        a(t) = (Ωm/ΩΛ)^(1/3) · sinh²ᐟ³( (3/2)√ΩΛ H0 t )
