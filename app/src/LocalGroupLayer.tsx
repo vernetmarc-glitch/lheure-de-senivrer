@@ -11,9 +11,10 @@ interface LocalGroupLayerProps {
   style: DensityStyle
   width: number
   height: number
+  dpr: number
 }
 
-export default function LocalGroupLayer({ halfWidthMpc, opacity, style, width, height }: LocalGroupLayerProps) {
+export default function LocalGroupLayer({ halfWidthMpc, opacity, style, width, height, dpr }: LocalGroupLayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number | null>(null)
   const starsRef = useRef<GalaxyStar[] | null>(null)
@@ -60,8 +61,8 @@ export default function LocalGroupLayer({ halfWidthMpc, opacity, style, width, h
           const star = stars[i]
           const x = originX + star.gx * scalePerLy
           const y = originY + star.gy * scalePerLy * gm.YSCALE
-          if (x < -2 || x > W + 2 || y < -2 || y > H + 2) continue
-          const r = Math.max(star.sz * scalePerLy * 400, 0.3)
+          if (x < -2 * dpr || x > W + 2 * dpr || y < -2 * dpr || y > H + 2 * dpr) continue
+          const r = Math.max(star.sz * scalePerLy * 400, 0.3 * dpr)
           const [cr, cg, cb] = colorForValue(Math.min(star.b + 0.15, 1), style)
           ctx.fillStyle = `rgb(${cr},${cg},${cb})`
           ctx.globalAlpha = Math.min(star.b + 0.3, 1)
@@ -81,7 +82,7 @@ export default function LocalGroupLayer({ halfWidthMpc, opacity, style, width, h
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [halfWidthMpc, weight, style, starsReady, width, height])
+  }, [halfWidthMpc, weight, style, starsReady, width, height, dpr])
 
   return (
     <canvas
