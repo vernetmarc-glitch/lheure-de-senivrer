@@ -167,7 +167,9 @@ def build_structured_anchor_field(catalog, max_mpc, n):
     Réutiliser les mêmes valeurs qu'en JS sature une grande zone ici (halos
     proches superposés) car cette normalisation-ci les laisse s'accumuler.
     """
-    SIZE_MPC = 0.59
+    SIZE_MPC = 0.05  # tres reduit (etait 0.59, pensee pour une seule vue globale) :
+    # avec 8 galaxies reelles groupees sur ~1 Mpc, un rayon large les fait
+    # fusionner en une seule plaque au lieu de rester des pics distincts.
     AMPLITUDE = 3.5
     HALO_SCALE = 0.12
     CORE_SCALE = 0.35
