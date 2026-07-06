@@ -19,6 +19,13 @@ import numpy as np
 from PIL import Image
 from scipy.ndimage import zoom as ndi_zoom
 from generate_local_group_catalog import build_catalog
+from local_group_style import (
+    REAL_GALAXY_HALO_SIGMA_MPC,
+    REAL_GALAXY_NOISE_SUPPRESSION,
+    REAL_GALAXY_SUPPRESSION_RADIUS_FACTOR,
+    REAL_GALAXY_DOMINANT_AMPLITUDE_FACTOR,
+    GALAXY_BRIGHTNESS_AMPLITUDE,
+)
 
 OMEGA_M = 0.315
 H = 0.674
@@ -159,18 +166,15 @@ def build_structured_anchor_field(catalog, max_mpc, n):
     """Construit un champ 2D avec, pour chaque galaxie du catalogue, un halo
     gaussien large + un point central compact.
 
-    Attention : ces constantes sont volontairement DIFFÉRENTES (bien plus
-    faibles) que celles du rendu KDE en direct (app/src/kdeRender.ts). Les
-    deux pipelines de normalisation ne sont pas les mêmes : le rendu JS
-    normalise dynamiquement par frame, alors que L2 est normalisé une fois
-    pour toutes par percentiles partagés entre tous les layers (cf. main()).
-    Réutiliser les mêmes valeurs qu'en JS sature une grande zone ici (halos
-    proches superposés) car cette normalisation-ci les laisse s'accumuler.
+    Taille/amplitude importées de local_group_style.py (SOURCE UNIQUE pour
+    les galaxies réelles — cf. ce fichier pour le pourquoi). HALO_SCALE et
+    CORE_SCALE restent volontairement faibles ici (pas dans le module
+    partagé, propres à ce pipeline de normalisation par percentiles) : le
+    rendu KDE en direct (app/src/kdeRender.ts) normalise différemment
+    (par frame), donc réutiliser ses valeurs saturerait cette texture-ci.
     """
-    SIZE_MPC = 0.05  # tres reduit (etait 0.59, pensee pour une seule vue globale) :
-    # avec 8 galaxies reelles groupees sur ~1 Mpc, un rayon large les fait
-    # fusionner en une seule plaque au lieu de rester des pics distincts.
-    AMPLITUDE = 3.5
+    SIZE_MPC = REAL_GALAXY_HALO_SIGMA_MPC
+    AMPLITUDE = GALAXY_BRIGHTNESS_AMPLITUDE
     HALO_SCALE = 0.12
     CORE_SCALE = 0.35
 
@@ -208,15 +212,15 @@ def apply_local_group_anchor(field, max_mpc, n, catalog):
     qui n'ont pas de rendu ponctuel à aligner), on ATTÉNUE localement le
     bruit ambiant autour de leur position, puis on y superpose une bosse
     d'amplitude largement dominante — garantissant que le maximum local de
-    densité coïncide avec la vraie position de la galaxie.
+    densité coïncide avec la vraie position de la galaxie. Constantes
+    importées de local_group_style.py (source unique).
     """
     structured_target, x_mpc, y_mpc, size_mpc, amplitude = build_structured_anchor_field(catalog, max_mpc, n)
     field = field + structured_target
 
     suppression_mask = np.ones((n, n))
     dominant_bumps = np.zeros((n, n))
-    SUPPRESSION_RADIUS_MPC = size_mpc * 0.55
-    DOMINANT_AMPLITUDE_FACTOR = 3.5  # nettement au-dessus du bruit ambiant (variance ~1)
+    SUPPRESSION_RADIUS_MPC = size_mpc * REAL_GALAXY_SUPPRESSION_RADIUS_FACTOR
 
     for gal in catalog:
         if not gal["isReal"]:
@@ -226,13 +230,13 @@ def apply_local_group_anchor(field, max_mpc, n, catalog):
         gy = np.sin(angle_rad) * gal["distanceMpc"]
         dist2 = (x_mpc - gx) ** 2 + (y_mpc - gy) ** 2
 
-        # Attenuation locale du bruit (jusqu'a ~15% de son amplitude au centre,
-        # retour progressif a 100% au-dela de ~2x SUPPRESSION_RADIUS_MPC)
-        local_dip = 1 - 0.85 * np.exp(-dist2 / (2 * SUPPRESSION_RADIUS_MPC ** 2))
+        # Attenuation locale du bruit (cf. REAL_GALAXY_NOISE_SUPPRESSION dans
+        # local_group_style.py pour le niveau d'attenuation au centre)
+        local_dip = 1 - (1 - REAL_GALAXY_NOISE_SUPPRESSION) * np.exp(-dist2 / (2 * SUPPRESSION_RADIUS_MPC ** 2))
         suppression_mask *= local_dip
 
         peak_amp = np.log(1 + gal["brightness"] * amplitude)
-        dominant_bumps += DOMINANT_AMPLITUDE_FACTOR * peak_amp * np.exp(-dist2 / (2 * size_mpc ** 2))
+        dominant_bumps += REAL_GALAXY_DOMINANT_AMPLITUDE_FACTOR * peak_amp * np.exp(-dist2 / (2 * size_mpc ** 2))
 
     return field * suppression_mask + dominant_bumps
 
