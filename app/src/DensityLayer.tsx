@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { buildLookupTable, type DensityStyle } from './colormaps'
+import { type DensityStyle } from './colormaps'
 import { getLayerWeights } from './layerWeights'
+import { processDensityField } from './densityStyle'
+
+const STYLE_WORKING_RES = 256 // résolution utilisée lors de la calibration (glow-test.html)
 
 interface ProceduralLayer {
   key: 'l2' | 'l3' | 'l4' | 'l4b' | 'l5'
@@ -62,24 +65,34 @@ export default function DensityLayer({ style, opacity, halfWidthMpc }: DensityLa
   }, [])
 
   function recolorAll() {
-    const lut = buildLookupTable(style)
     PROCEDURAL_LAYERS.forEach((layer) => {
       const gray = grayDataRef.current[layer.key]
       if (!gray) return
+
+      // Sous-échantillonnage à la résolution de calibration (256) avant le
+      // pipeline de style (netteté, points...), pour un rendu fidèle à
+      // glow-test.html plutôt qu'à la résolution native de la texture (512).
+      const down = document.createElement('canvas')
+      down.width = STYLE_WORKING_RES
+      down.height = STYLE_WORKING_RES
+      const dctx = down.getContext('2d')
+      if (!dctx) return
+      const src = document.createElement('canvas')
+      src.width = gray.width
+      src.height = gray.height
+      src.getContext('2d')!.putImageData(gray, 0, 0)
+      dctx.drawImage(src, 0, 0, STYLE_WORKING_RES, STYLE_WORKING_RES)
+      const downGray = dctx.getImageData(0, 0, STYLE_WORKING_RES, STYLE_WORKING_RES)
+
+      const grayValues = new Float32Array(STYLE_WORKING_RES * STYLE_WORKING_RES)
+      for (let i = 0; i < grayValues.length; i++) grayValues[i] = downGray.data[i * 4] / 255
+
+      const processed = processDensityField(grayValues, STYLE_WORKING_RES, style)
+
       const canvas = document.createElement('canvas')
-      canvas.width = gray.width
-      canvas.height = gray.height
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
-      const out = ctx.createImageData(gray.width, gray.height)
-      for (let i = 0; i < gray.data.length; i += 4) {
-        const v = gray.data[i]
-        out.data[i] = lut[v * 3]
-        out.data[i + 1] = lut[v * 3 + 1]
-        out.data[i + 2] = lut[v * 3 + 2]
-        out.data[i + 3] = 255
-      }
-      ctx.putImageData(out, 0, 0)
+      canvas.width = STYLE_WORKING_RES
+      canvas.height = STYLE_WORKING_RES
+      canvas.getContext('2d')!.putImageData(processed, 0, 0)
       colorizedRef.current[layer.key] = canvas
     })
   }
