@@ -26,7 +26,7 @@ interface ProceduralLayer {
 // scripts/generate_simulated_textures.mjs pour le calcul exact
 // (MW_R*2.2/LY_PER_MPC). Garder synchronisé si le script est relancé avec
 // d'autres paramètres.
-const MILKYWAY_MAX_MPC = 0.035075
+const MILKYWAY_MAX_MPC = 0.043047
 
 // Du plus petit au plus grand — cf. document d'architecture §4.1. "milkyway"
 // (disque + bulbe de la Voie lactée) et "localgroup_real" (les 8 galaxies

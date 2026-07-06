@@ -174,7 +174,7 @@ function splatGaussian(field, n, pxPerUnit, cx, cy, xUnit, yUnit, sigmaUnitMin, 
   const py = cy + yUnit * pxPerUnit
   const sigmaPx = Math.max(sigmaUnitMin * pxPerUnit, sigmaUnitScale)
   if (px < -4 * sigmaPx || px > n + 4 * sigmaPx || py < -4 * sigmaPx || py > n + 4 * sigmaPx) return
-  const r = Math.max(1, Math.ceil(sigmaPx * 3.2))
+  const r = Math.max(1, Math.ceil(sigmaPx * 4.5))
   const x0 = Math.max(0, Math.floor(px - r))
   const x1 = Math.min(n - 1, Math.ceil(px + r))
   const y0 = Math.max(0, Math.floor(py - r))
@@ -223,10 +223,16 @@ async function generateMilkyWay(catalog) {
   const N = 1024
   const MARGIN_FACTOR = 1.5
   // Demi-largeur nominale (avant marge) : ~2.2x MW_R, suffisant pour couvrir
-  // tout le disque (taper à 1.45x MW_R) et les galaxies réelles les plus
-  // proches (Nuages de Magellan, Naine du Sagittaire, quelques dizaines de
-  // kal) qui doivent rester visibles sur ce layer, cf. MilkyWayLayer.tsx.
-  const HALF_LY = GalaxyModel.MW_R * 2.2
+  // tout le disque (taper à 1.45x MW_R). ~2.7x est ce qu'il faut en plus
+  // pour couvrir aussi les 3 galaxies réelles les plus proches (LMC, Naine
+  // du Sagittaire, ET le Petit Nuage de Magellan qui passait tout juste à
+  // côté du seuil avec 2.2x) — cf. diagnostic du 6 juillet : une galaxie
+  // proche laissée hors de CE texte finit rendue UNIQUEMENT par
+  // localgroup_real, dont la résolution effective est ~14x plus faible ici
+  // (tout le Groupe Local en 2.4 Mpc vs seulement l'environnement proche de
+  // la Voie lactée) — d'où les gros blocs pixelisés constatés au lieu d'un
+  // halo net.
+  const HALF_LY = GalaxyModel.MW_R * 2.7
   const boxLy = 2 * HALF_LY * MARGIN_FACTOR
   const pxPerLy = N / boxLy
   const cx = N / 2
@@ -259,13 +265,14 @@ async function generateMilkyWay(catalog) {
 
   tonemapAndSave(field, N, new URL('density_milkyway.png', OUT_DIR), 1.0)
 
-  return HALF_LY / LY_PER_MPC // maxMpc nominal à reporter dans DensityLayer.tsx
+  const inclusionThresholdLy = HALF_LY * MARGIN_FACTOR * 1.05
+  return { maxMpc: HALF_LY / LY_PER_MPC, inclusionThresholdLy } // maxMpc nominal à reporter dans DensityLayer.tsx
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 // 5. Génération "localgroup_real" (échelle Mpc) — les 8 galaxies nommées
 // ─────────────────────────────────────────────────────────────────────────
-function generateLocalGroupReal(catalog) {
+function generateLocalGroupReal(catalog, milkywayInclusionThresholdLy) {
   const N = 1024
   const MAX_MPC = 2.4 // identique à generate_local_group_texture.py
   const MARGIN_FACTOR = 1.5
@@ -278,6 +285,16 @@ function generateLocalGroupReal(catalog) {
 
   for (const gal of catalog) {
     if (!gal.isReal) continue
+    // Les galaxies déjà couvertes en haute résolution par le layer
+    // "milkyway" (LMC, Naine du Sagittaire, SMC — cf. generateMilkyWay) ne
+    // doivent PAS être rendues une seconde fois ici : à cette résolution
+    // (tout le Groupe Local en 2.4 Mpc, ~14x moins précis que le champ
+    // dédié à l'environnement proche de la Voie lactée), le rendu de ces
+    // galaxies très proches donne un pâté de quelques pixels qui devient un
+    // gros bloc visible dès qu'on zoome dans la zone de fondu milkyway <->
+    // localgroup — cf. diagnostic du 6 juillet. Elles restent visibles,
+    // nettes, via le layer milkyway.
+    if (gal.distanceMpc * LY_PER_MPC <= milkywayInclusionThresholdLy) continue
     const rad = (gal.angleDeg * Math.PI) / 180
     const centerX = Math.cos(rad) * gal.distanceMpc
     const centerY = Math.sin(rad) * gal.distanceMpc
@@ -297,8 +314,8 @@ function generateLocalGroupReal(catalog) {
 // ─────────────────────────────────────────────────────────────────────────
 async function main() {
   const catalog = JSON.parse(readFileSync(CATALOG_PATH, 'utf8'))
-  const maxMpcMilkyWay = await generateMilkyWay(catalog)
-  generateLocalGroupReal(catalog)
+  const { maxMpc: maxMpcMilkyWay, inclusionThresholdLy } = await generateMilkyWay(catalog)
+  generateLocalGroupReal(catalog, inclusionThresholdLy)
   console.log(`\nmaxMpc à utiliser pour l'entrée "milkyway" dans DensityLayer.tsx : ${maxMpcMilkyWay.toFixed(6)}`)
 }
 
