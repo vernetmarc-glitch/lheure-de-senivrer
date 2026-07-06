@@ -10,6 +10,11 @@ const MAX_HALF_WIDTH_MPC = 14570 // ~95 Gal de côté au total
 const GLY_PER_MPC = 3.26156e-3
 
 const DPR = Math.min(window.devicePixelRatio || 1, 3)
+// Au-delà de ce ratio largeur/hauteur (ou l'inverse), on fige la zone de
+// rendu à ce ratio et on ajoute des bandes noires fixes plutôt que de
+// laisser un espace qu'aucun layer ne remplit encore (observé sur écrans
+// très larges en PC, ou très étirés verticalement).
+const MAX_ASPECT = 2.4
 
 function formatDistance(mpc: number): string {
   const gly = mpc * GLY_PER_MPC
@@ -64,13 +69,23 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
   const [densityStyle, setDensityStyle] = useState<DensityStyle>('astro')
   const [densityPresence, setDensityPresence] = useState(1.0)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [loadProgress, setLoadProgress] = useState({ loaded: 0, total: 1 })
   const halfWidthMpc = Math.pow(10, logHalfWidth)
   const dilution = densityDilutionFactor(cosmology.a)
+
+  // Zone de rendu clampée au ratio max — le reste (bandes) montre juste le
+  // fond noir du conteneur. Évite qu'un layer "disparaisse" avant que le
+  // suivant ait eu la place de le remplacer sur un écran hors gabarit.
+  let renderWidth = width
+  let renderHeight = height
+  if (width > height * MAX_ASPECT) renderWidth = height * MAX_ASPECT
+  if (height > width * MAX_ASPECT) renderHeight = width * MAX_ASPECT
+
   // Résolution physique réelle (pas seulement CSS) : évite qu'un canvas trop
   // petit soit ré-agrandi (et donc flouté) par le navigateur sur un écran
   // haute densité (Retina, la plupart des smartphones récents).
-  const pixelWidth = width * DPR
-  const pixelHeight = height * DPR
+  const pixelWidth = renderWidth * DPR
+  const pixelHeight = renderHeight * DPR
 
   // Zoom à la molette, sur toute la zone de carte.
   useEffect(() => {
@@ -172,8 +187,24 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
       }}
     >
       {width > 0 && height > 0 && (
-        <>
-          <DensityLayer style={densityStyle} opacity={densityPresence} halfWidthMpc={halfWidthMpc} width={pixelWidth} height={pixelHeight} />
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: renderWidth,
+            height: renderHeight,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <DensityLayer
+            style={densityStyle}
+            opacity={densityPresence}
+            halfWidthMpc={halfWidthMpc}
+            width={pixelWidth}
+            height={pixelHeight}
+            onLoadProgress={(loaded, total) => setLoadProgress({ loaded, total })}
+          />
           <LocalGroupLayer halfWidthMpc={halfWidthMpc} opacity={densityPresence} style={densityStyle} width={pixelWidth} height={pixelHeight} dpr={DPR} />
           <MilkyWayLayer halfWidthMpc={halfWidthMpc} opacity={densityPresence} style={densityStyle} width={pixelWidth} height={pixelHeight} dpr={DPR} />
           <canvas
@@ -182,7 +213,27 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
             height={Math.round(pixelHeight)}
             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
           />
-        </>
+        </div>
+      )}
+
+      {/* Indicateur de chargement discret — n'empêche jamais la navigation */}
+      {loadProgress.loaded < loadProgress.total && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 'max(8px, env(safe-area-inset-bottom))',
+            right: 'max(8px, env(safe-area-inset-right))',
+            fontSize: 10,
+            fontFamily: 'monospace',
+            color: 'rgba(255,255,255,0.45)',
+            background: 'rgba(10,10,16,0.5)',
+            padding: '3px 7px',
+            borderRadius: 5,
+            pointerEvents: 'none',
+          }}
+        >
+          Chargement… {loadProgress.loaded}/{loadProgress.total}
+        </div>
       )}
 
       {/* Titre */}
@@ -198,7 +249,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           pointerEvents: 'none',
         }}
       >
-        Univers observable
+        L'Heure de s'enivrer
       </div>
 
       {/* Bouton réglages */}
