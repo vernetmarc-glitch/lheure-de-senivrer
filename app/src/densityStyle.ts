@@ -6,13 +6,13 @@ import { colorForValue, type DensityStyle } from './colormaps'
  * sans repasser par cet outil.
  */
 export const DENSITY_STYLE_PARAMS = {
-  gamma: 0.65,
+  gamma: 0.85,
   soften: 0,
   sharpen: 0,
-  halo: 0,
-  pointIntensity: 1.0,
-  pointThreshold: 82.5, // percentile
-  pointSize: 1.0, // px, à la résolution de travail (voir n dans processDensityField)
+  halo: 0.25,
+  pointIntensity: 0.6,
+  pointThreshold: 81.0, // percentile
+  pointSize: 2.5, // px, à la résolution de travail (voir n dans processDensityField)
 }
 
 function boxBlur(src: Float32Array, w: number, h: number, radius: number): Float32Array {
