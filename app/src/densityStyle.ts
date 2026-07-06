@@ -6,12 +6,12 @@ import { colorForValue, type DensityStyle } from './colormaps'
  * sans repasser par cet outil.
  */
 export const DENSITY_STYLE_PARAMS = {
-  gamma: 1.0,
-  soften: 0, // "adoucissement vapeur" — désactivé dans la calibration retenue
-  sharpen: 0.15, // netteté des filaments (unsharp mask)
-  halo: 0, // bloom — désactivé dans la calibration retenue
-  pointIntensity: 0.25,
-  pointThreshold: 81.5, // percentile
+  gamma: 0.65,
+  soften: 0,
+  sharpen: 0,
+  halo: 0,
+  pointIntensity: 1.0,
+  pointThreshold: 82.5, // percentile
   pointSize: 1.0, // px, à la résolution de travail (voir n dans processDensityField)
 }
 
