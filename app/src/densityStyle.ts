@@ -40,6 +40,33 @@ export const DEFAULT_DENSITY_STYLE_PARAMS: DensityStyleParams = {
 }
 
 export const DENSITY_STYLE_PARAMS_BY_LAYER: Partial<Record<string, DensityStyleParams>> = {
+  // "milkyway" et "localgroup_real" (cf. scripts/generate_simulated_textures.mjs) :
+  // champs de points déjà individualisés (étoiles/nuages d'étoiles), pas des
+  // champs de densité continus — la détection de pics + halo de bloom du
+  // pipeline standard n'a pas de sens ici (elle est pensée pour repérer des
+  // amas dans un champ lisse) et produirait des artefacts. On désactive donc
+  // halo/points, et on garde un gamma marqué car les textures sources sont
+  // très sombres/éparses par construction (fond à 0 partout sauf les étoiles).
+  milkyway: {
+    gamma: 0.45,
+    soften: 0,
+    sharpen: 0,
+    sharpenRadius: 2.5,
+    halo: 0,
+    pointIntensity: 0,
+    pointThreshold: 100,
+    pointSize: 0,
+  },
+  localgroup_real: {
+    gamma: 0.4,
+    soften: 0,
+    sharpen: 0,
+    sharpenRadius: 2.5,
+    halo: 0,
+    pointIntensity: 0,
+    pointThreshold: 100,
+    pointSize: 0,
+  },
   // Calibré le 6 juillet via glow-test.html.
   l2: {
     gamma: 0.85,

@@ -18,18 +18,31 @@ function marginFor(key: string): number {
 }
 
 interface ProceduralLayer {
-  key: 'localgroup' | 'l1b' | 'l2' | 'l2b' | 'l3' | 'l3b' | 'l4' | 'l4a' | 'l4b' | 'l5a' | 'l5'
+  key: 'milkyway' | 'localgroup_real' | 'localgroup' | 'l1b' | 'l2' | 'l2b' | 'l3' | 'l3b' | 'l4' | 'l4a' | 'l4b' | 'l5a' | 'l5'
   maxMpc: number
 }
 
-// Du plus petit au plus grand — cf. document d'architecture §4.1. "localgroup"
-// est la texture des galaxies PROCÉDURALES (non nommées) du Groupe Local
-// (cf. scripts/generate_local_group_texture.py) — les galaxies réelles
-// nommées sont rendues séparément en points par LocalGroupLayer. Les paliers
-// "b"/"a" sont des paliers TECHNIQUES intermédiaires (doublement du nombre
-// de layers pour la résolution apparente moyenne), pas de nouveaux layers
+// Demi-largeur nominale (Mpc, avant marge) de la texture "milkyway" — voir
+// scripts/generate_simulated_textures.mjs pour le calcul exact
+// (MW_R*2.2/LY_PER_MPC). Garder synchronisé si le script est relancé avec
+// d'autres paramètres.
+const MILKYWAY_MAX_MPC = 0.035075
+
+// Du plus petit au plus grand — cf. document d'architecture §4.1. "milkyway"
+// (disque + bulbe de la Voie lactée) et "localgroup_real" (les 8 galaxies
+// RÉELLES nommées du Groupe Local) sont désormais des textures PRÉ-CUITES
+// hors-ligne (cf. scripts/generate_simulated_textures.mjs, qui appelle le
+// vrai module partagé GalaxyModel pour la Voie lactée) au lieu d'un rendu
+// étoile-par-étoile en direct — ce dernier ne passait pas à l'échelle
+// (~40 000 tracés canvas individuels par frame). "localgroup" reste la
+// texture des galaxies PROCÉDURALES (non nommées) du Groupe Local
+// (cf. scripts/generate_local_group_texture.py). Les paliers "b"/"a" sont
+// des paliers TECHNIQUES intermédiaires (doublement du nombre de layers
+// pour la résolution apparente moyenne), pas de nouveaux layers
 // scientifiques — cf. scripts/generate_layers.py.
 const PROCEDURAL_LAYERS: ProceduralLayer[] = [
+  { key: 'milkyway', maxMpc: MILKYWAY_MAX_MPC },
+  { key: 'localgroup_real', maxMpc: 2.4 },
   { key: 'localgroup', maxMpc: 2.4 },
   { key: 'l1b', maxMpc: 8.49 },
   { key: 'l2', maxMpc: 30 },
@@ -146,7 +159,10 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
     // construction emboîtée des textures (§4.4 du document d'architecture).
     for (let i = PROCEDURAL_LAYERS.length - 1; i >= 0; i--) {
       const layer = PROCEDURAL_LAYERS[i]
-      const w = weights[layer.key]
+      // "localgroup_real" (galaxies réelles nommées) n'est pas un palier de
+      // fondu séparé — il partage exactement la fenêtre de zoom de
+      // "localgroup" (texture procédurale), juste dessiné par-dessus.
+      const w = layer.key === 'localgroup_real' ? weights.localgroup : weights[layer.key as import('./layerWeights').LayerKey]
       if (w < 0.003) continue
       const source = colorizedRef.current[layer.key]
       if (!source) continue

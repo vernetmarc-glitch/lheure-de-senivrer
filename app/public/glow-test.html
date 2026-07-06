@@ -83,6 +83,12 @@ const MARGIN_FACTOR_L5 = 2.4;
 function marginFor(key) { return key === 'l5' ? MARGIN_FACTOR_L5 : MARGIN_FACTOR; }
 
 const LAYERS = [
+  // "milkyway" et "localgroup_real" : textures pré-cuites (étoiles), cf.
+  // scripts/generate_simulated_textures.mjs — pas des champs de densité
+  // continus, cf. l'entrée correspondante dans app/src/densityStyle.ts
+  // (halo/points désactivés pour ces deux-là).
+  { key: 'milkyway', maxMpc: 0.035075 },
+  { key: 'localgroup_real', maxMpc: 2.4 },
   { key: 'localgroup', maxMpc: 2.4 },
   { key: 'l1b', maxMpc: 8.49 },
   { key: 'l2', maxMpc: 30 },

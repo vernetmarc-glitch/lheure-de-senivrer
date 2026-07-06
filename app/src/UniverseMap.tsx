@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { densityDilutionFactor, type CosmologyState } from './cosmology'
 import DensityLayer from './DensityLayer'
-import MilkyWayLayer from './MilkyWayLayer'
-import LocalGroupLayer from './LocalGroupLayer'
 import { DENSITY_STYLE_LABELS, type DensityStyle } from './colormaps'
 
 const MIN_HALF_WIDTH_MPC = 0.02 // ~65 000 al — la Voie lactée (rayon 52 000 al) remplit le cadre
@@ -205,8 +203,6 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
             height={pixelHeight}
             onLoadProgress={(loaded, total) => setLoadProgress({ loaded, total })}
           />
-          <LocalGroupLayer halfWidthMpc={halfWidthMpc} opacity={densityPresence} style={densityStyle} width={pixelWidth} height={pixelHeight} dpr={DPR} />
-          <MilkyWayLayer halfWidthMpc={halfWidthMpc} opacity={densityPresence} style={densityStyle} width={pixelWidth} height={pixelHeight} dpr={DPR} />
           <canvas
             ref={gridCanvasRef}
             width={Math.round(pixelWidth)}

@@ -1,0 +1,9 @@
+{
+  "name": "univers-observable-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Outils Node hors-ligne (cf. generate_simulated_textures.mjs) — les autres générateurs sont en Python, voir requirements éventuel séparé.",
+  "dependencies": {
+    "pngjs": "^7.0.0"
+  }
+}
