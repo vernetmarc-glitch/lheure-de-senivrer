@@ -5,14 +5,64 @@ import { colorForValue, type DensityStyle } from './colormaps'
  * visuellement via app/public/glow-test.html. Ne pas modifier ces valeurs
  * sans repasser par cet outil.
  */
-export const DENSITY_STYLE_PARAMS = {
-  gamma: 0.85,
+export interface DensityStyleParams {
+  gamma: number
+  soften: number
+  sharpen: number
+  halo: number
+  pointIntensity: number
+  pointThreshold: number // percentile
+  pointSize: number // px, à la résolution de travail (voir n dans processDensityField)
+}
+
+/**
+ * Paramètres de style PAR LAYER — volontairement différents d'un layer à
+ * l'autre : le contraste réel des structures diffère selon l'échelle (un
+ * amas n'a pas le même profil de densité qu'un superamas), et chaque layer
+ * a été (ou sera) calibré séparément via glow-test.html.
+ *
+ * IMPORTANT : ceci était auparavant un objet UNIQUE partagé par tous les
+ * layers — chaque nouvelle calibration écrasait la précédente sans que ce
+ * soit voulu (cf. discussion du 6 juillet). Toute future calibration doit
+ * ajouter/mettre à jour l'entrée du layer concerné ici, jamais remplacer
+ * DEFAULT_DENSITY_STYLE_PARAMS globalement.
+ */
+export const DEFAULT_DENSITY_STYLE_PARAMS: DensityStyleParams = {
+  gamma: 0.75,
   soften: 0,
   sharpen: 0,
-  halo: 0.25,
+  halo: 0.1,
   pointIntensity: 0.6,
-  pointThreshold: 81.0, // percentile
-  pointSize: 2.5, // px, à la résolution de travail (voir n dans processDensityField)
+  pointThreshold: 82,
+  pointSize: 1.5,
+}
+
+export const DENSITY_STYLE_PARAMS_BY_LAYER: Partial<Record<string, DensityStyleParams>> = {
+  // Calibré le 6 juillet via glow-test.html.
+  l2: {
+    gamma: 0.85,
+    soften: 0,
+    sharpen: 0,
+    halo: 0.25,
+    pointIntensity: 0.6,
+    pointThreshold: 81.0,
+    pointSize: 2.5,
+  },
+  // Calibré le 6 juillet via glow-test.html.
+  l4: {
+    gamma: 0.65,
+    soften: 0,
+    sharpen: 0,
+    halo: 0,
+    pointIntensity: 1.0,
+    pointThreshold: 82.5,
+    pointSize: 1.0,
+  },
+}
+
+/** Renvoie les paramètres calibrés pour ce layer, ou le défaut si pas encore calibré. */
+export function getStyleParamsForLayer(layerKey: string): DensityStyleParams {
+  return DENSITY_STYLE_PARAMS_BY_LAYER[layerKey] ?? DEFAULT_DENSITY_STYLE_PARAMS
 }
 
 function boxBlur(src: Float32Array, w: number, h: number, radius: number): Float32Array {
@@ -107,7 +157,7 @@ export function processDensityField(
   grayValues: Float32Array,
   n: number,
   style: DensityStyle,
-  params = DENSITY_STYLE_PARAMS
+  params: DensityStyleParams = DEFAULT_DENSITY_STYLE_PARAMS
 ): ImageData {
   let field = params.soften > 0.05 ? boxBlur(grayValues, n, n, params.soften) : Float32Array.from(grayValues)
 
