@@ -9,6 +9,7 @@ export interface DensityStyleParams {
   gamma: number
   soften: number
   sharpen: number
+  sharpenRadius: number // px, à la résolution de travail — contrôle l'échelle de structure mise en valeur
   halo: number
   pointIntensity: number
   pointThreshold: number // percentile
@@ -31,6 +32,7 @@ export const DEFAULT_DENSITY_STYLE_PARAMS: DensityStyleParams = {
   gamma: 0.75,
   soften: 0,
   sharpen: 0,
+  sharpenRadius: 2.5,
   halo: 0.1,
   pointIntensity: 0.6,
   pointThreshold: 82,
@@ -43,6 +45,7 @@ export const DENSITY_STYLE_PARAMS_BY_LAYER: Partial<Record<string, DensityStyleP
     gamma: 0.85,
     soften: 0,
     sharpen: 0,
+    sharpenRadius: 2.5,
     halo: 0.25,
     pointIntensity: 0.6,
     pointThreshold: 81.0,
@@ -53,6 +56,7 @@ export const DENSITY_STYLE_PARAMS_BY_LAYER: Partial<Record<string, DensityStyleP
     gamma: 0.65,
     soften: 0,
     sharpen: 0,
+    sharpenRadius: 2.5,
     halo: 0,
     pointIntensity: 1.0,
     pointThreshold: 82.5,
@@ -162,7 +166,7 @@ export function processDensityField(
   let field = params.soften > 0.05 ? boxBlur(grayValues, n, n, params.soften) : Float32Array.from(grayValues)
 
   if (params.sharpen > 0.01) {
-    const blurred = boxBlur(field, n, n, 2.5)
+    const blurred = boxBlur(field, n, n, params.sharpenRadius)
     for (let i = 0; i < field.length; i++) field[i] = field[i] + params.sharpen * (field[i] - blurred[i])
   }
 
