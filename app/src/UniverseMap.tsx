@@ -9,6 +9,8 @@ const MIN_HALF_WIDTH_MPC = 0.02 // ~65 000 al — la Voie lactée (rayon 52 000 
 const MAX_HALF_WIDTH_MPC = 14570 // ~95 Gal de côté au total
 const GLY_PER_MPC = 3.26156e-3
 
+const DPR = Math.min(window.devicePixelRatio || 1, 3)
+
 function formatDistance(mpc: number): string {
   const gly = mpc * GLY_PER_MPC
   if (gly >= 1) return `${gly.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} Gal`
@@ -64,6 +66,11 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const halfWidthMpc = Math.pow(10, logHalfWidth)
   const dilution = densityDilutionFactor(cosmology.a)
+  // Résolution physique réelle (pas seulement CSS) : évite qu'un canvas trop
+  // petit soit ré-agrandi (et donc flouté) par le navigateur sur un écran
+  // haute densité (Retina, la plupart des smartphones récents).
+  const pixelWidth = width * DPR
+  const pixelHeight = height * DPR
 
   // Zoom à la molette, sur toute la zone de carte.
   useEffect(() => {
@@ -103,7 +110,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
     ctx.fillRect(0, 0, W, H)
 
     ctx.strokeStyle = 'rgba(255,255,255,0.12)'
-    ctx.lineWidth = 1
+    ctx.lineWidth = 1 * DPR
     const nLinesX = Math.ceil(W / 2 / pxPerMpc / gridStepMpc) + 1
     const nLinesY = Math.ceil(H / 2 / pxPerMpc / gridStepMpc) + 1
     for (let i = -nLinesX; i <= nLinesX; i++) {
@@ -127,7 +134,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
 
     ctx.strokeStyle = 'rgba(255,255,255,0.22)'
     ctx.fillStyle = 'rgba(255,255,255,0.55)'
-    ctx.font = '11px monospace'
+    ctx.font = `${11 * DPR}px monospace`
     const maxRingLines = Math.max(nLinesX, nLinesY)
     const maxRingPx = Math.max(W, H) * 0.75
     for (let i = 1; i <= maxRingLines; i++) {
@@ -137,19 +144,19 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
       ctx.beginPath()
       ctx.arc(cx, cy, rPx, 0, Math.PI * 2)
       ctx.stroke()
-      ctx.fillText(formatDistance(rMpc), cx + 4, cy - rPx - 4)
+      ctx.fillText(formatDistance(rMpc), cx + 4 * DPR, cy - rPx - 4 * DPR)
     }
 
     const horizonRPx = cosmology.chiParticleComovingMpc * pxPerMpc
     ctx.strokeStyle = '#5aa9e6'
-    ctx.lineWidth = 2
+    ctx.lineWidth = 2 * DPR
     ctx.beginPath()
     ctx.arc(cx, cy, horizonRPx, 0, Math.PI * 2)
     ctx.stroke()
     if (horizonRPx < Math.max(W, H) * 0.9) {
       ctx.fillStyle = '#5aa9e6'
-      ctx.font = 'bold 11px monospace'
-      ctx.fillText('Horizon des particules', cx + 6, cy - horizonRPx + 14)
+      ctx.font = `bold ${11 * DPR}px monospace`
+      ctx.fillText('Horizon des particules', cx + 6 * DPR, cy - horizonRPx + 14 * DPR)
     }
 
     // Le marqueur de position s'estompe aux grandes échelles.
@@ -167,7 +174,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
 
     ctx.fillStyle = `rgba(255,255,255,${markerAlpha})`
     ctx.beginPath()
-    ctx.arc(cx, cy, 3, 0, Math.PI * 2)
+    ctx.arc(cx, cy, 3 * DPR, 0, Math.PI * 2)
     ctx.fill()
   }, [halfWidthMpc, gridStepMpc, cosmology, dilution, width, height])
 
@@ -184,13 +191,13 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
     >
       {width > 0 && height > 0 && (
         <>
-          <DensityLayer style={densityStyle} opacity={densityPresence} halfWidthMpc={halfWidthMpc} width={width} height={height} />
-          <LocalGroupLayer halfWidthMpc={halfWidthMpc} opacity={densityPresence} style={densityStyle} width={width} height={height} />
-          <MilkyWayLayer halfWidthMpc={halfWidthMpc} opacity={densityPresence} style={densityStyle} width={width} height={height} />
+          <DensityLayer style={densityStyle} opacity={densityPresence} halfWidthMpc={halfWidthMpc} width={pixelWidth} height={pixelHeight} />
+          <LocalGroupLayer halfWidthMpc={halfWidthMpc} opacity={densityPresence} style={densityStyle} width={pixelWidth} height={pixelHeight} dpr={DPR} />
+          <MilkyWayLayer halfWidthMpc={halfWidthMpc} opacity={densityPresence} style={densityStyle} width={pixelWidth} height={pixelHeight} dpr={DPR} />
           <canvas
             ref={gridCanvasRef}
-            width={Math.round(width)}
-            height={Math.round(height)}
+            width={Math.round(pixelWidth)}
+            height={Math.round(pixelHeight)}
             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
           />
         </>
