@@ -42,16 +42,24 @@ def box_mpc(max_mpc):
     return 2 * max_mpc * MARGIN_FACTOR
 
 # (clé, demi-largeur en Mpc comobiles, seed) — de la plus grande à la plus petite échelle.
-# "l4b" est un palier technique intermédiaire (pas un 6e layer scientifique) ajouté
-# uniquement pour que le ratio d'échelle entre deux textures consécutives reste
-# raisonnable (le saut direct L4->L5, ratio 48.6x, produisait un recadrage à
-# seulement ~10 px sources — bien trop pixelisé pour un fondu propre).
+# "l4b", "l5a", "l4a", "l3b", "l2b" sont des paliers TECHNIQUES intermédiaires
+# (pas de nouveaux layers scientifiques — les 5 layers du document
+# d'architecture restent les mêmes) ajoutés pour que le ratio d'échelle entre
+# deux textures consécutives reste raisonnable, et pour augmenter la
+# résolution apparente moyenne (moins de zoom "à vide" dans une seule
+# texture avant la prochaine transition). Valeurs = moyenne géométrique des
+# deux layers encadrants.
 LAYER_SPECS = [
     {"key": "l5", "max_mpc": 14570.0, "seed": 42},
+    {"key": "l5a", "max_mpc": 5531.46, "seed": 48},
     {"key": "l4b", "max_mpc": 2100.0, "seed": 55},
+    {"key": "l4a", "max_mpc": 793.73, "seed": 61},
     {"key": "l4", "max_mpc": 300.0, "seed": 101},
+    {"key": "l3b", "max_mpc": 212.13, "seed": 108},
     {"key": "l3", "max_mpc": 150.0, "seed": 102},
+    {"key": "l2b", "max_mpc": 67.08, "seed": 112},
     {"key": "l2", "max_mpc": 30.0, "seed": 103},
+    {"key": "l1b", "max_mpc": 8.49, "seed": 117},
 ]
 
 
@@ -198,7 +206,7 @@ def main():
             )
             field = normalize_variance(coarse_trend) * 0.6 + normalize_variance(detail) * 0.9
 
-        if spec["key"] == "l2":
+        if spec["key"] == "l1b":
             catalog = build_catalog()
             field = apply_local_group_anchor(field, spec["max_mpc"], N, catalog)
 
