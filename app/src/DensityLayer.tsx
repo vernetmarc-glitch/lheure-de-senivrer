@@ -11,19 +11,28 @@ import { processDensityField } from './densityStyle'
 const MARGIN_FACTOR = 1.5
 
 interface ProceduralLayer {
-  key: 'localgroup' | 'l2' | 'l3' | 'l4' | 'l4b' | 'l5'
+  key: 'localgroup' | 'l1b' | 'l2' | 'l2b' | 'l3' | 'l3b' | 'l4' | 'l4a' | 'l4b' | 'l5a' | 'l5'
   maxMpc: number
 }
 
 // Du plus petit au plus grand — cf. document d'architecture §4.1. "localgroup"
-// est maintenant une texture statique (comme les autres), générée hors-ligne
-// par scripts/generate_local_group_texture.py — plus de calcul par frame.
+// est la texture des galaxies PROCÉDURALES (non nommées) du Groupe Local
+// (cf. scripts/generate_local_group_texture.py) — les galaxies réelles
+// nommées sont rendues séparément en points par LocalGroupLayer. Les paliers
+// "b"/"a" sont des paliers TECHNIQUES intermédiaires (doublement du nombre
+// de layers pour la résolution apparente moyenne), pas de nouveaux layers
+// scientifiques — cf. scripts/generate_layers.py.
 const PROCEDURAL_LAYERS: ProceduralLayer[] = [
   { key: 'localgroup', maxMpc: 2.4 },
+  { key: 'l1b', maxMpc: 8.49 },
   { key: 'l2', maxMpc: 30 },
+  { key: 'l2b', maxMpc: 67.08 },
   { key: 'l3', maxMpc: 150 },
+  { key: 'l3b', maxMpc: 212.13 },
   { key: 'l4', maxMpc: 300 },
+  { key: 'l4a', maxMpc: 793.73 },
   { key: 'l4b', maxMpc: 2100 },
+  { key: 'l5a', maxMpc: 5531.46 },
   { key: 'l5', maxMpc: 14570 },
 ]
 
