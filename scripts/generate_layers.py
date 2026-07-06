@@ -176,13 +176,21 @@ def build_structured_anchor_field(catalog, max_mpc, n):
     partagé, propres à ce pipeline de normalisation par percentiles) : le
     rendu KDE en direct (app/src/kdeRender.ts) normalise différemment
     (par frame), donc réutiliser ses valeurs saturerait cette texture-ci.
+
+    SIZE_MPC est un PLANCHER relatif à la résolution du layer courant, pas
+    une valeur absolue fixe : REAL_GALAXY_HALO_SIGMA_MPC (0.05 Mpc) est
+    calibré pour l1b (~0.025 Mpc/px, soit ~2px de sigma), mais devient
+    sub-pixel dès qu'on l'applique tel quel à un layer plus grossier (ex.
+    l2 : ~0.088 Mpc/px -> sigma < 1px -> pic invisible après recolorisation,
+    cf. diagnostic du 6 juillet). Le max() garantit un pic toujours visible,
+    quel que soit le layer où l'ancrage est appliqué.
     """
-    SIZE_MPC = REAL_GALAXY_HALO_SIGMA_MPC
     AMPLITUDE = GALAXY_BRIGHTNESS_AMPLITUDE
     HALO_SCALE = 0.12
     CORE_SCALE = 0.35
 
     pixel_size_mpc = box_mpc(max_mpc) / n
+    SIZE_MPC = max(REAL_GALAXY_HALO_SIGMA_MPC, pixel_size_mpc * 2.2)
     core_sigma_mpc = pixel_size_mpc * 1.3
     yy, xx = np.indices((n, n))
     cx, cy = n / 2, n / 2
@@ -200,7 +208,7 @@ def build_structured_anchor_field(catalog, max_mpc, n):
     return field, x_mpc, y_mpc, SIZE_MPC, AMPLITUDE
 
 
-def apply_local_group_anchor(field, max_mpc, n, catalog):
+def apply_local_group_anchor(field, max_mpc, n, catalog, strength=1.0):
     """Ajoute les bosses de densité du catalogue PAR-DESSUS le champ aléatoire
     existant, avec un traitement RENFORCÉ pour les galaxies RÉELLES :
 
@@ -218,13 +226,23 @@ def apply_local_group_anchor(field, max_mpc, n, catalog):
     d'amplitude largement dominante — garantissant que le maximum local de
     densité coïncide avec la vraie position de la galaxie. Constantes
     importées de local_group_style.py (source unique).
+
+    `strength` (0-1) : ajouté le 6 juillet pour l2 — l'ancrage plein (1.0,
+    utilisé sur l1b) n'a de sens que sur le layer qui REND ces galaxies
+    individuellement visibles juste en dessous (localgroup_real). Sur l2, il
+    ne s'agit plus d'identifier ces galaxies mais de laisser une TRACE
+    (transition douce) pour que le pic ne disparaisse pas net à la frontière
+    l1b/l2 — d'où une suppression de bruit et une amplitude de bosse
+    partielles plutôt que le traitement complet.
     """
     structured_target, x_mpc, y_mpc, size_mpc, amplitude = build_structured_anchor_field(catalog, max_mpc, n)
-    field = field + structured_target
+    field = field + structured_target * strength
 
     suppression_mask = np.ones((n, n))
     dominant_bumps = np.zeros((n, n))
     SUPPRESSION_RADIUS_MPC = size_mpc * REAL_GALAXY_SUPPRESSION_RADIUS_FACTOR
+    noise_suppression = 1 - (1 - REAL_GALAXY_NOISE_SUPPRESSION) * strength
+    dominant_factor = REAL_GALAXY_DOMINANT_AMPLITUDE_FACTOR * strength
 
     for gal in catalog:
         if not gal["isReal"]:
@@ -236,11 +254,11 @@ def apply_local_group_anchor(field, max_mpc, n, catalog):
 
         # Attenuation locale du bruit (cf. REAL_GALAXY_NOISE_SUPPRESSION dans
         # local_group_style.py pour le niveau d'attenuation au centre)
-        local_dip = 1 - (1 - REAL_GALAXY_NOISE_SUPPRESSION) * np.exp(-dist2 / (2 * SUPPRESSION_RADIUS_MPC ** 2))
+        local_dip = 1 - (1 - noise_suppression) * np.exp(-dist2 / (2 * SUPPRESSION_RADIUS_MPC ** 2))
         suppression_mask *= local_dip
 
         peak_amp = np.log(1 + gal["brightness"] * amplitude)
-        dominant_bumps += REAL_GALAXY_DOMINANT_AMPLITUDE_FACTOR * peak_amp * np.exp(-dist2 / (2 * size_mpc ** 2))
+        dominant_bumps += dominant_factor * peak_amp * np.exp(-dist2 / (2 * size_mpc ** 2))
 
     return field * suppression_mask + dominant_bumps
 
@@ -281,7 +299,17 @@ def main():
 
         if spec["key"] == "l1b":
             catalog = build_catalog()
-            field = apply_local_group_anchor(field, spec["max_mpc"], N, catalog)
+            field = apply_local_group_anchor(field, spec["max_mpc"], N, catalog, strength=1.0)
+        elif spec["key"] == "l2":
+            # "Trace" seulement (cf. docstring apply_local_group_anchor) :
+            # l2 est le layer suivant dans l'ordre du zoom (l1b -> l2), pas
+            # un enfant de l1b dans la hiérarchie d'héritage (c'est l'inverse :
+            # l1b hérite DE l2, cf. LAYER_SPECS) — sans cet appel explicite,
+            # l2 n'a strictement aucune connaissance des positions réelles et
+            # les 6-8 pics disparaissent net à la frontière l1b/l2 (diagnostic
+            # du 6 juillet).
+            catalog = build_catalog()
+            field = apply_local_group_anchor(field, spec["max_mpc"], N, catalog, strength=0.4)
 
         fields[spec["key"]] = field
 
