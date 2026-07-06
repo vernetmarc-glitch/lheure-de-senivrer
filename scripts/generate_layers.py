@@ -59,25 +59,29 @@ def box_mpc(max_mpc, margin=MARGIN_FACTOR):
     """Étendue physique réellement générée (avec marge), en Mpc, côté total."""
     return 2 * max_mpc * margin
 
-# (clé, demi-largeur en Mpc comobiles, seed) — de la plus grande à la plus petite échelle.
-# "l4b", "l5a", "l4a", "l3b", "l2b" sont des paliers TECHNIQUES intermédiaires
-# (pas de nouveaux layers scientifiques — les 5 layers du document
-# d'architecture restent les mêmes) ajoutés pour que le ratio d'échelle entre
-# deux textures consécutives reste raisonnable, et pour augmenter la
-# résolution apparente moyenne (moins de zoom "à vide" dans une seule
-# texture avant la prochaine transition). Valeurs = moyenne géométrique des
-# deux layers encadrants.
+# (clé, demi-largeur en Mpc comobiles, seed, parent) — de la plus grande à la
+# plus petite échelle. "l4b", "l5a", "l4a", "l3b", "l2b", "l1b" sont des
+# paliers TECHNIQUES intermédiaires (pas de nouveaux layers scientifiques —
+# les 5 layers du document d'architecture restent les mêmes).
+#
+# IMPORTANT — parent EXPLICITE (pas l'élément précédent de la liste) :
+# chaque palier hérite de son plus proche ANCÊTRE DE LA CHAÎNE SCIENTIFIQUE
+# D'ORIGINE (l5, l4b, l4, l3, l2), pas du palier précédent. Ça évite que la
+# chaîne d'héritage s'allonge démesurément quand on double le nombre de
+# layers : sans ça, un layer comme L3 se serait retrouvé à la génération 6
+# au lieu de 3, diluant ~97% de la structure à grande échelle héritée de L5
+# (constaté et corrigé le 6 juillet — cf. document d'architecture).
 LAYER_SPECS = [
-    {"key": "l5", "max_mpc": 14570.0, "seed": 42},
-    {"key": "l5a", "max_mpc": 5531.46, "seed": 48},
-    {"key": "l4b", "max_mpc": 2100.0, "seed": 55},
-    {"key": "l4a", "max_mpc": 793.73, "seed": 61},
-    {"key": "l4", "max_mpc": 300.0, "seed": 101},
-    {"key": "l3b", "max_mpc": 212.13, "seed": 108},
-    {"key": "l3", "max_mpc": 150.0, "seed": 102},
-    {"key": "l2b", "max_mpc": 67.08, "seed": 112},
-    {"key": "l2", "max_mpc": 30.0, "seed": 103},
-    {"key": "l1b", "max_mpc": 8.49, "seed": 117},
+    {"key": "l5", "max_mpc": 14570.0, "seed": 42, "parent": None},
+    {"key": "l5a", "max_mpc": 5531.46, "seed": 48, "parent": "l5"},
+    {"key": "l4b", "max_mpc": 2100.0, "seed": 55, "parent": "l5"},
+    {"key": "l4a", "max_mpc": 793.73, "seed": 61, "parent": "l4b"},
+    {"key": "l4", "max_mpc": 300.0, "seed": 101, "parent": "l4b"},
+    {"key": "l3b", "max_mpc": 212.13, "seed": 108, "parent": "l4"},
+    {"key": "l3", "max_mpc": 150.0, "seed": 102, "parent": "l4"},
+    {"key": "l2b", "max_mpc": 67.08, "seed": 112, "parent": "l3"},
+    {"key": "l2", "max_mpc": 30.0, "seed": 103, "parent": "l3"},
+    {"key": "l1b", "max_mpc": 8.49, "seed": 117, "parent": "l2"},
 ]
 
 
@@ -243,32 +247,43 @@ def apply_local_group_anchor(field, max_mpc, n, catalog):
 
 def main():
     fields = {}
-    prev_spec = None
-    prev_field = None
+    specs_by_key = {s["key"]: s for s in LAYER_SPECS}
+
+    # Poids rééquilibrés (idée n°1) : 55% de la variance vient désormais du
+    # parent hérité (contre ~31% avant), le reste du détail neuf — au lieu de
+    # renormaliser à variance 1 avec des poids qui diluaient la structure
+    # héritée de génération en génération. Combiné à l'héritage direct depuis
+    # l'ancêtre scientifique (idée n°2, cf. "parent" dans LAYER_SPECS), la
+    # structure à grande échelle de L5 se propage beaucoup mieux à tous les
+    # paliers (cf. document d'architecture pour le calcul complet).
+    W_COARSE = 0.74
+    W_DETAIL = 0.67
 
     for spec in LAYER_SPECS:
         margin = margin_for(spec["key"])
-        if prev_field is None:
+        parent_key = spec["parent"]
+
+        if parent_key is None:
             field = generate_raw_field(N, box_mpc(spec["max_mpc"], margin), spec["seed"])
             field = normalize_variance(field)
         else:
-            prev_margin = margin_for(prev_spec["key"])
+            parent_spec = specs_by_key[parent_key]
+            parent_field = fields[parent_key]
+            parent_margin = margin_for(parent_key)
             coarse_trend = crop_and_upsample(
-                prev_field, prev_spec["max_mpc"], spec["max_mpc"], N, prev_margin, margin
+                parent_field, parent_spec["max_mpc"], spec["max_mpc"], N, parent_margin, margin
             )
-            k_transition = np.pi * N / box_mpc(prev_spec["max_mpc"], prev_margin)
+            k_transition = np.pi * N / box_mpc(parent_spec["max_mpc"], parent_margin)
             detail = generate_raw_field(
                 N, box_mpc(spec["max_mpc"], margin), spec["seed"], highpass_k=k_transition
             )
-            field = normalize_variance(coarse_trend) * 0.6 + normalize_variance(detail) * 0.9
+            field = normalize_variance(coarse_trend) * W_COARSE + normalize_variance(detail) * W_DETAIL
 
         if spec["key"] == "l1b":
             catalog = build_catalog()
             field = apply_local_group_anchor(field, spec["max_mpc"], N, catalog)
 
         fields[spec["key"]] = field
-        prev_spec = spec
-        prev_field = field
 
     # --- Normalisation PARTAGÉE entre tous les layers ---
     # (au lieu d'une normalisation par percentiles propre à chaque layer, qui
