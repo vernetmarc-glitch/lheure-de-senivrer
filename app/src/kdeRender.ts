@@ -10,8 +10,8 @@ import { colorForValue, type DensityStyle } from './colormaps'
 export const KDE_PARAMS = {
   sizeMpc: 0.59, // sigma du halo
   amplitude: 3.5, // contraste de brillance
-  haloScale: 0.85, // luminosité du halo (valeur "pleine", à la frontière avec L2)
-  coreScale: 2.5, // luminosité du point central
+  haloScale: 0.35, // luminosité du halo (réduite : trop de halos proches se cumulaient visuellement)
+  coreScale: 3.2, // luminosité du point central (renforcée pour rester bien visible malgré le halo réduit)
 }
 
 // Plage de zoom où le layer Groupe Local domine (cf. layerWeights.ts : LAYER_EDGES_MPC[0..1]).
@@ -20,7 +20,7 @@ const LOCALGROUP_HIGH_MPC = 2.4
 // En zoomant vers la Voie lactée, plusieurs halos proches (Sagittaire, Nuages de
 // Magellan...) se superposent et éblouissent la vue. On réduit donc le halo
 // (pas le point central, qui doit rester visible) à mesure qu'on approche de 0.1 Mpc.
-const HALO_MIN_FACTOR = 0.12
+const HALO_MIN_FACTOR = 0.3
 
 function smoothstep(e0: number, e1: number, x: number): number {
   const t = Math.min(Math.max((x - e0) / (e1 - e0), 0), 1)
