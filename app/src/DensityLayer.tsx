@@ -3,8 +3,6 @@ import { type DensityStyle } from './colormaps'
 import { getLayerWeights } from './layerWeights'
 import { processDensityField } from './densityStyle'
 
-const STYLE_WORKING_RES = 512 // proportionnel à la résolution des textures (1024) et à la marge (1.5x)
-
 // Marge de génération des textures (cf. scripts/generate_layers.py et
 // generate_local_group_texture.py) : chaque texture couvre en réalité
 // layer.maxMpc * MARGIN_FACTOR de demi-largeur physique, pas seulement
@@ -81,29 +79,20 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
       const gray = grayDataRef.current[layer.key]
       if (!gray) return
 
-      // Sous-échantillonnage à la résolution de calibration (256) avant le
-      // pipeline de style (netteté, points...), pour un rendu fidèle à
-      // glow-test.html plutôt qu'à la résolution native de la texture (512).
-      const down = document.createElement('canvas')
-      down.width = STYLE_WORKING_RES
-      down.height = STYLE_WORKING_RES
-      const dctx = down.getContext('2d')
-      if (!dctx) return
-      const src = document.createElement('canvas')
-      src.width = gray.width
-      src.height = gray.height
-      src.getContext('2d')!.putImageData(gray, 0, 0)
-      dctx.drawImage(src, 0, 0, STYLE_WORKING_RES, STYLE_WORKING_RES)
-      const downGray = dctx.getImageData(0, 0, STYLE_WORKING_RES, STYLE_WORKING_RES)
+      // Traitement à la résolution NATIVE de la texture (pas de sous-
+      // échantillonnage) : le recadrage se fait ensuite sur ce résultat, donc
+      // toute perte de résolution ici se répercute directement sur le piqué
+      // final à l'écran, en particulier aux niveaux de zoom qui n'utilisent
+      // qu'une petite portion de la texture (agrandissement important).
+      const n = gray.width
+      const grayValues = new Float32Array(n * n)
+      for (let i = 0; i < grayValues.length; i++) grayValues[i] = gray.data[i * 4] / 255
 
-      const grayValues = new Float32Array(STYLE_WORKING_RES * STYLE_WORKING_RES)
-      for (let i = 0; i < grayValues.length; i++) grayValues[i] = downGray.data[i * 4] / 255
-
-      const processed = processDensityField(grayValues, STYLE_WORKING_RES, style)
+      const processed = processDensityField(grayValues, n, style)
 
       const canvas = document.createElement('canvas')
-      canvas.width = STYLE_WORKING_RES
-      canvas.height = STYLE_WORKING_RES
+      canvas.width = n
+      canvas.height = n
       canvas.getContext('2d')!.putImageData(processed, 0, 0)
       colorizedRef.current[layer.key] = canvas
     })
