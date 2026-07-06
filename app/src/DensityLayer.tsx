@@ -142,8 +142,18 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
       // Coordonnées FLOTTANTES (pas d'arrondi) : un arrondi au pixel près,
       // une fois agrandi à l'échelle de l'écran, provoquait un jitter très
       // visible aux niveaux de zoom où le recadrage source est petit.
-      const cropW = Math.min(2 * halfWidthMpcX * texturePxPerMpc, n)
-      const cropH = Math.min(2 * halfWidthMpcY * texturePxPerMpc, n)
+      let cropW = 2 * halfWidthMpcX * texturePxPerMpc
+      let cropH = 2 * halfWidthMpcY * texturePxPerMpc
+      // Si l'un des deux axes dépasse la texture, on réduit LES DEUX du même
+      // facteur (pas chacun indépendamment) pour ne jamais déformer le ratio
+      // largeur/hauteur de l'écran — un clamp indépendant par axe provoquait
+      // une compression latérale visible juste aux frontières de zoom.
+      const maxDim = Math.max(cropW, cropH)
+      if (maxDim > n) {
+        const clampScale = n / maxDim
+        cropW *= clampScale
+        cropH *= clampScale
+      }
       const startX = (n - cropW) / 2
       const startY = (n - cropH) / 2
 
