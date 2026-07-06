@@ -9,6 +9,13 @@ import { processDensityField } from './densityStyle'
 // layer.maxMpc — nécessaire pour le recadrage rectangulaire (portrait/
 // paysage) sans letterboxing. Garder cette valeur synchronisée avec le Python.
 const MARGIN_FACTOR = 1.5
+// L5 est le seul layer visible pile à son bord extrême (zoom maximal absolu
+// de la carte) — marge dédiée plus large pour éviter le letterboxing sur les
+// écrans très allongés. Cf. scripts/generate_layers.py : MARGIN_FACTOR_L5.
+const MARGIN_FACTOR_L5 = 2.4
+function marginFor(key: string): number {
+  return key === 'l5' ? MARGIN_FACTOR_L5 : MARGIN_FACTOR
+}
 
 interface ProceduralLayer {
   key: 'localgroup' | 'l1b' | 'l2' | 'l2b' | 'l3' | 'l3b' | 'l4' | 'l4a' | 'l4b' | 'l5a' | 'l5'
@@ -135,7 +142,7 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
       if (!source) continue
 
       const n = source.width // texture carrée (n x n)
-      const texturePxPerMpc = n / (2 * layer.maxMpc * MARGIN_FACTOR)
+      const texturePxPerMpc = n / (2 * layer.maxMpc * marginFor(layer.key))
 
       // Coordonnées FLOTTANTES (pas d'arrondi) : un arrondi au pixel près,
       // une fois agrandi à l'échelle de l'écran, provoquait un jitter très
