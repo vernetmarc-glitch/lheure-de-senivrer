@@ -1,0 +1,16 @@
+{
+  "name": "L'Heure de s'enivrer",
+  "short_name": "L'Heure de s'enivrer",
+  "description": "Carte interactive de l'univers observable — zoom spatial et temporel depuis la Voie lactée jusqu'à l'horizon des particules.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#05050a",
+  "theme_color": "#05050a",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
