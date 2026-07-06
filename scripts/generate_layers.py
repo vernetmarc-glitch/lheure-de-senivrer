@@ -149,14 +149,11 @@ def build_structured_anchor_field(catalog, max_mpc, n):
     pour toutes par percentiles partagés entre tous les layers (cf. main()).
     Réutiliser les mêmes valeurs qu'en JS sature une grande zone ici (halos
     proches superposés) car cette normalisation-ci les laisse s'accumuler.
-    Le rôle de cet ancrage est mineur (continuité de second ordre, la
-    transition principale est gérée par le fondu de poids avec le layer
-    Groupe Local) — pas besoin de reproduire l'intensité exacte du direct.
     """
     SIZE_MPC = 0.59
     AMPLITUDE = 3.5
-    HALO_SCALE = 0.12     # tres reduit par rapport au rendu JS (0.85) : evite la saturation
-    CORE_SCALE = 0.35     # idem (JS: 2.5)
+    HALO_SCALE = 0.12
+    CORE_SCALE = 0.35
 
     pixel_size_mpc = box_mpc(max_mpc) / n
     core_sigma_mpc = pixel_size_mpc * 1.3
@@ -173,18 +170,52 @@ def build_structured_anchor_field(catalog, max_mpc, n):
         peak_amp = np.log(1 + gal["brightness"] * AMPLITUDE)
         field += HALO_SCALE * peak_amp * np.exp(-((x_mpc - gx) ** 2 + (y_mpc - gy) ** 2) / (2 * SIZE_MPC ** 2))
         field += CORE_SCALE * peak_amp * np.exp(-((x_mpc - gx) ** 2 + (y_mpc - gy) ** 2) / (2 * core_sigma_mpc ** 2))
-    return field
+    return field, x_mpc, y_mpc, SIZE_MPC, AMPLITUDE
 
 
 def apply_local_group_anchor(field, max_mpc, n, catalog):
     """Ajoute les bosses de densité du catalogue PAR-DESSUS le champ aléatoire
-    existant (additif). Le rôle de cet ancrage est désormais réduit : la
-    frontière Groupe Local/L2 calibrée est à 2.4 Mpc (cf. layerWeights.ts),
-    bien en-deçà de l'étendue du catalogue (jusqu'à 10 Mpc) — cet ancrage ne
-    sert plus qu'à une continuité de second ordre au-delà de la frontière.
+    existant, avec un traitement RENFORCÉ pour les galaxies RÉELLES :
+
+    Diagnostic (constaté visuellement + vérifié numériquement) : la
+    contribution de l'ancrage au pic (~0.6) était bien plus faible que
+    l'amplitude typique du bruit aléatoire ambiant (pics fréquents de 1 à 3,
+    le champ étant normalisé à variance ~1). Résultat : les maxima de
+    densité visibles ne correspondaient pas aux vraies positions des
+    galaxies réelles (rendues en points sur le layer Groupe Local juste en
+    dessous) — l'alignement visuel entre les deux layers n'était pas garanti.
+
+    Correctif : pour les galaxies RÉELLES uniquement (pas les procédurales,
+    qui n'ont pas de rendu ponctuel à aligner), on ATTÉNUE localement le
+    bruit ambiant autour de leur position, puis on y superpose une bosse
+    d'amplitude largement dominante — garantissant que le maximum local de
+    densité coïncide avec la vraie position de la galaxie.
     """
-    structured_target = build_structured_anchor_field(catalog, max_mpc, n)
-    return field + structured_target
+    structured_target, x_mpc, y_mpc, size_mpc, amplitude = build_structured_anchor_field(catalog, max_mpc, n)
+    field = field + structured_target
+
+    suppression_mask = np.ones((n, n))
+    dominant_bumps = np.zeros((n, n))
+    SUPPRESSION_RADIUS_MPC = size_mpc * 0.55
+    DOMINANT_AMPLITUDE_FACTOR = 3.5  # nettement au-dessus du bruit ambiant (variance ~1)
+
+    for gal in catalog:
+        if not gal["isReal"]:
+            continue
+        angle_rad = np.radians(gal["angleDeg"])
+        gx = np.cos(angle_rad) * gal["distanceMpc"]
+        gy = np.sin(angle_rad) * gal["distanceMpc"]
+        dist2 = (x_mpc - gx) ** 2 + (y_mpc - gy) ** 2
+
+        # Attenuation locale du bruit (jusqu'a ~15% de son amplitude au centre,
+        # retour progressif a 100% au-dela de ~2x SUPPRESSION_RADIUS_MPC)
+        local_dip = 1 - 0.85 * np.exp(-dist2 / (2 * SUPPRESSION_RADIUS_MPC ** 2))
+        suppression_mask *= local_dip
+
+        peak_amp = np.log(1 + gal["brightness"] * amplitude)
+        dominant_bumps += DOMINANT_AMPLITUDE_FACTOR * peak_amp * np.exp(-dist2 / (2 * size_mpc ** 2))
+
+    return field * suppression_mask + dominant_bumps
 
 
 def main():
