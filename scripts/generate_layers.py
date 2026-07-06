@@ -229,7 +229,8 @@ def apply_local_group_anchor(field, max_mpc, n, catalog, strength=1.0):
 
     `strength` (0-1) : ajouté le 6 juillet pour l2 — l'ancrage plein (1.0,
     utilisé sur l1b) n'a de sens que sur le layer qui REND ces galaxies
-    individuellement visibles juste en dessous (localgroup_real). Sur l2, il
+    individuellement visibles juste en dessous (RealGalaxiesLayer.tsx, sprites
+    dédiés par galaxie). Sur l2, il
     ne s'agit plus d'identifier ces galaxies mais de laisser une TRACE
     (transition douce) pour que le pic ne disparaisse pas net à la frontière
     l1b/l2 — d'où une suppression de bruit et une amplitude de bosse

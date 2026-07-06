@@ -1,20 +1,29 @@
 /**
  * Pré-cuit en textures statiques (même logique que generate_layers.py /
- * generate_local_group_texture.py) les DEUX layers qui étaient jusqu'ici
- * rendus en direct, étoile par étoile, dans le navigateur :
+ * generate_local_group_texture.py) les layers qui étaient jusqu'ici rendus
+ * en direct, étoile par étoile, dans le navigateur :
  *
- *   1. "milkyway"       -> app/public/data/density_milkyway.png
- *      Disque + bulbe de la Voie lactée, généré en appelant le VRAI module
- *      partagé GalaxyModel (récupéré à chaque exécution depuis le dépôt
- *      "le-silence-du-cosmos", jamais réimplémenté ici) + les galaxies
- *      réelles très proches (Nuages de Magellan, Naine du Sagittaire) qui
- *      tombent dans son champ.
+ *   1. "milkyway" -> app/public/data/density_milkyway.png
+ *      Disque + bulbe de la Voie lactée UNIQUEMENT, généré en appelant le
+ *      vrai module partagé GalaxyModel (récupéré à chaque exécution depuis
+ *      le dépôt "le-silence-du-cosmos", jamais réimplémenté ici).
  *
- *   2. "localgroup_real" -> app/public/data/density_localgroup_real.png
- *      Les 8 galaxies réelles nommées du Groupe Local (Andromède, M33...),
- *      à l'échelle du Mpc, en plus du halo procédural existant
- *      (density_localgroup.png, généré séparément par
- *      generate_local_group_texture.py).
+ *   2. Un SPRITE dédié par galaxie réelle nommée du Groupe Local
+ *      -> app/public/data/density_realgal_<slug>.png (8 fichiers)
+ *      Historique (6 juillet) : une première version mettait TOUTES les
+ *      galaxies réelles dans une seule texture partagée à l'échelle du
+ *      Groupe Local (2.4 Mpc) — à cette échelle chaque galaxie n'occupait
+ *      que quelques pixels et perdait toute structure (bras spiraux,
+ *      barre...) visible avec l'ancien rendu point-par-point en direct.
+ *      Une seconde version répartissait les galaxies les plus proches
+ *      (LMC, Naine du Sagittaire) dans la texture "milkyway" pour plus de
+ *      résolution, mais créait un doublon visuel avec la texture partagée
+ *      pendant le fondu entre les deux layers (gros blocs pixelisés).
+ *      Solution retenue : CHAQUE galaxie réelle a sa propre texture,
+ *      dimensionnée sur SA PROPRE taille (SPRITE_MARGIN x son rayon) —
+ *      donc toujours la même résolution relative, quelle que soit sa
+ *      distance, et jamais dupliquée. Composée au runtime par
+ *      RealGalaxiesLayer.tsx (quelques `drawImage`, pas de champ partagé).
  *
  * Le fait de committer le code du rendu (morphologies) dans CE dépôt ne
  * duplique PAS le module GalaxyModel : seule la Voie lactée elle-même
@@ -41,6 +50,28 @@ const GALAXY_MODEL_URL =
 const LY_PER_MPC = 3.26156e6
 const CATALOG_PATH = new URL('../app/public/data/local_group_catalog.json', import.meta.url)
 const OUT_DIR = new URL('../app/public/data/', import.meta.url)
+
+// Demi-largeur du sprite d'une galaxie réelle, en multiple de son propre
+// radiusMpc — GARDER SYNCHRONISÉ avec SPRITE_MARGIN dans
+// app/src/RealGalaxiesLayer.tsx (comme pour MARGIN_FACTOR ailleurs dans le
+// projet). Les étoiles générées sont tronquées à 1.3x le rayon (cf.
+// generateNearbyGalaxyStars) ; 1.7 laisse une marge confortable pour le
+// halo gaussien sans trop de fond vide autour.
+const SPRITE_MARGIN = 1.7
+
+// Nom catalogue -> identifiant de fichier. Explicite plutôt qu'un
+// slugifier générique : les noms contiennent accents/espaces/parenthèses,
+// et une table figée évite toute divergence silencieuse si un nom change.
+const SLUG_BY_NAME = {
+  'Andromède (M31)': 'andromede',
+  'Triangulum (M33)': 'triangulum',
+  'Grand Nuage de Magellan': 'lmc',
+  'Petit Nuage de Magellan': 'smc',
+  'Naine du Sagittaire': 'sagittaire',
+  'NGC 6822': 'ngc6822',
+  'IC 10': 'ic10',
+  'Leo I': 'leo1',
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // 1. Récupération du VRAI module GalaxyModel (source unique partagée)
@@ -85,18 +116,6 @@ function morphologyFor(name) {
 
 function starCountFor(radiusMpcHint, brightness) {
   return Math.round(60 + brightness * 120 + radiusMpcHint * 4000)
-}
-
-// Plancher de taille VISIBLE pour le nuage d'étoiles d'une galaxie réelle,
-// exprimé en fraction de la demi-largeur NOMINALE (avant marge) de la
-// texture qui l'accueille — même esprit que VISIBILITY_SCALE/MIN_SIZE_MPC
-// dans generate_local_group_texture.py, mais relatif plutôt qu'absolu pour
-// rester valable aussi bien à l'échelle année-lumière (milkyway) qu'à
-// l'échelle Mpc (localgroup_real). Sans ça, LMC/SMC/Naine du Sagittaire/
-// NGC6822/IC10/Leo I sont sub-pixel à la résolution de la texture (rayon
-// réel < 1 px) et disparaissent presque totalement.
-function effectiveRadius(radiusUnit, nominalHalfWidthUnit) {
-  return Math.max(radiusUnit, nominalHalfWidthUnit * 0.005)
 }
 
 function generateNearbyGalaxyStars(name, radiusMpcHint, brightness, seed) {
@@ -213,26 +232,21 @@ function tonemapAndSave(field, n, outPath, k) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// 4. Génération "milkyway" (échelle année-lumière)
+// 4. Génération "milkyway" (échelle année-lumière) — disque + bulbe SEULS
 // ─────────────────────────────────────────────────────────────────────────
-async function generateMilkyWay(catalog) {
+async function generateMilkyWay() {
   const GalaxyModel = await loadGalaxyModel()
   const stars = GalaxyModel.generateGalaxy() // déterministe (RNG_SEED fixe)
   console.log(`GalaxyModel: ${stars.length} étoiles générées (MW_R=${GalaxyModel.MW_R} al, YSCALE=${GalaxyModel.YSCALE})`)
 
   const N = 1024
   const MARGIN_FACTOR = 1.5
-  // Demi-largeur nominale (avant marge) : ~2.2x MW_R, suffisant pour couvrir
-  // tout le disque (taper à 1.45x MW_R). ~2.7x est ce qu'il faut en plus
-  // pour couvrir aussi les 3 galaxies réelles les plus proches (LMC, Naine
-  // du Sagittaire, ET le Petit Nuage de Magellan qui passait tout juste à
-  // côté du seuil avec 2.2x) — cf. diagnostic du 6 juillet : une galaxie
-  // proche laissée hors de CE texte finit rendue UNIQUEMENT par
-  // localgroup_real, dont la résolution effective est ~14x plus faible ici
-  // (tout le Groupe Local en 2.4 Mpc vs seulement l'environnement proche de
-  // la Voie lactée) — d'où les gros blocs pixelisés constatés au lieu d'un
-  // halo net.
-  const HALF_LY = GalaxyModel.MW_R * 2.7
+  // ~2.2x MW_R : suffisant pour couvrir tout le disque (taper à 1.45x
+  // MW_R). Les galaxies réelles proches (LMC, Naine du Sagittaire...) ne
+  // sont PLUS incluses ici (cf. en-tête de fichier) — chacune a désormais
+  // son propre sprite, rendu par RealGalaxiesLayer.tsx à la bonne
+  // position/taille quel que soit le zoom.
+  const HALF_LY = GalaxyModel.MW_R * 2.2
   const boxLy = 2 * HALF_LY * MARGIN_FACTOR
   const pxPerLy = N / boxLy
   const cx = N / 2
@@ -245,77 +259,51 @@ async function generateMilkyWay(catalog) {
     splatGaussian(field, N, pxPerLy, cx, cy, star.gx, star.gy * GalaxyModel.YSCALE, sigmaLy, 0.55, 0.18 + star.b * 0.55)
   }
 
-  // Galaxies réelles proches qui tombent dans ce champ (pas de YSCALE : ce
-  // sont des galaxies distinctes, pas le disque de la Voie lactée).
-  for (const gal of catalog) {
-    const distanceLy = gal.distanceMpc * LY_PER_MPC
-    if (distanceLy > HALF_LY * MARGIN_FACTOR * 1.05) continue
-    const radiusLy = effectiveRadius(gal.radiusMpc * LY_PER_MPC, HALF_LY)
-    const rad = (gal.angleDeg * Math.PI) / 180
-    const centerX = Math.cos(rad) * distanceLy
-    const centerY = Math.sin(rad) * distanceLy
-    const seed = (gal.name?.length ?? 1) * 7919 + Math.round(gal.distanceMpc * 100000)
-    const galStars = generateNearbyGalaxyStars(gal.name ?? '', gal.radiusMpc, gal.brightness, seed)
-    for (const s of galStars) {
-      const gx = centerX + s.dx * radiusLy
-      const gy = centerY + s.dy * radiusLy
-      splatGaussian(field, N, pxPerLy, cx, cy, gx, gy, radiusLy * 0.06, 0.6, 0.18 + s.b * 0.4)
-    }
-  }
-
   tonemapAndSave(field, N, new URL('density_milkyway.png', OUT_DIR), 1.0)
 
-  const inclusionThresholdLy = HALF_LY * MARGIN_FACTOR * 1.05
-  return { maxMpc: HALF_LY / LY_PER_MPC, inclusionThresholdLy } // maxMpc nominal à reporter dans DensityLayer.tsx
+  return HALF_LY / LY_PER_MPC // maxMpc nominal à reporter dans DensityLayer.tsx
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// 5. Génération "localgroup_real" (échelle Mpc) — les 8 galaxies nommées
+// 5. Génération d'un sprite dédié par galaxie réelle nommée — dimensionné
+//    sur SA PROPRE taille (résolution relative identique pour toutes,
+//    quelle que soit leur distance réelle).
 // ─────────────────────────────────────────────────────────────────────────
-function generateLocalGroupReal(catalog, milkywayInclusionThresholdLy) {
-  const N = 1024
-  const MAX_MPC = 2.4 // identique à generate_local_group_texture.py
-  const MARGIN_FACTOR = 1.5
-  const boxMpc = 2 * MAX_MPC * MARGIN_FACTOR
-  const pxPerMpc = N / boxMpc
+function generateRealGalaxySprite(gal) {
+  const slug = SLUG_BY_NAME[gal.name ?? '']
+  if (!slug) {
+    console.warn(`Pas de slug pour "${gal.name}" — sprite ignoré (ajouter une entrée dans SLUG_BY_NAME).`)
+    return
+  }
+  const N = 256 // chaque galaxie a sa propre texture : elle occupe déjà tout le cadre, pas besoin de 1024
+  const halfWidthMpc = gal.radiusMpc * SPRITE_MARGIN
+  const pxPerMpc = N / (2 * halfWidthMpc)
   const cx = N / 2
   const cy = N / 2
 
   const field = new Float32Array(N * N)
-
-  for (const gal of catalog) {
-    if (!gal.isReal) continue
-    // Les galaxies déjà couvertes en haute résolution par le layer
-    // "milkyway" (LMC, Naine du Sagittaire, SMC — cf. generateMilkyWay) ne
-    // doivent PAS être rendues une seconde fois ici : à cette résolution
-    // (tout le Groupe Local en 2.4 Mpc, ~14x moins précis que le champ
-    // dédié à l'environnement proche de la Voie lactée), le rendu de ces
-    // galaxies très proches donne un pâté de quelques pixels qui devient un
-    // gros bloc visible dès qu'on zoome dans la zone de fondu milkyway <->
-    // localgroup — cf. diagnostic du 6 juillet. Elles restent visibles,
-    // nettes, via le layer milkyway.
-    if (gal.distanceMpc * LY_PER_MPC <= milkywayInclusionThresholdLy) continue
-    const rad = (gal.angleDeg * Math.PI) / 180
-    const centerX = Math.cos(rad) * gal.distanceMpc
-    const centerY = Math.sin(rad) * gal.distanceMpc
-    const seed = (gal.name?.length ?? 1) * 7919 + Math.round(gal.distanceMpc * 100000)
-    const galStars = generateNearbyGalaxyStars(gal.name ?? '', gal.radiusMpc, gal.brightness, seed)
-    const radiusMpc = effectiveRadius(gal.radiusMpc, MAX_MPC)
-    for (const s of galStars) {
-      const gx = centerX + s.dx * radiusMpc
-      const gy = centerY + s.dy * radiusMpc
-      splatGaussian(field, N, pxPerMpc, cx, cy, gx, gy, radiusMpc * 0.06, 0.6, 0.18 + s.b * 0.4)
-    }
+  const seed = (gal.name?.length ?? 1) * 7919 + Math.round(gal.distanceMpc * 100000)
+  const stars = generateNearbyGalaxyStars(gal.name ?? '', gal.radiusMpc, gal.brightness, seed)
+  for (const s of stars) {
+    const gx = s.dx * gal.radiusMpc
+    const gy = s.dy * gal.radiusMpc
+    splatGaussian(field, N, pxPerMpc, cx, cy, gx, gy, gal.radiusMpc * 0.045, 0.6, 0.18 + s.b * 0.4)
   }
 
-  tonemapAndSave(field, N, new URL('density_localgroup_real.png', OUT_DIR), 1.0)
+  tonemapAndSave(field, N, new URL(`density_realgal_${slug}.png`, OUT_DIR), 1.0)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 async function main() {
   const catalog = JSON.parse(readFileSync(CATALOG_PATH, 'utf8'))
-  const { maxMpc: maxMpcMilkyWay, inclusionThresholdLy } = await generateMilkyWay(catalog)
-  generateLocalGroupReal(catalog, inclusionThresholdLy)
+
+  const maxMpcMilkyWay = await generateMilkyWay()
+
+  for (const gal of catalog) {
+    if (!gal.isReal) continue
+    generateRealGalaxySprite(gal)
+  }
+
   console.log(`\nmaxMpc à utiliser pour l'entrée "milkyway" dans DensityLayer.tsx : ${maxMpcMilkyWay.toFixed(6)}`)
 }
 
