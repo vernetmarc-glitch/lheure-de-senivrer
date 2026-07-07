@@ -73,15 +73,20 @@ export const DENSITY_STYLE_PARAMS_BY_LAYER: Partial<Record<string, DensityStyleP
   // (cf. generate_layers.py), c'est un vrai champ diffus comme les autres
   // layers de densité, donc le halo/points par défaut s'applique (contraste
   // un peu plus doux que le défaut 0.75).
+  // 7 juillet, 2e itération : le champ l1b utilise maintenant le même
+  // moteur que l2 quasi sans modification (cf. generate_layers.py, mode
+  // diffuse) — statistiques très proches (moyenne/écart-type/texture fine
+  // vérifiés). Style aligné sur celui de l2 pour rester visuellement
+  // cohérent d'un layer à l'autre.
   l1b: {
-    gamma: 0.56,
+    gamma: 0.85,
     soften: 0,
     sharpen: 0,
     sharpenRadius: 2.5,
-    halo: 0.1,
+    halo: 0.25,
     pointIntensity: 0.6,
-    pointThreshold: 82,
-    pointSize: 1.5,
+    pointThreshold: 81.0,
+    pointSize: 2.5,
   },
   // Calibré le 6 juillet via glow-test.html.
   l2: {

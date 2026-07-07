@@ -260,6 +260,7 @@ def apply_local_group_anchor(
     cloud_scale=18,
     extra_blur_px=0.0,
     bump_amplitude_factor=1.0,
+    diffuse=False,
 ):
     """Ajoute les bosses de densité du catalogue PAR-DESSUS le champ aléatoire
     existant, avec un traitement RENFORCÉ pour les galaxies RÉELLES :
@@ -272,84 +273,64 @@ def apply_local_group_anchor(
     galaxies réelles (rendues en points sur le layer Groupe Local juste en
     dessous) — l'alignement visuel entre les deux layers n'était pas garanti.
 
-    Correctif : pour les galaxies RÉELLES uniquement PAR DÉFAUT (pas les
-    procédurales, qui n'ont pas de rendu ponctuel à aligner), on ATTÉNUE
-    localement le bruit ambiant autour de leur position, puis on y superpose
-    une bosse d'amplitude largement dominante — garantissant que le maximum
-    local de densité coïncide avec la vraie position de la galaxie.
-    Constantes importées de local_group_style.py (source unique).
+    Correctif historique (6 juillet) : pour les galaxies RÉELLES uniquement
+    PAR DÉFAUT, on ATTÉNUE localement le bruit ambiant autour de leur
+    position, puis on y superpose une bosse d'amplitude largement dominante
+    — garantissant que le maximum local de densité coïncide avec la vraie
+    position de la galaxie. Constantes importées de local_group_style.py.
 
-    `strength` (0-1) : ajouté le 6 juillet pour l2 — l'ancrage plein (1.0,
-    utilisé sur l1b) n'a de sens que sur le layer qui REND ces galaxies
-    individuellement visibles juste en dessous (RealGalaxiesLayer.tsx, sprites
-    dédiés par galaxie). Sur l2, il ne s'agit plus d'identifier ces galaxies
-    mais de laisser une TRACE (transition douce) pour que le pic ne
-    disparaisse pas net à la frontière l1b/l2 — d'où une suppression de
-    bruit et une amplitude de bosse partielles plutôt que le traitement
-    complet.
+    `strength` (0-1) : l'ancrage plein (1.0, l1b) n'a de sens que sur le
+    layer qui REND ces galaxies individuellement visibles juste en dessous.
+    Sur l2, simple TRACE (0.4) pour une transition douce.
 
-    `global_suppression` (0-1, défaut 1 = inchangé) : ajouté le 7 juillet
-    pour l1b — jusqu'ici la suppression de bruit n'était que LOCALE (un
-    disque autour de chaque galaxie, cf. `local_dip` plus bas), donc du
-    bruit ambiant restait visible ENTRE les galaxies, créant des taches qui
-    ne correspondent à aucune vraie galaxie du layer Groupe Local juste en
-    dessous. Une valeur basse (ex. 0.08) atténue le bruit sur TOUT le champ
-    avant d'ajouter les bosses, pour qu'il ne reste QUE les pics du
-    catalogue, sans rien entre eux.
+    `real_only` : build_catalog() contient 8 galaxies réelles + ~90
+    procédurales — real_only=False (l1b) traite l'ensemble.
 
-    `real_only` (défaut True) : ajouté le 7 juillet — build_catalog() ne
-    contient pas QUE les 8 galaxies réelles nommées, mais aussi ~90
-    "galaxies de champ" procédurales (generate_local_group_catalog.py,
-    distance 1-10 Mpc). Avec real_only=True (comportement historique), ces
-    90 galaxies ne recevaient que la contribution FAIBLE de
-    build_structured_anchor_field (pas de suppression locale ni de bosse
-    dominante), donc quasi invisibles à côté des 8 pics dominants — alors
-    que le layer Groupe Local juste en dessous (texture procédurale
-    'localgroup' + RealGalaxiesLayer) les montre TOUTES. real_only=False
-    (utilisé pour l1b) applique le même traitement complet à l'ensemble du
-    catalogue, pour que l1b reflète fidèlement tout ce qui est visible en
-    dessous, pas seulement les galaxies nommées.
-
-    `cloud_amplitude`/`cloud_scale`/`extra_blur_px`/`bump_amplitude_factor` :
-    ajoutés le 7 juillet, calibrés visuellement via
-    app/public/l1b-anchor-test.html suite au retour "trop net/rond,
-    voudrais des halos plus diffus et un peu de bruit intermédiaire façon
-    nuages interstellaires". `cloud_amplitude`/`cloud_scale` ajoutent un
-    bruit de valeur doux (cf. value_noise_field) ENTRE les galaxies, en plus
-    (pas à la place) de global_suppression — contrairement au bruit
-    cosmique standard, ce n'est pas de la structure à grande échelle, juste
-    une texture de fond plausible. `extra_blur_px` adoucit l'ensemble du
-    champ (halos ET nuages) après coup.
+    `diffuse` (ajouté le 7 juillet, deuxième itération) : le mode
+    "dominance forcée" ci-dessus (suppression locale + bosse garantie
+    maximale) donne des ronds nets qui ressemblent à des autocollants posés
+    sur le champ, pas à une vraie sur-densité cosmique — constaté aussi
+    après une première tentative avec un bruit de "nuages" fabriqué à la
+    main (cloud_amplitude), qui ne ressemblait pas du tout à la texture
+    filamenteuse réelle de l2 (même moyenne/écart-type, mais une structure
+    spatiale bien plus lisse/en tâches que la vraie texture multi-échelle).
+    En mode diffuse : le champ naturel hérité de l2 (déjà généré par LE
+    MÊME moteur que l2, cf. main()) n'est presque pas touché
+    (global_suppression proche de 1), aucune suppression locale de bruit ni
+    bosse "garantie dominante" — juste un halo doux ADDITIONNÉ par-dessus,
+    qui se fond dans la texture existante au lieu de la remplacer.
     """
     structured_target, x_mpc, y_mpc, size_mpc, amplitude = build_structured_anchor_field(
         catalog, max_mpc, n, size_multiplier=size_multiplier, bump_amplitude_factor=bump_amplitude_factor
     )
     cloud = value_noise_field(n, cloud_scale, seed=2002) if cloud_amplitude > 0 else 0.0
-    field = field * global_suppression + cloud * cloud_amplitude + structured_target * strength
+    result = field * global_suppression + cloud * cloud_amplitude + structured_target * strength
 
-    suppression_mask = np.ones((n, n))
-    dominant_bumps = np.zeros((n, n))
-    SUPPRESSION_RADIUS_MPC = size_mpc * REAL_GALAXY_SUPPRESSION_RADIUS_FACTOR
-    noise_suppression = 1 - (1 - REAL_GALAXY_NOISE_SUPPRESSION) * strength
-    dominant_factor = REAL_GALAXY_DOMINANT_AMPLITUDE_FACTOR * strength * bump_amplitude_factor
+    if not diffuse:
+        suppression_mask = np.ones((n, n))
+        dominant_bumps = np.zeros((n, n))
+        SUPPRESSION_RADIUS_MPC = size_mpc * REAL_GALAXY_SUPPRESSION_RADIUS_FACTOR
+        noise_suppression = 1 - (1 - REAL_GALAXY_NOISE_SUPPRESSION) * strength
+        dominant_factor = REAL_GALAXY_DOMINANT_AMPLITUDE_FACTOR * strength * bump_amplitude_factor
 
-    for gal in catalog:
-        if real_only and not gal["isReal"]:
-            continue
-        angle_rad = np.radians(gal["angleDeg"])
-        gx = np.cos(angle_rad) * gal["distanceMpc"]
-        gy = np.sin(angle_rad) * gal["distanceMpc"]
-        dist2 = (x_mpc - gx) ** 2 + (y_mpc - gy) ** 2
+        for gal in catalog:
+            if real_only and not gal["isReal"]:
+                continue
+            angle_rad = np.radians(gal["angleDeg"])
+            gx = np.cos(angle_rad) * gal["distanceMpc"]
+            gy = np.sin(angle_rad) * gal["distanceMpc"]
+            dist2 = (x_mpc - gx) ** 2 + (y_mpc - gy) ** 2
 
-        # Attenuation locale du bruit (cf. REAL_GALAXY_NOISE_SUPPRESSION dans
-        # local_group_style.py pour le niveau d'attenuation au centre)
-        local_dip = 1 - (1 - noise_suppression) * np.exp(-dist2 / (2 * SUPPRESSION_RADIUS_MPC ** 2))
-        suppression_mask *= local_dip
+            # Attenuation locale du bruit (cf. REAL_GALAXY_NOISE_SUPPRESSION dans
+            # local_group_style.py pour le niveau d'attenuation au centre)
+            local_dip = 1 - (1 - noise_suppression) * np.exp(-dist2 / (2 * SUPPRESSION_RADIUS_MPC ** 2))
+            suppression_mask *= local_dip
 
-        peak_amp = np.log(1 + gal["brightness"] * amplitude)
-        dominant_bumps += dominant_factor * peak_amp * np.exp(-dist2 / (2 * size_mpc ** 2))
+            peak_amp = np.log(1 + gal["brightness"] * amplitude)
+            dominant_bumps += dominant_factor * peak_amp * np.exp(-dist2 / (2 * size_mpc ** 2))
 
-    result = field * suppression_mask + dominant_bumps
+        result = result * suppression_mask + dominant_bumps
+
     if extra_blur_px > 0.3:
         result = gaussian_filter(result, sigma=extra_blur_px)
     return result
@@ -390,26 +371,22 @@ def main():
             field = normalize_variance(coarse_trend) * W_COARSE + normalize_variance(detail) * W_DETAIL
 
         if spec["key"] == "l1b":
-            # 7 juillet : suppression du bruit ambiant sur TOUT le champ
-            # (global_suppression bas), pas seulement localement autour de
-            # chaque galaxie — pour que seules les galaxies du catalogue
-            # ressortent comme pics de densité, sans taches intermédiaires
-            # ne correspondant à rien de réel. real_only=False : le layer
-            # Groupe Local juste en dessous montre TOUT le catalogue
-            # (8 galaxies réelles + ~90 galaxies de champ procédurales, cf.
-            # generate_local_group_catalog.py), pas seulement les 8
-            # nommées — l1b doit refléter l'ensemble, pas juste un
-            # sous-ensemble.
-            #
-            # Valeurs calibrées visuellement le 7 juillet via
-            # app/public/l1b-anchor-test.html (retour : "trop net/rond,
-            # voudrais des halos plus diffus et un peu de bruit
-            # intermédiaire façon nuages interstellaires") — remonter la
-            # suppression (0.08 -> 0.47) laisse réapparaître un peu du bruit
-            # cosmique ambiant, cloud_amplitude/cloud_scale ajoutent en plus
-            # un bruit de texture indépendant, extra_blur_px adoucit
-            # l'ensemble, size_multiplier et bump_amplitude_factor élargissent
-            # et éclaircissent les pics pour compenser le fond moins sombre.
+            # 7 juillet, 2e itération : retour "trop éloigné du rendu de l2,
+            # les taches sont trop intenses/rondes, il faut un effet
+            # vaporeux". La 1re itération (suppression globale + bruit de
+            # 'nuages' fabriqué à la main) donnait une texture bien plus
+            # lisse/en tâches que la vraie structure filamenteuse de l2,
+            # malgré une moyenne/écart-type proches. Nouvelle approche
+            # (diffuse=True) : on garde le champ NATUREL de l1b quasi
+            # intact (déjà généré par le MÊME moteur que l2 — coarse_trend
+            # hérité + détail passe-haut, cf. plus haut dans cette boucle),
+            # et on se contente d'ajouter un halo doux par-dessus à chaque
+            # position du catalogue, sans supprimer le bruit local ni forcer
+            # ces positions à être le maximum absolu — juste une légère
+            # sur-densité qui se fond dans la texture existante. real_only=False :
+            # le layer Groupe Local en dessous montre les 98 galaxies du
+            # catalogue (8 réelles + ~90 procédurales), pas seulement les 8
+            # nommées.
             catalog = build_catalog()
             field = apply_local_group_anchor(
                 field,
@@ -417,13 +394,12 @@ def main():
                 N,
                 catalog,
                 strength=1.0,
-                global_suppression=0.47,
-                size_multiplier=9.2,
+                global_suppression=0.92,
+                size_multiplier=7.0,
                 real_only=False,
-                cloud_amplitude=0.64,
-                cloud_scale=18,
-                extra_blur_px=2.0,
-                bump_amplitude_factor=1.25,
+                bump_amplitude_factor=0.55,
+                extra_blur_px=0.0,
+                diffuse=True,
             )
         elif spec["key"] == "l2":
             # "Trace" seulement (cf. docstring apply_local_group_anchor) :
