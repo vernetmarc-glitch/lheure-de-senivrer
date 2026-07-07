@@ -422,15 +422,15 @@ def main():
                 spec["max_mpc"],
                 N,
                 catalog,
-                strength=0.4,
+                strength=1.6,
                 real_only=False,
                 diffuse=True,
-                size_multiplier=3.0,
-                bump_amplitude_factor=0.5,
+                size_multiplier=5.0,
+                bump_amplitude_factor=2.6,
             )
         elif spec["key"] == "l2b":
             # 7 juillet, 4e itération : trace encore plus atténuée qu'l2
-            # (strength=0.15) pour que la transition l2 -> l2b ne fasse pas
+            # (strength plus bas) pour que la transition l2 -> l2b ne fasse pas
             # disparaître net les mêmes 98 positions (même défaut que celui
             # corrigé entre l1b et l2, cf. diagnostic du 6 juillet).
             # DÉLIBÉRÉMENT LA DERNIÈRE ÉTAPE de cette propagation : au-delà
@@ -440,17 +440,25 @@ def main():
             # ajouter une trace créerait un artefact fixe au centre de la
             # carte à des échelles où il n'a scientifiquement pas lieu
             # d'être.
+            #
+            # 7 juillet, 5e itération : strength/bump_amplitude_factor
+            # remontés sur l2 ET l2b (retour utilisateur — la trace était
+            # devenue quasi invisible sur l2, le fond naturel de ce layer
+            # étant beaucoup plus bruité que celui de l1b, ~3x l'écart-type,
+            # noyait complètement le pic précédent). l2b reste
+            # volontairement plus faible que l2 pour garder un fondu
+            # progressif plutôt qu'un plateau.
             catalog = build_catalog()
             field = apply_local_group_anchor(
                 field,
                 spec["max_mpc"],
                 N,
                 catalog,
-                strength=0.15,
+                strength=0.85,
                 real_only=False,
                 diffuse=True,
-                size_multiplier=3.0,
-                bump_amplitude_factor=0.5,
+                size_multiplier=5.0,
+                bump_amplitude_factor=1.7,
             )
 
         fields[spec["key"]] = field
