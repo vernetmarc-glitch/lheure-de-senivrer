@@ -255,6 +255,67 @@ function tonemapAndSave(field, n, outPath, k) {
 //    était dessinée sur LES DEUX layers (même cache d'étoiles, juste à une
 //    échelle physique différente).
 // ─────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// Bruit de valeur (grille aléatoire grossière + interpolation smoothstep) —
+// même algorithme que value_noise_field() dans scripts/generate_layers.py,
+// utilisé ici pour le halo "nuageux" de la Voie lactée (cf. generateMilkyWay).
+// ─────────────────────────────────────────────────────────────────────────
+function mulberry32b(seed) {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function valueNoiseField(n, gridSize, seed) {
+  const rng = mulberry32b(seed)
+  const g = Math.max(2, Math.round(gridSize))
+  const grid = new Float32Array((g + 1) * (g + 1))
+  for (let i = 0; i < grid.length; i++) grid[i] = rng() * 2 - 1
+  const out = new Float32Array(n * n)
+  for (let y = 0; y < n; y++) {
+    const gy = (y / n) * g
+    const gy0 = Math.min(Math.floor(gy), g - 1)
+    const fy = gy - Math.floor(gy)
+    const sy = fy * fy * (3 - 2 * fy)
+    for (let x = 0; x < n; x++) {
+      const gx = (x / n) * g
+      const gx0 = Math.min(Math.floor(gx), g - 1)
+      const fx = gx - Math.floor(gx)
+      const sx = fx * fx * (3 - 2 * fx)
+      const v00 = grid[gy0 * (g + 1) + gx0]
+      const v10 = grid[gy0 * (g + 1) + gx0 + 1]
+      const v01 = grid[(gy0 + 1) * (g + 1) + gx0]
+      const v11 = grid[(gy0 + 1) * (g + 1) + gx0 + 1]
+      const a = v00 + (v10 - v00) * sx
+      const b = v01 + (v11 - v01) * sx
+      out[y * n + x] = a + (b - a) * sy
+    }
+  }
+  return out
+}
+
+function multiOctaveCloud(n, seed, baseGrid) {
+  const oct1 = valueNoiseField(n, baseGrid, seed)
+  const oct2 = valueNoiseField(n, baseGrid * 2.4, seed + 1)
+  const oct3 = valueNoiseField(n, baseGrid * 5.5, seed + 2)
+  const out = new Float32Array(n * n)
+  let min = Infinity
+  let max = -Infinity
+  for (let i = 0; i < out.length; i++) {
+    const c = oct1[i] * 0.55 + oct2[i] * 0.3 + oct3[i] * 0.15
+    out[i] = c
+    if (c < min) min = c
+    if (c > max) max = c
+  }
+  const span = max - min || 1
+  for (let i = 0; i < out.length; i++) out[i] = (out[i] - min) / span
+  return out
+}
+
 async function generateMilkyWay() {
   const GalaxyModel = await loadGalaxyModel()
   const stars = GalaxyModel.generateGalaxy() // déterministe (RNG_SEED fixe)
@@ -279,20 +340,37 @@ async function generateMilkyWay() {
   // mais à partir des VRAIES étoiles de GalaxyModel plutôt que du générateur
   // de morphologie approximatif utilisé pour les galaxies lointaines).
   //
-  // Halo DÉDIÉ, plus resserré que HALO_SIGMA_FACTOR/HALO_AMPLITUDE (7
-  // juillet) : la Naine du Sagittaire est à seulement 0.024 Mpc de la Voie
-  // lactée (la plus proche des 8 galaxies réelles) — avec le halo standard
-  // (sigma = 0.75x rayon), le halo restait à ~78% d'intensité à 0.016 Mpc et
-  // ne redescendait vers 0 qu'à ~0.021 Mpc, empiétant presque sur sa
-  // position et donnant l'impression que la Voie lactée "grossissait" et
-  // que Sagittaire disparaissait derrière. HALO_SIGMA_FACTOR_MW=0.35 place
-  // le halo bien en retrait (3-sigma ~0.017 Mpc, sous les 0.024 Mpc de
-  // marge) tout en gardant un léger effet vaporeux autour du disque.
-  const HALO_SIGMA_FACTOR_MW = 0.35
-  const HALO_AMPLITUDE_MW = 0.08
+  // Halo "variante R" (7 juillet, choisie par l'utilisateur parmi 5
+  // aperçus livrés dans le chat, après deux itérations) :
+  // - Un halo GAUSSIEN CIRCULAIRE simple (tentative initiale) restait
+  //   visible presque jusqu'à la Naine du Sagittaire (0.024 Mpc, la plus
+  //   proche des 8 galaxies réelles) et donnait une forme ronde qui ne
+  //   correspond pas à celle, aplatie, du disque.
+  // - Un halo "nuageux" (bruit de valeur) mais toujours à masque CIRCULAIRE
+  //   donnait un rendu quasi identique quels que soient les paramètres, une
+  //   fois le gamma d'affichage réel (0.45, cf. densityStyle.ts
+  //   'realgalaxy') correctement pris en compte dans les aperçus.
+  // - Solution retenue : un bruit de valeur multi-octaves (même algorithme
+  //   que les "nuages interstellaires" de l1b, cf. generate_layers.py),
+  //   mais appliqué à travers un masque ELLIPTIQUE aplati au même facteur
+  //   que le disque (YSCALE) plutôt que circulaire — le halo s'étend donc
+  //   dans le sens du disque, pas symétriquement dans toutes les
+  //   directions. Le grand axe (SGR_HALO_SEMI_MAJOR_MPC) est choisi pour
+  //   rester à distance de sécurité de la Naine du Sagittaire compte tenu
+  //   de sa position réelle (angle 320°, donc majoritairement le long du
+  //   petit axe aplati de l'ellipse, ce qui laisse de la marge) — vérifié
+  //   à la génération (log ci-dessous).
+  const MW_HALO_SEMI_MAJOR_MPC = 0.028
+  const MW_HALO_FLATTEN = GalaxyModel.YSCALE // même aplatissement que le disque
+  const MW_HALO_SOFTNESS_FRAC = 0.25
+  const MW_HALO_AMPLITUDE = 0.55
+  const MW_HALO_BASE_GRID = 7
+  const MW_HALO_SEED = 103
 
   const mwRadiusMpc = GalaxyModel.MW_R / LY_PER_MPC
-  const N2 = 320
+  const N2 = 640 // doublé (était 320) : la texture 'milkyway' rapprochée a une résolution
+  // relative ~2.7x plus fine — sans ce doublement le sprite semblait "différent" de la
+  // vraie Voie lactée vue de près, alors que ce sont les mêmes étoiles.
   const halfWidthMpc2 = mwRadiusMpc * SPRITE_MARGIN
   const pxPerMpc2 = N2 / (2 * halfWidthMpc2)
   const cx2 = N2 / 2
@@ -304,7 +382,30 @@ async function generateMilkyWay() {
     const sigmaMpc = (Math.max(star.sz * 0.55, 0.12) * (GalaxyModel.MW_R / 1600)) / LY_PER_MPC
     splatGaussian(field2, N2, pxPerMpc2, cx2, cy2, gxMpc, gyMpc, sigmaMpc, 0.6, 0.18 + star.b * 0.55)
   }
-  splatGaussian(field2, N2, pxPerMpc2, cx2, cy2, 0, 0, mwRadiusMpc * HALO_SIGMA_FACTOR_MW, 1, HALO_AMPLITUDE_MW)
+
+  // Halo elliptique nuageux, ajouté directement dans le champ (avant tonemap,
+  // comme les étoiles) pour rester cohérent avec le reste du pipeline.
+  const cloud = multiOctaveCloud(N2, MW_HALO_SEED, MW_HALO_BASE_GRID)
+  const semiMinorMpc = MW_HALO_SEMI_MAJOR_MPC * MW_HALO_FLATTEN
+  for (let y = 0; y < N2; y++) {
+    const dyMpc = (y - cy2) / pxPerMpc2
+    for (let x = 0; x < N2; x++) {
+      const dxMpc = (x - cx2) / pxPerMpc2
+      const ed = Math.sqrt((dxMpc / MW_HALO_SEMI_MAJOR_MPC) ** 2 + (dyMpc / semiMinorMpc) ** 2)
+      const t = Math.min(Math.max((1 - ed) / MW_HALO_SOFTNESS_FRAC, 0), 1)
+      const mask = t * t * (3 - 2 * t)
+      field2[y * N2 + x] += cloud[y * N2 + x] * mask * MW_HALO_AMPLITUDE
+    }
+  }
+
+  // Vérification de sécurité (log seulement) : distance elliptique-normalisée
+  // de la Naine du Sagittaire (>1 = en dehors du halo, donc en sécurité).
+  const sgrRad = (320 * Math.PI) / 180
+  const sgrDx = Math.cos(sgrRad) * 0.024
+  const sgrDy = Math.sin(sgrRad) * 0.024
+  const sgrEd = Math.sqrt((sgrDx / MW_HALO_SEMI_MAJOR_MPC) ** 2 + (sgrDy / semiMinorMpc) ** 2)
+  console.log(`Halo Voie lactée : distance elliptique de la Naine du Sagittaire = ${sgrEd.toFixed(2)} (>1 = sûr)`)
+
   tonemapAndSave(field2, N2, new URL('density_realgal_milkyway.png', OUT_DIR), 1.0)
 
   return { maxMpc: HALF_LY / LY_PER_MPC, mwRadiusMpc } // maxMpc nominal -> DensityLayer.tsx, mwRadiusMpc -> RealGalaxiesLayer.tsx
