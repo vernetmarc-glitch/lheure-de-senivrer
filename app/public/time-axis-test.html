@@ -9,8 +9,11 @@
   .row { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; }
   .cell { flex: 1 1 300px; min-width: 260px; }
   .cell h3 { color: #7fd1ff; font-size: 13px; margin: 0 0 6px; }
+  .cell .badge { font-size: 9px; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+  .cell .badge.on { background: rgba(90,230,140,0.18); color: #7fe6a0; border: 1px solid #4a9; }
+  .cell .badge.off { background: rgba(230,120,90,0.18); color: #e69a7f; border: 1px solid #a64; }
   .cell canvas { width: 100%; aspect-ratio: 1; background: #000; border-radius: 6px; display: block; }
-  .cell .meta { font-size: 10px; color: #888; margin-top: 4px; font-family: monospace; line-height: 1.5; }
+  .cell .meta { font-size: 10px; color: #888; margin-top: 4px; font-family: monospace; line-height: 1.5; white-space: pre-line; }
   .panel {
     background: rgba(15,15,22,0.92); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
     margin: 10px; padding: 12px; color: #ccc;
@@ -30,30 +33,35 @@
   <div class="ctrl">
     <label>Position temporelle — a(t) <span class="val" id="aVal"></span></label>
     <input type="range" id="aSlider" min="-3.5" max="0" step="0.002" value="0" />
-    <div class="hint">Échelle log. a=1 : aujourd'hui. a→0.0009 : recombinaison (borne réelle de la table cosmologique).</div>
+    <div class="hint">Échelle log. a=1 : aujourd'hui. a→0.0009 : recombinaison.</div>
   </div>
 
-  <h2 style="margin-left:0">Compression spatiale (§9 doc — "dézoom" en remontant le temps)</h2>
+  <h2 style="margin-left:0">Dissolution filamenteuse (partout, y compris la Voie lactée)</h2>
   <div class="ctrl">
-    <label>effectiveHalfWidthMpc = halfWidthMpc / a(t) <span class="val" id="effVal"></span></label>
-    <div class="hint">
-      Chaque case ci-dessous a un "demi-champ actuel" fixe (représentatif de son échelle habituelle — pas un
-      réglage de ce prototype). Ce demi-champ est divisé par a(t) : en remontant le temps, la zone comobile
-      affichée grandit, donc le contenu de la texture rétrécit à l'écran — exactement le même calcul de recadrage
-      que DensityLayer.tsx en production (y compris le rétrécissement de destination quand le champ demandé
-      dépasse la texture elle-même, cf. "overshoot" dans le code source).
-    </div>
-  </div>
-
-  <h2 style="margin-left:0">Étalement des structures (flou dont le rayon dépend de a(t) seul)</h2>
-  <div class="ctrl">
-    <label>Rayon max de flou (Mpc, atteint à la recombinaison) <span class="val" id="rMaxVal"></span></label>
+    <label>Rayon max d'étalement (Mpc, atteint à la recombinaison) <span class="val" id="rMaxVal"></span></label>
     <input type="range" id="rMaxSlider" min="0.5" max="400" step="0.5" value="60" />
   </div>
   <div class="ctrl">
     <label>Forme de la courbe (exposant sur (1-a)) <span class="val" id="rExpVal"></span></label>
     <input type="range" id="rExpSlider" min="0.3" max="4" step="0.05" value="1.4" />
-    <div class="hint">Petit = le flou monte vite dès qu'on quitte "aujourd'hui". Grand = le flou reste faible longtemps puis grimpe fort près de la recombinaison.</div>
+  </div>
+  <div class="ctrl">
+    <label>Intensité du filamenteux (0 = flou lisse, 1 = très texturé) <span class="val" id="filAmountVal"></span></label>
+    <input type="range" id="filAmountSlider" min="0" max="2" step="0.02" value="0.9" />
+    <div class="hint">
+      Pas un simple flou gaussien : un bruit multi-octaves (même technique que le halo de la Voie lactée) casse la
+      symétrie ronde pour donner un aspect nébuleux/filamenteux. Son intensité suit une courbe en cloche : nulle
+      aujourd'hui (structure nette), nulle à la recombinaison (uniforme, plus de filaments), maximale au milieu de
+      la dissolution.
+    </div>
+  </div>
+
+  <h2 style="margin-left:0">Compression spatiale — UNIQUEMENT à partir de l'échelle où le flux de Hubble domine</h2>
+  <div class="hint" style="margin: 0 0 8px;">
+    Recherche : les systèmes gravitationnellement liés (Voie lactée, Groupe Local, jusqu'à ~1-2 Mpc) ne se
+    dilatent PAS avec l'univers. Le flux de Hubble devient linéaire/dominant à partir de ~15-30 Mpc (mesures sur
+    l'amas de la Vierge et les études historiques de Hubble/Lemaître). Donc : aucune compression sur
+    milkyway/RealGalaxiesLayer/localgroup, compression normale sur l2/l5.
   </div>
 
   <h2 style="margin-left:0">Embrasement (luminosité)</h2>
@@ -74,13 +82,9 @@
 <script>
 const N = 1024
 const LAYERS = [
-  // halfWidthMpc : demi-champ "actuel" représentatif choisi pour ce
-  // prototype (à peu près l'échelle à laquelle on regarde naturellement
-  // ce layer aujourd'hui) — PAS un réglage, juste un point de départ
-  // réaliste pour voir l'effet de dézoom temporel.
-  { key: 'l5', label: 'L5 — univers homogène', src: 'data/density_l5.png', maxMpc: 14570, margin: 2.4, halfWidthMpc: 10000 },
-  { key: 'l2', label: 'L2 — amas / toile cosmique naissante', src: 'data/density_l2.png', maxMpc: 30, margin: 1.5, halfWidthMpc: 20 },
-  { key: 'milkyway', label: 'Voie lactée (sprite)', src: 'data/density_milkyway.png', maxMpc: 0.035075, margin: 1.5, halfWidthMpc: 0.03 },
+  { key: 'l5', label: 'L5 — univers homogène', src: 'data/density_l5.png', maxMpc: 14570, margin: 2.4, halfWidthMpc: 10000, compression: true },
+  { key: 'l2', label: 'L2 — amas / flux de Hubble établi (30 Mpc)', src: 'data/density_l2.png', maxMpc: 30, margin: 1.5, halfWidthMpc: 20, compression: true },
+  { key: 'milkyway', label: 'Voie lactée — liée gravitationnellement', src: 'data/density_milkyway.png', maxMpc: 0.035075, margin: 1.5, halfWidthMpc: 0.03, compression: false },
 ]
 
 const ASTRO_STOPS = [
@@ -95,13 +99,53 @@ function colorForValue(t) {
   return [a[0]+(b[0]-a[0])*frac, a[1]+(b[1]-a[1])*frac, a[2]+(b[2]-a[2])*frac]
 }
 
+// Bruit de valeur multi-octaves — meme algorithme que value_noise_field()
+// dans generate_layers.py / le halo de la Voie lactée.
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+function valueNoiseField(n, gridSize, seed) {
+  const rng = mulberry32(seed)
+  const g = Math.max(2, Math.round(gridSize))
+  const grid = new Float32Array((g + 1) * (g + 1))
+  for (let i = 0; i < grid.length; i++) grid[i] = rng() * 2 - 1
+  const out = new Float32Array(n * n)
+  for (let y = 0; y < n; y++) {
+    const gy = (y / n) * g, gy0 = Math.min(Math.floor(gy), g - 1), fy = gy - Math.floor(gy)
+    const sy = fy * fy * (3 - 2 * fy)
+    for (let x = 0; x < n; x++) {
+      const gx = (x / n) * g, gx0 = Math.min(Math.floor(gx), g - 1), fx = gx - Math.floor(gx)
+      const sx = fx * fx * (3 - 2 * fx)
+      const v00 = grid[gy0*(g+1)+gx0], v10 = grid[gy0*(g+1)+gx0+1]
+      const v01 = grid[(gy0+1)*(g+1)+gx0], v11 = grid[(gy0+1)*(g+1)+gx0+1]
+      const a = v00 + (v10-v00)*sx, b = v01 + (v11-v01)*sx
+      out[y*n+x] = a + (b-a)*sy
+    }
+  }
+  return out
+}
+function multiOctaveCloud(n, seed, baseGrid) {
+  const oct1 = valueNoiseField(n, baseGrid, seed)
+  const oct2 = valueNoiseField(n, baseGrid * 2.4, seed + 1)
+  const oct3 = valueNoiseField(n, baseGrid * 5.5, seed + 2)
+  const out = new Float32Array(n * n)
+  for (let i = 0; i < out.length; i++) out[i] = oct1[i]*0.55 + oct2[i]*0.3 + oct3[i]*0.15
+  return out
+}
+
 const grid = document.getElementById('grid')
 const state = {}
+const filamentCache = {}
 
 for (const layer of LAYERS) {
   const cell = document.createElement('div')
   cell.className = 'cell'
-  cell.innerHTML = `<h3>${layer.label}</h3><canvas width="${N}" height="${N}"></canvas><div class="meta" id="meta-${layer.key}"></div>`
+  cell.innerHTML = `<h3>${layer.label}<span class="badge ${layer.compression ? 'on' : 'off'}">compression ${layer.compression ? 'ON' : 'OFF'}</span></h3><canvas width="${N}" height="${N}"></canvas><div class="meta" id="meta-${layer.key}"></div>`
   grid.appendChild(cell)
   const canvas = cell.querySelector('canvas')
 
@@ -113,6 +157,7 @@ for (const layer of LAYERS) {
     const octx = off.getContext('2d')
     octx.drawImage(img, 0, 0, N, N)
     state[layer.key] = { canvas, ctx: canvas.getContext('2d'), srcCanvas: off, layer }
+    filamentCache[layer.key] = multiOctaveCloud(N, layer.key.length * 97 + 3, 14)
     render(layer.key)
   }
 }
@@ -122,16 +167,22 @@ function getParams() {
     a: Math.pow(10, parseFloat(document.getElementById('aSlider').value)),
     rMax: parseFloat(document.getElementById('rMaxSlider').value),
     rExp: parseFloat(document.getElementById('rExpSlider').value),
+    filAmount: parseFloat(document.getElementById('filAmountSlider').value),
     bMax: parseFloat(document.getElementById('bMaxSlider').value),
     bExp: parseFloat(document.getElementById('bExpSlider').value),
   }
 }
 
-// Rayon de flou (Mpc) et facteur de luminosité, fonctions de a(t) SEUL —
-// jamais du zoom/layer actif.
-function blurRadiusMpc(a, rMax, rExp) {
+function dissolveProgress(a, rExp) {
+  // 0 aujourd'hui -> 1 a la recombinaison, meme forme que le rayon d'etalement
   const t = Math.min(Math.max(1 - a, 0), 1)
-  return rMax * Math.pow(t, rExp)
+  return Math.pow(t, rExp)
+}
+function blurRadiusMpc(progress, rMax) { return rMax * progress }
+function filamentIntensity(progress, filAmount) {
+  // Courbe en cloche : nulle a progress=0 (aujourd'hui) ET progress=1
+  // (recombinaison, uniforme) — maximale au milieu de la dissolution.
+  return filAmount * 4 * progress * (1 - progress)
 }
 function brightnessFactor(a, bMax, bExp) {
   const t = Math.min(Math.max(1 - a, 0), 1)
@@ -143,72 +194,75 @@ function render(key) {
   if (!s) return
   const p = getParams()
   const sourcePxPerMpc = N / (2 * s.layer.maxMpc * s.layer.margin)
-  const radiusMpc = blurRadiusMpc(p.a, p.rMax, p.rExp)
-  const radiusPx = Math.min(radiusMpc * sourcePxPerMpc, 120) // cap : flou natif du navigateur lent/instable au-dela
+  const progress = dissolveProgress(p.a, p.rExp)
+  const radiusMpc = blurRadiusMpc(progress, p.rMax)
+  const radiusPx = Math.min(radiusMpc * sourcePxPerMpc, 120)
+  const filInt = filamentIntensity(progress, p.filAmount)
   const brightness = brightnessFactor(p.a, p.bMax, p.bExp)
 
-  // 1. Etalement + embrasement, appliques a la texture source (independant
-  //    du zoom courant, cf. discussion : ce mecanisme depend de a(t) seul).
-  const blurred = document.createElement('canvas')
-  blurred.width = N; blurred.height = N
-  const bctx = blurred.getContext('2d')
-  bctx.filter = radiusPx > 0.15 ? `blur(${radiusPx.toFixed(2)}px)` : 'none'
-  bctx.drawImage(s.srcCanvas, 0, 0)
-  bctx.filter = 'none'
-  const imgData = bctx.getImageData(0, 0, N, N)
-  const d = imgData.data
-  for (let i = 0; i < d.length; i += 4) {
-    const v = Math.min((d[i] / 255) * brightness, 1)
-    const [r,g,b] = colorForValue(v)
-    d[i] = r; d[i+1] = g; d[i+2] = b; d[i+3] = 255
-  }
-  bctx.putImageData(imgData, 0, 0)
+  // 1. Etalement (flou) + texture filamenteuse (bruit multiplicatif, casse
+  //    la symetrie ronde du flou) + embrasement.
+  const dissolved = document.createElement('canvas')
+  dissolved.width = N; dissolved.height = N
+  const dctx = dissolved.getContext('2d')
+  dctx.filter = radiusPx > 0.15 ? `blur(${radiusPx.toFixed(2)}px)` : 'none'
+  dctx.drawImage(s.srcCanvas, 0, 0)
+  dctx.filter = 'none'
 
-  // 2. Compression spatiale (§9 doc) : effectiveHalfWidthMpc grandit quand
-  //    a(t) diminue -> on recadre une portion plus large de la texture ->
-  //    le contenu semble reculer/rapetisser, effet de "dezoom". MEME calcul
-  //    (overshoot compris) que DensityLayer.tsx en production.
-  const effectiveHalfWidthMpc = s.layer.halfWidthMpc / p.a
-  let cropSize = 2 * effectiveHalfWidthMpc * sourcePxPerMpc
-  let destSize = N
-  const overshoot = Math.max(cropSize / N, 1)
-  if (overshoot > 1) {
-    cropSize /= overshoot
-    destSize = N / overshoot
+  const imgData = dctx.getImageData(0, 0, N, N)
+  const d = imgData.data
+  const fil = filamentCache[key]
+  for (let i = 0; i < d.length / 4; i++) {
+    const filamentFactor = 1 + fil[i] * filInt
+    const v = Math.min(Math.max((d[i*4] / 255) * filamentFactor, 0) * brightness, 1)
+    const [r,g,b] = colorForValue(v)
+    d[i*4] = r; d[i*4+1] = g; d[i*4+2] = b; d[i*4+3] = 255
+  }
+  dctx.putImageData(imgData, 0, 0)
+
+  // 2. Compression spatiale — UNIQUEMENT si ce layer est a une echelle ou
+  //    le flux de Hubble domine (cf. recherche, panneau au-dessus).
+  let cropSize = N, destSize = N, overshoot = 1, effectiveHalfWidthMpc = s.layer.halfWidthMpc
+  if (s.layer.compression) {
+    effectiveHalfWidthMpc = s.layer.halfWidthMpc / p.a
+    cropSize = 2 * effectiveHalfWidthMpc * sourcePxPerMpc
+    overshoot = Math.max(cropSize / N, 1)
+    if (overshoot > 1) { cropSize /= overshoot; destSize = N / overshoot }
   }
   const start = (N - cropSize) / 2
   const destOffset = (N - destSize) / 2
 
   const ctx = s.ctx
   ctx.clearRect(0, 0, N, N)
-  ctx.drawImage(blurred, start, start, cropSize, cropSize, destOffset, destOffset, destSize, destSize)
+  ctx.drawImage(dissolved, start, start, cropSize, cropSize, destOffset, destOffset, destSize, destSize)
 
   document.getElementById(`meta-${key}`).textContent =
-    `flou = ${radiusMpc.toFixed(2)} Mpc · luminosité ×${brightness.toFixed(2)}\n` +
-    `demi-champ effectif = ${effectiveHalfWidthMpc.toFixed(3)} Mpc (×${(1/p.a).toFixed(1)} par rapport à aujourd'hui)` +
-    (overshoot > 1 ? ` · hors du cadre de cette texture (×${overshoot.toFixed(1)})` : '')
+    `étalement = ${radiusMpc.toFixed(2)} Mpc · filamenteux = ${(filInt*100).toFixed(0)}% · luminosité ×${brightness.toFixed(2)}\n` +
+    (s.layer.compression
+      ? `demi-champ effectif = ${effectiveHalfWidthMpc.toFixed(2)} Mpc (×${(1/p.a).toFixed(1)})` + (overshoot > 1 ? ` · hors cadre ×${overshoot.toFixed(1)}` : '')
+      : `compression désactivée (système lié gravitationnellement)`)
 }
 
 function renderAll() {
   const p = getParams()
   document.getElementById('aVal').textContent = p.a.toExponential(3)
-  document.getElementById('effVal').textContent = `×${(1/p.a).toFixed(2)} par rapport à aujourd'hui`
   document.getElementById('rMaxVal').textContent = p.rMax.toFixed(1)
   document.getElementById('rExpVal').textContent = p.rExp.toFixed(2)
+  document.getElementById('filAmountVal').textContent = p.filAmount.toFixed(2)
   document.getElementById('bMaxVal').textContent = p.bMax.toFixed(1)
   document.getElementById('bExpVal').textContent = p.bExp.toFixed(2)
 
   for (const layer of LAYERS) render(layer.key)
 
   const aMin = Math.pow(10, -3.5)
-  const rAtMin = blurRadiusMpc(aMin, p.rMax, p.rExp) / p.rMax
+  const progressAtMin = dissolveProgress(aMin, p.rExp)
   const bAtMin = (brightnessFactor(aMin, p.bMax, p.bExp) - 1) / (p.bMax - 1)
   document.getElementById('convergenceCheck').textContent =
-    `À a≈${aMin.toExponential(2)} (proche recombinaison) : flou à ${(rAtMin*100).toFixed(0)}% du max, luminosité à ${(bAtMin*100).toFixed(0)}% du max — ` +
-    (Math.abs(rAtMin-bAtMin) < 0.15 ? 'convergence cohérente.' : 'ÉCART : les deux courbes n\'arrivent pas ensemble, à ajuster.')
+    `À a≈${aMin.toExponential(2)} : étalement à ${(progressAtMin*100).toFixed(0)}% (uniforme), luminosité à ${(bAtMin*100).toFixed(0)}% du max — ` +
+    (Math.abs(progressAtMin-bAtMin) < 0.15 ? 'convergence cohérente.' : 'ÉCART : à ajuster.')
 }
 
-;['aSlider','rMaxSlider','rExpSlider','bMaxSlider','bExpSlider'].forEach(id => {
+;['aSlider','rMaxSlider','rExpSlider','filAmountSlider','bMaxSlider','bExpSlider'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderAll)
 })
 setTimeout(renderAll, 300)
