@@ -2,11 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { densityDilutionFactor, type CosmologyState } from './cosmology'
 import DensityLayer from './DensityLayer'
 import RealGalaxiesLayer from './RealGalaxiesLayer'
-import { DENSITY_STYLE_LABELS, type DensityStyle } from './colormaps'
+import { type DensityStyle } from './colormaps'
+import InfoModal from './InfoModal'
 
 const MIN_HALF_WIDTH_MPC = 0.02 // ~65 000 al — la Voie lactée (rayon 52 000 al) remplit le cadre
 const MAX_HALF_WIDTH_MPC = 14570 // ~95 Gal de côté au total
 const GLY_PER_MPC = 3.26156e-3
+
+// Style et présence du fond de densité : fixés (l'ancien bouton réglages,
+// devenu inutile, a été retiré) — Astro reste le style par défaut.
+const DENSITY_STYLE: DensityStyle = 'astro'
+const DENSITY_PRESENCE = 1.0
 
 const DPR = Math.min(window.devicePixelRatio || 1, 3)
 // Au-delà de ce ratio largeur/hauteur (ou l'inverse), on fige la zone de
@@ -65,10 +71,13 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
   const [zoomSliderRef, zoomSliderSize] = useElementSize<HTMLDivElement>()
   const gridCanvasRef = useRef<HTMLCanvasElement>(null)
   const [logHalfWidth, setLogHalfWidth] = useState(Math.log10(MAX_HALF_WIDTH_MPC))
-  const [densityStyle, setDensityStyle] = useState<DensityStyle>('astro')
-  const [densityPresence, setDensityPresence] = useState(1.0)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [loadProgress, setLoadProgress] = useState({ loaded: 0, total: 1 })
+  const [aboutOpen, setAboutOpen] = useState(false)
+  const [horizonInfoOpen, setHorizonInfoOpen] = useState(false)
+  // Position (en px CSS, relative au cadre de rendu) de l'étiquette "Horizon
+  // des particules" dessinée sur le canvas — recalculée à chaque frame de la
+  // grille pour placer le bouton "i" HTML par-dessus au bon endroit.
+  const [horizonLabelPos, setHorizonLabelPos] = useState<{ x: number; y: number } | null>(null)
   const halfWidthMpc = Math.pow(10, logHalfWidth)
   const dilution = densityDilutionFactor(cosmology.a)
 
@@ -171,6 +180,12 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
       ctx.fillStyle = '#5aa9e6'
       ctx.font = `bold ${11 * DPR}px monospace`
       ctx.fillText('Horizon des particules', cx + 6 * DPR, cy - horizonRPx + 14 * DPR)
+      // Position CSS (pas device-pixel) du bouton "i" superposé, cf. state
+      // horizonLabelPos — le canvas est en pixels physiques (pixelWidth =
+      // renderWidth * DPR), donc on repasse en CSS en divisant par DPR.
+      setHorizonLabelPos({ x: (cx + 6 * DPR) / DPR, y: (cy - horizonRPx + 14 * DPR) / DPR })
+    } else {
+      setHorizonLabelPos(null)
     }
   }, [halfWidthMpc, gridStepMpc, cosmology, dilution, width, height])
 
@@ -197,16 +212,16 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           }}
         >
           <DensityLayer
-            style={densityStyle}
-            opacity={densityPresence}
+            style={DENSITY_STYLE}
+            opacity={DENSITY_PRESENCE}
             halfWidthMpc={halfWidthMpc}
             width={pixelWidth}
             height={pixelHeight}
             onLoadProgress={(loaded, total) => setLoadProgress({ loaded, total })}
           />
           <RealGalaxiesLayer
-            style={densityStyle}
-            opacity={densityPresence}
+            style={DENSITY_STYLE}
+            opacity={DENSITY_PRESENCE}
             halfWidthMpc={halfWidthMpc}
             width={pixelWidth}
             height={pixelHeight}
@@ -217,6 +232,34 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
             height={Math.round(pixelHeight)}
             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
           />
+
+          {/* Bouton "i" superposé au label "Horizon des particules", positionné
+              dynamiquement pour suivre le cercle qui grandit avec le temps. */}
+          {horizonLabelPos && (
+            <button
+              onClick={() => setHorizonInfoOpen(true)}
+              aria-label="En savoir plus sur l'horizon des particules"
+              style={{
+                position: 'absolute',
+                left: horizonLabelPos.x + 140,
+                top: horizonLabelPos.y - 15,
+                width: 16,
+                height: 16,
+                borderRadius: 9,
+                background: 'rgba(90,169,230,0.18)',
+                border: '1px solid #5aa9e6',
+                color: '#5aa9e6',
+                fontSize: 10,
+                fontStyle: 'italic',
+                fontFamily: 'Georgia, serif',
+                lineHeight: '14px',
+                padding: 0,
+                cursor: 'pointer',
+              }}
+            >
+              i
+            </button>
+          )}
         </div>
       )}
 
@@ -240,98 +283,77 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
         </div>
       )}
 
-      {/* Titre */}
+      {/* Titre + bouton "à propos" */}
       <div
         style={{
           position: 'absolute',
           top: 'max(14px, env(safe-area-inset-top))',
           left: 'max(14px, env(safe-area-inset-left))',
-          fontSize: 15,
-          fontWeight: 600,
-          color: '#eee',
-          textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: 16,
+            fontWeight: 600,
+            letterSpacing: '0.03em',
+            color: '#eee',
+            textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+            pointerEvents: 'none',
+          }}
+        >
+          L'Heure de s'enivrer
+        </div>
+        <button
+          onClick={() => setAboutOpen(true)}
+          aria-label="À propos de ce projet"
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: 10,
+            background: 'rgba(30,30,40,0.55)',
+            border: '1px solid rgba(255,255,255,0.35)',
+            color: '#ddd',
+            fontSize: 11,
+            fontStyle: 'italic',
+            fontFamily: 'Georgia, serif',
+            lineHeight: '16px',
+            padding: 0,
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
+          i
+        </button>
+      </div>
+
+      {/* Curseur de zoom, vertical, sur le bord droit — s'étire sur toute la hauteur disponible */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 'calc(max(14px, env(safe-area-inset-top)) + 30px)',
+          right: 'max(4px, env(safe-area-inset-right))',
+          fontSize: 9,
+          fontFamily: 'system-ui, sans-serif',
+          color: 'rgba(255,255,255,0.5)',
+          textAlign: 'center',
+          width: 48,
+          lineHeight: 1.3,
           pointerEvents: 'none',
         }}
       >
-        L'Heure de s'enivrer
+        <div style={{ fontSize: 13 }}>🌌</div>
+        95 Gal
       </div>
-
-      {/* Bouton réglages */}
-      <button
-        onClick={() => setSettingsOpen((v) => !v)}
-        style={{
-          position: 'absolute',
-          top: 'max(10px, env(safe-area-inset-top))',
-          right: 'max(10px, env(safe-area-inset-right))',
-          width: 32,
-          height: 32,
-          borderRadius: 16,
-          background: 'rgba(20,20,30,0.6)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          color: '#ccc',
-          fontSize: 15,
-          cursor: 'pointer',
-        }}
-        aria-label="Réglages"
-      >
-        ⚙
-      </button>
-
-      {settingsOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 'calc(max(10px, env(safe-area-inset-top)) + 40px)',
-            right: 'max(10px, env(safe-area-inset-right))',
-            background: 'rgba(15,15,22,0.9)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 8,
-            padding: 10,
-            fontSize: 11,
-            color: '#ccc',
-            width: 190,
-          }}
-        >
-          <div style={{ marginBottom: 8 }}>Style :</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-            {(Object.keys(DENSITY_STYLE_LABELS) as DensityStyle[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => setDensityStyle(s)}
-                style={{
-                  background: densityStyle === s ? '#2a2a3a' : 'transparent',
-                  color: densityStyle === s ? '#fff' : '#999',
-                  border: '1px solid #333',
-                  borderRadius: 6,
-                  padding: '3px 8px',
-                  fontSize: 11,
-                  cursor: 'pointer',
-                }}
-              >
-                {DENSITY_STYLE_LABELS[s]}
-              </button>
-            ))}
-          </div>
-          <div style={{ marginBottom: 4 }}>Présence du fond :</div>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.02}
-            value={densityPresence}
-            onChange={(e) => setDensityPresence(Number(e.target.value))}
-            style={{ width: '100%' }}
-          />
-        </div>
-      )}
-
-      {/* Curseur de zoom, vertical, sur le bord droit — s'étire sur toute la hauteur disponible */}
       <div
         ref={zoomSliderRef}
         style={{
           position: 'absolute',
-          top: 'calc(max(14px, env(safe-area-inset-top)) + 50px)',
-          bottom: 'calc(max(14px, env(safe-area-inset-bottom)) + 56px)',
+          top: 'calc(max(14px, env(safe-area-inset-top)) + 68px)',
+          bottom: 'calc(max(14px, env(safe-area-inset-bottom)) + 78px)',
           right: 'max(6px, env(safe-area-inset-right))',
           width: 40,
           touchAction: 'none',
@@ -363,8 +385,42 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           />
         )}
       </div>
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 'calc(max(14px, env(safe-area-inset-bottom)) + 62px)',
+          right: 'max(4px, env(safe-area-inset-right))',
+          fontSize: 9,
+          fontFamily: 'system-ui, sans-serif',
+          color: 'rgba(255,255,255,0.5)',
+          textAlign: 'center',
+          width: 48,
+          lineHeight: 1.3,
+          pointerEvents: 'none',
+        }}
+      >
+        <div style={{ fontSize: 13 }}>🌠</div>
+        Galaxie
+      </div>
 
       {/* Curseur de temps, horizontal, en bas (au-dessus des zones de geste système) */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 16,
+          right: 56,
+          bottom: 'calc(max(14px, env(safe-area-inset-bottom)) + 24px)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: 9,
+          fontFamily: 'system-ui, sans-serif',
+          color: 'rgba(255,255,255,0.5)',
+          pointerEvents: 'none',
+        }}
+      >
+        <span>⏳ Big Bang</span>
+        <span>Aujourd'hui ☉</span>
+      </div>
       <div
         style={{
           position: 'absolute',
@@ -384,6 +440,51 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           style={{ width: '100%', touchAction: 'none' }}
         />
       </div>
+
+      {aboutOpen && (
+        <InfoModal title="L'Heure de s'enivrer" onClose={() => setAboutOpen(false)}>
+          <p>
+            Cette carte est une tentative — nécessairement imparfaite — de rendre sensible ce que les nombres,
+            seuls, ne peuvent qu'énoncer : que la lumière qui vous atteint ce soir a parfois quitté sa source
+            avant que la Terre n'existe ; que l'espace lui-même s'étire, silencieusement, entre chaque point que
+            vous voyez ; que l'univers observable, ce halo de 95 milliards d'années-lumière qui vous entoure,
+            n'est peut-être qu'une fraction infime de ce qui existe réellement au-delà de ce que la lumière a eu
+            le temps de nous apporter.
+          </p>
+          <p>
+            Zoomez, et vous traverserez en un geste ce que la lumière met 100&nbsp;000 ans à parcourir à travers
+            notre seule galaxie. Remontez le temps, et vous verrez la matière se resserrer, s'échauffer, jusqu'au
+            seuil où l'univers devient trop dense, trop jeune, pour qu'aucune lumière n'ait encore pu s'en
+            échapper.
+          </p>
+          <p>
+            Il n'y a pas de centre à cette carte — seulement le point d'où nous regardons, comme n'importe quel
+            autre point de l'univers pourrait le faire. C'est peut-être la chose la plus vertigineuse : que ce
+            sentiment d'immensité, cette sensation d'être minuscule et pourtant reliés à tout, quiconque, n'importe
+            où dans le cosmos, pourrait l'éprouver exactement de la même façon en levant les yeux.
+          </p>
+        </InfoModal>
+      )}
+
+      {horizonInfoOpen && (
+        <InfoModal title="Horizon des particules" onClose={() => setHorizonInfoOpen(false)}>
+          <p>
+            L'horizon des particules marque la limite de ce qu'il est physiquement possible d'observer aujourd'hui
+            : la distance parcourue par la lumière la plus ancienne qui ait jamais pu nous atteindre, depuis les
+            tout premiers instants de l'univers.
+          </p>
+          <p>
+            Ce n'est pas un mur, ni une limite de l'univers lui-même — l'univers continue sans doute bien au-delà.
+            C'est simplement la frontière de notre part visible : au-delà, la lumière existe peut-être, mais elle
+            n'a pas encore eu le temps de nous parvenir.
+          </p>
+          <p>
+            Ce cercle grandit avec le temps : plus l'univers vieillit, plus la lumière a eu de temps pour voyager,
+            et plus notre part visible s'agrandit — sans jamais, bien sûr, atteindre la totalité de ce qui existe
+            réellement.
+          </p>
+        </InfoModal>
+      )}
     </div>
   )
 }
