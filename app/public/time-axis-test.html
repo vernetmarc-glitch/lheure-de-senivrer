@@ -10,7 +10,7 @@
   .cell { flex: 1 1 300px; min-width: 260px; }
   .cell h3 { color: #7fd1ff; font-size: 13px; margin: 0 0 6px; }
   .cell canvas { width: 100%; aspect-ratio: 1; background: #000; border-radius: 6px; display: block; }
-  .cell .meta { font-size: 10px; color: #888; margin-top: 4px; font-family: monospace; }
+  .cell .meta { font-size: 10px; color: #888; margin-top: 4px; font-family: monospace; line-height: 1.5; }
   .panel {
     background: rgba(15,15,22,0.92); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
     margin: 10px; padding: 12px; color: #ccc;
@@ -31,6 +31,18 @@
     <label>Position temporelle — a(t) <span class="val" id="aVal"></span></label>
     <input type="range" id="aSlider" min="-3.5" max="0" step="0.002" value="0" />
     <div class="hint">Échelle log. a=1 : aujourd'hui. a→0.0009 : recombinaison (borne réelle de la table cosmologique).</div>
+  </div>
+
+  <h2 style="margin-left:0">Compression spatiale (§9 doc — "dézoom" en remontant le temps)</h2>
+  <div class="ctrl">
+    <label>effectiveHalfWidthMpc = halfWidthMpc / a(t) <span class="val" id="effVal"></span></label>
+    <div class="hint">
+      Chaque case ci-dessous a un "demi-champ actuel" fixe (représentatif de son échelle habituelle — pas un
+      réglage de ce prototype). Ce demi-champ est divisé par a(t) : en remontant le temps, la zone comobile
+      affichée grandit, donc le contenu de la texture rétrécit à l'écran — exactement le même calcul de recadrage
+      que DensityLayer.tsx en production (y compris le rétrécissement de destination quand le champ demandé
+      dépasse la texture elle-même, cf. "overshoot" dans le code source).
+    </div>
   </div>
 
   <h2 style="margin-left:0">Étalement des structures (flou dont le rayon dépend de a(t) seul)</h2>
@@ -62,9 +74,13 @@
 <script>
 const N = 1024
 const LAYERS = [
-  { key: 'l5', label: 'L5 — univers homogène (14 570 Mpc)', src: 'data/density_l5.png', maxMpc: 14570, margin: 2.4 },
-  { key: 'l2', label: 'L2 — amas / toile cosmique naissante (30 Mpc)', src: 'data/density_l2.png', maxMpc: 30, margin: 1.5 },
-  { key: 'milkyway', label: 'Voie lactée (sprite, 0.035 Mpc nominal)', src: 'data/density_milkyway.png', maxMpc: 0.035075, margin: 1.5 },
+  // halfWidthMpc : demi-champ "actuel" représentatif choisi pour ce
+  // prototype (à peu près l'échelle à laquelle on regarde naturellement
+  // ce layer aujourd'hui) — PAS un réglage, juste un point de départ
+  // réaliste pour voir l'effet de dézoom temporel.
+  { key: 'l5', label: 'L5 — univers homogène', src: 'data/density_l5.png', maxMpc: 14570, margin: 2.4, halfWidthMpc: 10000 },
+  { key: 'l2', label: 'L2 — amas / toile cosmique naissante', src: 'data/density_l2.png', maxMpc: 30, margin: 1.5, halfWidthMpc: 20 },
+  { key: 'milkyway', label: 'Voie lactée (sprite)', src: 'data/density_milkyway.png', maxMpc: 0.035075, margin: 1.5, halfWidthMpc: 0.03 },
 ]
 
 const ASTRO_STOPS = [
@@ -112,9 +128,9 @@ function getParams() {
 }
 
 // Rayon de flou (Mpc) et facteur de luminosité, fonctions de a(t) SEUL —
-// jamais du zoom/layer actif, cf. discussion (§9 doc + conversation).
+// jamais du zoom/layer actif.
 function blurRadiusMpc(a, rMax, rExp) {
-  const t = Math.min(Math.max(1 - a, 0), 1) // 0 aujourd'hui -> 1 a la recombinaison (approx)
+  const t = Math.min(Math.max(1 - a, 0), 1)
   return rMax * Math.pow(t, rExp)
 }
 function brightnessFactor(a, bMax, bExp) {
@@ -126,35 +142,57 @@ function render(key) {
   const s = state[key]
   if (!s) return
   const p = getParams()
-  const pxPerMpc = N / (2 * s.layer.maxMpc * s.layer.margin)
+  const sourcePxPerMpc = N / (2 * s.layer.maxMpc * s.layer.margin)
   const radiusMpc = blurRadiusMpc(p.a, p.rMax, p.rExp)
-  const radiusPx = Math.min(radiusMpc * pxPerMpc, 120) // cap : au-dela le flou natif du navigateur devient tres lent/instable
+  const radiusPx = Math.min(radiusMpc * sourcePxPerMpc, 120) // cap : flou natif du navigateur lent/instable au-dela
   const brightness = brightnessFactor(p.a, p.bMax, p.bExp)
 
-  const ctx = s.ctx
-  ctx.clearRect(0, 0, N, N)
-  ctx.filter = radiusPx > 0.15 ? `blur(${radiusPx.toFixed(2)}px)` : 'none'
-  ctx.drawImage(s.srcCanvas, 0, 0)
-  ctx.filter = 'none'
-
-  // Applique la luminosité + la palette manuellement (pour un rendu final
-  // fidele a l'app, pas le filtre CSS 'brightness' qui sature differemment).
-  const imgData = ctx.getImageData(0, 0, N, N)
+  // 1. Etalement + embrasement, appliques a la texture source (independant
+  //    du zoom courant, cf. discussion : ce mecanisme depend de a(t) seul).
+  const blurred = document.createElement('canvas')
+  blurred.width = N; blurred.height = N
+  const bctx = blurred.getContext('2d')
+  bctx.filter = radiusPx > 0.15 ? `blur(${radiusPx.toFixed(2)}px)` : 'none'
+  bctx.drawImage(s.srcCanvas, 0, 0)
+  bctx.filter = 'none'
+  const imgData = bctx.getImageData(0, 0, N, N)
   const d = imgData.data
   for (let i = 0; i < d.length; i += 4) {
     const v = Math.min((d[i] / 255) * brightness, 1)
     const [r,g,b] = colorForValue(v)
     d[i] = r; d[i+1] = g; d[i+2] = b; d[i+3] = 255
   }
-  ctx.putImageData(imgData, 0, 0)
+  bctx.putImageData(imgData, 0, 0)
+
+  // 2. Compression spatiale (§9 doc) : effectiveHalfWidthMpc grandit quand
+  //    a(t) diminue -> on recadre une portion plus large de la texture ->
+  //    le contenu semble reculer/rapetisser, effet de "dezoom". MEME calcul
+  //    (overshoot compris) que DensityLayer.tsx en production.
+  const effectiveHalfWidthMpc = s.layer.halfWidthMpc / p.a
+  let cropSize = 2 * effectiveHalfWidthMpc * sourcePxPerMpc
+  let destSize = N
+  const overshoot = Math.max(cropSize / N, 1)
+  if (overshoot > 1) {
+    cropSize /= overshoot
+    destSize = N / overshoot
+  }
+  const start = (N - cropSize) / 2
+  const destOffset = (N - destSize) / 2
+
+  const ctx = s.ctx
+  ctx.clearRect(0, 0, N, N)
+  ctx.drawImage(blurred, start, start, cropSize, cropSize, destOffset, destOffset, destSize, destSize)
 
   document.getElementById(`meta-${key}`).textContent =
-    `rayon flou = ${radiusMpc.toFixed(2)} Mpc (${radiusPx.toFixed(1)}px) · luminosité ×${brightness.toFixed(2)}`
+    `flou = ${radiusMpc.toFixed(2)} Mpc · luminosité ×${brightness.toFixed(2)}\n` +
+    `demi-champ effectif = ${effectiveHalfWidthMpc.toFixed(3)} Mpc (×${(1/p.a).toFixed(1)} par rapport à aujourd'hui)` +
+    (overshoot > 1 ? ` · hors du cadre de cette texture (×${overshoot.toFixed(1)})` : '')
 }
 
 function renderAll() {
   const p = getParams()
   document.getElementById('aVal').textContent = p.a.toExponential(3)
+  document.getElementById('effVal').textContent = `×${(1/p.a).toFixed(2)} par rapport à aujourd'hui`
   document.getElementById('rMaxVal').textContent = p.rMax.toFixed(1)
   document.getElementById('rExpVal').textContent = p.rExp.toFixed(2)
   document.getElementById('bMaxVal').textContent = p.bMax.toFixed(1)
@@ -162,10 +200,6 @@ function renderAll() {
 
   for (const layer of LAYERS) render(layer.key)
 
-  // Verification de convergence a la recombinaison (a le plus petit possible
-  // sur ce prototype) : flou proche du max ET luminosite proche du max en
-  // meme temps, cf. contrainte "tout doit etre blanc au Big Bang quelle que
-  // soit l'echelle".
   const aMin = Math.pow(10, -3.5)
   const rAtMin = blurRadiusMpc(aMin, p.rMax, p.rExp) / p.rMax
   const bAtMin = (brightnessFactor(aMin, p.bMax, p.bExp) - 1) / (p.bMax - 1)
@@ -177,7 +211,7 @@ function renderAll() {
 ;['aSlider','rMaxSlider','rExpSlider','bMaxSlider','bExpSlider'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderAll)
 })
-setTimeout(renderAll, 300) // laisse le temps aux 3 images de charger
+setTimeout(renderAll, 300)
 </script>
 </body>
 </html>
