@@ -241,7 +241,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
               aria-label="En savoir plus sur l'horizon des particules"
               style={{
                 position: 'absolute',
-                left: horizonLabelPos.x + 140,
+                left: horizonLabelPos.x + 172,
                 top: horizonLabelPos.y - 15,
                 width: 16,
                 height: 16,
@@ -345,8 +345,8 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           pointerEvents: 'none',
         }}
       >
-        <div style={{ fontSize: 13 }}>🌌</div>
-        95 Gal
+        <div style={{ fontSize: 13 }}>🌠</div>
+        Galaxie
       </div>
       <div
         ref={zoomSliderRef}
@@ -399,8 +399,8 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           pointerEvents: 'none',
         }}
       >
-        <div style={{ fontSize: 13 }}>🌠</div>
-        Galaxie
+        <div style={{ fontSize: 13 }}>🌌</div>
+        95 Gal
       </div>
 
       {/* Curseur de temps, horizontal, en bas (au-dessus des zones de geste système) */}
