@@ -73,6 +73,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
   const [logHalfWidth, setLogHalfWidth] = useState(Math.log10(MAX_HALF_WIDTH_MPC))
   const [loadProgress, setLoadProgress] = useState({ loaded: 0, total: 1 })
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [welcomeOpen, setWelcomeOpen] = useState(true)
   const [horizonInfoOpen, setHorizonInfoOpen] = useState(false)
   // Position (en px CSS, relative au cadre de rendu) de l'étiquette "Horizon
   // des particules" dessinée sur le canvas — recalculée à chaque frame de la
@@ -179,11 +180,22 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
     if (horizonRPx < Math.max(W, H) * 0.9) {
       ctx.fillStyle = '#5aa9e6'
       ctx.font = `bold ${11 * DPR}px monospace`
-      ctx.fillText('Horizon des particules', cx + 6 * DPR, cy - horizonRPx + 14 * DPR)
+      const label = 'Horizon des particules'
+      const labelX = cx + 6 * DPR
+      // Négatif (pas +14) : place la ligne de base AU-DESSUS du sommet du
+      // cercle, au lieu de la faire chevaucher le trait (bug précédent —
+      // capture d'écran fournie par l'utilisateur).
+      const labelY = cy - horizonRPx - 8 * DPR
+      ctx.fillText(label, labelX, labelY)
       // Position CSS (pas device-pixel) du bouton "i" superposé, cf. state
       // horizonLabelPos — le canvas est en pixels physiques (pixelWidth =
       // renderWidth * DPR), donc on repasse en CSS en divisant par DPR.
-      setHorizonLabelPos({ x: (cx + 6 * DPR) / DPR, y: (cy - horizonRPx + 14 * DPR) / DPR })
+      // ctx.measureText() donne la largeur RÉELLE du texte rendu, au lieu
+      // d'un décalage deviné à la main (deux tentatives précédentes mal
+      // alignées) — l'icône colle exactement à la fin du texte, quel que
+      // soit le DPR ou la police effectivement utilisée par le navigateur.
+      const textWidth = ctx.measureText(label).width
+      setHorizonLabelPos({ x: (labelX + textWidth + 6 * DPR) / DPR, y: labelY / DPR })
     } else {
       setHorizonLabelPos(null)
     }
@@ -241,8 +253,8 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
               aria-label="En savoir plus sur l'horizon des particules"
               style={{
                 position: 'absolute',
-                left: horizonLabelPos.x + 172,
-                top: horizonLabelPos.y - 15,
+                left: horizonLabelPos.x,
+                top: horizonLabelPos.y - 14,
                 width: 16,
                 height: 16,
                 borderRadius: 9,
@@ -440,6 +452,35 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           style={{ width: '100%', touchAction: 'none' }}
         />
       </div>
+
+      {welcomeOpen && (
+        <InfoModal title="Bienvenue" onClose={() => setWelcomeOpen(false)}>
+          <p>
+            Depuis votre galaxie jusqu'aux confins de ce que la lumière a jamais pu nous révéler — 95 milliards
+            d'années-lumière d'univers observable tiennent entre vos doigts. Zoomez, remontez le temps jusqu'au
+            Big Bang, et laissez-vous porter.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
+            <button
+              onClick={() => {
+                setWelcomeOpen(false)
+                setAboutOpen(true)
+              }}
+              style={{
+                background: 'rgba(90,169,230,0.15)',
+                border: '1px solid #5aa9e6',
+                color: '#bcdcf7',
+                borderRadius: 8,
+                padding: '7px 14px',
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              En savoir plus
+            </button>
+          </div>
+        </InfoModal>
+      )}
 
       {aboutOpen && (
         <InfoModal title="L'Heure de s'enivrer" onClose={() => setAboutOpen(false)}>
