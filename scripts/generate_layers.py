@@ -371,22 +371,20 @@ def main():
             field = normalize_variance(coarse_trend) * W_COARSE + normalize_variance(detail) * W_DETAIL
 
         if spec["key"] == "l1b":
-            # 7 juillet, 2e itération : retour "trop éloigné du rendu de l2,
-            # les taches sont trop intenses/rondes, il faut un effet
-            # vaporeux". La 1re itération (suppression globale + bruit de
-            # 'nuages' fabriqué à la main) donnait une texture bien plus
-            # lisse/en tâches que la vraie structure filamenteuse de l2,
-            # malgré une moyenne/écart-type proches. Nouvelle approche
-            # (diffuse=True) : on garde le champ NATUREL de l1b quasi
-            # intact (déjà généré par le MÊME moteur que l2 — coarse_trend
-            # hérité + détail passe-haut, cf. plus haut dans cette boucle),
-            # et on se contente d'ajouter un halo doux par-dessus à chaque
-            # position du catalogue, sans supprimer le bruit local ni forcer
-            # ces positions à être le maximum absolu — juste une légère
-            # sur-densité qui se fond dans la texture existante. real_only=False :
-            # le layer Groupe Local en dessous montre les 98 galaxies du
-            # catalogue (8 réelles + ~90 procédurales), pas seulement les 8
-            # nommées.
+            # 7 juillet, 3e itération : variante "H — sprite adouci"
+            # choisie par l'utilisateur parmi 10 aperçus générés côté chat
+            # (cf. scripts non versionnés ayant servi à ces aperçus). Fond
+            # nettement assombri entre les galaxies (comme le layer sprite
+            # juste en dessous), mais avec des taches PLUS PETITES et
+            # légèrement adoucies plutôt que les gros ronds nets de la
+            # toute première itération (6 juillet) — diffuse=False
+            # (mécanisme "pic garanti dominant" + suppression locale du
+            # bruit, cf. docstring apply_local_group_anchor), avec
+            # size_multiplier et bump_amplitude_factor réduits + un léger
+            # flou (extra_blur_px) pour casser la dureté des bords.
+            # real_only=False : le layer Groupe Local en dessous montre les
+            # 98 galaxies du catalogue (8 réelles + ~90 procédurales), pas
+            # seulement les 8 nommées.
             catalog = build_catalog()
             field = apply_local_group_anchor(
                 field,
@@ -394,12 +392,12 @@ def main():
                 N,
                 catalog,
                 strength=1.0,
-                global_suppression=0.92,
-                size_multiplier=7.0,
+                global_suppression=0.35,
+                size_multiplier=1.8,
                 real_only=False,
-                bump_amplitude_factor=0.55,
-                extra_blur_px=0.0,
-                diffuse=True,
+                bump_amplitude_factor=0.50,
+                extra_blur_px=0.6,
+                diffuse=False,
             )
         elif spec["key"] == "l2":
             # "Trace" seulement (cf. docstring apply_local_group_anchor) :
