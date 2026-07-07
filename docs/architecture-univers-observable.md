@@ -6,12 +6,12 @@ Version 1.0 — Juillet 2026
 
 ## 0. État actuel du projet — résumé pour reprise de contexte
 
-*(Section mise à jour le 6 juillet 2026, pensée pour permettre à Claude de reprendre ce projet dans une nouvelle conversation sans relire tout l'historique.)*
+*(Section mise à jour le 7 juillet 2026, pensée pour permettre à Claude de reprendre ce projet dans une nouvelle conversation sans relire tout l'historique. Décrit l'état ACTUEL et son rationnel — pas l'historique des étapes pour y arriver.)*
 
 **Dépôt et déploiement**
 - Dépôt : `vernetmarc-glitch/lheure-de-senivrer` (renommé depuis `carte-univers-observable`)
 - Site en ligne : https://vernetmarc-glitch.github.io/lheure-de-senivrer/
-- Outil de calibration de style : https://vernetmarc-glitch.github.io/lheure-de-senivrer/glow-test.html
+- Outils de calibration : `glow-test.html` (style/couleur des textures de densité) et `l1b-anchor-test.html` (halo/bruit de fond de l'ancrage du Groupe Local sur `l1b`) — cf. §4.7
 - Déploiement automatique via GitHub Actions (`.github/workflows/deploy.yml`) sur push vers `main`
 - Projet installable en PWA (`manifest.json`, icônes générées depuis le logo fourni), nom affiché "L'Heure de s'enivrer"
 
@@ -20,23 +20,33 @@ Version 1.0 — Juillet 2026
 - Zone de rendu clampée à un ratio max de 2,4:1 (bandes noires fixes au-delà) pour éviter qu'un layer ne "disparaisse" sur écrans très larges/étroits.
 - Canvas dimensionnés selon `devicePixelRatio` (plafonné à 3) pour la netteté sur écrans Retina.
 - Chargement des textures progressif et priorisé (le layer du zoom courant en premier, affichage dès l'arrivée de chaque texture), avec indicateur discret en bas à droite.
+- **Principe général de performance retenu** : tout ce qui PEUT être pré-calculé hors-ligne (Node/Python) et livré sous forme de bitmap L'EST, plutôt que d'être recalculé à chaque frame côté client. Les seuls rendus encore "en direct" (RealGalaxiesLayer, cf. §4.6) le sont par nécessité (position/taille dépendent du zoom courant), mais restent légers : quelques `drawImage`, jamais de génération procédurale ni de boucle sur des milliers d'éléments par frame.
 
-**Les layers (du plus proche au plus lointain)**
-1. `milkyway` : rendu en direct (étoiles individuelles) via le modèle `GalaxyModel` **partagé** (CDN jsDelivr depuis le dépôt `le-silence-du-cosmos`, **ne jamais dupliquer/modifier localement** — toute évolution doit être poussée sur ce repo). Bord du disque à fondu progressif (pas de coupure nette).
-2. `localgroup` : texture statique pour les galaxies **procédurales** (halo dépendant de la distance) + rendu en **points individuels** pour les galaxies **réelles** (Andromède, M33, Nuages de Magellan, Naine du Sagittaire, NGC 6822, IC 10, Leo I), chacune avec sa propre morphologie (spirale, spirale barrée, irrégulière avec aile tidale, elliptique étirée...) — cf. `nearbyGalaxyStars.ts`. Les galaxies réelles restent visibles à la fois sur ce layer ET sur le layer `milkyway` (catalogue partagé via `useRealGalaxyCatalog.ts`).
-3. `l1b` → `l5` : **10 layers procéduraux** de densité (doublé depuis 5 initialement) : l1b, l2, l2b, l3, l3b, l4, l4a, l4b, l5a, l5. Les paliers "a"/"b" sont des paliers **techniques** (pas de nouveaux layers scientifiques). Chaque palier hérite directement de son plus proche **ancêtre scientifique** (pas du palier précédent en cascade) pour éviter la dilution de structure à grande échelle — poids de combinaison 0,74 (hérité) / 0,67 (détail neuf).
+**Les layers, du plus proche au plus lointain**
 
-**Fichiers de génération (Python, dans `/scripts`)**
-- `generate_layers.py` : génère les 10 textures procédurales (résolution 1024, marge de génération ×1,5 — ×2,4 pour L5 spécifiquement, seul layer visible pile à son bord extrême)
-- `generate_local_group_texture.py` : texture des galaxies procédurales du Groupe Local
-- `generate_local_group_catalog.py` : catalogue JSON (98 galaxies, réelles + procédurales)
-- `local_group_style.py` : **source unique** des constantes de rendu des galaxies réelles (taille de halo, suppression de bruit local...) — ne jamais redéfinir ailleurs
+1. **`milkyway`** (`DensityLayer.tsx`, texture `density_milkyway.png`) : disque + bulbe de la Voie lactée UNIQUEMENT (pas les galaxies voisines, cf. point 2). Généré hors-ligne en exécutant le vrai module partagé `GalaxyModel` (récupéré depuis le dépôt `le-silence-du-cosmos` au moment de la génération, jamais réimplémenté localement) — cf. `scripts/generate_simulated_textures.mjs`. N'est plus chargé côté client en JavaScript : seul le résultat pré-cuit (bitmap) est livré à l'app.
 
-**Point de vigilance connu — synchronisation manuelle requise**
-`app/public/glow-test.html` est un fichier HTML autonome (pas de build partagé) qui **duplique manuellement** la liste des layers et leurs marges. Toute évolution de la liste de layers côté production (`DensityLayer.tsx`) doit être répercutée à la main dans cet outil, sinon il se désynchronise silencieusement (déjà arrivé une fois).
+2. **`RealGalaxiesLayer`** (composant React séparé, `app/src/RealGalaxiesLayer.tsx`, PAS une entrée de `DensityLayer`) : compose au runtime 9 sprites pré-cuits individuels — la Voie lactée elle-même (pour rester visible même une fois sortie du zoom rapproché du point 1) + les 8 galaxies réelles nommées du Groupe Local (Andromède, Triangulum/M33, Grand/Petit Nuage de Magellan, Naine du Sagittaire, NGC 6822, IC 10, Leo I). Chaque sprite est généré séparément (`generateRealGalaxySprite()` / `generateMilkyWay()` dans `generate_simulated_textures.mjs`), dimensionné sur SA PROPRE taille (résolution relative identique pour toutes, quelle que soit leur distance réelle), avec un halo doux qui s'étend au-delà du nuage d'étoiles net pour amorcer une transition avec le layer de densité au-dessus (§4.6). La Voie lactée est dessinée EN PREMIER (dessous) : son halo, même réduit, ne doit jamais pouvoir recouvrir visuellement une galaxie plus proche (la Naine du Sagittaire, à seulement 0,024 Mpc, est la plus proche des 8).
 
-**Chantier en attente, déjà cadré (cf. §9 ci-dessous)**
-Implémenter la distension spatiale réelle en fonction du temps (a(t)) : actuellement la carte est en coordonnées comobiles fixes (rien ne bouge avec le temps, seule la luminosité change). Le principe retenu et la formule sont déjà documentés en détail au §9 — reste à l'implémenter. Une question adjacente (mise de côté pour l'instant) : la croissance des structures (formation hiérarchique bottom-up) n'est pas non plus implémentée.
+3. **`localgroup`** (`DensityLayer.tsx`, texture `density_localgroup.png`) : texture procédurale pour les ~90 galaxies de champ NON nommées du Groupe Local (halo dépendant de la distance, pas de sprite individuel) — cf. `generate_local_group_texture.py`.
+
+4. **`l1b` → `l5`** (`DensityLayer.tsx`) : 10 layers procéduraux de densité (doublé depuis 5 initialement) : `l1b`, `l2`, `l2b`, `l3`, `l3b`, `l4`, `l4a`, `l4b`, `l5a`, `l5`. Les paliers "a"/"b" sont des paliers TECHNIQUES (pas de nouveaux layers scientifiques). Champ gaussien aléatoire (GRF) généré GRAND → PETIT (`l5`, le plus grand et le plus lisse, sert de racine ; chaque layer plus fin hérite de son plus proche ancêtre scientifique et y ajoute du détail passe-haut, poids 0,74/0,67) — cf. §4.3-4.4, principe **non modifié** malgré la tentation d'inverser ce sens (cf. §4.7). En plus de ce champ hérité, `l1b`/`l2`/`l2b` reçoivent un ANCRAGE ADDITIONNEL sur les positions réelles du catalogue du Groupe Local (98 galaxies), avec une intensité décroissante à mesure qu'on s'éloigne, volontairement arrêtée à `l2b` (~67 Mpc) — cf. §4.7.
+
+**Fichiers de génération (dans `/scripts`)**
+- `generate_layers.py` (Python) : génère les 10 textures procédurales de densité (résolution 1024, marge de génération ×1,5 — ×2,4 pour L5 spécifiquement, seul layer visible pile à son bord extrême) + l'ancrage du Groupe Local sur `l1b`/`l2`/`l2b` (fonction `apply_local_group_anchor`, cf. §4.7).
+- `generate_simulated_textures.mjs` (Node) : génère la texture `milkyway` (disque + bulbe, via le vrai `GalaxyModel` distant) et les 9 sprites individuels de `RealGalaxiesLayer` (Voie lactée + 8 galaxies réelles, avec halo).
+- `generate_local_group_texture.py` (Python) : texture `localgroup` (galaxies procédurales non nommées).
+- `generate_local_group_catalog.py` (Python) : construit le catalogue JSON de 98 galaxies (8 réelles nommées, positions/tailles réelles + ~90 galaxies de champ procédurales, distance 1-10 Mpc, `isReal: false`) — SOURCE UNIQUE consommée à la fois par `RealGalaxiesLayer.tsx`, `generate_local_group_texture.py` et `generate_layers.py`.
+- `local_group_style.py` (Python) : source unique des constantes de rendu des galaxies réelles pour le champ de densité (taille de halo, suppression de bruit local...) — ne jamais redéfinir ailleurs.
+
+**Points de vigilance connus — synchronisation manuelle requise**
+- `app/public/glow-test.html` duplique manuellement la liste des layers de densité et leurs marges (pas de build partagé). Toute évolution côté production (`DensityLayer.tsx`) doit être répercutée à la main, sinon désynchronisation silencieuse (déjà arrivé une fois).
+- `app/public/l1b-anchor-test.html` est un outil de calibration VISUELLE (aperçu approximatif, bruit de démonstration plutôt que le vrai champ BBKS) — les valeurs qu'il affiche sont un point de départ à reporter et affiner dans `generate_layers.py`, pas une garantie de rendu pixel-identique.
+- `generateRealGalaxySprite()`/`generateMilkyWay()` (JS, `generate_simulated_textures.mjs`) et `RealGalaxiesLayer.tsx` partagent des constantes (`SPRITE_MARGIN`, le rayon de la Voie lactée) qui doivent rester synchronisées manuellement entre les deux fichiers — commentées explicitement à chaque occurrence.
+- `field_to_log_density()` (dans `generate_layers.py`) applique un `exp()` avant le calcul de densité — toute valeur ajoutée en amont (ex. un ancrage) y est donc amplifiée de façon EXPONENTIELLE, pas linéaire. Une amplitude qui semble modeste dans le champ brut peut dominer complètement l'export après ce passage ; à l'inverse, un flou (`gaussian_filter`) appliqué avant ce transform peut détruire une texture fine de façon disproportionnée. Toujours vérifier le résultat exporté (histogramme, écart-type, comparaison visuelle), pas seulement les paramètres d'entrée.
+
+**Chantiers en attente, déjà cadrés (cf. §9)**
+Implémenter la distension spatiale réelle en fonction du temps (a(t)) : actuellement la carte est en coordonnées comobiles fixes (rien ne bouge avec le temps, seule la luminosité change). Le principe retenu et la formule sont déjà documentés en détail au §9 — reste à l'implémenter. Une question adjacente (mise de côté pour l'instant) : la croissance des structures (formation hiérarchique bottom-up) n'est pas non plus implémentée — cf. aussi la clarification du sens de l'héritage en §4.7, qui touche à un sujet voisin mais distinct.
 
 ---
 
@@ -183,7 +193,7 @@ Son rayon comobile décroît de façon monotone ; sa distance propre converge ve
 
 ## 4. Système de layers spatiaux (axe de zoom)
 
-### 4.1 Découpage en 5 layers, avec plages de validité en échelle comobile
+### 4.1 Découpage en 5 layers conceptuels, avec plages de validité en échelle comobile
 
 | # | Layer | Échelle (Mpc comobile) | Échelle (années-lumière) | Nature de la structure |
 |---|---|---|---|---|
@@ -193,11 +203,13 @@ Son rayon comobile décroît de façon monotone ; sa distance propre converge ve
 | 4 | Transition vers l'homogénéité | 150 – 300 | 500 Ma – 1 Ga | Zone de fondu entre structure et uniformité ("End of Greatness" débattu entre 100 et 300 Mpc) |
 | 5 | Univers homogène | 300 – 14 400 | 1 Ga – 47 Ga (rayon) | Densité uniforme extrapolée, conforme au principe cosmologique |
 
+Ce découpage en 5 est conceptuel/scientifique. L'implémentation réelle compte davantage de layers techniques (cf. §0 et §4.6-4.7) : le layer 1 "Local" est en réalité 3 composants de rendu distincts (`milkyway`, `RealGalaxiesLayer`, `localgroup`), et les layers 2 à 5 comptent 10 paliers techniques (`l1b` → `l5`) plutôt que 4, pour une résolution apparente plus régulière au fondu.
+
 ### 4.2 Mécanisme de transition entre layers (zoom)
 
-- Chaque layer est un canvas/texture indépendant.
-- Au passage d'une plage de validité à l'autre, un **fondu d'opacité** (crossfade) est appliqué entre le layer sortant et le layer entrant, sur une zone tampon (~10-20% de recouvrement autour de la frontière).
-- Le layer 1 (local) n'est pas généré procéduralement — c'est une carte de positions réelles (catalogue simplifié du Groupe Local).
+- Chaque layer/composant est un canvas indépendant, avec sa propre opacité pilotée par une fonction de poids partagée (`layerWeights.ts`) — un seul calcul, réutilisé par tous les composants de rendu, pour garantir qu'aucun ne se désynchronise des autres.
+- Au passage d'une plage de validité à l'autre, un **fondu d'opacité** (crossfade) est appliqué entre le layer sortant et le layer entrant, sur une zone tampon.
+- Le layer 1 (local) n'est pas généré comme un champ statistique — c'est une combinaison de positions réelles connues (Voie lactée + 8 galaxies nommées, cf. §4.6) et d'une texture procédurale légère pour le reste du Groupe Local (`localgroup`).
 
 ### 4.3 Génération de la matière — méthode retenue
 
@@ -213,6 +225,8 @@ Pipeline :
 δ_lognormal(x) = exp( δ_gaussien(x) − σ²/2 ) − 1
 ```
 
+**Point d'implémentation important** (cf. §0, point de vigilance) : cette transformation log-normale implique un `exp()` — toute contribution ajoutée au champ gaussien AVANT cette étape (par exemple l'ancrage du Groupe Local, §4.7) y est amplifiée exponentiellement, pas linéairement. Une amplitude modeste dans le champ brut peut dominer complètement l'export final.
+
 ### 4.4 Héritage entre layers (exigence initiale du projet)
 
 **Principe : un seul champ gaussien de base par région, décliné en plusieurs résolutions par filtrage passe-bas successif — pas un champ indépendant par layer.**
@@ -220,10 +234,37 @@ Pipeline :
 - Layer 5 (homogène) → Layer 4 → Layer 3 → Layer 2 : chaque niveau ajoute des fréquences plus hautes (détails plus fins) au-dessus de la structure déjà présente au niveau parent, en réutilisant les mêmes phases aléatoires.
 - Techniquement : filtres gaussiens/passe-bas à des coupures d'échelle croissantes (analogue aux filtres à 4, 2, 1 h⁻¹ Mpc utilisés en recherche pour visualiser la toile cosmique à plusieurs résolutions), soit encore une approche "multi-octaves" calée sur P(k) plutôt que sur un bruit arbitraire.
 - Conséquence pratique : quand on zoome sur une région, le layer plus détaillé n'invente pas une nouvelle distribution — il **précise** celle déjà visible au zoom précédent.
+- **Ce sens (grand → petit) est un principe physique, pas seulement un choix d'implémentation, et n'a pas vocation à être inversé** — cf. §4.7 pour la discussion complète et ce qui a été fait à la place pour intégrer les données réelles du Groupe Local.
 
 ### 4.5 Interaction zoom × temps
 
 Le facteur de dilution 1/a³ (§3.3) s'applique **après** la génération spatiale du champ de densité — il est indépendant de l'échelle affichée. Le champ de densité de base est généré à z=0 (aujourd'hui) ; on le dilue ensuite dans le temps.
+
+### 4.6 Rendu des galaxies réelles connues (Voie lactée + Groupe Local proche)
+
+**Contexte** : contrairement aux layers `l1b`→`l5` (structure statistique, générée), les positions de la Voie lactée et des 8 galaxies réelles nommées du Groupe Local sont CONNUES (catalogue `generate_local_group_catalog.py`) et doivent rester identifiables visuellement (formes distinctes, pas de simple point) sur toute la plage de zoom où elles sont physiquement pertinentes.
+
+**Méthode retenue : un sprite pré-cuit dédié par galaxie, composé au runtime.**
+
+- Chaque galaxie (Voie lactée comprise) a sa PROPRE texture (256-320 px), générée hors-ligne à une résolution dimensionnée sur SA PROPRE taille angulaire — donc la même finesse relative pour toutes, quelle que soit leur distance réelle. Une texture partagée pour l'ensemble du Groupe Local a été essayée puis écartée : à l'échelle de 2,4-3,6 Mpc, chaque galaxie n'occupait que quelques pixels et perdait toute structure reconnaissable (bras spiraux, barre...).
+- Chaque sprite combine un nuage d'étoiles net (positions générées selon la morphologie propre à la galaxie — spirale, barrée, irrégulière à aile tidale, elliptique étirée) ET un halo doux qui s'étend nettement au-delà de ce nuage, en s'estompant progressivement jusqu'au bord du sprite. Ce halo sert de transition visuelle vers le layer de densité procédural juste au-dessus (`l1b`) — sans lui, la rupture entre "une galaxie physique nette" et "un champ de densité flou" était trop brutale.
+- Composés au runtime par `RealGalaxiesLayer.tsx` : position/taille recalculées à chaque zoom (`distanceMpc`/`angleDeg`/`radiusMpc` du catalogue → coordonnées écran), un `drawImage` par galaxie visible. Reste un rendu "en direct" par nécessité, mais léger (quelques appels, jamais un rendu étoile par étoile).
+- La Voie lactée est un sprite parmi les autres (distance 0), avec son propre halo — délibérément plus resserré que celui des 8 galaxies réelles : la galaxie réelle la plus proche (Naine du Sagittaire, 0,024 Mpc) est trop proche pour tolérer un halo aussi large que les autres sans les recouvrir visuellement. Dessinée en premier (dessous) par précaution supplémentaire.
+- Visible sur toute la plage combinée `milkyway` + `localgroup` (somme des deux poids de fondu), sauf la Voie lactée elle-même qui n'utilise que le poids `localgroup` seul (pour ne pas se superposer à la texture `milkyway`, plus détaillée, pendant le zoom rapproché).
+
+### 4.7 Ancrage du Groupe Local sur les layers de densité proches — portée et limite volontaire
+
+**Question posée en cours de projet** : puisque les positions réelles du Groupe Local sont connues (§4.6) et que `l1b` (le layer de densité le plus proche) est généré statistiquement, ne devrait-on pas faire remonter cette connaissance réelle VERS les layers plus grands, plutôt que de laisser `l1b` ignorer superbement les 98 galaxies visibles juste en dessous ?
+
+**Ce qui n'a PAS été fait, et pourquoi** : inverser le sens de génération du champ aléatoire lui-même (faire de `l1b` la racine et remonter vers `l5`) contredirait le principe cosmologique (§4.1, ligne 5) : à grande échelle (300+ Mpc), l'univers est statistiquement homogène et rien ne distingue notre position — construire les grandes échelles à partir d'une région locale connue introduirait un artefact scientifiquement faux (un point spécial fixe au centre de la carte, visible même là où aucun point de l'univers n'est censé se distinguer). Le sens grand → petit du champ aléatoire (§4.4) reste donc inchangé.
+
+**Ce qui a été fait à la place** : une contrainte LOCALE, additionnelle et bornée, superposée au champ statistique existant — sans changer son sens de génération.
+
+- `l1b` (8,49 Mpc) : ancrage complet sur les 98 galaxies du catalogue (8 réelles + ~90 procédurales de champ, cf. `generate_local_group_catalog.py`). Fonction `apply_local_group_anchor()` dans `generate_layers.py` : chaque position reçoit un halo doux + un pic, dimensionnés pour rester visibles (jamais sub-pixel, quelle que soit la résolution du layer) et pour se fondre dans la texture plutôt que de créer des ronds nets isolés (calibré visuellement via `l1b-anchor-test.html`, §0).
+- `l2` (30 Mpc) et `l2b` (67,08 Mpc) : la même contrainte, mais en TRACE fortement atténuée (paramètre `strength`, 0,4 puis 0,15) — juste assez pour que les positions ne disparaissent pas net à chaque frontière de zoom, pas pour les rendre identifiables individuellement.
+- **Arrêt volontaire à `l2b`** : au-delà (`l3`, 150 Mpc, et tous les layers suivants), aucun ancrage — le Groupe Local redevient statistiquement invisible, comme n'importe quelle autre région à cette échelle. C'est le comportement scientifiquement correct, pas une limitation technique à lever plus tard.
+
+**Paramètres de `apply_local_group_anchor()`** (cf. docstring de la fonction pour le détail) : `strength` (intensité globale de l'ancrage), `global_suppression` (atténuation du bruit ambiant existant, pour laisser ressortir les positions ancrées), `size_multiplier` (taille des pics, en multiple de la résolution du layer), `bump_amplitude_factor` (luminosité des pics), `extra_blur_px` (flou d'ensemble — à utiliser avec prudence, cf. §0 sur le piège du transform `exp()`), `diffuse` (désactive le mécanisme "pic garanti dominant + suppression locale du bruit" au profit d'un simple ajout par-dessus le champ existant, pour un rendu moins "rond et net"), `real_only` (limite le traitement complet aux 8 galaxies nommées si `True` ; `False` sur `l1b`/`l2`/`l2b` pour couvrir les 98).
 
 ---
 
