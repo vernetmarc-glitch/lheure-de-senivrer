@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prototype — dissolution physique de la Voie lactée</title>
+<script src="https://cdn.jsdelivr.net/gh/vernetmarc-glitch/le-silence-du-cosmos@main/galaxy-model.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #05050a; height: 100%; width: 100%; font-family: system-ui, sans-serif; }
+  .layout { display: flex; flex-wrap: wrap; }
+  .panel {
+    background: rgba(15,15,22,0.92); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+    margin: 10px; padding: 12px; color: #ccc; flex: 1 1 320px; max-width: 420px;
+  }
+  .ctrl { margin-bottom: 10px; }
+  .ctrl label { font-size: 11px; color: #bbb; display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .ctrl label span.val { color: #7fd1ff; font-family: monospace; }
+  .ctrl input[type=range] { width: 100%; }
+  .hint { font-size: 9.5px; color: #888; margin-top: 2px; line-height: 1.35; }
+  h2 { color: #eee; font-size: 15px; margin: 14px 0 4px 10px; font-weight: 500; }
+  .canvasWrap { flex: 2 1 480px; padding: 10px; }
+  canvas { width: 100%; aspect-ratio: 1; background: #000; border-radius: 8px; display: block; }
+  .stageLabel { color: #7fd1ff; font-size: 13px; margin-top: 8px; font-family: monospace; text-align: center; }
+  .stageBar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .stageBar div { flex: 1; }
+  table.cp { width: 100%; font-size: 9.5px; color: #999; border-collapse: collapse; margin-top: 6px; }
+  table.cp td, table.cp th { padding: 2px 4px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  table.cp th { color: #7fd1ff; }
+</style>
+</head>
+<body>
+<h2>🌀 Dissolution physique de la Voie lactée — prototype</h2>
+<div class="layout">
+  <div class="panel">
+    <div class="ctrl">
+      <label>Position temporelle — a(t) <span class="val" id="aVal"></span></label>
+      <input type="range" id="aSlider" min="-3.5" max="0" step="0.002" value="0" />
+    </div>
+    <div class="stageLabel" id="stageLabel"></div>
+    <div class="stageBar" id="stageBar"></div>
+
+    <h2 style="margin-left:0">Séquence physique retenue (ELS 1962 et suites, inversée)</h2>
+    <div class="hint">
+      1. Aujourd'hui : disque spiral fin, organisé.<br/>
+      2. Disque plus épais, dynamiquement chaud, bras qui se défont en amas irréguliers (galaxies "grumeleuses" à grand redshift, cf. JWST).<br/>
+      3. Effondrement du nuage protogalactique : turbulent, plus étendu que le disque actuel (~2x le rayon, cf. ELS 1962 — le nuage initial faisait ~100 kpc contre ~50 kpc pour le disque final).<br/>
+      4. Découplage du flux de Hubble : la fluctuation se dilue dans le fond, quasi indétectable.<br/>
+      5. Recombinaison : uniforme, embrasé.
+    </div>
+
+    <table class="cp" id="cpTable"></table>
+
+    <h2 style="margin-left:0">Réglages rapides</h2>
+    <div class="ctrl">
+      <label>Taille max du nuage protogalactique (× rayon disque) <span class="val" id="cloudSizeVal"></span></label>
+      <input type="range" id="cloudSizeSlider" min="1" max="3.5" step="0.05" value="2.0" />
+    </div>
+    <div class="ctrl">
+      <label>Amas/turbulence (intensité max) <span class="val" id="turbVal"></span></label>
+      <input type="range" id="turbSlider" min="0" max="2" step="0.02" value="1.0" />
+    </div>
+
+    <h2 style="margin-left:0">Embrasement</h2>
+    <div class="ctrl">
+      <label>Intensité max <span class="val" id="bMaxVal"></span></label>
+      <input type="range" id="bMaxSlider" min="1" max="20" step="0.1" value="8" />
+    </div>
+  </div>
+
+  <div class="canvasWrap">
+    <canvas id="canvas" width="900" height="900"></canvas>
+    <div class="hint" id="meta" style="text-align:center; margin-top:6px;"></div>
+  </div>
+</div>
+
+<script>
+const N = 900
+const canvas = document.getElementById('canvas')
+const ctx = canvas.getContext('2d')
+
+const ASTRO_STOPS = [
+  [0,0,0], [0x17,0x0a,0x05], [0x4a,0x1f,0x0a], [0xa8,0x48,0x0f], [0xe8,0xa1,0x3a], [0xff,0xf3,0xd6]
+]
+function colorForValue(t) {
+  t = Math.min(Math.max(t,0),1)
+  const n = ASTRO_STOPS.length - 1
+  const idx = Math.min(Math.floor(t*n), n-1)
+  const frac = t*n - idx
+  const a = ASTRO_STOPS[idx], b = ASTRO_STOPS[idx+1]
+  return [a[0]+(b[0]-a[0])*frac, a[1]+(b[1]-a[1])*frac, a[2]+(b[2]-a[2])*frac]
+}
+
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+function valueNoiseField(n, gridSize, seed) {
+  const rng = mulberry32(seed)
+  const g = Math.max(2, Math.round(gridSize))
+  const grid = new Float32Array((g + 1) * (g + 1))
+  for (let i = 0; i < grid.length; i++) grid[i] = rng() * 2 - 1
+  const out = new Float32Array(n * n)
+  for (let y = 0; y < n; y++) {
+    const gy = (y / n) * g, gy0 = Math.min(Math.floor(gy), g - 1), fy = gy - Math.floor(gy)
+    const sy = fy * fy * (3 - 2 * fy)
+    for (let x = 0; x < n; x++) {
+      const gx = (x / n) * g, gx0 = Math.min(Math.floor(gx), g - 1), fx = gx - Math.floor(gx)
+      const sx = fx * fx * (3 - 2 * fx)
+      const v00 = grid[gy0*(g+1)+gx0], v10 = grid[gy0*(g+1)+gx0+1]
+      const v01 = grid[(gy0+1)*(g+1)+gx0], v11 = grid[(gy0+1)*(g+1)+gx0+1]
+      const a = v00 + (v10-v00)*sx, b = v01 + (v11-v01)*sx
+      out[y*n+x] = a + (b-a)*sy
+    }
+  }
+  return out
+}
+function multiOctaveCloud(n, seed, baseGrid) {
+  const oct1 = valueNoiseField(n, baseGrid, seed)
+  const oct2 = valueNoiseField(n, baseGrid * 2.4, seed + 1)
+  const oct3 = valueNoiseField(n, baseGrid * 5.5, seed + 2)
+  const out = new Float32Array(n * n)
+  for (let i = 0; i < out.length; i++) out[i] = oct1[i]*0.55 + oct2[i]*0.3 + oct3[i]*0.15
+  return out
+}
+
+// ---------------------------------------------------------------------
+// Points de contrôle : chaque paramètre est interpolé (smoothstep) entre
+// ces points, indexés par log10(a). Décrit la séquence physique en 5
+// étapes (cf. panneau de gauche).
+// sizeScale : rayon relatif au disque actuel (1 = taille d'aujourd'hui).
+// flatten   : aplatissement (1 = disque plat comme aujourd'hui [YSCALE
+//             réel], 0 = parfaitement sphérique/turbulent).
+// clump     : intensité du bruit qui casse les bras en amas irréguliers.
+// pointy    : à quel point les étoiles restent des points nets (1) vs un
+//             gaz diffus sans points individuels (0).
+// cloudMix  : proportion du "nuage protogalactique" (turbulence à grande
+//             échelle, indépendante des positions d'étoiles) par rapport
+//             au champ d'étoiles.
+// ---------------------------------------------------------------------
+const CONTROL_POINTS = [
+  { logA: 0,     sizeScale: 1.0, flatten: 1.0, clump: 0.0, pointy: 1.0, cloudMix: 0.0 },  // aujourd'hui
+  { logA: -0.35, sizeScale: 1.0, flatten: 0.75, clump: 0.55, pointy: 0.55, cloudMix: 0.15 }, // disque chaud/grumeleux
+  { logA: -0.9,  sizeScale: 1.6, flatten: 0.35, clump: 0.8, pointy: 0.2, cloudMix: 0.55 },  // effondrement en cours
+  { logA: -1.6,  sizeScale: 2.0, flatten: 0.1, clump: 0.5, pointy: 0.05, cloudMix: 0.9 }, // nuage protogalactique max (sizeScale ecrase par le curseur, cf. render())
+  { logA: -2.6,  sizeScale: 0.4, flatten: 0.0, clump: 0.15, pointy: 0.0, cloudMix: 1.0 },   // dilution vers le fond
+  { logA: -3.5,  sizeScale: 0.15, flatten: 0.0, clump: 0.0, pointy: 0.0, cloudMix: 1.0 },   // quasi uniforme
+]
+const STAGE_NAMES = ['Aujourd\'hui : disque spiral', 'Disque chaud, bras qui se défont', 'Effondrement, amas irréguliers', 'Nuage protogalactique étendu', 'Dilution vers le fond', 'Quasi uniforme (recombinaison proche)']
+
+function smoothstep(t) { t = Math.min(Math.max(t,0),1); return t*t*(3-2*t) }
+
+function interpParams(logA) {
+  const cps = CONTROL_POINTS
+  let i = 0
+  while (i < cps.length - 1 && logA < cps[i+1].logA) i++
+  const a0 = cps[Math.min(i, cps.length-1)]
+  const a1 = cps[Math.min(i+1, cps.length-1)]
+  const span = a1.logA - a0.logA
+  const t = span !== 0 ? smoothstep((logA - a0.logA) / span) : 0
+  const lerp = (k) => a0[k] + (a1[k] - a0[k]) * t
+  return {
+    sizeScale: lerp('sizeScale'), flatten: lerp('flatten'), clump: lerp('clump'),
+    pointy: lerp('pointy'), cloudMix: lerp('cloudMix'), stageIndex: i, stageT: t,
+  }
+}
+
+let stars = null
+let MW_R = 52000 // al, remplace par la vraie valeur une fois GalaxyModel charge
+
+function loadStars() {
+  if (window.GalaxyModel) {
+    stars = GalaxyModel.generateGalaxy()
+    MW_R = GalaxyModel.MW_R
+    document.getElementById('meta').textContent = `${stars.length} étoiles chargées depuis GalaxyModel (MW_R=${MW_R} al)`
+    renderAll()
+  } else {
+    setTimeout(loadStars, 200)
+  }
+}
+
+function getUIParams() {
+  return {
+    a: Math.pow(10, parseFloat(document.getElementById('aSlider').value)),
+    logA: parseFloat(document.getElementById('aSlider').value),
+    cloudSizeMax: parseFloat(document.getElementById('cloudSizeSlider').value),
+    turbMax: parseFloat(document.getElementById('turbSlider').value),
+    bMax: parseFloat(document.getElementById('bMaxSlider').value),
+  }
+}
+
+const cloudNoiseCache = multiOctaveCloud(N, 4242, 6)
+const clumpNoiseCache = multiOctaveCloud(N, 8181, 10)
+
+function render() {
+  if (!stars) return
+  const ui = getUIParams()
+  CONTROL_POINTS[3].sizeScale = ui.cloudSizeMax // reglage rapide relie au point de controle "nuage max"
+  const p = interpParams(ui.logA)
+
+  const LY_PER_MPC = 3.26156e6
+  const baseHalfWidthLy = MW_R * 2.6 // marge fixe pour laisser de la place au nuage etendu
+  const pxPerLy = N / (2 * baseHalfWidthLy)
+  const cx = N / 2, cy = N / 2
+
+  const field = new Float32Array(N * N)
+
+  // Champ d'etoiles (pointy) — desactive un peu plus a chaque etape
+  if (p.pointy > 0.01) {
+    for (const star of stars) {
+      const gx = star.gx * p.sizeScale
+      const gy = star.gy * p.flatten * p.sizeScale
+      const px = cx + gx * pxPerLy, py = cy + gy * pxPerLy
+      if (px < -10 || px > N+10 || py < -10 || py > N+10) continue
+      const baseSigma = Math.max(star.sz * 0.55, 0.12) * (MW_R / 1600)
+      const sigmaLy = baseSigma * (1 + (1 - p.pointy) * 3) // plus flou quand pointy diminue
+      const sigmaPx = Math.max(sigmaLy * pxPerLy, 0.5)
+      const amp = (0.18 + star.b * 0.55) * p.pointy
+      const r = Math.max(1, Math.ceil(sigmaPx * 3.5))
+      const x0 = Math.max(0, Math.floor(px-r)), x1 = Math.min(N-1, Math.ceil(px+r))
+      const y0 = Math.max(0, Math.floor(py-r)), y1 = Math.min(N-1, Math.ceil(py+r))
+      const inv2s2 = 1/(2*sigmaPx*sigmaPx)
+      for (let y=y0; y<=y1; y++) {
+        const dy2 = (y-py)*(y-py)
+        for (let x=x0; x<=x1; x++) {
+          const dx = x-px
+          field[y*N+x] += amp * Math.exp(-(dx*dx+dy2)*inv2s2)
+        }
+      }
+    }
+  }
+
+  // Amas/grumeaux : casse la structure du champ d'etoiles
+  if (p.clump > 0.01) {
+    for (let i = 0; i < field.length; i++) {
+      field[i] *= (1 + clumpNoiseCache[i] * p.clump)
+      if (field[i] < 0) field[i] = 0
+    }
+  }
+
+  // Nuage protogalactique : turbulence a grande echelle, independante des
+  // positions d'etoiles, dont l'extension suit sizeScale.
+  if (p.cloudMix > 0.01) {
+    const cloudRadiusLy = MW_R * p.sizeScale * 1.3
+    const cloudRadiusPx = cloudRadiusLy * pxPerLy
+    for (let y = 0; y < N; y++) {
+      const dy = y - cy
+      for (let x = 0; x < N; x++) {
+        const dx = x - cx
+        const dist = Math.sqrt(dx*dx + dy*dy)
+        const envelope = Math.max(0, 1 - dist / cloudRadiusPx)
+        const smoothEnv = envelope*envelope*(3-2*envelope)
+        const noiseVal = (cloudNoiseCache[y*N+x] + 1) / 2 // 0..1
+        field[y*N+x] += p.cloudMix * ui.turbMax * smoothEnv * (0.25 + noiseVal * 0.5)
+      }
+    }
+  }
+
+  // Tonemap + embrasement + palette
+  const brightness = 1 + (ui.bMax - 1) * Math.pow(Math.max(0, 1 - ui.a), 2.2)
+  const out = ctx.createImageData(N, N)
+  for (let i = 0; i < field.length; i++) {
+    const tone = 1 - Math.exp(-field[i])
+    const v = Math.min(tone * brightness, 1)
+    const [r,g,b] = colorForValue(v)
+    out.data[i*4] = r; out.data[i*4+1] = g; out.data[i*4+2] = b; out.data[i*4+3] = 255
+  }
+  ctx.putImageData(out, 0, 0)
+
+  document.getElementById('stageLabel').textContent =
+    `Étape ${p.stageIndex+1}→${Math.min(p.stageIndex+2, STAGE_NAMES.length)} (${(p.stageT*100).toFixed(0)}%) : ${STAGE_NAMES[p.stageIndex]}`
+  document.getElementById('meta').textContent =
+    `taille ×${p.sizeScale.toFixed(2)} · aplatissement ${p.flatten.toFixed(2)} · amas ${(p.clump*100).toFixed(0)}% · points ${(p.pointy*100).toFixed(0)}% · nuage ${(p.cloudMix*100).toFixed(0)}% · luminosité ×${brightness.toFixed(2)}`
+
+  const bar = document.getElementById('stageBar')
+  bar.innerHTML = STAGE_NAMES.map((_,i) => `<div style="background:${i===p.stageIndex ? '#5aa9e6' : 'rgba(255,255,255,0.15)'}"></div>`).join('')
+
+  const table = document.getElementById('cpTable')
+  table.innerHTML = '<tr><th>a</th><th>taille</th><th>aplat.</th><th>amas</th><th>points</th><th>nuage</th></tr>' +
+    CONTROL_POINTS.map(cp => `<tr><td>${Math.pow(10,cp.logA).toExponential(1)}</td><td>${cp.sizeScale.toFixed(2)}</td><td>${cp.flatten.toFixed(2)}</td><td>${cp.clump.toFixed(2)}</td><td>${cp.pointy.toFixed(2)}</td><td>${cp.cloudMix.toFixed(2)}</td></tr>`).join('')
+}
+
+function renderAll() {
+  document.getElementById('aVal').textContent = getUIParams().a.toExponential(3)
+  document.getElementById('cloudSizeVal').textContent = getUIParams().cloudSizeMax.toFixed(2)
+  document.getElementById('turbVal').textContent = getUIParams().turbMax.toFixed(2)
+  document.getElementById('bMaxVal').textContent = getUIParams().bMax.toFixed(1)
+  render()
+}
+
+;['aSlider','cloudSizeSlider','turbSlider','bMaxSlider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderAll)
+})
+loadStars()
+</script>
+</body>
+</html>
