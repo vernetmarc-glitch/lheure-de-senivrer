@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prototype — axe du temps (l5 / l2 / Voie lactée)</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #05050a; height: 100%; width: 100%; font-family: system-ui, sans-serif; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; }
+  .cell { flex: 1 1 300px; min-width: 260px; }
+  .cell h3 { color: #7fd1ff; font-size: 13px; margin: 0 0 6px; }
+  .cell canvas { width: 100%; aspect-ratio: 1; background: #000; border-radius: 6px; display: block; }
+  .cell .meta { font-size: 10px; color: #888; margin-top: 4px; font-family: monospace; }
+  .panel {
+    background: rgba(15,15,22,0.92); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+    margin: 10px; padding: 12px; color: #ccc;
+  }
+  .ctrl { margin-bottom: 10px; }
+  .ctrl label { font-size: 11px; color: #bbb; display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .ctrl label span.val { color: #7fd1ff; font-family: monospace; }
+  .ctrl input[type=range] { width: 100%; }
+  .hint { font-size: 9.5px; color: #888; margin-top: 2px; line-height: 1.35; }
+  h2 { color: #eee; font-size: 15px; margin: 14px 0 4px 10px; font-weight: 500; }
+</style>
+</head>
+<body>
+<h2>🕰️ Axe du temps — prototype à 3 niveaux de zoom</h2>
+
+<div class="panel">
+  <div class="ctrl">
+    <label>Position temporelle — a(t) <span class="val" id="aVal"></span></label>
+    <input type="range" id="aSlider" min="-3.5" max="0" step="0.002" value="0" />
+    <div class="hint">Échelle log. a=1 : aujourd'hui. a→0.0009 : recombinaison (borne réelle de la table cosmologique).</div>
+  </div>
+
+  <h2 style="margin-left:0">Étalement des structures (flou dont le rayon dépend de a(t) seul)</h2>
+  <div class="ctrl">
+    <label>Rayon max de flou (Mpc, atteint à la recombinaison) <span class="val" id="rMaxVal"></span></label>
+    <input type="range" id="rMaxSlider" min="0.5" max="400" step="0.5" value="60" />
+  </div>
+  <div class="ctrl">
+    <label>Forme de la courbe (exposant sur (1-a)) <span class="val" id="rExpVal"></span></label>
+    <input type="range" id="rExpSlider" min="0.3" max="4" step="0.05" value="1.4" />
+    <div class="hint">Petit = le flou monte vite dès qu'on quitte "aujourd'hui". Grand = le flou reste faible longtemps puis grimpe fort près de la recombinaison.</div>
+  </div>
+
+  <h2 style="margin-left:0">Embrasement (luminosité)</h2>
+  <div class="ctrl">
+    <label>Intensité max <span class="val" id="bMaxVal"></span></label>
+    <input type="range" id="bMaxSlider" min="1" max="20" step="0.1" value="8" />
+  </div>
+  <div class="ctrl">
+    <label>Forme de la courbe (exposant sur (1-a)) <span class="val" id="bExpVal"></span></label>
+    <input type="range" id="bExpSlider" min="0.3" max="4" step="0.05" value="2.2" />
+  </div>
+
+  <div class="hint" id="convergenceCheck" style="margin-top:8px; font-size:11px;"></div>
+</div>
+
+<div class="row" id="grid"></div>
+
+<script>
+const N = 1024
+const LAYERS = [
+  { key: 'l5', label: 'L5 — univers homogène (14 570 Mpc)', src: 'data/density_l5.png', maxMpc: 14570, margin: 2.4 },
+  { key: 'l2', label: 'L2 — amas / toile cosmique naissante (30 Mpc)', src: 'data/density_l2.png', maxMpc: 30, margin: 1.5 },
+  { key: 'milkyway', label: 'Voie lactée (sprite, 0.035 Mpc nominal)', src: 'data/density_milkyway.png', maxMpc: 0.035075, margin: 1.5 },
+]
+
+const ASTRO_STOPS = [
+  [0,0,0], [0x17,0x0a,0x05], [0x4a,0x1f,0x0a], [0xa8,0x48,0x0f], [0xe8,0xa1,0x3a], [0xff,0xf3,0xd6]
+]
+function colorForValue(t) {
+  t = Math.min(Math.max(t,0),1)
+  const n = ASTRO_STOPS.length - 1
+  const idx = Math.min(Math.floor(t*n), n-1)
+  const frac = t*n - idx
+  const a = ASTRO_STOPS[idx], b = ASTRO_STOPS[idx+1]
+  return [a[0]+(b[0]-a[0])*frac, a[1]+(b[1]-a[1])*frac, a[2]+(b[2]-a[2])*frac]
+}
+
+const grid = document.getElementById('grid')
+const state = {}
+
+for (const layer of LAYERS) {
+  const cell = document.createElement('div')
+  cell.className = 'cell'
+  cell.innerHTML = `<h3>${layer.label}</h3><canvas width="${N}" height="${N}"></canvas><div class="meta" id="meta-${layer.key}"></div>`
+  grid.appendChild(cell)
+  const canvas = cell.querySelector('canvas')
+
+  const img = new Image()
+  img.src = layer.src
+  img.onload = () => {
+    const off = document.createElement('canvas')
+    off.width = N; off.height = N
+    const octx = off.getContext('2d')
+    octx.drawImage(img, 0, 0, N, N)
+    state[layer.key] = { canvas, ctx: canvas.getContext('2d'), srcCanvas: off, layer }
+    render(layer.key)
+  }
+}
+
+function getParams() {
+  return {
+    a: Math.pow(10, parseFloat(document.getElementById('aSlider').value)),
+    rMax: parseFloat(document.getElementById('rMaxSlider').value),
+    rExp: parseFloat(document.getElementById('rExpSlider').value),
+    bMax: parseFloat(document.getElementById('bMaxSlider').value),
+    bExp: parseFloat(document.getElementById('bExpSlider').value),
+  }
+}
+
+// Rayon de flou (Mpc) et facteur de luminosité, fonctions de a(t) SEUL —
+// jamais du zoom/layer actif, cf. discussion (§9 doc + conversation).
+function blurRadiusMpc(a, rMax, rExp) {
+  const t = Math.min(Math.max(1 - a, 0), 1) // 0 aujourd'hui -> 1 a la recombinaison (approx)
+  return rMax * Math.pow(t, rExp)
+}
+function brightnessFactor(a, bMax, bExp) {
+  const t = Math.min(Math.max(1 - a, 0), 1)
+  return 1 + (bMax - 1) * Math.pow(t, bExp)
+}
+
+function render(key) {
+  const s = state[key]
+  if (!s) return
+  const p = getParams()
+  const pxPerMpc = N / (2 * s.layer.maxMpc * s.layer.margin)
+  const radiusMpc = blurRadiusMpc(p.a, p.rMax, p.rExp)
+  const radiusPx = Math.min(radiusMpc * pxPerMpc, 120) // cap : au-dela le flou natif du navigateur devient tres lent/instable
+  const brightness = brightnessFactor(p.a, p.bMax, p.bExp)
+
+  const ctx = s.ctx
+  ctx.clearRect(0, 0, N, N)
+  ctx.filter = radiusPx > 0.15 ? `blur(${radiusPx.toFixed(2)}px)` : 'none'
+  ctx.drawImage(s.srcCanvas, 0, 0)
+  ctx.filter = 'none'
+
+  // Applique la luminosité + la palette manuellement (pour un rendu final
+  // fidele a l'app, pas le filtre CSS 'brightness' qui sature differemment).
+  const imgData = ctx.getImageData(0, 0, N, N)
+  const d = imgData.data
+  for (let i = 0; i < d.length; i += 4) {
+    const v = Math.min((d[i] / 255) * brightness, 1)
+    const [r,g,b] = colorForValue(v)
+    d[i] = r; d[i+1] = g; d[i+2] = b; d[i+3] = 255
+  }
+  ctx.putImageData(imgData, 0, 0)
+
+  document.getElementById(`meta-${key}`).textContent =
+    `rayon flou = ${radiusMpc.toFixed(2)} Mpc (${radiusPx.toFixed(1)}px) · luminosité ×${brightness.toFixed(2)}`
+}
+
+function renderAll() {
+  const p = getParams()
+  document.getElementById('aVal').textContent = p.a.toExponential(3)
+  document.getElementById('rMaxVal').textContent = p.rMax.toFixed(1)
+  document.getElementById('rExpVal').textContent = p.rExp.toFixed(2)
+  document.getElementById('bMaxVal').textContent = p.bMax.toFixed(1)
+  document.getElementById('bExpVal').textContent = p.bExp.toFixed(2)
+
+  for (const layer of LAYERS) render(layer.key)
+
+  // Verification de convergence a la recombinaison (a le plus petit possible
+  // sur ce prototype) : flou proche du max ET luminosite proche du max en
+  // meme temps, cf. contrainte "tout doit etre blanc au Big Bang quelle que
+  // soit l'echelle".
+  const aMin = Math.pow(10, -3.5)
+  const rAtMin = blurRadiusMpc(aMin, p.rMax, p.rExp) / p.rMax
+  const bAtMin = (brightnessFactor(aMin, p.bMax, p.bExp) - 1) / (p.bMax - 1)
+  document.getElementById('convergenceCheck').textContent =
+    `À a≈${aMin.toExponential(2)} (proche recombinaison) : flou à ${(rAtMin*100).toFixed(0)}% du max, luminosité à ${(bAtMin*100).toFixed(0)}% du max — ` +
+    (Math.abs(rAtMin-bAtMin) < 0.15 ? 'convergence cohérente.' : 'ÉCART : les deux courbes n\'arrivent pas ensemble, à ajuster.')
+}
+
+;['aSlider','rMaxSlider','rExpSlider','bMaxSlider','bExpSlider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderAll)
+})
+setTimeout(renderAll, 300) // laisse le temps aux 3 images de charger
+</script>
+</body>
+</html>
