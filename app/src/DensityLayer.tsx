@@ -90,12 +90,29 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
   const loadedCountRef = useRef(0)
 
   // Chargement des textures sources, PRIORISÉ sur le layer du zoom initial.
+  //
+  // Point important (diagnostiqué le 7 juillet) : calculer un ORDRE de
+  // priorité ne suffit pas si les 12 requêtes sont ensuite lancées
+  // quasiment simultanément (assigner `.src` à 12 `Image` de suite dans la
+  // même boucle synchrone) — le navigateur les traite alors comme un lot,
+  // sans garantie que la texture prioritaire arrive en premier. Symptôme
+  // observé : les 1-2 premières images très lentes (coût de connexion
+  // TLS/DNS), puis les 10 autres qui arrivent d'un coup une fois la
+  // connexion "chaude" — sans certitude que le layer actif soit dans ce
+  // premier lot. Corrigé en chargeant la texture prioritaire SEULE
+  // d'abord (avec un indice fetchPriority='high'), et en ne déclenchant
+  // les 11 autres qu'une fois celle-ci arrivée.
   useEffect(() => {
     const ordered = [...PROCEDURAL_LAYERS].sort(
       (a, b) => Math.abs(Math.log(halfWidthMpc / a.maxMpc)) - Math.abs(Math.log(halfWidthMpc / b.maxMpc))
     )
-    ordered.forEach((layer) => {
+
+    function loadOne(layer: ProceduralLayer, priority: 'high' | 'low') {
       const img = new Image()
+      // fetchPriority n'est pas encore dans tous les typages DOM standards
+      // selon la version de TS/lib — cast défensif, propriété bien
+      // supportée par les moteurs de rendu principaux.
+      ;(img as unknown as { fetchPriority: string }).fetchPriority = priority
       img.src = `${import.meta.env.BASE_URL}data/density_${layer.key}.png`
       img.onload = () => {
         const off = document.createElement('canvas')
@@ -110,7 +127,19 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
         loadedCountRef.current += 1
         onLoadProgress?.(loadedCountRef.current, PROCEDURAL_LAYERS.length)
       }
-    })
+      return img
+    }
+
+    const [first, ...rest] = ordered
+    const firstImg = loadOne(first, 'high')
+    const startRest = () => rest.forEach((layer) => loadOne(layer, 'low'))
+    if (firstImg.complete) {
+      // Déjà en cache navigateur (retour sur l'app) : pas besoin d'attendre.
+      startRest()
+    } else {
+      firstImg.addEventListener('load', startRest, { once: true })
+      firstImg.addEventListener('error', startRest, { once: true }) // ne pas bloquer le reste si la prioritaire échoue
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
