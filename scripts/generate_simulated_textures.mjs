@@ -55,9 +55,19 @@ const OUT_DIR = new URL('../app/public/data/', import.meta.url)
 // radiusMpc — GARDER SYNCHRONISÉ avec SPRITE_MARGIN dans
 // app/src/RealGalaxiesLayer.tsx (comme pour MARGIN_FACTOR ailleurs dans le
 // projet). Les étoiles générées sont tronquées à 1.3x le rayon (cf.
-// generateNearbyGalaxyStars) ; 1.7 laisse une marge confortable pour le
-// halo gaussien sans trop de fond vide autour.
-const SPRITE_MARGIN = 1.7
+// generateNearbyGalaxyStars) ; 2.8 laisse la place au halo de transition
+// (voir HALO_SIGMA_FACTOR) en plus de cette marge.
+const SPRITE_MARGIN = 2.8
+
+// Halo doux ajouté autour de chaque galaxie (Voie lactée comprise), en plus
+// du nuage d'étoiles net : sans lui, la transition entre ce layer (une
+// galaxie physique nette) et le layer de densité au-dessus (un champ flou,
+// sans forme de galaxie) était brutale. Le halo s'étend largement au-delà
+// du nuage d'étoiles et s'estompe doucement jusqu'au bord du sprite — c'est
+// lui qui doit se raccorder visuellement à la densité du layer supérieur,
+// pas les étoiles individuelles.
+const HALO_SIGMA_FACTOR = 0.75 // en multiple du rayon de la galaxie
+const HALO_AMPLITUDE = 0.14 // volontairement faible : ne doit pas noyer le nuage d'étoiles net
 
 // Nom catalogue -> identifiant de fichier. Explicite plutôt qu'un
 // slugifier générique : les noms contiennent accents/espaces/parenthèses,
@@ -233,6 +243,17 @@ function tonemapAndSave(field, n, outPath, k) {
 
 // ─────────────────────────────────────────────────────────────────────────
 // 4. Génération "milkyway" (échelle année-lumière) — disque + bulbe SEULS
+//    -> density_milkyway.png, utilisée par DensityLayer.tsx au zoom rapproché.
+//
+//    Génère AUSSI density_realgal_milkyway.png : un sprite de la Voie
+//    lactée avec le MÊME traitement (halo compris) que les 8 galaxies
+//    réelles, pour que RealGalaxiesLayer.tsx puisse la dessiner comme une
+//    galaxie de plus à l'échelle du Groupe Local. Sans ça, la Voie lactée
+//    disparaissait complètement dès qu'on dézoomait au-delà de son propre
+//    layer (diagnostic du 6 juillet : "trou noir" au centre pendant qu'on
+//    voit déjà Andromède etc. autour) — dans l'ancien rendu en direct, elle
+//    était dessinée sur LES DEUX layers (même cache d'étoiles, juste à une
+//    échelle physique différente).
 // ─────────────────────────────────────────────────────────────────────────
 async function generateMilkyWay() {
   const GalaxyModel = await loadGalaxyModel()
@@ -241,11 +262,6 @@ async function generateMilkyWay() {
 
   const N = 1024
   const MARGIN_FACTOR = 1.5
-  // ~2.2x MW_R : suffisant pour couvrir tout le disque (taper à 1.45x
-  // MW_R). Les galaxies réelles proches (LMC, Naine du Sagittaire...) ne
-  // sont PLUS incluses ici (cf. en-tête de fichier) — chacune a désormais
-  // son propre sprite, rendu par RealGalaxiesLayer.tsx à la bonne
-  // position/taille quel que soit le zoom.
   const HALF_LY = GalaxyModel.MW_R * 2.2
   const boxLy = 2 * HALF_LY * MARGIN_FACTOR
   const pxPerLy = N / boxLy
@@ -253,15 +269,32 @@ async function generateMilkyWay() {
   const cy = N / 2
 
   const field = new Float32Array(N * N)
-
   for (const star of stars) {
-    const sigmaLy = Math.max(star.sz * 0.55, 0.12) * (GalaxyModel.MW_R / 1600) // ~cohérent avec sz d'origine (échelle écran)
+    const sigmaLy = Math.max(star.sz * 0.55, 0.12) * (GalaxyModel.MW_R / 1600)
     splatGaussian(field, N, pxPerLy, cx, cy, star.gx, star.gy * GalaxyModel.YSCALE, sigmaLy, 0.55, 0.18 + star.b * 0.55)
   }
-
   tonemapAndSave(field, N, new URL('density_milkyway.png', OUT_DIR), 1.0)
 
-  return HALF_LY / LY_PER_MPC // maxMpc nominal à reporter dans DensityLayer.tsx
+  // --- Sprite pour RealGalaxiesLayer (même logique que generateRealGalaxySprite,
+  // mais à partir des VRAIES étoiles de GalaxyModel plutôt que du générateur
+  // de morphologie approximatif utilisé pour les galaxies lointaines).
+  const mwRadiusMpc = GalaxyModel.MW_R / LY_PER_MPC
+  const N2 = 320
+  const halfWidthMpc2 = mwRadiusMpc * SPRITE_MARGIN
+  const pxPerMpc2 = N2 / (2 * halfWidthMpc2)
+  const cx2 = N2 / 2
+  const cy2 = N2 / 2
+  const field2 = new Float32Array(N2 * N2)
+  for (const star of stars) {
+    const gxMpc = star.gx / LY_PER_MPC
+    const gyMpc = (star.gy * GalaxyModel.YSCALE) / LY_PER_MPC
+    const sigmaMpc = (Math.max(star.sz * 0.55, 0.12) * (GalaxyModel.MW_R / 1600)) / LY_PER_MPC
+    splatGaussian(field2, N2, pxPerMpc2, cx2, cy2, gxMpc, gyMpc, sigmaMpc, 0.6, 0.18 + star.b * 0.55)
+  }
+  splatGaussian(field2, N2, pxPerMpc2, cx2, cy2, 0, 0, mwRadiusMpc * HALO_SIGMA_FACTOR, 1, HALO_AMPLITUDE)
+  tonemapAndSave(field2, N2, new URL('density_realgal_milkyway.png', OUT_DIR), 1.0)
+
+  return { maxMpc: HALF_LY / LY_PER_MPC, mwRadiusMpc } // maxMpc nominal -> DensityLayer.tsx, mwRadiusMpc -> RealGalaxiesLayer.tsx
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -275,7 +308,7 @@ function generateRealGalaxySprite(gal) {
     console.warn(`Pas de slug pour "${gal.name}" — sprite ignoré (ajouter une entrée dans SLUG_BY_NAME).`)
     return
   }
-  const N = 256 // chaque galaxie a sa propre texture : elle occupe déjà tout le cadre, pas besoin de 1024
+  const N = 320 // un peu plus que 256 : compense la marge élargie (halo) pour garder le nuage d'étoiles net
   const halfWidthMpc = gal.radiusMpc * SPRITE_MARGIN
   const pxPerMpc = N / (2 * halfWidthMpc)
   const cx = N / 2
@@ -290,6 +323,11 @@ function generateRealGalaxySprite(gal) {
     splatGaussian(field, N, pxPerMpc, cx, cy, gx, gy, gal.radiusMpc * 0.045, 0.6, 0.18 + s.b * 0.4)
   }
 
+  // Halo de transition (cf. HALO_SIGMA_FACTOR/HALO_AMPLITUDE en tête de
+  // fichier) — un unique halo centré, large, qui s'estompe doucement
+  // jusqu'au bord du sprite.
+  splatGaussian(field, N, pxPerMpc, cx, cy, 0, 0, gal.radiusMpc * HALO_SIGMA_FACTOR, 1, HALO_AMPLITUDE)
+
   tonemapAndSave(field, N, new URL(`density_realgal_${slug}.png`, OUT_DIR), 1.0)
 }
 
@@ -297,7 +335,7 @@ function generateRealGalaxySprite(gal) {
 async function main() {
   const catalog = JSON.parse(readFileSync(CATALOG_PATH, 'utf8'))
 
-  const maxMpcMilkyWay = await generateMilkyWay()
+  const { maxMpc: maxMpcMilkyWay, mwRadiusMpc } = await generateMilkyWay()
 
   for (const gal of catalog) {
     if (!gal.isReal) continue
@@ -305,6 +343,7 @@ async function main() {
   }
 
   console.log(`\nmaxMpc à utiliser pour l'entrée "milkyway" dans DensityLayer.tsx : ${maxMpcMilkyWay.toFixed(6)}`)
+  console.log(`radiusMpc de la Voie lactée à utiliser dans RealGalaxiesLayer.tsx : ${mwRadiusMpc.toFixed(8)}`)
 }
 
 main().catch((err) => {
