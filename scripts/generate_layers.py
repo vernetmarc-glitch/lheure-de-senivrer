@@ -213,7 +213,7 @@ def build_structured_anchor_field(catalog, max_mpc, n, size_multiplier=2.2):
     return field, x_mpc, y_mpc, SIZE_MPC, AMPLITUDE
 
 
-def apply_local_group_anchor(field, max_mpc, n, catalog, strength=1.0, global_suppression=1.0, size_multiplier=2.2):
+def apply_local_group_anchor(field, max_mpc, n, catalog, strength=1.0, global_suppression=1.0, size_multiplier=2.2, real_only=True):
     """Ajoute les bosses de densité du catalogue PAR-DESSUS le champ aléatoire
     existant, avec un traitement RENFORCÉ pour les galaxies RÉELLES :
 
@@ -225,12 +225,12 @@ def apply_local_group_anchor(field, max_mpc, n, catalog, strength=1.0, global_su
     galaxies réelles (rendues en points sur le layer Groupe Local juste en
     dessous) — l'alignement visuel entre les deux layers n'était pas garanti.
 
-    Correctif : pour les galaxies RÉELLES uniquement (pas les procédurales,
-    qui n'ont pas de rendu ponctuel à aligner), on ATTÉNUE localement le
-    bruit ambiant autour de leur position, puis on y superpose une bosse
-    d'amplitude largement dominante — garantissant que le maximum local de
-    densité coïncide avec la vraie position de la galaxie. Constantes
-    importées de local_group_style.py (source unique).
+    Correctif : pour les galaxies RÉELLES uniquement PAR DÉFAUT (pas les
+    procédurales, qui n'ont pas de rendu ponctuel à aligner), on ATTÉNUE
+    localement le bruit ambiant autour de leur position, puis on y superpose
+    une bosse d'amplitude largement dominante — garantissant que le maximum
+    local de densité coïncide avec la vraie position de la galaxie.
+    Constantes importées de local_group_style.py (source unique).
 
     `strength` (0-1) : ajouté le 6 juillet pour l2 — l'ancrage plein (1.0,
     utilisé sur l1b) n'a de sens que sur le layer qui REND ces galaxies
@@ -247,8 +247,21 @@ def apply_local_group_anchor(field, max_mpc, n, catalog, strength=1.0, global_su
     bruit ambiant restait visible ENTRE les galaxies, créant des taches qui
     ne correspondent à aucune vraie galaxie du layer Groupe Local juste en
     dessous. Une valeur basse (ex. 0.08) atténue le bruit sur TOUT le champ
-    avant d'ajouter les bosses, pour qu'il ne reste QUE les 8 pics des
-    galaxies réelles, sans rien entre eux.
+    avant d'ajouter les bosses, pour qu'il ne reste QUE les pics du
+    catalogue, sans rien entre eux.
+
+    `real_only` (défaut True) : ajouté le 7 juillet — build_catalog() ne
+    contient pas QUE les 8 galaxies réelles nommées, mais aussi ~90
+    "galaxies de champ" procédurales (generate_local_group_catalog.py,
+    distance 1-10 Mpc). Avec real_only=True (comportement historique), ces
+    90 galaxies ne recevaient que la contribution FAIBLE de
+    build_structured_anchor_field (pas de suppression locale ni de bosse
+    dominante), donc quasi invisibles à côté des 8 pics dominants — alors
+    que le layer Groupe Local juste en dessous (texture procédurale
+    'localgroup' + RealGalaxiesLayer) les montre TOUTES. real_only=False
+    (utilisé pour l1b) applique le même traitement complet à l'ensemble du
+    catalogue, pour que l1b reflète fidèlement tout ce qui est visible en
+    dessous, pas seulement les galaxies nommées.
     """
     structured_target, x_mpc, y_mpc, size_mpc, amplitude = build_structured_anchor_field(
         catalog, max_mpc, n, size_multiplier=size_multiplier
@@ -262,7 +275,7 @@ def apply_local_group_anchor(field, max_mpc, n, catalog, strength=1.0, global_su
     dominant_factor = REAL_GALAXY_DOMINANT_AMPLITUDE_FACTOR * strength
 
     for gal in catalog:
-        if not gal["isReal"]:
+        if real_only and not gal["isReal"]:
             continue
         angle_rad = np.radians(gal["angleDeg"])
         gx = np.cos(angle_rad) * gal["distanceMpc"]
@@ -317,16 +330,27 @@ def main():
         if spec["key"] == "l1b":
             # 7 juillet : suppression du bruit ambiant sur TOUT le champ
             # (global_suppression bas), pas seulement localement autour de
-            # chaque galaxie — pour que seules les 8 galaxies réelles du
-            # layer Groupe Local (RealGalaxiesLayer.tsx) ressortent comme
-            # pics de densité, sans taches intermédiaires ne correspondant
-            # à rien de réel. size_multiplier plus grand (4.0 au lieu du
-            # plancher minimal 2.2) pour que ces pics restent des taches
-            # douces et bien visibles plutôt que des points durs isolés sur
-            # un fond presque noir.
+            # chaque galaxie — pour que seules les galaxies du catalogue
+            # ressortent comme pics de densité, sans taches intermédiaires
+            # ne correspondant à rien de réel. size_multiplier plus grand
+            # (4.0 au lieu du plancher minimal 2.2) pour que ces pics
+            # restent des taches douces et bien visibles plutôt que des
+            # points durs isolés sur un fond presque noir. real_only=False
+            # (7 juillet également) : le layer Groupe Local juste en dessous
+            # montre TOUT le catalogue (8 galaxies réelles + ~90 galaxies de
+            # champ procédurales, cf. generate_local_group_catalog.py), pas
+            # seulement les 8 nommées — l1b doit refléter l'ensemble, pas
+            # juste un sous-ensemble.
             catalog = build_catalog()
             field = apply_local_group_anchor(
-                field, spec["max_mpc"], N, catalog, strength=1.0, global_suppression=0.08, size_multiplier=4.0
+                field,
+                spec["max_mpc"],
+                N,
+                catalog,
+                strength=1.0,
+                global_suppression=0.08,
+                size_multiplier=4.0,
+                real_only=False,
             )
         elif spec["key"] == "l2":
             # "Trace" seulement (cf. docstring apply_local_group_anchor) :
