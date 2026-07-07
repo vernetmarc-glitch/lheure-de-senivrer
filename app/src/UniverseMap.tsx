@@ -181,21 +181,22 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
       ctx.fillStyle = '#5aa9e6'
       ctx.font = `bold ${11 * DPR}px monospace`
       const label = 'Horizon des particules'
-      const labelX = cx + 6 * DPR
-      // Négatif (pas +14) : place la ligne de base AU-DESSUS du sommet du
-      // cercle, au lieu de la faire chevaucher le trait (bug précédent —
-      // capture d'écran fournie par l'utilisateur).
-      const labelY = cy - horizonRPx - 8 * DPR
-      ctx.fillText(label, labelX, labelY)
+      // Point d'ancrage FIXE : juste au-dessus du sommet du cercle (pas de
+      // chevauchement avec le trait). Le texte s'étend vers la GAUCHE
+      // depuis ce point (textAlign 'right'), l'icône "i" reste à un
+      // décalage FIXE à sa droite — indépendant de la longueur du texte,
+      // donc elle ne dérive plus vers le curseur de zoom à droite de
+      // l'écran (bug précédent, icône inaccessible car superposée au
+      // curseur).
+      const anchorX = cx
+      const anchorY = cy - horizonRPx - 8 * DPR
+      ctx.textAlign = 'right'
+      ctx.fillText(label, anchorX - 8 * DPR, anchorY)
+      ctx.textAlign = 'left' // reset (valeur par défaut utilisée ailleurs dans ce composant)
       // Position CSS (pas device-pixel) du bouton "i" superposé, cf. state
       // horizonLabelPos — le canvas est en pixels physiques (pixelWidth =
       // renderWidth * DPR), donc on repasse en CSS en divisant par DPR.
-      // ctx.measureText() donne la largeur RÉELLE du texte rendu, au lieu
-      // d'un décalage deviné à la main (deux tentatives précédentes mal
-      // alignées) — l'icône colle exactement à la fin du texte, quel que
-      // soit le DPR ou la police effectivement utilisée par le navigateur.
-      const textWidth = ctx.measureText(label).width
-      setHorizonLabelPos({ x: (labelX + textWidth + 6 * DPR) / DPR, y: labelY / DPR })
+      setHorizonLabelPos({ x: anchorX / DPR, y: anchorY / DPR })
     } else {
       setHorizonLabelPos(null)
     }
@@ -253,7 +254,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
               aria-label="En savoir plus sur l'horizon des particules"
               style={{
                 position: 'absolute',
-                left: horizonLabelPos.x,
+                left: horizonLabelPos.x + 8,
                 top: horizonLabelPos.y - 14,
                 width: 16,
                 height: 16,
