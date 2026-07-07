@@ -166,7 +166,7 @@ def export_layer_png(log_density, vmin, vmax, path):
     Image.fromarray(img_data, mode="L").save(path)
 
 
-def build_structured_anchor_field(catalog, max_mpc, n):
+def build_structured_anchor_field(catalog, max_mpc, n, size_multiplier=2.2):
     """Construit un champ 2D avec, pour chaque galaxie du catalogue, un halo
     gaussien large + un point central compact.
 
@@ -184,13 +184,18 @@ def build_structured_anchor_field(catalog, max_mpc, n):
     l2 : ~0.088 Mpc/px -> sigma < 1px -> pic invisible après recolorisation,
     cf. diagnostic du 6 juillet). Le max() garantit un pic toujours visible,
     quel que soit le layer où l'ancrage est appliqué.
+
+    `size_multiplier` : par défaut 2.2 (le plancher minimal pour rester
+    visible). Une valeur plus grande (cf. l1b en mode "suppression globale",
+    7 juillet) donne des taches plus larges et douces, nécessaire quand plus
+    aucun bruit ambiant ne reste autour pour donner une impression de volume.
     """
     AMPLITUDE = GALAXY_BRIGHTNESS_AMPLITUDE
     HALO_SCALE = 0.12
     CORE_SCALE = 0.35
 
     pixel_size_mpc = box_mpc(max_mpc) / n
-    SIZE_MPC = max(REAL_GALAXY_HALO_SIGMA_MPC, pixel_size_mpc * 2.2)
+    SIZE_MPC = max(REAL_GALAXY_HALO_SIGMA_MPC, pixel_size_mpc * size_multiplier)
     core_sigma_mpc = pixel_size_mpc * 1.3
     yy, xx = np.indices((n, n))
     cx, cy = n / 2, n / 2
@@ -208,7 +213,7 @@ def build_structured_anchor_field(catalog, max_mpc, n):
     return field, x_mpc, y_mpc, SIZE_MPC, AMPLITUDE
 
 
-def apply_local_group_anchor(field, max_mpc, n, catalog, strength=1.0):
+def apply_local_group_anchor(field, max_mpc, n, catalog, strength=1.0, global_suppression=1.0, size_multiplier=2.2):
     """Ajoute les bosses de densité du catalogue PAR-DESSUS le champ aléatoire
     existant, avec un traitement RENFORCÉ pour les galaxies RÉELLES :
 
@@ -230,14 +235,25 @@ def apply_local_group_anchor(field, max_mpc, n, catalog, strength=1.0):
     `strength` (0-1) : ajouté le 6 juillet pour l2 — l'ancrage plein (1.0,
     utilisé sur l1b) n'a de sens que sur le layer qui REND ces galaxies
     individuellement visibles juste en dessous (RealGalaxiesLayer.tsx, sprites
-    dédiés par galaxie). Sur l2, il
-    ne s'agit plus d'identifier ces galaxies mais de laisser une TRACE
-    (transition douce) pour que le pic ne disparaisse pas net à la frontière
-    l1b/l2 — d'où une suppression de bruit et une amplitude de bosse
-    partielles plutôt que le traitement complet.
+    dédiés par galaxie). Sur l2, il ne s'agit plus d'identifier ces galaxies
+    mais de laisser une TRACE (transition douce) pour que le pic ne
+    disparaisse pas net à la frontière l1b/l2 — d'où une suppression de
+    bruit et une amplitude de bosse partielles plutôt que le traitement
+    complet.
+
+    `global_suppression` (0-1, défaut 1 = inchangé) : ajouté le 7 juillet
+    pour l1b — jusqu'ici la suppression de bruit n'était que LOCALE (un
+    disque autour de chaque galaxie, cf. `local_dip` plus bas), donc du
+    bruit ambiant restait visible ENTRE les galaxies, créant des taches qui
+    ne correspondent à aucune vraie galaxie du layer Groupe Local juste en
+    dessous. Une valeur basse (ex. 0.08) atténue le bruit sur TOUT le champ
+    avant d'ajouter les bosses, pour qu'il ne reste QUE les 8 pics des
+    galaxies réelles, sans rien entre eux.
     """
-    structured_target, x_mpc, y_mpc, size_mpc, amplitude = build_structured_anchor_field(catalog, max_mpc, n)
-    field = field + structured_target * strength
+    structured_target, x_mpc, y_mpc, size_mpc, amplitude = build_structured_anchor_field(
+        catalog, max_mpc, n, size_multiplier=size_multiplier
+    )
+    field = field * global_suppression + structured_target * strength
 
     suppression_mask = np.ones((n, n))
     dominant_bumps = np.zeros((n, n))
@@ -299,8 +315,19 @@ def main():
             field = normalize_variance(coarse_trend) * W_COARSE + normalize_variance(detail) * W_DETAIL
 
         if spec["key"] == "l1b":
+            # 7 juillet : suppression du bruit ambiant sur TOUT le champ
+            # (global_suppression bas), pas seulement localement autour de
+            # chaque galaxie — pour que seules les 8 galaxies réelles du
+            # layer Groupe Local (RealGalaxiesLayer.tsx) ressortent comme
+            # pics de densité, sans taches intermédiaires ne correspondant
+            # à rien de réel. size_multiplier plus grand (4.0 au lieu du
+            # plancher minimal 2.2) pour que ces pics restent des taches
+            # douces et bien visibles plutôt que des points durs isolés sur
+            # un fond presque noir.
             catalog = build_catalog()
-            field = apply_local_group_anchor(field, spec["max_mpc"], N, catalog, strength=1.0)
+            field = apply_local_group_anchor(
+                field, spec["max_mpc"], N, catalog, strength=1.0, global_suppression=0.08, size_multiplier=4.0
+            )
         elif spec["key"] == "l2":
             # "Trace" seulement (cf. docstring apply_local_group_anchor) :
             # l2 est le layer suivant dans l'ordre du zoom (l1b -> l2), pas
