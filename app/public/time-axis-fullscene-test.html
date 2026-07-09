@@ -127,6 +127,24 @@ function multiOctaveCloud(n, seed, baseGrid) {
 }
 const filamentNoiseCache = multiOctaveCloud(CANVAS_N, 5151, 8)
 
+// Champ de FOND filamenteux — meme principe que le sweep d'amplitude validé
+// sur l2 (§11.2/§11.3 du doc) : un bruit multi-echelle a MOYENNE NULLE (pas
+// normalise 0..1 comme filamentNoiseCache ci-dessus, qui est un simple
+// modulateur multiplicatif) passe par une transformation non lineaire type
+// log-densite. Contrairement a la premiere version de ce prototype, ce
+// champ existe PARTOUT sur le canevas, a TOUTE epoque (meme a=1,
+// aujourd'hui) — cf. §11.3.d, "fond residuel" — au lieu d'un fond vide
+// (zero) qui ne montrait donc jamais de structure.
+function backgroundRawField(n, seed) {
+  const oct1 = valueNoiseField(n, 5, seed)
+  const oct2 = valueNoiseField(n, 12, seed + 1)
+  const oct3 = valueNoiseField(n, 28, seed + 2)
+  const out = new Float32Array(n * n)
+  for (let i = 0; i < out.length; i++) out[i] = oct1[i]*0.5 + oct2[i]*0.32 + oct3[i]*0.18 // ~zero-mean
+  return out
+}
+const bgRaw = backgroundRawField(CANVAS_N, 9001)
+
 const SLUG_BY_NAME = {
   'Andromède (M31)': 'andromede', 'Triangulum (M33)': 'triangulum', 'Grand Nuage de Magellan': 'lmc',
   'Petit Nuage de Magellan': 'smc', 'Naine du Sagittaire': 'sagittaire', 'NGC 6822': 'ngc6822',
@@ -203,6 +221,13 @@ function render() {
     const sigmaPx = Math.max(p.pointSize * (1 + progress * 6), 0.5)
     const r = Math.ceil(sigmaPx * 3.2)
     const inv2s2 = 1 / (2 * sigmaPx * sigmaPx)
+    // Conservation approximative de la luminosité totale : en grandissant,
+    // le halo NE DOIT PAS accumuler l'amplitude de chaque étoile en plus de
+    // son rayon, sinon les gaussiennes qui se chevauchent saturent vite
+    // (bug signalé le 9 juillet : halos "cramés", uniformément blancs, sans
+    // structure visible). Diviser l'amplitude par le rayon (pas par rayon²,
+    // pour rester visible) laisse la place à la modulation filamenteuse.
+    const ampScale = 1 / Math.sqrt(1 + progress * 6)
 
     for (let i = 0; i < meta.length; i++) {
       const xMpc = centerXMpc + positions[i*2] * g.radiusMpc
@@ -210,7 +235,7 @@ function render() {
       const px = cx + xMpc * pxPerMpc
       const py = cy + yMpc * pxPerMpc
       if (px < -r || px > CANVAS_N+r || py < -r || py > CANVAS_N+r) continue
-      const amp = 0.18 + meta[i].b * 0.55
+      const amp = (0.18 + meta[i].b * 0.55) * ampScale
       const x0 = Math.max(0, Math.floor(px-r)), x1 = Math.min(CANVAS_N-1, Math.ceil(px+r))
       const y0 = Math.max(0, Math.floor(py-r)), y1 = Math.min(CANVAS_N-1, Math.ceil(py+r))
       for (let y=y0; y<=y1; y++) {
@@ -223,6 +248,16 @@ function render() {
     }
   }
 
+  // Fond filamenteux, PRESENT A TOUTE EPOQUE (y compris a=1) — cf. bgRaw
+  // plus haut. Amplitude quasi constante (le fond ne "se dissout" pas de
+  // la meme facon que les galaxies, il reste une texture de toile
+  // cosmique en arriere-plan) mais s'attenue tout de meme tres pres de la
+  // recombinaison, en meme temps que l'embrasement prend le relais
+  // (cf. plus bas).
+  const bgLateFade = 1 - SpacetimeShared.structureAmplitude(0.03, Math.min(p.a * 6, 1)) // s'attenue seulement tres pres de aMin
+  const bgAmplitude = 0.55 * (1 - bgLateFade * 0.85)
+  for (let i = 0; i < field.length; i++) field[i] += bgRaw[i] * bgAmplitude + bgAmplitude * 0.5 // decalage positif (cf. field_to_log_density, +0.05 similaire)
+
   // Flou de fusion PARTAGE sur toute la scene (pas par galaxie) — a forte
   // dissolution, les halos de galaxies voisines peuvent se meler, ce qui
   // est physiquement coherent avec l'idee de tout converger vers l'uniforme.
@@ -230,7 +265,7 @@ function render() {
   // Groupe Local partagent le meme a_form (echelle "galaxie", §11.3.a),
   // donc une seule valeur suffit pour le post-traitement partage.
   const sceneProgress = 1 - SpacetimeShared.structureAmplitude(0.03, p.a)
-  const blurPx = Math.pow(sceneProgress, 1.5) * 22
+  const blurPx = Math.pow(sceneProgress, 1.5) * 14
   let toneField
   if (blurPx > 0.3) {
     const tmp = document.createElement('canvas')
@@ -238,7 +273,7 @@ function render() {
     const tctx = tmp.getContext('2d')
     const grayImg = tctx.createImageData(CANVAS_N, CANVAS_N)
     for (let i = 0; i < field.length; i++) {
-      const byte = Math.min(255, Math.round((1 - Math.exp(-field[i])) * 255))
+      const byte = Math.min(255, Math.max(0, Math.round((1 - Math.exp(-field[i])) * 255)))
       grayImg.data[i*4]=byte; grayImg.data[i*4+1]=byte; grayImg.data[i*4+2]=byte; grayImg.data[i*4+3]=255
     }
     tctx.putImageData(grayImg, 0, 0)
@@ -252,11 +287,19 @@ function render() {
     for (let i = 0; i < toneField.length; i++) toneField[i] = bd[i*4] / 255
   } else {
     toneField = new Float32Array(CANVAS_N * CANVAS_N)
-    for (let i = 0; i < field.length; i++) toneField[i] = 1 - Math.exp(-field[i])
+    for (let i = 0; i < field.length; i++) toneField[i] = Math.min(Math.max(1 - Math.exp(-field[i]), 0), 1)
   }
 
-  const filIntensity = 0.7 * 4 * sceneProgress * (1 - sceneProgress)
-  const uniformMix = Math.pow(sceneProgress, 3)
+  const filIntensity = 0.5
+  // Embrasement : mélange vers universeGlowColor, mais UNIQUEMENT très
+  // près de la recombinaison (pas proportionnel à toute la progression de
+  // dissolution comme avant, ce qui provoquait un fondu prématuré vers un
+  // gris plat dès a≈0.1-0.25, cf. captures d'écran du 9 juillet). Courbe
+  // séparée de A(s,a) : c'est un phénomène physiquement distinct
+  // (température/opacité du plasma primordial), pas la même chose que la
+  // dissolution des structures.
+  const A_MIN_SLIDER = Math.pow(10, -3.5)
+  const embrasementMix = 1 - Math.min(Math.max((Math.log10(p.a) - Math.log10(A_MIN_SLIDER)) / 0.4, 0), 1)
   const target = SpacetimeShared.universeGlowColor(p.a)
 
   const out = ctx.createImageData(CANVAS_N, CANVAS_N)
@@ -264,15 +307,15 @@ function render() {
     let v = toneField[i] * (1 + (filamentNoiseCache[i] - 0.5) * 2 * filIntensity)
     v = Math.min(Math.max(v, 0), 1)
     const [rr,gg,bb] = colorForValue(v)
-    out.data[i*4]   = Math.round(rr * (1-uniformMix) + target[0] * uniformMix)
-    out.data[i*4+1] = Math.round(gg * (1-uniformMix) + target[1] * uniformMix)
-    out.data[i*4+2] = Math.round(bb * (1-uniformMix) + target[2] * uniformMix)
+    out.data[i*4]   = Math.round(rr * (1-embrasementMix) + target[0] * embrasementMix)
+    out.data[i*4+1] = Math.round(gg * (1-embrasementMix) + target[1] * embrasementMix)
+    out.data[i*4+2] = Math.round(bb * (1-embrasementMix) + target[2] * embrasementMix)
     out.data[i*4+3] = 255
   }
   ctx.putImageData(out, 0, 0)
 
   document.getElementById('meta').textContent =
-    `a=${p.a.toExponential(2)} · dissolution ${(progress*100).toFixed(0)}% · uniforme ${(uniformMix*100).toFixed(0)}% · cible rgb(${target.join(',')})`
+    `a=${p.a.toExponential(2)} · dissolution ${(sceneProgress*100).toFixed(0)}% · fond=${bgAmplitude.toFixed(2)} · embrasement ${(embrasementMix*100).toFixed(0)}% · cible rgb(${target.join(',')})`
 }
 
 function renderAll() {
