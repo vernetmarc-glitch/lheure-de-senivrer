@@ -70,6 +70,7 @@
   </div>
 </div>
 
+<script src="spacetime-shared.js"></script>
 <script>
 const CANVAS_N = 900
 const canvas = document.getElementById('canvas')
@@ -86,12 +87,7 @@ function colorForValue(t) {
   const a = ASTRO_STOPS[idx], b = ASTRO_STOPS[idx+1]
   return [a[0]+(b[0]-a[0])*frac, a[1]+(b[1]-a[1])*frac, a[2]+(b[2]-a[2])*frac]
 }
-// Couleur de convergence PARTAGEE — meme fonction que time-axis-sprites-test.html.
-function universeGlowColor(a, exp = 2.2) {
-  const t = Math.pow(Math.min(Math.max(1 - a, 0), 1), exp)
-  const bg = [5, 5, 10], bright = [255, 243, 214]
-  return [0,1,2].map(i => Math.round(bg[i] + (bright[i] - bg[i]) * t))
-}
+// Couleur de convergence : SpacetimeShared.universeGlowColor(a), cf. spacetime-shared.js (§11.3.c du doc).
 
 function mulberry32(seed) {
   return function () {
@@ -164,10 +160,7 @@ function getParams() {
   }
 }
 
-function dissolveProgress(a) {
-  const t = Math.min(Math.max(1 - a, 0), 1)
-  return Math.pow(t, 1.4)
-}
+// Progression de dissolution : 1 - SpacetimeShared.structureAmplitude(scaleMpc, a), cf. spacetime-shared.js (§11.3.b du doc).
 
 function interpolateFrame(sim, t) {
   const frames = sim.frames
@@ -188,7 +181,6 @@ function interpolateFrame(sim, t) {
 function render() {
   if (!allSims || !scene) return
   const p = getParams()
-  const progress = dissolveProgress(p.a)
   const pxPerMpc = CANVAS_N / (2 * p.halfWidthMpc)
   const cx = CANVAS_N / 2, cy = CANVAS_N / 2
 
@@ -197,6 +189,11 @@ function render() {
   for (const g of scene) {
     const sim = allSims[g.slug]
     if (!sim) continue
+    // Progression PROPRE a cette galaxie : A(s,a) partagee (§11.3.b), avec
+    // s = son propre rayon — les galaxies se dissolvent toutes ensemble
+    // (meme a_form, cf. table §11.3.a) mais independamment du fond/des
+    // layers de densite qui ont leur propre echelle.
+    const progress = 1 - SpacetimeShared.structureAmplitude(g.radiusMpc, p.a)
     const positions = interpolateFrame(sim, progress)
     const meta = sim.particleMeta
     const rad = (g.angleDeg * Math.PI) / 180
@@ -229,7 +226,11 @@ function render() {
   // Flou de fusion PARTAGE sur toute la scene (pas par galaxie) — a forte
   // dissolution, les halos de galaxies voisines peuvent se meler, ce qui
   // est physiquement coherent avec l'idee de tout converger vers l'uniforme.
-  const blurPx = Math.pow(progress, 1.5) * 22
+  // Progression representative de la scene : toutes les galaxies du
+  // Groupe Local partagent le meme a_form (echelle "galaxie", §11.3.a),
+  // donc une seule valeur suffit pour le post-traitement partage.
+  const sceneProgress = 1 - SpacetimeShared.structureAmplitude(0.03, p.a)
+  const blurPx = Math.pow(sceneProgress, 1.5) * 22
   let toneField
   if (blurPx > 0.3) {
     const tmp = document.createElement('canvas')
@@ -254,9 +255,9 @@ function render() {
     for (let i = 0; i < field.length; i++) toneField[i] = 1 - Math.exp(-field[i])
   }
 
-  const filIntensity = 0.7 * 4 * progress * (1 - progress)
-  const uniformMix = Math.pow(progress, 3)
-  const target = universeGlowColor(p.a)
+  const filIntensity = 0.7 * 4 * sceneProgress * (1 - sceneProgress)
+  const uniformMix = Math.pow(sceneProgress, 3)
+  const target = SpacetimeShared.universeGlowColor(p.a)
 
   const out = ctx.createImageData(CANVAS_N, CANVAS_N)
   for (let i = 0; i < toneField.length; i++) {
