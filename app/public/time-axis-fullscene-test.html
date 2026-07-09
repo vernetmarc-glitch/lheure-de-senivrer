@@ -227,7 +227,19 @@ function render() {
     // (bug signalé le 9 juillet : halos "cramés", uniformément blancs, sans
     // structure visible). Diviser l'amplitude par le rayon (pas par rayon²,
     // pour rester visible) laisse la place à la modulation filamenteuse.
-    const ampScale = 1 / Math.sqrt(1 + progress * 6)
+    // Conservation du FLUX (pas juste une reduction cosmetique) : pour un
+    // pic gaussien 2D, l'integrale totale est A*2*pi*sigma^2 — pour la
+    // garder a peu pres constante quand sigma grandit (halo qui s'etale),
+    // il faut diviser l'amplitude par sigma^2, pas sqrt(sigma) (bug
+    // precedent). GLOBAL_AMP_SCALE corrige en plus un probleme
+    // INDEPENDANT de la dissolution : avec ~2500-6000 particules par
+    // galaxie, la simple somme au centre du bulbe SATURE DEJA a a=1
+    // (aujourd'hui, avant toute dissolution) sans ce facteur. Vérifié par
+    // simulation headless (scripts/dev/validate_fullscene_render.py) avant
+    // ce correctif : pic du champ brut = 1605 (tone=1.0000, saturé) à
+    // a=1 ; après correctif : 4.0 (tone=0.98).
+    const GLOBAL_AMP_SCALE = 0.0025
+    const ampScale = GLOBAL_AMP_SCALE / Math.pow(1 + progress * 6, 2)
 
     for (let i = 0; i < meta.length; i++) {
       const xMpc = centerXMpc + positions[i*2] * g.radiusMpc
@@ -298,8 +310,13 @@ function render() {
   // séparée de A(s,a) : c'est un phénomène physiquement distinct
   // (température/opacité du plasma primordial), pas la même chose que la
   // dissolution des structures.
-  const A_MIN_SLIDER = Math.pow(10, -3.5)
-  const embrasementMix = 1 - Math.min(Math.max((Math.log10(p.a) - Math.log10(A_MIN_SLIDER)) / 0.4, 0), 1)
+  // Embrasement : reutilise EXACTEMENT bgLateFade (deja une courbe lisse
+  // qui monte vers 1 a l'approche de la recombinaison, cf. plus haut) au
+  // lieu d'une fenetre etroite basee sur log(a) pres de a_min — cette
+  // derniere creait un "creux" sombre juste avant un saut brutal vers le
+  // clair (verifie par simulation headless : moyenne de l'image tombant
+  // a 2.2/255 juste avant un saut a 236/255 sans ce correctif).
+  const embrasementMix = bgLateFade
   const target = SpacetimeShared.universeGlowColor(p.a)
 
   const out = ctx.createImageData(CANVAS_N, CANVAS_N)
