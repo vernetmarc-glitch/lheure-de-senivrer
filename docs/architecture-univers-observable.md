@@ -45,8 +45,8 @@ Version 1.0 — Juillet 2026
 - `generateRealGalaxySprite()`/`generateMilkyWay()` (JS, `generate_simulated_textures.mjs`) et `RealGalaxiesLayer.tsx` partagent des constantes (`SPRITE_MARGIN`, le rayon de la Voie lactée) qui doivent rester synchronisées manuellement entre les deux fichiers — commentées explicitement à chaque occurrence.
 - `field_to_log_density()` (dans `generate_layers.py`) applique un `exp()` avant le calcul de densité — toute valeur ajoutée en amont (ex. un ancrage) y est donc amplifiée de façon EXPONENTIELLE, pas linéaire. Une amplitude qui semble modeste dans le champ brut peut dominer complètement l'export après ce passage ; à l'inverse, un flou (`gaussian_filter`) appliqué avant ce transform peut détruire une texture fine de façon disproportionnée. Toujours vérifier le résultat exporté (histogramme, écart-type, comparaison visuelle), pas seulement les paramètres d'entrée.
 
-**Chantiers en attente, déjà cadrés (cf. §9)**
-Implémenter la distension spatiale réelle en fonction du temps (a(t)) : actuellement la carte est en coordonnées comobiles fixes (rien ne bouge avec le temps, seule la luminosité change). Le principe retenu et la formule sont déjà documentés en détail au §9 — reste à l'implémenter. Une question adjacente (mise de côté pour l'instant) : la croissance des structures (formation hiérarchique bottom-up) n'est pas non plus implémentée — cf. aussi la clarification du sens de l'héritage en §4.7, qui touche à un sujet voisin mais distinct.
+**Chantiers en attente, déjà cadrés (cf. §11, qui remplace/complète §9)**
+L'axe du temps (a(t)) n'est pas encore implémenté en production : actuellement la carte est en coordonnées comobiles fixes (rien ne bouge avec le temps, seule la luminosité change). La conception complète — compression spatiale, dissolution des structures par époque de formation propre à chaque échelle, couleur de convergence partagée, fond résiduel sur les layers à sprites — est documentée en détail au §11 (matrice zoom × temps), avec plusieurs prototypes déjà réalisés et listés en §11.5. Reste à intégrer en production.
 
 ---
 
@@ -389,7 +389,114 @@ Combinés, ils donnent l'impression d'un univers qui se comprime ET s'embrase en
 
 ---
 
-## 10. Résumé des formules clés (aide-mémoire)
+## 11. Cohérence spatio-temporelle — matrice unifiée zoom × temps
+
+**Statut : conception validée en discussion (8 juillet), partiellement prototypée (voir liste des prototypes en fin de section), pas encore intégrée en production.**
+
+### 11.1 Le problème que cette section résout
+
+Le §9 traite la distension spatiale (le "dézoom" en remontant le temps) comme un effet géométrique isolé. En pratique, remonter le temps doit faire évoluer **quatre choses à la fois**, et ces quatre choses doivent rester cohérentes entre elles ET entre layers de zoom adjacents à tout instant t — sans quoi on obtient soit une rupture visuelle en changeant de zoom à temps fixé, soit une rupture en changeant le temps à zoom fixé :
+
+1. **La position** (compression spatiale, §9) — uniquement pertinente à partir de l'échelle où le flux de Hubble domine.
+2. **La forme des structures** (nettes → filamenteuses → uniformes) — pas un flou géométrique, une réduction d'amplitude AVANT la transformation log-normale qui crée les pics (cf. §11.3).
+3. **La luminosité moyenne du fond** — doit être la MÊME à tout instant t, quel que soit le layer regardé.
+4. **Le moment où chaque échelle commence à se dissoudre** — pas le même pour toutes : une galaxie et un amas de galaxies ne se sont pas formés à la même époque cosmique.
+
+### 11.2 Pourquoi le flou géométrique a été écarté (rappel)
+
+Essayé et rejeté sur les sprites (6-8 juillet) : un flou gaussien appliqué après coup donne des taches rondes lisses, jamais des filaments, et détruit la texture fine sans repasser par un état "toile cosmique" intermédiaire crédible. Solution retenue à la place : réduire l'amplitude du champ AVANT la transformation qui crée les pics de densité :
+
+```
+field_to_log_density(champ) = log10( exp(champ − var(champ)/2) + 0.05 )
+```
+
+Cette transformation exponentielle est ce qui **crée** les pics à partir d'un champ par ailleurs plat. En réduisant l'amplitude du champ gaussien source (pas en floutant le résultat), le squelette filamenteux (déterminé par la PHASE du champ, inchangée) reste identique, mais les pics s'écrasent progressivement — un vrai état "toile cosmique diffuse" existe entre "aujourd'hui" et "uniforme", pas juste une interpolation géométrique. Vérifié numériquement sur `l2` (écart-type du champ normalisé : 0,200 à amplitude 1 → 0,004 à amplitude 0,02, moyenne stable ~0,4-0,5 tout du long — convergence vers un gris plat, pas vers du noir ou du blanc).
+
+### 11.3 Les fonctions centrales (une seule définition, réutilisée partout)
+
+**a) Époque de formation par échelle — `a_form(s)`**
+
+Ancrée dans la recherche (8 juillet) : les galaxies sont des structures ANCIENNES (déjà à moitié assemblées vers z≈2,5-5), les amas de galaxies sont des structures JEUNES (se forment entre z≈1 et aujourd'hui). En remontant le temps, les grandes échelles doivent donc se dissoudre BIEN AVANT les petites, pas en même temps.
+
+| Groupe de layers | Échelle (Mpc) | z de formation | a_form | Source |
+|---|---|---|---|---|
+| Sprites (Voie lactée + 8 galaxies réelles) | 0,01 – 0,05 | 2,5 – 5 | **≈ 0,20** | Demi-masse assemblée à ces z (recherche 8 juillet) |
+| `localgroup` (procédurales) | jusqu'à 2,4 | 2,5 – 5 (mêmes objets, échelle galaxie) | **≈ 0,20** | idem |
+| `l1b` / `l2` / `l2b` | 8,49 – 67 | 0 – 1 | **≈ 0,65** | Formation des amas (recherche 8 juillet) |
+| `l3` / `l3b` / `l4` / `l4a` / `l4b` | 150 – 2100 | ~0 (encore en formation) | **≈ 0,92** | Toile cosmique, encore jeune aujourd'hui |
+| `l5a` / `l5` | 5531 – 14570 | — (toujours quasi homogène) | **≈ 1,0** | Aucune dissolution significative à faire |
+
+**b) Amplitude de structure — `A(s, a)`**
+
+Fonction en S (smoothstep), centrée sur `a_form(s)`, dans l'espace `log10(a)` (pas `a` linéaire — cf. §9, les ordres de grandeur sont trop étalés) :
+
+```
+x(s, a)  = log10(a) − log10(a_form(s))
+t(s, a)  = clamp( (x + demi_largeur) / (2 × demi_largeur), 0, 1 )
+A(s, a)  = t² × (3 − 2t)                    [smoothstep]
+```
+
+`demi_largeur` (en dex) contrôle la douceur de la transition — valeur de départ proposée : 0,6 dex, à calibrer visuellement comme le reste. `A = 1` pour `a` très supérieur à `a_form(s)` (structures pleinement formées, rendu actuel inchangé) ; `A → 0` pour `a` très inférieur à `a_form(s)` (dissolution complète).
+
+**Utilisation de `A(s,a)` selon le type de layer :**
+- Layers de densité (`l1b` → `l5`) : multiplie le champ gaussien source avant `field_to_log_density` (§11.2).
+- Sprites : pilote à la fois la croissance du halo par étoile, l'intensité du flou de fusion et de la texture filamenteuse (paramètres validés le 8 juillet : `pointSize=0,5`, `haloGrowth=8,5×`, `blurMax=6px`, `filamentAmount≈0,8`, cf. `scripts/generate_dissolution_sprites.mjs`) — tous mis à l'échelle par `(1 − A(s,a))`.
+- Ancrage forcé du Groupe Local sur `l1b`/`l2`/`l2b` (`apply_local_group_anchor`, §4.7) : le paramètre `strength` existant doit désormais aussi être multiplié par `A(s_local, a)` où `s_local` est l'échelle DES GALAXIES (≈0,03 Mpc, donc `a_form≈0,20`) — pas celle du layer qui accueille l'ancrage. L'ancrage doit rester net tant que les galaxies elles-mêmes sont formées, et se dissoudre avec elles, pas avec l'amas qui les héberge.
+
+**c) Couleur de convergence partagée — `universeGlowColor(a)`**
+
+UNE seule fonction, indépendante de l'échelle, utilisée par tous les layers et tous les sprites (validée le 8 juillet) :
+
+```
+t_glow(a) = clamp(1 − a, 0, 1) ^ 2.2
+couleur(a) = lerp( [5, 5, 10],        // #05050a, fond actuel de l'app (UniverseMap.tsx)
+                    [255, 243, 214],   // #fff3d6, teinte la plus claire de la palette Astro (colormaps.ts)
+                    t_glow(a) )
+```
+
+À `A(s,a) → 0` (structure dissoute), la couleur affichée DOIT tendre vers `universeGlowColor(a)` — c'est le point de cohérence entre tous les layers à un instant t donné : quelle que soit l'échelle regardée, une fois dissoute elle affiche la même couleur.
+
+**d) Fond résiduel sur les layers à sprites (même à a=1, aujourd'hui)**
+
+Point soulevé le 8 juillet : `milkyway`/`RealGalaxiesLayer` ont aujourd'hui un fond parfaitement noir autour des sprites, contrairement aux layers de densité qui ont une texture partout — risque de rupture de luminosité moyenne au moment de la convergence. Correctif à appliquer : ajouter en permanence (indépendant de `A(s,a)`) un plancher de texture filamenteuse à très faible amplitude (`residualAmplitude`, valeur à calibrer, probablement < 0,05) sur les layers à sprites, générée par le MÊME mécanisme que §11.2 — pas une texture inventée séparément.
+
+**e) Compression spatiale (rappel §9, bornée par la physique — §4.7)**
+
+```
+effectiveHalfWidthMpc(s, a) = halfWidthMpc / a(t)     si s ≳ 15-30 Mpc (flux de Hubble dominant)
+effectiveHalfWidthMpc(s, a) = halfWidthMpc            si s ≲ 2 Mpc (Groupe Local, lié gravitationnellement)
+```
+
+Zone de transition entre les deux (≈2-15 Mpc, `l1b`) : à traiter avec le même type de fondu en S que `A(s,a)`, pas une coupure nette.
+
+### 11.4 Matrice récapitulative
+
+| Layer | Échelle (Mpc) | a_form | Compression (§9) | Ancrage forcé (§4.7) | Sprites individuels |
+|---|---|---|---|---|---|
+| `milkyway` + `RealGalaxiesLayer` | 0 – 2,4 | 0,20 | Non | — | Oui (9 sprites) |
+| `localgroup` (procédurales) | jusqu'à 2,4 | 0,20 | Non | — | Non (texture partagée) |
+| `l1b` | 8,49 | 0,65 | Transition douce | Plein (×A(0,20,a)) | Non |
+| `l2` | 30 | 0,65 | Oui | Trace (×0,4×A(0,20,a)) | Non |
+| `l2b` | 67 | 0,70 | Oui | Trace atténuée (×0,15×A(0,20,a)) | Non |
+| `l3` → `l4b` | 150 – 2100 | 0,92 | Oui | Aucun | Non |
+| `l5a` / `l5` | 5531 – 14570 | 1,0 | Oui | Aucun | Non |
+
+Toutes les lignes convergent vers `universeGlowColor(a)` (§11.3.c) à `A(s,a) → 0`, quelle que soit l'échelle — c'est la garantie de cohérence demandée.
+
+### 11.5 Prototypes déjà réalisés (validation partielle de cette conception)
+
+- `app/public/time-axis-test.html` : compression spatiale + dissolution sur 3 échelles (`l5`/`l2`/Voie lactée) — première version, remplacée par les suivantes.
+- `app/public/time-axis-milkyway-test.html` puis `time-axis-milkyway-nbody-test.html` : dissolution physique de la Voie lactée (séquence ELS 1962 inversée, puis vrai moteur N-corps Barnes-Hut).
+- `app/public/time-axis-sprites-test.html` : généralisation aux 9 sprites + `universeGlowColor(a)`.
+- `app/public/time-axis-fullscene-test.html` : les 9 sprites composés ensemble, animation Big Bang → aujourd'hui.
+- `scripts/simulate_dissolution.mjs` + `scripts/generate_dissolution_sprites.mjs` : simulation N-corps et cuisson des sprites de dissolution (126 fichiers, niveaux de gris uniquement — couleur/convergence appliquées au runtime, cf. §11.3.c).
+- Aperçus comparatifs (non versionnés, livrés dans la conversation) : balayage d'amplitude sur le champ brut de `l2` avant `field_to_log_density`, validant §11.2/11.3.b.
+
+**Pas encore fait** : `a_form(s)` et `A(s,a)` ne sont pas encore implémentés comme fonctions partagées (actuellement chaque prototype a sa propre courbe ad hoc) ; le fond résiduel (§11.3.d) n'est pas implémenté ; l'ancrage forcé (§11.3.e) n'est pas encore modulé par le temps ; aucune intégration en production (tout reste dans des prototypes `app/public/*-test.html` séparés de l'app réelle).
+
+---
+
+## 12. Résumé des formules clés (aide-mémoire)
 
 ```
 Facteur d'échelle :        a(t) = (Ωm/ΩΛ)^(1/3) · sinh²ᐟ³( (3/2)√ΩΛ H0 t )
@@ -399,6 +506,9 @@ Sphère de Hubble :         R_Hubble(t) = c / H(t)
 Horizon des événements :   D_event(t) = a(t) · ∫ₜ^∞ c dt' / a(t')
 Distance propre à t :      d_propre(t) = a(t) · d_comobile
 Champ log-normal :         δ_LN(x) = exp(δ_G(x) − σ²/2) − 1
+Compression spatiale :     effectiveHalfWidthMpc = halfWidthMpc / a(t)   [si échelle ≳ 15-30 Mpc, §4.7]
+Amplitude de structure :   A(s,a) = smoothstep( (log10(a) − log10(a_form(s)) + w) / 2w )   [§11.3.b]
+Couleur de convergence :   universeGlowColor(a) = lerp(#05050a, #fff3d6, (1−a)^2.2)          [§11.3.c]
 ```
 
 Paramètres : H0 = 67,4 km/s/Mpc, Ωm = 0,315, ΩΛ = 0,685, Ωr = 9,24×10⁻⁵ (Planck 2018).
