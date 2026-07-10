@@ -140,11 +140,19 @@ def render(a, half_width_mpc=1.0, point_size=1.3):
     scene_progress = 1 - structure_amplitude(0.03, a)
     point_tone = np.clip(1 - np.exp(-field), 0, 1)
     bg_tone = sample_bg(scene_progress, CANVAS_N)
-    tone = 1 - (1 - point_tone) * (1 - bg_tone)  # melange "screen", pas une addition dans un champ commun
 
+    # Embrasement (v4, 10 juillet) : plus de blend de couleur separe. Un
+    # decalage qui grandit tres pres de la recombinaison est passe par LA
+    # MEME transformation non lineaire (1-exp(-x)) puis combine par le
+    # MEME melange "screen" que points+fond — colorForValue(1.0) donne
+    # deja la bonne teinte (#fff3d6), donc saturer le ton suffit.
     bg_late_fade = 1 - structure_amplitude(0.03, min(a * 6, 1))
-    embrasement_mix = bg_late_fade
-    target = universe_glow_color(a)
+    EMBRASEMENT_EXP, EMBRASEMENT_OFFSET_MAX = 5, 18
+    embrasement_offset = (bg_late_fade ** EMBRASEMENT_EXP) * EMBRASEMENT_OFFSET_MAX
+    white_channel = 1 - math.exp(-embrasement_offset)
+
+    screened = 1 - (1 - point_tone) * (1 - bg_tone)
+    tone = 1 - (1 - screened) * (1 - white_channel)
 
     ASTRO_STOPS = np.array([
         [0,0,0], [0x17,0x0a,0x05], [0x4a,0x1f,0x0a], [0xa8,0x48,0x0f], [0xe8,0xa1,0x3a], [0xff,0xf3,0xd6]
@@ -153,10 +161,9 @@ def render(a, half_width_mpc=1.0, point_size=1.3):
     idx = np.clip((tone * n_stops).astype(int), 0, n_stops - 1)
     frac = (tone * n_stops) - idx
     rgb = ASTRO_STOPS[idx] + (ASTRO_STOPS[idx + 1] - ASTRO_STOPS[idx]) * frac[..., None]
-    rgb = rgb * (1 - embrasement_mix) + target * embrasement_mix
 
     return np.clip(rgb, 0, 255).astype(np.uint8), {
-        'scene_progress': scene_progress, 'embrasement_mix': embrasement_mix, 'tone': tone,
+        'scene_progress': scene_progress, 'white_channel': white_channel, 'tone': tone,
     }
 
 if __name__ == '__main__':
@@ -169,5 +176,5 @@ if __name__ == '__main__':
         lap_var = laplace(tone).var()
         print(f"a={a:.2e}  mean_tone={tone.mean():.3f}  std={tone.std():.3f}  "
               f"%sat(>0.98)={sat_frac*100:5.1f}%  laplacien={lap_var:.5f}  "
-              f"progress={dbg['scene_progress']:.2f}  embrasement={dbg['embrasement_mix']:.2f}")
-        Image.fromarray(rgb).resize((512, 512), Image.NEAREST).save(f"/home/claude/v3_a_{a:.0e}.png")
+              f"progress={dbg['scene_progress']:.2f}  embrasement={dbg['white_channel']:.2f}")
+        Image.fromarray(rgb).resize((512, 512), Image.NEAREST).save(f"/home/claude/v4_a_{a:.0e}.png")

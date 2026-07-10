@@ -244,44 +244,53 @@ function render() {
   const pointTone = new Float32Array(CANVAS_N * CANVAS_N)
   for (let i = 0; i < field.length; i++) pointTone[i] = Math.min(Math.max(1 - Math.exp(-field[i]), 0), 1)
 
-  // 2. Nuage filamenteux du fond — FRAMES CUITES HORS-LIGNE (cf. retour du
+  // 2. Embrasement — cf. retour du 10 juillet (v4) : plus de calque de
+  // couleur uniforme mélangé après coup. À la place, un décalage qui
+  // grandit UNIQUEMENT tout près de la recombinaison (bgLateFade, déjà
+  // une courbe lisse) est passé par LA MÊME transformation non linéaire
+  // que les points (1-exp(-x)) — pas un blend RGB séparé. Comme
+  // colorForValue(1.0) donne déjà exactement la teinte visée (#fff3d6,
+  // la même que universeGlowColor à la recombinaison), saturer le ton
+  // vers 1 suffit à obtenir la bonne couleur SANS mélange de couleur
+  // explicite. Calibré par le calcul (exposant 5, offset max 18) : reste
+  // nul jusqu'à a≈0.1, sature vers a≈0.01 — cf.
+  // scripts/dev/validate_fullscene_render.py.
+  const bgLateFade = 1 - SpacetimeShared.structureAmplitude(0.03, Math.min(p.a * 6, 1))
+  const EMBRASEMENT_EXP = 5, EMBRASEMENT_OFFSET_MAX = 18
+  const embrasementOffset = Math.pow(bgLateFade, EMBRASEMENT_EXP) * EMBRASEMENT_OFFSET_MAX
+  const whiteChannel = 1 - Math.exp(-embrasementOffset)
+
+  // 3. Nuage filamenteux du fond — FRAMES CUITES HORS-LIGNE (cf. retour du
   // 10 juillet, v2) : un vrai champ FFT à spectre de puissance réaliste
   // (même technique que l1b->l5 en production), recadré + détail frais à
   // chaque palier, PAS une grille interpolée en douceur (celle-ci restait
   // un filtre passe-bas même sans flou explicite — vérifié : variance du
-  // laplacien quasi nulle à fort zoom). Combiné aux points par un mélange
-  // "screen" (comme deux sources lumineuses indépendantes), pas une
-  // simple addition dans le même champ brut — les deux gardent leur
-  // propre netteté.
+  // laplacien quasi nulle à fort zoom). Points, fond ET embrasement
+  // combinés par le MÊME mélange "screen" (trois sources lumineuses
+  // indépendantes), jamais une addition dans un champ brut commun ni un
+  // blend de couleur — chacun garde sa propre netteté jusqu'au bout.
   const toneField = new Float32Array(CANVAS_N * CANVAS_N)
   for (let y = 0; y < CANVAS_N; y++) {
     for (let x = 0; x < CANVAS_N; x++) {
       const idx = y*CANVAS_N+x
       const bgTone = sampleBgTone(sceneProgress, x, y, CANVAS_N)
-      toneField[idx] = 1 - (1 - pointTone[idx]) * (1 - bgTone)
+      const screened = 1 - (1 - pointTone[idx]) * (1 - bgTone)
+      toneField[idx] = 1 - (1 - screened) * (1 - whiteChannel)
     }
   }
-
-  // 3. Embrasement : SEPARE de la dissolution, phenomene physiquement
-  // distinct (temperature/opacite du plasma primordial), qui ne s'active
-  // que tres pres de la recombinaison — cf. bgLateFade, une courbe lisse
-  // qui ne monte vers 1 qu'en toute fin de parcours.
-  const bgLateFade = 1 - SpacetimeShared.structureAmplitude(0.03, Math.min(p.a * 6, 1))
-  const embrasementMix = bgLateFade
-  const target = SpacetimeShared.universeGlowColor(p.a)
 
   const out = ctx.createImageData(CANVAS_N, CANVAS_N)
   for (let i = 0; i < toneField.length; i++) {
     const [rr,gg,bb] = colorForValue(toneField[i])
-    out.data[i*4]   = Math.round(rr * (1-embrasementMix) + target[0] * embrasementMix)
-    out.data[i*4+1] = Math.round(gg * (1-embrasementMix) + target[1] * embrasementMix)
-    out.data[i*4+2] = Math.round(bb * (1-embrasementMix) + target[2] * embrasementMix)
+    out.data[i*4]   = Math.round(rr)
+    out.data[i*4+1] = Math.round(gg)
+    out.data[i*4+2] = Math.round(bb)
     out.data[i*4+3] = 255
   }
   ctx.putImageData(out, 0, 0)
 
   document.getElementById('meta').textContent =
-    `a=${p.a.toExponential(2)} · dissolution ${(sceneProgress*100).toFixed(0)}% · embrasement ${(embrasementMix*100).toFixed(0)}% · cible rgb(${target.join(',')})`
+    `a=${p.a.toExponential(2)} · dissolution ${(sceneProgress*100).toFixed(0)}% · embrasement ${(whiteChannel*100).toFixed(0)}%`
 }
 
 function renderAll() {
