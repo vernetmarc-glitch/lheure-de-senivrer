@@ -39,6 +39,8 @@ Version 1.0 — Juillet 2026
 - `generate_local_group_catalog.py` (Python) : construit le catalogue JSON de 98 galaxies (8 réelles nommées, positions/tailles réelles + ~90 galaxies de champ procédurales, distance 1-10 Mpc, `isReal: false`) — SOURCE UNIQUE consommée à la fois par `RealGalaxiesLayer.tsx`, `generate_local_group_texture.py` et `generate_layers.py`.
 - `local_group_style.py` (Python) : source unique des constantes de rendu des galaxies réelles pour le champ de densité (taille de halo, suppression de bruit local...) — ne jamais redéfinir ailleurs.
 
+**Processus de développement/validation pour tout travail génératif ou visuel** : cf. §13 — toujours valider par un calcul objectif hors-ligne (`scripts/dev/`) avant de présenter un résultat comme corrigé, jamais sur la seule base des courbes de paramètres.
+
 **Points de vigilance connus — synchronisation manuelle requise**
 - `app/public/glow-test.html` duplique manuellement la liste des layers de densité et leurs marges (pas de build partagé). Toute évolution côté production (`DensityLayer.tsx`) doit être répercutée à la main, sinon désynchronisation silencieuse (déjà arrivé une fois).
 - `app/public/l1b-anchor-test.html` est un outil de calibration VISUELLE (aperçu approximatif, bruit de démonstration plutôt que le vrai champ BBKS) — les valeurs qu'il affiche sont un point de départ à reporter et affiner dans `generate_layers.py`, pas une garantie de rendu pixel-identique.
@@ -512,3 +514,39 @@ Couleur de convergence :   universeGlowColor(a) = lerp(#05050a, #fff3d6, (1−a)
 ```
 
 Paramètres : H0 = 67,4 km/s/Mpc, Ωm = 0,315, ΩΛ = 0,685, Ωr = 9,24×10⁻⁵ (Planck 2018).
+
+---
+
+## 13. Processus de développement et de validation (travail génératif/visuel)
+
+**Contexte** : établi le 9 juillet après un bug de saturation critique (sprites de dissolution complètement cramés) qui a survécu à une "correction" présentée comme validée — la vérification ne portait que sur des courbes de paramètres d'entrée, jamais sur le rendu final réellement calculé. Le bug n'a été trouvé qu'après un second retour visuel de l'utilisateur.
+
+### 13.1 Principe
+
+**Ne jamais présenter un résultat visuel/génératif comme corrigé sur la seule base d'une relecture de code ou d'une vérification des courbes de paramètres.** Calculer et inspecter le résultat RÉELLEMENT rendu, avec des vérifications numériques objectives, avant de demander une confirmation visuelle. Le retour visuel de l'utilisateur doit être une confirmation finale — pas la méthode de détection de bug.
+
+Ce n'est pas un système à agents multiples en parallèle (pas d'outil de ce type disponible) — c'est une discipline à appliquer systématiquement à chaque tâche générative, en une seule passe mais rigoureuse.
+
+### 13.2 Méthode
+
+Pour toute modification touchant un rendu visuel (courbe de temps, texture générée, sprite, palette de couleur...) :
+
+1. **Construire ou réutiliser un script headless** qui réplique EXACTEMENT les calculs du code réel (pas une approximation) — Python (numpy/scipy/PIL) dans cet environnement, `node-canvas` n'étant pas installable (dépendances natives absentes). Un script par mécanisme, dans `scripts/dev/`, maintenu à jour en même temps que le code qu'il valide.
+2. **Calculer le résultat sur toute la plage pertinente** (plusieurs valeurs du paramètre qui varie), pas un seul point.
+3. **Vérifier objectivement, par le calcul** :
+   - **Saturation** : fraction de pixels proches du minimum/maximum (ex. `>240` ou `<8` sur 255) — un taux élevé signale un possible écrasement de la texture/du signal.
+   - **Continuité** : pas de saut brutal de moyenne/écart-type entre deux échantillons voisins du paramètre qui varie.
+   - **Contraste interne dans les zones d'intérêt** : isoler spécifiquement une zone (ex. un sprite) et mesurer sa variation interne — une moyenne globale saine peut masquer une zone locale totalement plate ou totalement saturée (piège rencontré le 9 juillet : la saturation d'un sprite était invisible dans les statistiques globales de la scène, noyée par le reste de l'image).
+   - **Conditions aux limites** : la valeur au point de référence actuel (ex. a=1, "aujourd'hui") doit être identique au rendu de production déjà calibré ; les points de convergence documentés (§11.3.c) doivent être effectivement atteints.
+4. **Ne déployer et demander un retour visuel qu'après que ces vérifications passent.**
+
+### 13.3 Défauts déjà rencontrés à vérifier systématiquement (liste vivante)
+
+- Un facteur d'atténuation "cosmétique" (ex. `1/√x`) qui semble réduire une valeur mais reste très insuffisant face à une accumulation (ex. des milliers de particules superposées) — toujours vérifier l'ordre de grandeur RÉEL du pic, pas seulement le sens de variation.
+- Une modulation multiplicative (ex. bruit filamenteux) appliquée à un signal déjà saturé : elle ne peut rien montrer une fois la valeur de base à son maximum — l'ordre des opérations compte (lever la saturation AVANT d'espérer voir une texture).
+- Une fenêtre de transition étroite juste avant une borne (ex. juste avant la recombinaison) : peut créer un creux ou un saut au lieu d'un fondu — préférer réutiliser une courbe déjà lisse existante plutôt que d'en construire une nouvelle isolée.
+- Une normalisation recalculée indépendamment à chaque échantillon (ex. percentiles par image) : peut annuler artificiellement l'effet qu'on cherche à observer — figer la normalisation une fois, la réutiliser pour tous les échantillons comparés.
+
+### 13.4 Rappel — ce que Claude ne peut pas faire
+
+Pas de mode "plusieurs agents Claude en parallèle" pour développer/tester/valider séparément. Un seul thread d'exécution, dans l'ordre. Pas de modification directe du prompt système (fixé par Anthropic/la configuration du projet) — un rappel du principe ci-dessus peut être ajouté aux instructions personnalisées du projet par l'utilisateur, et/ou à la mémoire persistante de ce projet (déjà fait le 9 juillet).
