@@ -1,16 +1,26 @@
 """
 Port headless (Python/numpy/scipy) EXACT du pipeline de rendu de
-app/public/time-axis-fullscene-test.html, VERSION 2 (10 juillet) — plus de
-flou de fusion, plus de fondu vers une couleur unie comme mécanisme de
-dissolution. Le nuage filamenteux grandit d'échelle (zoom sur la même
-grille de bruit) au lieu d'être flouté. Cf. §13 du document d'architecture.
+app/public/time-axis-fullscene-test.html, VERSION 3 (10 juillet) :
+- Points (simulation N-corps) : croissance de rayon fortement réduite
+  (1+progress*1.2, pas *6) — la dispersion spatiale vient de la vraie
+  simulation, pas d'un grossissement artificiel.
+- Fond filamenteux : frames CUITES hors-ligne (bg_filament_f00-09.png,
+  cf. generate_bg_filament_keyframes.py) — vrai champ FFT à spectre de
+  puissance réaliste, PAS une grille de bruit interpolée en douceur (qui
+  restait un filtre passe-bas même sans flou explicite — vérifié : la
+  variance du laplacien s'effondrait à ~0 à fort zoom, quelle que soit la
+  résolution de la grille source).
+- Combinaison points + fond par mélange "screen" (1-(1-a)(1-b)), pas une
+  addition dans un champ brut commun — chacun garde sa propre netteté.
 
-Usage : python3 scripts/dev/validate_fullscene_render.py
+Cf. §13 du document d'architecture. Usage :
+  python3 scripts/dev/validate_fullscene_render.py
 """
 import json
 import math
 import numpy as np
 from PIL import Image
+from scipy.ndimage import laplace, zoom as ndi_zoom
 
 CANVAS_N = 300
 DATA_DIR = "../../app/public/data"
@@ -51,62 +61,6 @@ def universe_glow_color(a, exp=2.2):
     bright = np.array([255, 243, 214])
     return bg + (bright - bg) * t
 
-def mulberry32(seed):
-    state = seed & 0xffffffff
-    def rng():
-        nonlocal state
-        state = (state + 0x6d2b79f5) & 0xffffffff
-        t = state
-        t = (t ^ (t >> 15)) * (1 | t) & 0xffffffff
-        t = (t + (((t ^ (t >> 7)) * (61 | t)) & 0xffffffff) ^ t) & 0xffffffff
-        return ((t ^ (t >> 14)) & 0xffffffff) / 4294967296
-    return rng
-
-def make_noise_grid(grid_size, seed):
-    rng = mulberry32(seed)
-    g = max(2, round(grid_size))
-    grid = np.array([rng() * 2 - 1 for _ in range((g + 1) * (g + 1))]).reshape(g + 1, g + 1)
-    return grid, g
-
-BG_OCTAVES = [
-    (make_noise_grid(10, 9001), 0.5),
-    (make_noise_grid(24, 9002), 0.32),
-    (make_noise_grid(55, 9003), 0.18),
-]
-
-def sample_grid_bilinear(grid, g, u, v):
-    gx, gy = u * g, v * g
-    gx0 = np.clip(np.floor(gx).astype(int), 0, g - 1)
-    gy0 = np.clip(np.floor(gy).astype(int), 0, g - 1)
-    fx, fy = gx - np.floor(gx), gy - np.floor(gy)
-    sx, sy = fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)
-    v00 = grid[gy0, gx0]; v10 = grid[gy0, np.clip(gx0 + 1, 0, g)]
-    v01 = grid[np.clip(gy0 + 1, 0, g), gx0]; v11 = grid[np.clip(gy0 + 1, 0, g), np.clip(gx0 + 1, 0, g)]
-    a = v00 + (v10 - v00) * sx
-    b = v01 + (v11 - v01) * sx
-    return a + (b - a) * sy
-
-def background_field(n, zoom):
-    xs, ys = np.meshgrid(np.arange(n) / n, np.arange(n) / n)
-    u = 0.5 + (xs - 0.5) / zoom
-    v = 0.5 + (ys - 0.5) / zoom
-    out = np.zeros((n, n))
-    for (grid, g), w in BG_OCTAVES:
-        out += sample_grid_bilinear(grid, g, u, v) * w
-    return out
-
-ASTRO_STOPS = np.array([
-    [0,0,0], [0x17,0x0a,0x05], [0x4a,0x1f,0x0a], [0xa8,0x48,0x0f], [0xe8,0xa1,0x3a], [0xff,0xf3,0xd6]
-], dtype=np.float64)
-
-def colorize(norm):
-    n_stops = len(ASTRO_STOPS) - 1
-    idx = np.clip((norm * n_stops).astype(int), 0, n_stops - 1)
-    frac = (norm * n_stops) - idx
-    a = ASTRO_STOPS[idx]
-    b = ASTRO_STOPS[idx + 1]
-    return a + (b - a) * frac[..., None]
-
 with open(f"{DATA_DIR}/dissolution_keyframes.json") as f:
     all_sims = json.load(f)
 with open(f"{DATA_DIR}/local_group_catalog.json") as f:
@@ -124,6 +78,8 @@ for gal in catalog:
     if not slug: continue
     scene.append({'slug': slug, 'distanceMpc': gal['distanceMpc'], 'angleDeg': gal['angleDeg'], 'radiusMpc': gal['radiusMpc']})
 
+BG_FRAMES = [np.array(Image.open(f"{DATA_DIR}/bg_filament_f{i:02d}.png").convert('L')).astype(np.float64) / 255 for i in range(10)]
+
 def interpolate_frame(sim, t):
     frames = sim['frames']
     n_f = len(frames)
@@ -134,6 +90,17 @@ def interpolate_frame(sim, t):
     p0 = np.array(frames[i0]['positions'])
     p1 = np.array(frames[i1]['positions'])
     return p0 + (p1 - p0) * frac
+
+def sample_bg(progress, canvas_n):
+    pos = progress * 9
+    i0 = min(int(pos), 8)
+    i1 = i0 + 1
+    frac = pos - i0
+    f0, f1 = BG_FRAMES[i0], BG_FRAMES[i1]
+    if f0.shape[0] != canvas_n:
+        f0 = ndi_zoom(f0, canvas_n / f0.shape[0], order=1)
+        f1 = ndi_zoom(f1, canvas_n / f1.shape[0], order=1)
+    return f0 + (f1 - f0) * frac
 
 def render(a, half_width_mpc=1.0, point_size=1.3):
     px_per_mpc = CANVAS_N / (2 * half_width_mpc)
@@ -149,11 +116,10 @@ def render(a, half_width_mpc=1.0, point_size=1.3):
         center_x_mpc = math.cos(rad) * g['distanceMpc']
         center_y_mpc = math.sin(rad) * g['distanceMpc']
 
-        sigma_px = max(point_size * (1 + progress * 6), 0.5)
+        sigma_px = max(point_size * (1 + progress * 1.2), 0.5)
         r = math.ceil(sigma_px * 3.2)
         inv2s2 = 1 / (2 * sigma_px * sigma_px)
-        GLOBAL_AMP_SCALE = 0.0025
-        amp_scale = GLOBAL_AMP_SCALE / ((1 + progress * 6) ** 2)
+        amp_scale = 0.0025 / ((1 + progress * 1.2) ** 2)
 
         xs_mpc = center_x_mpc + positions[:, 0] * g['radiusMpc']
         ys_mpc = center_y_mpc + positions[:, 1] * g['radiusMpc']
@@ -172,51 +138,36 @@ def render(a, half_width_mpc=1.0, point_size=1.3):
             field[y0:y1, x0:x1] += amp * np.exp(-d2 * inv2s2)
 
     scene_progress = 1 - structure_amplitude(0.03, a)
-    ZOOM_MAX = 9
-    noise_zoom = 1 + scene_progress * (ZOOM_MAX - 1)
-    bg_amplitude = 0.5
-    bg = background_field(CANVAS_N, noise_zoom)
-    field = field + bg * bg_amplitude + bg_amplitude * 0.5
-
-    tone = np.clip(1 - np.exp(-field), 0, 1)
+    point_tone = np.clip(1 - np.exp(-field), 0, 1)
+    bg_tone = sample_bg(scene_progress, CANVAS_N)
+    tone = 1 - (1 - point_tone) * (1 - bg_tone)  # melange "screen", pas une addition dans un champ commun
 
     bg_late_fade = 1 - structure_amplitude(0.03, min(a * 6, 1))
     embrasement_mix = bg_late_fade
     target = universe_glow_color(a)
 
-    rgb = colorize(tone)
+    ASTRO_STOPS = np.array([
+        [0,0,0], [0x17,0x0a,0x05], [0x4a,0x1f,0x0a], [0xa8,0x48,0x0f], [0xe8,0xa1,0x3a], [0xff,0xf3,0xd6]
+    ], dtype=np.float64)
+    n_stops = len(ASTRO_STOPS) - 1
+    idx = np.clip((tone * n_stops).astype(int), 0, n_stops - 1)
+    frac = (tone * n_stops) - idx
+    rgb = ASTRO_STOPS[idx] + (ASTRO_STOPS[idx + 1] - ASTRO_STOPS[idx]) * frac[..., None]
     rgb = rgb * (1 - embrasement_mix) + target * embrasement_mix
-    return np.clip(rgb, 0, 255).astype(np.uint8), {
-        'scene_progress': scene_progress, 'noise_zoom': noise_zoom,
-        'embrasement_mix': embrasement_mix, 'tone': tone,
-    }
 
-def dominant_feature_size(tone_2d):
-    f = tone_2d - tone_2d.mean()
-    fft = np.fft.fft2(f)
-    acorr = np.fft.ifft2(fft * np.conj(fft)).real
-    acorr = np.fft.fftshift(acorr)
-    acorr /= acorr.max()
-    c = CANVAS_N // 2
-    profile = acorr[c, c:]
-    below_half = np.where(profile < 0.5)[0]
-    return int(below_half[0]) if len(below_half) else len(profile)
+    return np.clip(rgb, 0, 255).astype(np.uint8), {
+        'scene_progress': scene_progress, 'embrasement_mix': embrasement_mix, 'tone': tone,
+    }
 
 if __name__ == '__main__':
     test_as = [1.0, 0.5, 0.24, 0.10, 0.03, 0.01, 0.003, 0.001]
-    print("Verification 1 : saturation / continuite / contraste global")
+    print("Saturation / continuite / piqué (laplacien = contenu haute frequence, NE DOIT JAMAIS tomber a 0)")
     for a in test_as:
         rgb, dbg = render(a)
-        gray = rgb.mean(axis=2)
-        sat_frac = (gray > 240).mean()
-        black_frac = (gray < 8).mean()
-        print(f"a={a:.2e}  mean={gray.mean():6.1f}  std={gray.std():5.1f}  "
-              f"%sat(>240)={sat_frac*100:5.1f}%  %noir(<8)={black_frac*100:5.1f}%  "
-              f"zoom_x{dbg['noise_zoom']:.1f}  embrasement={dbg['embrasement_mix']:.2f}")
-        Image.fromarray(rgb).resize((512, 512), Image.NEAREST).save(f"/home/claude/v2_a_{a:.0e}.png")
-
-    print("\nVerification 2 : les filaments GRANDISSENT-ils reellement (autocorrelation) ?")
-    for a in test_as:
-        rgb, dbg = render(a)
-        size_px = dominant_feature_size(dbg['tone'])
-        print(f"a={a:.2e}  taille caracteristique des structures ~ {size_px}px (sur {CANVAS_N}px)  zoom_x{dbg['noise_zoom']:.1f}")
+        tone = dbg['tone']
+        sat_frac = (tone > 0.98).mean()
+        lap_var = laplace(tone).var()
+        print(f"a={a:.2e}  mean_tone={tone.mean():.3f}  std={tone.std():.3f}  "
+              f"%sat(>0.98)={sat_frac*100:5.1f}%  laplacien={lap_var:.5f}  "
+              f"progress={dbg['scene_progress']:.2f}  embrasement={dbg['embrasement_mix']:.2f}")
+        Image.fromarray(rgb).resize((512, 512), Image.NEAREST).save(f"/home/claude/v3_a_{a:.0e}.png")

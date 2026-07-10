@@ -89,57 +89,52 @@ function colorForValue(t) {
 }
 // Couleur de convergence : SpacetimeShared.universeGlowColor(a), cf. spacetime-shared.js (§11.3.c du doc).
 
-function mulberry32(seed) {
-  return function () {
-    seed |= 0; seed = (seed + 0x6d2b79f5) | 0
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+// Nuage filamenteux du FOND — cf. retour du 10 juillet (v1) : plus de flou
+// de fusion ni de fondu de couleur comme mécanisme de transition. cf.
+// retour du 10 juillet (v2) : la grille de bruit interpolée en douceur
+// (bilinéaire) était ELLE-MÊME un filtre passe-bas, même sans flou
+// explicite ni "nage" du motif — mesuré : la variance du laplacien
+// (contenu haute fréquence) restait quasi nulle à fort zoom, quelle que
+// soit la résolution de la grille source. Remplacé par la VRAIE technique
+// de production (generate_layers.py) : champ FFT à spectre de puissance
+// réaliste, recadré (donne la croissance d'échelle) + détail frais
+// régénéré à pleine résolution à chaque palier — cuit hors-ligne
+// (scripts/dev/generate_bg_filament_keyframes.py), chargé ici comme des
+// sprites classiques (niveaux de gris, palette/couleur au runtime).
+const N_BG_FRAMES = 10
+const bgFrames = [] // ImageData[], rempli au chargement
+let bgFramesLoaded = 0
+
+for (let i = 0; i < N_BG_FRAMES; i++) {
+  const img = new Image()
+  img.onload = () => {
+    const off = document.createElement('canvas')
+    off.width = img.naturalWidth; off.height = img.naturalHeight
+    const octx = off.getContext('2d')
+    octx.drawImage(img, 0, 0)
+    bgFrames[i] = octx.getImageData(0, 0, off.width, off.height)
+    bgFramesLoaded++
+    if (bgFramesLoaded === N_BG_FRAMES) renderAll()
   }
-}
-function makeNoiseGrid(gridSize, seed) {
-  const rng = mulberry32(seed)
-  const g = Math.max(2, Math.round(gridSize))
-  const grid = new Float32Array((g + 1) * (g + 1))
-  for (let i = 0; i < grid.length; i++) grid[i] = rng() * 2 - 1
-  return { grid, g }
-}
-function sampleGridBilinear(gridObj, u, v) {
-  const g = gridObj.g, grid = gridObj.grid
-  const gx = u * g, gy = v * g
-  const gx0 = Math.min(Math.max(Math.floor(gx), 0), g - 1)
-  const gy0 = Math.min(Math.max(Math.floor(gy), 0), g - 1)
-  const fx = gx - Math.floor(gx), fy = gy - Math.floor(gy)
-  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy)
-  const v00 = grid[gy0*(g+1)+gx0], v10 = grid[gy0*(g+1)+gx0+1]
-  const v01 = grid[(gy0+1)*(g+1)+gx0], v11 = grid[(gy0+1)*(g+1)+gx0+1]
-  const a = v00 + (v10-v00)*sx, b = v01 + (v11-v01)*sx
-  return a + (b-a)*sy
+  img.src = `data/bg_filament_f${String(i).padStart(2,'0')}.png`
 }
 
-// Nuage filamenteux du FOND — cf. retour du 10 juillet : PAS de flou de
-// fusion, PAS de fondu vers une couleur unie comme mécanisme de
-// dissolution. À la place, la même grille de bruit (fixe, jamais
-// régénérée — pas de "nage" du motif d'une frame à l'autre) est
-// échantillonnée à une fenêtre qui RÉTRÉCIT avec le temps (zoom) : on
-// regarde une portion de plus en plus petite de la MÊME texture, étirée
-// sur tout le cadre — les filaments grandissent et s'étirent réellement,
-// sans perte de piqué (pas d'opération de flou), jusqu'à occuper tout
-// l'espace. 3 octaves, chacune sa propre grille fixe.
-const BG_OCTAVES = [
-  { grid: makeNoiseGrid(10, 9001), weight: 0.5 },
-  { grid: makeNoiseGrid(24, 9002), weight: 0.32 },
-  { grid: makeNoiseGrid(55, 9003), weight: 0.18 },
-]
-function backgroundFieldAt(u, v, zoom) {
-  // Zoom centre : zoom=1 -> toute la grille visible (texture "normale",
-  // aujourd'hui). zoom>1 -> on ne regarde qu'une fenêtre plus petite
-  // autour du centre, donc les mêmes motifs apparaissent plus grands.
-  const uz = 0.5 + (u - 0.5) / zoom
-  const vz = 0.5 + (v - 0.5) / zoom
-  let val = 0
-  for (const oct of BG_OCTAVES) val += sampleGridBilinear(oct.grid, uz, vz) * oct.weight
-  return val // ~zero-mean
+function sampleBgTone(progress, x, y, canvasN) {
+  // Interpole entre les 2 frames cuites les plus proches (comme les
+  // keyframes de dissolution des sprites) — meme technique, meme esprit.
+  const pos = progress * (N_BG_FRAMES - 1)
+  const i0 = Math.min(Math.floor(pos), N_BG_FRAMES - 2)
+  const i1 = i0 + 1
+  const frac = pos - i0
+  const f0 = bgFrames[i0], f1 = bgFrames[i1]
+  if (!f0 || !f1) return 0.5
+  // Les frames cuites font 512x512 — reechantillonnage simple au plus proche
+  // voisin vers la resolution d'affichage (CANVAS_N), suffisant ici.
+  const bx = Math.min(Math.floor((x / canvasN) * f0.width), f0.width - 1)
+  const by = Math.min(Math.floor((y / canvasN) * f0.height), f0.height - 1)
+  const idx = (by * f0.width + bx) * 4
+  const v0 = f0.data[idx] / 255, v1 = f1.data[idx] / 255
+  return v0 + (v1 - v0) * frac
 }
 
 const SLUG_BY_NAME = {
@@ -203,7 +198,13 @@ function render() {
 
   // 1. Points de la simulation N-corps — amplitude qui decroit par
   // conservation du flux a mesure que chaque etoile s'etale (§ correctif
-  // du 9 juillet), AUCUN flou applique apres coup.
+  // du 9 juillet). Croissance du rayon fortement REDUITE par rapport a
+  // avant (1+progress*1.2 au lieu de *6) : cf. retour du 10 juillet, un
+  // rayon de halo qui grandit est lui-meme un filtre passe-bas (une
+  // gaussienne plus large = moins de hautes frequences) — la dispersion
+  // spatiale doit venir de la VRAIE simulation N-corps (les points
+  // s'ecartent reellement), pas d'un grossissement artificiel du rendu de
+  // chaque point.
   for (const g of scene) {
     const sim = allSims[g.slug]
     if (!sim) continue
@@ -214,11 +215,11 @@ function render() {
     const centerXMpc = Math.cos(rad) * g.distanceMpc
     const centerYMpc = Math.sin(rad) * g.distanceMpc
 
-    const sigmaPx = Math.max(p.pointSize * (1 + progress * 6), 0.5)
+    const sigmaPx = Math.max(p.pointSize * (1 + progress * 1.2), 0.5)
     const r = Math.ceil(sigmaPx * 3.2)
     const inv2s2 = 1 / (2 * sigmaPx * sigmaPx)
     const GLOBAL_AMP_SCALE = 0.0025
-    const ampScale = GLOBAL_AMP_SCALE / Math.pow(1 + progress * 6, 2)
+    const ampScale = GLOBAL_AMP_SCALE / Math.pow(1 + progress * 1.2, 2)
 
     for (let i = 0; i < meta.length; i++) {
       const xMpc = centerXMpc + positions[i*2] * g.radiusMpc
@@ -239,33 +240,29 @@ function render() {
     }
   }
 
-  // 2. Nuage filamenteux du fond — cf. retour du 10 juillet : ADDITIONNÉ
-  // au MÊME champ (pas une couche séparée), avec une échelle (zoom) qui
-  // GRANDIT avec le temps — les filaments s'étirent réellement au lieu
-  // d'être floutés. Amplitude quasi constante : ce n'est pas ce mécanisme
-  // qui fait disparaître le nuage (c'est l'amplitude des points, cf.
-  // ci-dessus, + l'embrasement tardif, cf. plus bas).
   const sceneProgress = 1 - SpacetimeShared.structureAmplitude(0.03, p.a)
-  const ZOOM_MAX = 9
-  const noiseZoom = 1 + sceneProgress * (ZOOM_MAX - 1)
-  const bgAmplitude = 0.5
+  const pointTone = new Float32Array(CANVAS_N * CANVAS_N)
+  for (let i = 0; i < field.length; i++) pointTone[i] = Math.min(Math.max(1 - Math.exp(-field[i]), 0), 1)
+
+  // 2. Nuage filamenteux du fond — FRAMES CUITES HORS-LIGNE (cf. retour du
+  // 10 juillet, v2) : un vrai champ FFT à spectre de puissance réaliste
+  // (même technique que l1b->l5 en production), recadré + détail frais à
+  // chaque palier, PAS une grille interpolée en douceur (celle-ci restait
+  // un filtre passe-bas même sans flou explicite — vérifié : variance du
+  // laplacien quasi nulle à fort zoom). Combiné aux points par un mélange
+  // "screen" (comme deux sources lumineuses indépendantes), pas une
+  // simple addition dans le même champ brut — les deux gardent leur
+  // propre netteté.
+  const toneField = new Float32Array(CANVAS_N * CANVAS_N)
   for (let y = 0; y < CANVAS_N; y++) {
-    const v = y / CANVAS_N
     for (let x = 0; x < CANVAS_N; x++) {
-      const u = x / CANVAS_N
-      const n = backgroundFieldAt(u, v, noiseZoom)
-      field[y*CANVAS_N+x] += n * bgAmplitude + bgAmplitude * 0.5
+      const idx = y*CANVAS_N+x
+      const bgTone = sampleBgTone(sceneProgress, x, y, CANVAS_N)
+      toneField[idx] = 1 - (1 - pointTone[idx]) * (1 - bgTone)
     }
   }
 
-  // 3. UNE SEULE transformation non lineaire sur le champ combine (points
-  // + fond) — pas de flou de fusion, pas de modulation multiplicative
-  // separee : le "piqué" du bruit filamenteux passe directement par ce
-  // tonemap, comme les points.
-  const toneField = new Float32Array(CANVAS_N * CANVAS_N)
-  for (let i = 0; i < field.length; i++) toneField[i] = Math.min(Math.max(1 - Math.exp(-field[i]), 0), 1)
-
-  // 4. Embrasement : SEPARE de la dissolution, phenomene physiquement
+  // 3. Embrasement : SEPARE de la dissolution, phenomene physiquement
   // distinct (temperature/opacite du plasma primordial), qui ne s'active
   // que tres pres de la recombinaison — cf. bgLateFade, une courbe lisse
   // qui ne monte vers 1 qu'en toute fin de parcours.
@@ -284,7 +281,7 @@ function render() {
   ctx.putImageData(out, 0, 0)
 
   document.getElementById('meta').textContent =
-    `a=${p.a.toExponential(2)} · dissolution ${(sceneProgress*100).toFixed(0)}% · zoom filaments ×${noiseZoom.toFixed(1)} · embrasement ${(embrasementMix*100).toFixed(0)}% · cible rgb(${target.join(',')})`
+    `a=${p.a.toExponential(2)} · dissolution ${(sceneProgress*100).toFixed(0)}% · embrasement ${(embrasementMix*100).toFixed(0)}% · cible rgb(${target.join(',')})`
 }
 
 function renderAll() {
