@@ -97,53 +97,50 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
 }
-function valueNoiseField(n, gridSize, seed) {
+function makeNoiseGrid(gridSize, seed) {
   const rng = mulberry32(seed)
   const g = Math.max(2, Math.round(gridSize))
   const grid = new Float32Array((g + 1) * (g + 1))
   for (let i = 0; i < grid.length; i++) grid[i] = rng() * 2 - 1
-  const out = new Float32Array(n * n)
-  for (let y = 0; y < n; y++) {
-    const gy = (y / n) * g, gy0 = Math.min(Math.floor(gy), g - 1), fy = gy - Math.floor(gy)
-    const sy = fy * fy * (3 - 2 * fy)
-    for (let x = 0; x < n; x++) {
-      const gx = (x / n) * g, gx0 = Math.min(Math.floor(gx), g - 1), fx = gx - Math.floor(gx)
-      const sx = fx * fx * (3 - 2 * fx)
-      const v00 = grid[gy0*(g+1)+gx0], v10 = grid[gy0*(g+1)+gx0+1]
-      const v01 = grid[(gy0+1)*(g+1)+gx0], v11 = grid[(gy0+1)*(g+1)+gx0+1]
-      const a = v00 + (v10-v00)*sx, b = v01 + (v11-v01)*sx
-      out[y*n+x] = a + (b-a)*sy
-    }
-  }
-  return out
+  return { grid, g }
 }
-function multiOctaveCloud(n, seed, baseGrid) {
-  const oct1 = valueNoiseField(n, baseGrid, seed)
-  const oct2 = valueNoiseField(n, baseGrid * 2.4, seed + 1)
-  const oct3 = valueNoiseField(n, baseGrid * 5.5, seed + 2)
-  const out = new Float32Array(n * n)
-  for (let i = 0; i < out.length; i++) out[i] = (oct1[i]*0.55 + oct2[i]*0.3 + oct3[i]*0.15 + 1) / 2
-  return out
+function sampleGridBilinear(gridObj, u, v) {
+  const g = gridObj.g, grid = gridObj.grid
+  const gx = u * g, gy = v * g
+  const gx0 = Math.min(Math.max(Math.floor(gx), 0), g - 1)
+  const gy0 = Math.min(Math.max(Math.floor(gy), 0), g - 1)
+  const fx = gx - Math.floor(gx), fy = gy - Math.floor(gy)
+  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy)
+  const v00 = grid[gy0*(g+1)+gx0], v10 = grid[gy0*(g+1)+gx0+1]
+  const v01 = grid[(gy0+1)*(g+1)+gx0], v11 = grid[(gy0+1)*(g+1)+gx0+1]
+  const a = v00 + (v10-v00)*sx, b = v01 + (v11-v01)*sx
+  return a + (b-a)*sy
 }
-const filamentNoiseCache = multiOctaveCloud(CANVAS_N, 5151, 8)
 
-// Champ de FOND filamenteux — meme principe que le sweep d'amplitude validé
-// sur l2 (§11.2/§11.3 du doc) : un bruit multi-echelle a MOYENNE NULLE (pas
-// normalise 0..1 comme filamentNoiseCache ci-dessus, qui est un simple
-// modulateur multiplicatif) passe par une transformation non lineaire type
-// log-densite. Contrairement a la premiere version de ce prototype, ce
-// champ existe PARTOUT sur le canevas, a TOUTE epoque (meme a=1,
-// aujourd'hui) — cf. §11.3.d, "fond residuel" — au lieu d'un fond vide
-// (zero) qui ne montrait donc jamais de structure.
-function backgroundRawField(n, seed) {
-  const oct1 = valueNoiseField(n, 5, seed)
-  const oct2 = valueNoiseField(n, 12, seed + 1)
-  const oct3 = valueNoiseField(n, 28, seed + 2)
-  const out = new Float32Array(n * n)
-  for (let i = 0; i < out.length; i++) out[i] = oct1[i]*0.5 + oct2[i]*0.32 + oct3[i]*0.18 // ~zero-mean
-  return out
+// Nuage filamenteux du FOND — cf. retour du 10 juillet : PAS de flou de
+// fusion, PAS de fondu vers une couleur unie comme mécanisme de
+// dissolution. À la place, la même grille de bruit (fixe, jamais
+// régénérée — pas de "nage" du motif d'une frame à l'autre) est
+// échantillonnée à une fenêtre qui RÉTRÉCIT avec le temps (zoom) : on
+// regarde une portion de plus en plus petite de la MÊME texture, étirée
+// sur tout le cadre — les filaments grandissent et s'étirent réellement,
+// sans perte de piqué (pas d'opération de flou), jusqu'à occuper tout
+// l'espace. 3 octaves, chacune sa propre grille fixe.
+const BG_OCTAVES = [
+  { grid: makeNoiseGrid(10, 9001), weight: 0.5 },
+  { grid: makeNoiseGrid(24, 9002), weight: 0.32 },
+  { grid: makeNoiseGrid(55, 9003), weight: 0.18 },
+]
+function backgroundFieldAt(u, v, zoom) {
+  // Zoom centre : zoom=1 -> toute la grille visible (texture "normale",
+  // aujourd'hui). zoom>1 -> on ne regarde qu'une fenêtre plus petite
+  // autour du centre, donc les mêmes motifs apparaissent plus grands.
+  const uz = 0.5 + (u - 0.5) / zoom
+  const vz = 0.5 + (v - 0.5) / zoom
+  let val = 0
+  for (const oct of BG_OCTAVES) val += sampleGridBilinear(oct.grid, uz, vz) * oct.weight
+  return val // ~zero-mean
 }
-const bgRaw = backgroundRawField(CANVAS_N, 9001)
 
 const SLUG_BY_NAME = {
   'Andromède (M31)': 'andromede', 'Triangulum (M33)': 'triangulum', 'Grand Nuage de Magellan': 'lmc',
@@ -204,13 +201,12 @@ function render() {
 
   const field = new Float32Array(CANVAS_N * CANVAS_N)
 
+  // 1. Points de la simulation N-corps — amplitude qui decroit par
+  // conservation du flux a mesure que chaque etoile s'etale (§ correctif
+  // du 9 juillet), AUCUN flou applique apres coup.
   for (const g of scene) {
     const sim = allSims[g.slug]
     if (!sim) continue
-    // Progression PROPRE a cette galaxie : A(s,a) partagee (§11.3.b), avec
-    // s = son propre rayon — les galaxies se dissolvent toutes ensemble
-    // (meme a_form, cf. table §11.3.a) mais independamment du fond/des
-    // layers de densite qui ont leur propre echelle.
     const progress = 1 - SpacetimeShared.structureAmplitude(g.radiusMpc, p.a)
     const positions = interpolateFrame(sim, progress)
     const meta = sim.particleMeta
@@ -221,23 +217,6 @@ function render() {
     const sigmaPx = Math.max(p.pointSize * (1 + progress * 6), 0.5)
     const r = Math.ceil(sigmaPx * 3.2)
     const inv2s2 = 1 / (2 * sigmaPx * sigmaPx)
-    // Conservation approximative de la luminosité totale : en grandissant,
-    // le halo NE DOIT PAS accumuler l'amplitude de chaque étoile en plus de
-    // son rayon, sinon les gaussiennes qui se chevauchent saturent vite
-    // (bug signalé le 9 juillet : halos "cramés", uniformément blancs, sans
-    // structure visible). Diviser l'amplitude par le rayon (pas par rayon²,
-    // pour rester visible) laisse la place à la modulation filamenteuse.
-    // Conservation du FLUX (pas juste une reduction cosmetique) : pour un
-    // pic gaussien 2D, l'integrale totale est A*2*pi*sigma^2 — pour la
-    // garder a peu pres constante quand sigma grandit (halo qui s'etale),
-    // il faut diviser l'amplitude par sigma^2, pas sqrt(sigma) (bug
-    // precedent). GLOBAL_AMP_SCALE corrige en plus un probleme
-    // INDEPENDANT de la dissolution : avec ~2500-6000 particules par
-    // galaxie, la simple somme au centre du bulbe SATURE DEJA a a=1
-    // (aujourd'hui, avant toute dissolution) sans ce facteur. Vérifié par
-    // simulation headless (scripts/dev/validate_fullscene_render.py) avant
-    // ce correctif : pic du champ brut = 1605 (tone=1.0000, saturé) à
-    // a=1 ; après correctif : 4.0 (tone=0.98).
     const GLOBAL_AMP_SCALE = 0.0025
     const ampScale = GLOBAL_AMP_SCALE / Math.pow(1 + progress * 6, 2)
 
@@ -260,70 +239,43 @@ function render() {
     }
   }
 
-  // Fond filamenteux, PRESENT A TOUTE EPOQUE (y compris a=1) — cf. bgRaw
-  // plus haut. Amplitude quasi constante (le fond ne "se dissout" pas de
-  // la meme facon que les galaxies, il reste une texture de toile
-  // cosmique en arriere-plan) mais s'attenue tout de meme tres pres de la
-  // recombinaison, en meme temps que l'embrasement prend le relais
-  // (cf. plus bas).
-  const bgLateFade = 1 - SpacetimeShared.structureAmplitude(0.03, Math.min(p.a * 6, 1)) // s'attenue seulement tres pres de aMin
-  const bgAmplitude = 0.55 * (1 - bgLateFade * 0.85)
-  for (let i = 0; i < field.length; i++) field[i] += bgRaw[i] * bgAmplitude + bgAmplitude * 0.5 // decalage positif (cf. field_to_log_density, +0.05 similaire)
-
-  // Flou de fusion PARTAGE sur toute la scene (pas par galaxie) — a forte
-  // dissolution, les halos de galaxies voisines peuvent se meler, ce qui
-  // est physiquement coherent avec l'idee de tout converger vers l'uniforme.
-  // Progression representative de la scene : toutes les galaxies du
-  // Groupe Local partagent le meme a_form (echelle "galaxie", §11.3.a),
-  // donc une seule valeur suffit pour le post-traitement partage.
+  // 2. Nuage filamenteux du fond — cf. retour du 10 juillet : ADDITIONNÉ
+  // au MÊME champ (pas une couche séparée), avec une échelle (zoom) qui
+  // GRANDIT avec le temps — les filaments s'étirent réellement au lieu
+  // d'être floutés. Amplitude quasi constante : ce n'est pas ce mécanisme
+  // qui fait disparaître le nuage (c'est l'amplitude des points, cf.
+  // ci-dessus, + l'embrasement tardif, cf. plus bas).
   const sceneProgress = 1 - SpacetimeShared.structureAmplitude(0.03, p.a)
-  const blurPx = Math.pow(sceneProgress, 1.5) * 14
-  let toneField
-  if (blurPx > 0.3) {
-    const tmp = document.createElement('canvas')
-    tmp.width = CANVAS_N; tmp.height = CANVAS_N
-    const tctx = tmp.getContext('2d')
-    const grayImg = tctx.createImageData(CANVAS_N, CANVAS_N)
-    for (let i = 0; i < field.length; i++) {
-      const byte = Math.min(255, Math.max(0, Math.round((1 - Math.exp(-field[i])) * 255)))
-      grayImg.data[i*4]=byte; grayImg.data[i*4+1]=byte; grayImg.data[i*4+2]=byte; grayImg.data[i*4+3]=255
+  const ZOOM_MAX = 9
+  const noiseZoom = 1 + sceneProgress * (ZOOM_MAX - 1)
+  const bgAmplitude = 0.5
+  for (let y = 0; y < CANVAS_N; y++) {
+    const v = y / CANVAS_N
+    for (let x = 0; x < CANVAS_N; x++) {
+      const u = x / CANVAS_N
+      const n = backgroundFieldAt(u, v, noiseZoom)
+      field[y*CANVAS_N+x] += n * bgAmplitude + bgAmplitude * 0.5
     }
-    tctx.putImageData(grayImg, 0, 0)
-    const blurred = document.createElement('canvas')
-    blurred.width = CANVAS_N; blurred.height = CANVAS_N
-    const bctx = blurred.getContext('2d')
-    bctx.filter = `blur(${blurPx.toFixed(1)}px)`
-    bctx.drawImage(tmp, 0, 0)
-    const bd = bctx.getImageData(0, 0, CANVAS_N, CANVAS_N).data
-    toneField = new Float32Array(CANVAS_N * CANVAS_N)
-    for (let i = 0; i < toneField.length; i++) toneField[i] = bd[i*4] / 255
-  } else {
-    toneField = new Float32Array(CANVAS_N * CANVAS_N)
-    for (let i = 0; i < field.length; i++) toneField[i] = Math.min(Math.max(1 - Math.exp(-field[i]), 0), 1)
   }
 
-  const filIntensity = 0.5
-  // Embrasement : mélange vers universeGlowColor, mais UNIQUEMENT très
-  // près de la recombinaison (pas proportionnel à toute la progression de
-  // dissolution comme avant, ce qui provoquait un fondu prématuré vers un
-  // gris plat dès a≈0.1-0.25, cf. captures d'écran du 9 juillet). Courbe
-  // séparée de A(s,a) : c'est un phénomène physiquement distinct
-  // (température/opacité du plasma primordial), pas la même chose que la
-  // dissolution des structures.
-  // Embrasement : reutilise EXACTEMENT bgLateFade (deja une courbe lisse
-  // qui monte vers 1 a l'approche de la recombinaison, cf. plus haut) au
-  // lieu d'une fenetre etroite basee sur log(a) pres de a_min — cette
-  // derniere creait un "creux" sombre juste avant un saut brutal vers le
-  // clair (verifie par simulation headless : moyenne de l'image tombant
-  // a 2.2/255 juste avant un saut a 236/255 sans ce correctif).
+  // 3. UNE SEULE transformation non lineaire sur le champ combine (points
+  // + fond) — pas de flou de fusion, pas de modulation multiplicative
+  // separee : le "piqué" du bruit filamenteux passe directement par ce
+  // tonemap, comme les points.
+  const toneField = new Float32Array(CANVAS_N * CANVAS_N)
+  for (let i = 0; i < field.length; i++) toneField[i] = Math.min(Math.max(1 - Math.exp(-field[i]), 0), 1)
+
+  // 4. Embrasement : SEPARE de la dissolution, phenomene physiquement
+  // distinct (temperature/opacite du plasma primordial), qui ne s'active
+  // que tres pres de la recombinaison — cf. bgLateFade, une courbe lisse
+  // qui ne monte vers 1 qu'en toute fin de parcours.
+  const bgLateFade = 1 - SpacetimeShared.structureAmplitude(0.03, Math.min(p.a * 6, 1))
   const embrasementMix = bgLateFade
   const target = SpacetimeShared.universeGlowColor(p.a)
 
   const out = ctx.createImageData(CANVAS_N, CANVAS_N)
   for (let i = 0; i < toneField.length; i++) {
-    let v = toneField[i] * (1 + (filamentNoiseCache[i] - 0.5) * 2 * filIntensity)
-    v = Math.min(Math.max(v, 0), 1)
-    const [rr,gg,bb] = colorForValue(v)
+    const [rr,gg,bb] = colorForValue(toneField[i])
     out.data[i*4]   = Math.round(rr * (1-embrasementMix) + target[0] * embrasementMix)
     out.data[i*4+1] = Math.round(gg * (1-embrasementMix) + target[1] * embrasementMix)
     out.data[i*4+2] = Math.round(bb * (1-embrasementMix) + target[2] * embrasementMix)
@@ -332,7 +284,7 @@ function render() {
   ctx.putImageData(out, 0, 0)
 
   document.getElementById('meta').textContent =
-    `a=${p.a.toExponential(2)} · dissolution ${(sceneProgress*100).toFixed(0)}% · fond=${bgAmplitude.toFixed(2)} · embrasement ${(embrasementMix*100).toFixed(0)}% · cible rgb(${target.join(',')})`
+    `a=${p.a.toExponential(2)} · dissolution ${(sceneProgress*100).toFixed(0)}% · zoom filaments ×${noiseZoom.toFixed(1)} · embrasement ${(embrasementMix*100).toFixed(0)}% · cible rgb(${target.join(',')})`
 }
 
 function renderAll() {

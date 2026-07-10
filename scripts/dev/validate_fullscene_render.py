@@ -1,12 +1,9 @@
 """
 Port headless (Python/numpy/scipy) EXACT du pipeline de rendu de
-app/public/time-axis-fullscene-test.html — pour valider par le calcul
-(taux de saturation, histogramme) AVANT tout retour visuel, plutôt que de
-découvrir les problèmes après coup via une capture d'écran de l'utilisateur.
-
-node-canvas n'est pas installable dans cet environnement (dépendances
-natives manquantes) — ce port Python est le moyen le plus fiable
-disponible ici de "vraiment" exécuter le rendu hors-ligne.
+app/public/time-axis-fullscene-test.html, VERSION 2 (10 juillet) — plus de
+flou de fusion, plus de fondu vers une couleur unie comme mécanisme de
+dissolution. Le nuage filamenteux grandit d'échelle (zoom sur la même
+grille de bruit) au lieu d'être flouté. Cf. §13 du document d'architecture.
 
 Usage : python3 scripts/dev/validate_fullscene_render.py
 """
@@ -14,14 +11,10 @@ import json
 import math
 import numpy as np
 from PIL import Image
-from scipy.ndimage import gaussian_filter
 
-CANVAS_N = 300  # plus petit que les 900 du navigateur, pour iterer vite ; le rendu est resolution-independant pour les stats qui nous interessent
+CANVAS_N = 300
 DATA_DIR = "../../app/public/data"
 
-# ---------------------------------------------------------------------
-# Port de spacetime-shared.js
-# ---------------------------------------------------------------------
 A_FORM_CONTROL_POINTS = [
     (math.log10(0.01), 0.20), (math.log10(2.4), 0.20), (math.log10(8.49), 0.55),
     (math.log10(30), 0.65), (math.log10(67), 0.70), (math.log10(150), 0.92),
@@ -58,9 +51,6 @@ def universe_glow_color(a, exp=2.2):
     bright = np.array([255, 243, 214])
     return bg + (bright - bg) * t
 
-# ---------------------------------------------------------------------
-# Port du bruit de valeur (mulberry32 + value noise + multi-octave)
-# ---------------------------------------------------------------------
 def mulberry32(seed):
     state = seed & 0xffffffff
     def rng():
@@ -72,37 +62,38 @@ def mulberry32(seed):
         return ((t ^ (t >> 14)) & 0xffffffff) / 4294967296
     return rng
 
-def value_noise_field(n, grid_size, seed):
+def make_noise_grid(grid_size, seed):
     rng = mulberry32(seed)
     g = max(2, round(grid_size))
     grid = np.array([rng() * 2 - 1 for _ in range((g + 1) * (g + 1))]).reshape(g + 1, g + 1)
-    ys = np.linspace(0, g, n, endpoint=False)
-    xs = np.linspace(0, g, n, endpoint=False)
-    gy0 = np.clip(np.floor(ys).astype(int), 0, g - 1)
-    gx0 = np.clip(np.floor(xs).astype(int), 0, g - 1)
-    fy = ys - np.floor(ys)
-    fx = xs - np.floor(xs)
-    sy = fy * fy * (3 - 2 * fy)
-    sx = fx * fx * (3 - 2 * fx)
-    v00 = grid[gy0[:, None], gx0[None, :]]
-    v10 = grid[gy0[:, None], gx0[None, :] + 1]
-    v01 = grid[gy0[:, None] + 1, gx0[None, :]]
-    v11 = grid[gy0[:, None] + 1, gx0[None, :] + 1]
-    a = v00 + (v10 - v00) * sx[None, :]
-    b = v01 + (v11 - v01) * sx[None, :]
-    return a + (b - a) * sy[:, None]
+    return grid, g
 
-def multi_octave_cloud(n, seed, base_grid):
-    o1 = value_noise_field(n, base_grid, seed)
-    o2 = value_noise_field(n, base_grid * 2.4, seed + 1)
-    o3 = value_noise_field(n, base_grid * 5.5, seed + 2)
-    return (o1 * 0.55 + o2 * 0.3 + o3 * 0.15 + 1) / 2  # 0..1
+BG_OCTAVES = [
+    (make_noise_grid(10, 9001), 0.5),
+    (make_noise_grid(24, 9002), 0.32),
+    (make_noise_grid(55, 9003), 0.18),
+]
 
-def background_raw_field(n, seed):
-    o1 = value_noise_field(n, 5, seed)
-    o2 = value_noise_field(n, 12, seed + 1)
-    o3 = value_noise_field(n, 28, seed + 2)
-    return o1 * 0.5 + o2 * 0.32 + o3 * 0.18  # ~zero-mean
+def sample_grid_bilinear(grid, g, u, v):
+    gx, gy = u * g, v * g
+    gx0 = np.clip(np.floor(gx).astype(int), 0, g - 1)
+    gy0 = np.clip(np.floor(gy).astype(int), 0, g - 1)
+    fx, fy = gx - np.floor(gx), gy - np.floor(gy)
+    sx, sy = fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)
+    v00 = grid[gy0, gx0]; v10 = grid[gy0, np.clip(gx0 + 1, 0, g)]
+    v01 = grid[np.clip(gy0 + 1, 0, g), gx0]; v11 = grid[np.clip(gy0 + 1, 0, g), np.clip(gx0 + 1, 0, g)]
+    a = v00 + (v10 - v00) * sx
+    b = v01 + (v11 - v01) * sx
+    return a + (b - a) * sy
+
+def background_field(n, zoom):
+    xs, ys = np.meshgrid(np.arange(n) / n, np.arange(n) / n)
+    u = 0.5 + (xs - 0.5) / zoom
+    v = 0.5 + (ys - 0.5) / zoom
+    out = np.zeros((n, n))
+    for (grid, g), w in BG_OCTAVES:
+        out += sample_grid_bilinear(grid, g, u, v) * w
+    return out
 
 ASTRO_STOPS = np.array([
     [0,0,0], [0x17,0x0a,0x05], [0x4a,0x1f,0x0a], [0xa8,0x48,0x0f], [0xe8,0xa1,0x3a], [0xff,0xf3,0xd6]
@@ -116,9 +107,6 @@ def colorize(norm):
     b = ASTRO_STOPS[idx + 1]
     return a + (b - a) * frac[..., None]
 
-# ---------------------------------------------------------------------
-# Chargement des donnees (identiques a celles du navigateur)
-# ---------------------------------------------------------------------
 with open(f"{DATA_DIR}/dissolution_keyframes.json") as f:
     all_sims = json.load(f)
 with open(f"{DATA_DIR}/local_group_catalog.json") as f:
@@ -135,9 +123,6 @@ for gal in catalog:
     slug = SLUG_BY_NAME.get(gal['name'])
     if not slug: continue
     scene.append({'slug': slug, 'distanceMpc': gal['distanceMpc'], 'angleDeg': gal['angleDeg'], 'radiusMpc': gal['radiusMpc']})
-
-filament_noise_cache = multi_octave_cloud(CANVAS_N, 5151, 8)
-bg_raw = background_raw_field(CANVAS_N, 9001)
 
 def interpolate_frame(sim, t):
     frames = sim['frames']
@@ -167,15 +152,6 @@ def render(a, half_width_mpc=1.0, point_size=1.3):
         sigma_px = max(point_size * (1 + progress * 6), 0.5)
         r = math.ceil(sigma_px * 3.2)
         inv2s2 = 1 / (2 * sigma_px * sigma_px)
-        # Conservation du FLUX (pas juste une reduction cosmetique) : pour
-        # un pic gaussien 2D, l'integrale totale est A*2*pi*sigma^2 — pour
-        # la garder a peu pres constante quand sigma grandit (halo qui
-        # s'etale), il faut diviser l'amplitude par sigma^2, pas sqrt(sigma).
-        # GLOBAL_AMP_SCALE corrige en plus un probleme independant de la
-        # dissolution : avec ~2500-6000 particules par galaxie, la simple
-        # somme au centre du bulbe SATURE DEJA a a=1 (aujourd'hui, avant
-        # toute dissolution) sans ce facteur — verifie : pic de champ brut
-        # a 1605 sans lui (tone=1.0000, sature), 4.0 avec (tone=0.98).
         GLOBAL_AMP_SCALE = 0.0025
         amp_scale = GLOBAL_AMP_SCALE / ((1 + progress * 6) ** 2)
 
@@ -195,38 +171,40 @@ def render(a, half_width_mpc=1.0, point_size=1.3):
             d2 = (xx - px) ** 2 + (yy - py) ** 2
             field[y0:y1, x0:x1] += amp * np.exp(-d2 * inv2s2)
 
-    bg_late_fade = 1 - structure_amplitude(0.03, min(a * 6, 1))
-    bg_amplitude = 0.55 * (1 - bg_late_fade * 0.85)
-    field = field + bg_raw * bg_amplitude + bg_amplitude * 0.5
-
     scene_progress = 1 - structure_amplitude(0.03, a)
-    blur_px = (scene_progress ** 1.5) * 14 * (CANVAS_N / 900)  # mise a l'echelle de la resolution reduite
-    tone = 1 - np.exp(-np.clip(field, 0, None))
-    tone = np.clip(tone, 0, 1)
-    if blur_px > 0.3:
-        tone = gaussian_filter(tone, sigma=blur_px)
+    ZOOM_MAX = 9
+    noise_zoom = 1 + scene_progress * (ZOOM_MAX - 1)
+    bg_amplitude = 0.5
+    bg = background_field(CANVAS_N, noise_zoom)
+    field = field + bg * bg_amplitude + bg_amplitude * 0.5
 
-    fil_intensity = 0.5
-    v = tone * (1 + (filament_noise_cache - 0.5) * 2 * fil_intensity)
-    v = np.clip(v, 0, 1)
+    tone = np.clip(1 - np.exp(-field), 0, 1)
 
-    # Embrasement : reutilise EXACTEMENT bg_late_fade (deja une courbe
-    # lisse qui monte vers 1 a l'approche de la recombinaison) au lieu
-    # d'une fenetre etroite basee sur log(a) pres de a_min — cette derniere
-    # creait un "creux" sombre juste avant un saut brutal vers le clair
-    # (verifie : moyenne tombant a 2.2/255 juste avant le saut a 236/255).
+    bg_late_fade = 1 - structure_amplitude(0.03, min(a * 6, 1))
     embrasement_mix = bg_late_fade
     target = universe_glow_color(a)
 
-    rgb = colorize(v)
+    rgb = colorize(tone)
     rgb = rgb * (1 - embrasement_mix) + target * embrasement_mix
     return np.clip(rgb, 0, 255).astype(np.uint8), {
-        'scene_progress': scene_progress, 'bg_amplitude': bg_amplitude,
-        'embrasement_mix': embrasement_mix, 'blur_px': blur_px,
+        'scene_progress': scene_progress, 'noise_zoom': noise_zoom,
+        'embrasement_mix': embrasement_mix, 'tone': tone,
     }
 
+def dominant_feature_size(tone_2d):
+    f = tone_2d - tone_2d.mean()
+    fft = np.fft.fft2(f)
+    acorr = np.fft.ifft2(fft * np.conj(fft)).real
+    acorr = np.fft.fftshift(acorr)
+    acorr /= acorr.max()
+    c = CANVAS_N // 2
+    profile = acorr[c, c:]
+    below_half = np.where(profile < 0.5)[0]
+    return int(below_half[0]) if len(below_half) else len(profile)
+
 if __name__ == '__main__':
-    test_as = [1.0, 0.5, 0.24, 0.10, 0.03, 0.001, 3.16e-4]
+    test_as = [1.0, 0.5, 0.24, 0.10, 0.03, 0.01, 0.003, 0.001]
+    print("Verification 1 : saturation / continuite / contraste global")
     for a in test_as:
         rgb, dbg = render(a)
         gray = rgb.mean(axis=2)
@@ -234,5 +212,11 @@ if __name__ == '__main__':
         black_frac = (gray < 8).mean()
         print(f"a={a:.2e}  mean={gray.mean():6.1f}  std={gray.std():5.1f}  "
               f"%sat(>240)={sat_frac*100:5.1f}%  %noir(<8)={black_frac*100:5.1f}%  "
-              f"progress={dbg['scene_progress']:.2f} bgAmp={dbg['bg_amplitude']:.2f} embrasement={dbg['embrasement_mix']:.2f}")
-        Image.fromarray(rgb).resize((512, 512), Image.NEAREST).save(f"/home/claude/validate_a_{a:.0e}.png")
+              f"zoom_x{dbg['noise_zoom']:.1f}  embrasement={dbg['embrasement_mix']:.2f}")
+        Image.fromarray(rgb).resize((512, 512), Image.NEAREST).save(f"/home/claude/v2_a_{a:.0e}.png")
+
+    print("\nVerification 2 : les filaments GRANDISSENT-ils reellement (autocorrelation) ?")
+    for a in test_as:
+        rgb, dbg = render(a)
+        size_px = dominant_feature_size(dbg['tone'])
+        print(f"a={a:.2e}  taille caracteristique des structures ~ {size_px}px (sur {CANVAS_N}px)  zoom_x{dbg['noise_zoom']:.1f}")
