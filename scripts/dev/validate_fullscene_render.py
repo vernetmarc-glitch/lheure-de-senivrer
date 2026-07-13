@@ -51,7 +51,11 @@ def structure_amplitude(scale_mpc, a):
     if a >= 1: return 1.0
     a_form = a_form_for_scale_mpc(scale_mpc)
     half_width_dex = max(-math.log10(a_form), 0.05)
-    x = math.log10(max(a, 1e-6)) - math.log10(a_form)
+    # Correctif du 13 juillet (sync avec spacetime-shared.js, §11.4.b) :
+    # la fenêtre se termine toujours exactement à a=1 (continuité pour les
+    # échelles à plancher actif, l3->l5). Sans effet à l'échelle 0.03 Mpc.
+    center_dex = min(math.log10(a_form), -half_width_dex)
+    x = math.log10(max(a, 1e-6)) - center_dex
     t = (x + half_width_dex) / (2 * half_width_dex)
     return float(smoothstep(np.array(t)))
 

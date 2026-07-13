@@ -67,7 +67,16 @@
     // (l5, quasi aucune transition à faire).
     const halfWidthDex = halfWidthDexOverride || Math.max(-Math.log10(aForm), 0.05)
     if (a >= 1) return 1
-    const x = Math.log10(Math.max(a, 1e-6)) - Math.log10(aForm)
+    // Correctif du 13 juillet (matrice §11.6) : quand le PLANCHER de largeur
+    // (0.05 dex) est actif (a_form > 10^-0.05 ≈ 0.891, soit l3 → l5), la
+    // fenêtre centrée sur log10(a_form) déborde au-delà de a=1 et A saute de
+    // 1 à ~0.5 juste sous a=1 — violation de la contrainte dure §11.4.b
+    // ("A(s,1)=1 continûment"). On recentre la fenêtre pour qu'elle se
+    // TERMINE exactement à a=1 : centre = min(log10(a_form), -largeur).
+    // Aucun changement pour les échelles où le plancher est inactif
+    // (galaxies, l1b, l2, l2b : centre = log10(a_form) inchangé).
+    const centerDex = Math.min(Math.log10(aForm), -halfWidthDex)
+    const x = Math.log10(Math.max(a, 1e-6)) - centerDex
     const t = (x + halfWidthDex) / (2 * halfWidthDex)
     return smoothstep(t)
   }

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Matrice zoom × temps — prototype de validation</title>
+<style>
+  body { margin: 0; background: #05050a; color: #cfc8bd; font-family: system-ui, sans-serif;
+         display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px; }
+  h1 { font-size: 15px; font-weight: 500; letter-spacing: 0.06em; color: #e8dcc8; margin: 0; }
+  canvas { image-rendering: pixelated; width: min(90vw, 600px); height: min(90vw, 600px);
+           border: 1px solid #2a2a35; border-radius: 4px; }
+  .panel { width: min(90vw, 600px); display: flex; flex-direction: column; gap: 10px; }
+  label { font-size: 12px; display: flex; justify-content: space-between; }
+  .val { color: #e8a13a; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; }
+  #meta { font-size: 11px; color: #8a8478; line-height: 1.5; min-height: 3em;
+          font-variant-numeric: tabular-nums; }
+  button { background: #1a1a24; color: #cfc8bd; border: 1px solid #3a3a48; border-radius: 4px;
+           padding: 6px 14px; cursor: pointer; font-size: 12px; }
+  button:hover { border-color: #e8a13a; }
+  #loading { font-size: 12px; color: #8a8478; }
+</style>
+</head>
+<body>
+<h1>MATRICE ZOOM × TEMPS — prototype de validation des paramètres (§11.6)</h1>
+<div id="loading">Chargement des frames…</div>
+<canvas id="cv" width="300" height="300"></canvas>
+<div class="panel">
+  <label>Zoom — demi-champ demandé (Mpc comobiles) <span class="val" id="zoomVal"></span></label>
+  <input type="range" id="zoomSlider" min="-1.699" max="4.1635" step="0.01" value="0" />
+  <label>Temps — facteur d'échelle a (log) <span class="val" id="aVal"></span></label>
+  <input type="range" id="aSlider" min="-3.0417" max="0" step="0.005" value="0" />
+  <div style="display:flex; gap:8px;">
+    <button id="playBtn">▶ Lecture temporelle</button>
+    <button id="resetBtn">a = 1 (aujourd'hui)</button>
+  </div>
+  <div id="meta"></div>
+</div>
+
+<script src="spacetime-shared.js"></script>
+<script>
+'use strict'
+// ═════════════════════════════════════════════════════════════════════
+// Prototype de balayage COMPLET de la matrice zoom × temps.
+// Toutes les valeurs viennent de data/spacetime_matrix.json (source de
+// vérité versionnée) — AUCUN paramètre redéfini ici. Le pipeline de
+// composition est le portage 1:1 de scripts/dev/validate_spacetime_matrix.py
+// (qui l'a validé par le calcul avant ce prototype, §13).
+// Deux types de contenu seulement (§11.1) : frames de champ de densité
+// cuites hors-ligne + sprites N-corps ; combinés en "screen" (§11.3),
+// embrasement par canal saturant (§11.4.c), palette au runtime.
+// ═════════════════════════════════════════════════════════════════════
+const CANVAS_N = 300
+const cv = document.getElementById('cv')
+const ctx = cv.getContext('2d')
+
+const ASTRO_STOPS = [
+  [0,0,0], [0x17,0x0a,0x05], [0x4a,0x1f,0x0a], [0xa8,0x48,0x0f], [0xe8,0xa1,0x3a], [0xff,0xf3,0xd6]
+]
+function colorForValue(t) {
+  t = Math.min(Math.max(t,0),1)
+  const n = ASTRO_STOPS.length - 1
+  const idx = Math.min(Math.floor(t*n), n-1)
+  const frac = t*n - idx
+  const a = ASTRO_STOPS[idx], b = ASTRO_STOPS[idx+1]
+  return [a[0]+(b[0]-a[0])*frac, a[1]+(b[1]-a[1])*frac, a[2]+(b[2]-a[2])*frac]
+}
+
+let MATRIX = null, SIMS = null, SCENE = null
+const FRAMES = {}   // key -> [Float32Array 512²]
+let framesTotal = 0, framesLoaded = 0
+
+function loadFrame(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const c = document.createElement('canvas')
+      c.width = c.height = img.width
+      const g = c.getContext('2d')
+      g.drawImage(img, 0, 0)
+      const data = g.getImageData(0, 0, img.width, img.height).data
+      const arr = new Float32Array(img.width * img.width)
+      for (let i = 0; i < arr.length; i++) arr[i] = data[i*4] / 255
+      framesLoaded++
+      document.getElementById('loading').textContent =
+        `Chargement des frames… ${framesLoaded}/${framesTotal}`
+      resolve({ arr, n: img.width })
+    }
+    img.onerror = reject
+    img.src = url
+  })
+}
+
+async function boot() {
+  MATRIX = await (await fetch('data/spacetime_matrix.json')).json()
+  SIMS = await (await fetch('data/dissolution_keyframes.json')).json()
+  const catalog = await (await fetch('data/local_group_catalog.json')).json()
+  const SLUG_BY_NAME = {
+    'Andromède (M31)': 'andromede', 'Triangulum (M33)': 'triangulum',
+    'Grand Nuage de Magellan': 'lmc', 'Petit Nuage de Magellan': 'smc',
+    'Naine du Sagittaire': 'sagittaire', 'NGC 6822': 'ngc6822',
+    'IC 10': 'ic10', 'Leo I': 'leo1',
+  }
+  SCENE = [{ slug: 'milkyway', distanceMpc: 0, angleDeg: 0, radiusMpc: 0.01594329 }]
+  for (const gal of catalog) {
+    if (gal.isReal && SLUG_BY_NAME[gal.name])
+      SCENE.push({ slug: SLUG_BY_NAME[gal.name], distanceMpc: gal.distanceMpc,
+                   angleDeg: gal.angleDeg, radiusMpc: gal.radiusMpc })
+  }
+  framesTotal = MATRIX.layers.reduce((s, l) => s + l.keyframes_a.length, 0)
+  await Promise.all(MATRIX.layers.map(async (l) => {
+    FRAMES[l.key] = await Promise.all(
+      l.keyframes_a.map((_, i) => loadFrame('data/st_' + l.key + '_k' + String(i).padStart(2,'0') + '.png')))
+  }))
+  document.getElementById('loading').textContent = ''
+  render()
+}
+
+// ── Poids de layers — port de layerWeights.ts, frontières lues dans la
+// matrice. Simplification prototype : le poids "milkyway" est reporté sur
+// "localgroup" (la Voie lactée est rendue par son sprite N-corps).
+function layerWeights(hw) {
+  const ZA = MATRIX.zoom_axis
+  const x = Math.log10(Math.max(hw, 1e-6))
+  const gates = ZA.layer_edges_mpc.map((e, i) => {
+    const f = ZA.fade_widths_dex[i]
+    return SpacetimeShared.smoothstep((x - (Math.log10(e) - f)) / (2 * f))
+  })
+  const weights = {}
+  let remaining = 1
+  for (let i = 0; i < ZA.layer_order.length - 1; i++) {
+    weights[ZA.layer_order[i]] = remaining * (1 - gates[i])
+    remaining *= gates[i]
+  }
+  weights[ZA.layer_order[ZA.layer_order.length - 1]] = remaining
+  weights.localgroup = (weights.localgroup || 0) + (weights.milkyway || 0)
+  delete weights.milkyway
+  for (const k of Object.keys(weights)) if (weights[k] < 1e-3) delete weights[k]
+  return weights
+}
+
+// Échantillonnage bilinéaire d'une frame 512² à (u,v) ∈ [0,1], clamp aux bords.
+function sampleBilinear(frame, n, u, v) {
+  const fx = Math.min(Math.max(u, 0), 1) * (n - 1)
+  const fy = Math.min(Math.max(v, 0), 1) * (n - 1)
+  const x0 = Math.floor(fx), y0 = Math.floor(fy)
+  const x1 = Math.min(x0 + 1, n - 1), y1 = Math.min(y0 + 1, n - 1)
+  const tx = fx - x0, ty = fy - y0
+  const a = frame[y0*n+x0], b = frame[y0*n+x1], c = frame[y1*n+x0], d = frame[y1*n+x1]
+  return (a + (b-a)*tx) * (1-ty) + (c + (d-c)*tx) * ty
+}
+
+// Paire de frames temporelles encadrant a pour un layer (+ facteur de mix).
+function framePairFor(layer, a) {
+  const kfs = layer.keyframes_a, imgs = FRAMES[layer.key]
+  if (a <= kfs[0]) return { f0: imgs[0], f1: imgs[0], mix: 0 }
+  if (a >= kfs[kfs.length-1]) return { f0: imgs[imgs.length-1], f1: imgs[imgs.length-1], mix: 0 }
+  let i1 = kfs.findIndex(k => k >= a)
+  const i0 = i1 - 1
+  const mix = (Math.log10(a) - Math.log10(kfs[i0])) / (Math.log10(kfs[i1]) - Math.log10(kfs[i0]))
+  return { f0: imgs[i0], f1: imgs[i1], mix }
+}
+
+function interpSimPositions(sim, t) {
+  const frames = sim.frames
+  const pos = t * (frames.length - 1)
+  const i0 = Math.min(Math.floor(pos), frames.length - 2)
+  const frac = pos - i0
+  const p0 = frames[i0].positions, p1 = frames[i0+1].positions
+  const out = new Float32Array(p0.length * 2)
+  for (let i = 0; i < p0.length; i++) {
+    out[i*2]   = p0[i][0] + (p1[i][0] - p0[i][0]) * frac
+    out[i*2+1] = p0[i][1] + (p1[i][1] - p0[i][1]) * frac
+  }
+  return out
+}
+
+function splatSprites(field, a, hwEff) {
+  const SPR = MATRIX.sprites
+  const pxPerMpc = CANVAS_N / (2 * hwEff)
+  const cx = CANVAS_N/2, cy = CANVAS_N/2
+  const progress = 1 - SpacetimeShared.structureAmplitude(MATRIX.galaxy_scale_mpc, a)
+  const sigma = Math.max(1.3 * (1 + progress * SPR.point_radius_growth), 0.5)
+  const r = Math.ceil(sigma * 3.2)
+  const inv2s2 = 1 / (2 * sigma * sigma)
+  const ampScale = SPR.global_amp_scale / Math.pow(1 + progress * SPR.point_radius_growth, 2)
+  for (const g of SCENE) {
+    const sim = SIMS[g.slug]
+    const positions = interpSimPositions(sim, progress)
+    const rad = g.angleDeg * Math.PI / 180
+    const cxMpc = Math.cos(rad) * g.distanceMpc, cyMpc = Math.sin(rad) * g.distanceMpc
+    const meta = sim.particleMeta
+    for (let i = 0; i < meta.length; i++) {
+      const px = cx + (cxMpc + positions[i*2]   * g.radiusMpc) * pxPerMpc
+      const py = cy + (cyMpc + positions[i*2+1] * g.radiusMpc) * pxPerMpc
+      if (px < -r || px > CANVAS_N + r || py < -r || py > CANVAS_N + r) continue
+      const amp = (0.18 + meta[i].b * 0.55) * ampScale
+      const x0 = Math.max(0, Math.floor(px-r)), x1 = Math.min(CANVAS_N-1, Math.ceil(px+r))
+      const y0 = Math.max(0, Math.floor(py-r)), y1 = Math.min(CANVAS_N-1, Math.ceil(py+r))
+      for (let y = y0; y <= y1; y++) {
+        const dy2 = (y-py)*(y-py)
+        for (let x = x0; x <= x1; x++) {
+          const dx = x-px
+          field[y*CANVAS_N+x] += amp * Math.exp(-(dx*dx+dy2)*inv2s2)
+        }
+      }
+    }
+  }
+}
+
+// Calcul PUR du champ de tons pour une cellule (hw, a) — séparé du DOM
+// pour être exécutable et VALIDABLE hors navigateur (Node), cf. §13.
+function computeTone(hw, a) {
+  // Compression spatiale bornée par la physique (§11.4.e) — pilotée par
+  // l'échelle DEMANDÉE au curseur (le Groupe Local, lié, ne comprime pas).
+  const hwEff = SpacetimeShared.effectiveHalfWidthMpc(hw, a, hw)
+  const weights = layerWeights(hwEff)
+  const layersByKey = {}
+  for (const l of MATRIX.layers) layersByKey[l.key] = l
+
+  // 1. Fond : somme pondérée (fondu de zoom de production) des frames
+  // temporelles interpolées de chaque layer actif.
+  const bg = new Float32Array(CANVAS_N * CANVAS_N)
+  const active = []
+  for (const key of Object.keys(weights)) {
+    const layer = layersByKey[key]
+    const w = weights[key]
+    const pair = framePairFor(layer, a)
+    const n = 512
+    const extent = layer.max_mpc * layer.margin_factor // demi-étendue comobile
+    active.push({ key, w, A: SpacetimeShared.structureAmplitude(layer.max_mpc, a) })
+    for (let y = 0; y < CANVAS_N; y++) {
+      const vMpc = ((y + 0.5) / CANVAS_N * 2 - 1) * hwEff
+      const v = vMpc / (2 * extent) + 0.5
+      for (let x = 0; x < CANVAS_N; x++) {
+        const uMpc = ((x + 0.5) / CANVAS_N * 2 - 1) * hwEff
+        const u = uMpc / (2 * extent) + 0.5
+        const t0 = sampleBilinear(pair.f0.arr, n, u, v)
+        const t1 = pair.mix > 0 ? sampleBilinear(pair.f1.arr, n, u, v) : t0
+        bg[y*CANVAS_N+x] += w * (t0 + (t1 - t0) * pair.mix)
+      }
+    }
+  }
+
+  // 2. Sprites N-corps (Groupe Local) en zone rapprochée — champ brut
+  // propre, transformation 1-exp(-x), puis mélange "screen" (§11.3).
+  let tone = bg
+  if (hwEff < MATRIX.sprites.visible_below_halfwidth_mpc) {
+    const f = new Float32Array(CANVAS_N * CANVAS_N)
+    splatSprites(f, a, hwEff)
+    tone = new Float32Array(CANVAS_N * CANVAS_N)
+    for (let i = 0; i < tone.length; i++) {
+      const s = Math.min(Math.max(1 - Math.exp(-f[i]), 0), 1)
+      tone[i] = 1 - (1 - bg[i]) * (1 - s)
+    }
+  }
+
+  // 3. Embrasement (§11.4.c) : canal saturant en "screen", pas de calque
+  // de couleur.
+  const EMB = MATRIX.embrasement
+  const fade = 1 - SpacetimeShared.structureAmplitude(EMB.fade_scale_mpc, Math.min(a * EMB.a_multiplier, 1))
+  const white = 1 - Math.exp(-Math.pow(fade, EMB.exp) * EMB.offset_max)
+  const finalTone = new Float32Array(tone.length)
+  for (let i = 0; i < tone.length; i++) finalTone[i] = 1 - (1 - tone[i]) * (1 - white)
+  return { tone: finalTone, white, hwEff, active }
+}
+
+function render() {
+  if (!MATRIX || framesLoaded < framesTotal) return
+  const hw = Math.pow(10, parseFloat(document.getElementById('zoomSlider').value))
+  const a = Math.pow(10, parseFloat(document.getElementById('aSlider').value))
+  const { tone, white, hwEff, active } = computeTone(hw, a)
+
+  const out = ctx.createImageData(CANVAS_N, CANVAS_N)
+  for (let i = 0; i < tone.length; i++) {
+    const [r,g,b] = colorForValue(tone[i])
+    out.data[i*4] = Math.round(r); out.data[i*4+1] = Math.round(g)
+    out.data[i*4+2] = Math.round(b); out.data[i*4+3] = 255
+  }
+  ctx.putImageData(out, 0, 0)
+
+  document.getElementById('zoomVal').textContent =
+    hw >= 100 ? Math.round(hw) + ' Mpc' : hw.toFixed(2) + ' Mpc'
+  document.getElementById('aVal').textContent = 'a = ' + a.toExponential(3)
+  document.getElementById('meta').innerHTML =
+    `demi-champ effectif (compression §11.4.e) : ${hwEff >= 100 ? Math.round(hwEff) : hwEff.toFixed(2)} Mpc · embrasement ${(white*100).toFixed(0)}%<br/>` +
+    'layers actifs : ' + active.map(l => `${l.key} (poids ${l.w.toFixed(2)}, A=${l.A.toFixed(2)})`).join(' · ') +
+    (hwEff < MATRIX.sprites.visible_below_halfwidth_mpc ? ' · + sprites N-corps' : '')
+}
+
+document.getElementById('zoomSlider').addEventListener('input', render)
+document.getElementById('aSlider').addEventListener('input', render)
+document.getElementById('resetBtn').addEventListener('click', () => {
+  document.getElementById('aSlider').value = 0; render()
+})
+
+let playing = false
+document.getElementById('playBtn').addEventListener('click', () => {
+  playing = !playing
+  document.getElementById('playBtn').textContent = playing ? '⏸ Pause' : '▶ Lecture temporelle'
+  if (playing) {
+    const slider = document.getElementById('aSlider')
+    const A_MIN_LOG = parseFloat(slider.min)
+    let start = null
+    const DURATION = 14000
+    slider.value = A_MIN_LOG
+    function step(ts) {
+      if (!playing) return
+      if (start === null) start = ts
+      const frac = Math.min((ts - start) / DURATION, 1)
+      slider.value = A_MIN_LOG + (0 - A_MIN_LOG) * frac
+      render()
+      if (frac < 1) requestAnimationFrame(step)
+      else { playing = false; document.getElementById('playBtn').textContent = '▶ Lecture temporelle' }
+    }
+    requestAnimationFrame(step)
+  }
+})
+
+boot()
+</script>
+</body>
+</html>
