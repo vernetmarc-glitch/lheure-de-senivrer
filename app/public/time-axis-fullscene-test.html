@@ -119,37 +119,45 @@ for (let i = 0; i < N_BG_FRAMES; i++) {
   img.src = `data/bg_filament_f${String(i).padStart(2,'0')}.png`
 }
 
-// Echelle physique native du fond (cf. generate_bg_filament_keyframes.py,
-// meme constante — a garder synchronisee) + facteur de zoom par palier
-// cuit (linspace(1,9,10), meme valeurs que le script de cuisson).
+// Echelle physique du fond au moment de la CUISSON (informatif seulement,
+// cf. generate_bg_filament_keyframes.py) — PAS utilisée pour le mappage à
+// l'affichage : cf. correctif ci-dessous.
 const BG_NATIVE_BOX_MPC = 5.0
-const BG_ZOOMS = Array.from({length: N_BG_FRAMES}, (_, i) => 1.0 + i * (9.0 - 1.0) / (N_BG_FRAMES - 1))
 
-function sampleBgFrameAt(frameIdx, xMpc, yMpc) {
+function sampleBgFrameAt(frameIdx, xMpc, yMpc, halfWidthMpc) {
   const f = bgFrames[frameIdx]
   if (!f) return 0.5
-  // Chaque palier cuit represente un cadrage DIFFERENT en Mpc (zoom
-  // croissant) — cf. retour du 10 juillet : le fond doit etre rattache au
-  // MEME systeme de coordonnees physiques que les galaxies, pas a une
-  // fraction de pixel ecran independante du zoom choisi.
-  const effectiveBoxMpc = BG_NATIVE_BOX_MPC / BG_ZOOMS[frameIdx]
-  const u = 0.5 + xMpc / effectiveBoxMpc
-  const v = 0.5 + yMpc / effectiveBoxMpc
-  if (u < 0 || u >= 1 || v < 0 || v >= 1) return 0.5 // hors du cadre cuit -> neutre
-  const bx = Math.min(Math.floor(u * f.width), f.width - 1)
-  const by = Math.min(Math.floor(v * f.height), f.height - 1)
+  // BUG CORRIGÉ (10 juillet, 2e signalement) : la fenêtre de mappage
+  // utilisait précédemment BG_NATIVE_BOX_MPC/zoom_i (RÉTRÉCISSANT avec le
+  // temps) — ça confinait la texture visible à une zone centrale de plus
+  // en plus petite (le reste retombant sur le gris neutre 0.5), donnant
+  // l'impression que le champ "ne remplit plus la vue" en remontant le
+  // temps — l'inverse de l'effet recherché. La croissance apparente des
+  // filaments est déjà entièrement contenue dans le CONTENU de chaque
+  // frame cuite (recadrage progressif du champ maître, cf. script de
+  // cuisson) — il ne faut PAS l'appliquer une deuxième fois ici. La
+  // fenêtre de mappage à l'affichage doit rester le champ de vue ACTUEL
+  // de l'utilisateur (2×halfWidthMpc), constant quelle que soit la frame.
+  const u = 0.5 + xMpc / (2 * halfWidthMpc)
+  const v = 0.5 + yMpc / (2 * halfWidthMpc)
+  // Répétition (pas de gris neutre) si on sort du cadre — pour rester
+  // couvrant même à halfWidthMpc large.
+  const uw = ((u % 1) + 1) % 1
+  const vw = ((v % 1) + 1) % 1
+  const bx = Math.min(Math.floor(uw * f.width), f.width - 1)
+  const by = Math.min(Math.floor(vw * f.height), f.height - 1)
   return f.data[(by * f.width + bx) * 4] / 255
 }
 
-function sampleBgTone(progress, xMpc, yMpc) {
+function sampleBgTone(progress, xMpc, yMpc, halfWidthMpc) {
   // Interpole entre les 2 frames cuites les plus proches (comme les
   // keyframes de dissolution des sprites) — meme technique, meme esprit.
   const pos = progress * (N_BG_FRAMES - 1)
   const i0 = Math.min(Math.floor(pos), N_BG_FRAMES - 2)
   const i1 = i0 + 1
   const frac = pos - i0
-  const v0 = sampleBgFrameAt(i0, xMpc, yMpc)
-  const v1 = sampleBgFrameAt(i1, xMpc, yMpc)
+  const v0 = sampleBgFrameAt(i0, xMpc, yMpc, halfWidthMpc)
+  const v1 = sampleBgFrameAt(i1, xMpc, yMpc, halfWidthMpc)
   return v0 + (v1 - v0) * frac
 }
 
@@ -296,7 +304,7 @@ function render() {
     for (let x = 0; x < CANVAS_N; x++) {
       const xMpc = (x - cx) / pxPerMpc
       const idx = y*CANVAS_N+x
-      const bgTone = sampleBgTone(sceneProgress, xMpc, yMpc)
+      const bgTone = sampleBgTone(sceneProgress, xMpc, yMpc, p.halfWidthMpc)
       // Ancres : un renflement doux autour de la position REELLE de chaque
       // galaxie, dont l'amplitude grandit vers a=1 — le fond se "rattache"
       // visiblement a l'endroit ou chaque galaxie s'est reellement formee.
