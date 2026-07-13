@@ -268,6 +268,23 @@ Le facteur de dilution 1/a³ (§3.3) s'applique **après** la génération spati
 
 **Paramètres de `apply_local_group_anchor()`** (cf. docstring de la fonction pour le détail) : `strength` (intensité globale de l'ancrage), `global_suppression` (atténuation du bruit ambiant existant, pour laisser ressortir les positions ancrées), `size_multiplier` (taille des pics, en multiple de la résolution du layer), `bump_amplitude_factor` (luminosité des pics), `extra_blur_px` (flou d'ensemble — à utiliser avec prudence, cf. §0 sur le piège du transform `exp()`), `diffuse` (désactive le mécanisme "pic garanti dominant + suppression locale du bruit" au profit d'un simple ajout par-dessus le champ existant, pour un rendu moins "rond et net"), `real_only` (limite le traitement complet aux 8 galaxies nommées si `True` ; `False` sur `l1b`/`l2`/`l2b` pour couvrir les 98).
 
+### 4.8 Ancrage résiduel sur `localgroup` — calibré le 10 juillet, pas encore implémenté
+
+**Problème mesuré** (pas juste supposé) : `density_localgroup.png` a une moyenne de 0,23/255 (99,7% des pixels quasi noirs), contre 126,24 pour `density_l1b.png` — le layer immédiatement adjacent en zoomant. Cette rupture de près de 550× est exactement le défaut décrit en §11.1 point 3 et §11.4.d, mesurable dès aujourd'hui (`a=1`), pas seulement au moment d'une future convergence temporelle.
+
+**Correctif calibré par le calcul** (`scripts/dev/` — sweep d'amplitude, pas une valeur devinée) :
+
+- **Fichier concerné : uniquement `generate_local_group_texture.py`.** Ni `generate_simulated_textures.mjs` (sprites + `milkyway`), ni `RealGalaxiesLayer.tsx` n'ont besoin d'être modifiés — `localgroup` est déjà le layer responsable de la texture ambiante à cette échelle de zoom (visible dans le même composite que `RealGalaxiesLayer`, cf. §4.6), c'est donc lui qui doit porter cette correction.
+- **Technique** : même génération FFT à spectre de puissance que `l1b`/`l2` (`generate_raw_field`, §4.3), sur le même box physique déjà utilisé par ce script (`2 × MAX_MPC × MARGIN_FACTOR = 7,2 Mpc`), variance normalisée à 1.
+- **Intégration** : ce champ de fond est ADDITIONNÉ au champ existant (halos + cœurs des 98 galaxies, déjà calculé par `build_field()`) — pas un nouveau layer séparé, pas de nouvelle entrée dans `layerWeights.ts` :
+  ```
+  champ_final = champ_existant(98 galaxies) + amplitude_fond × champ_FFT_normalisé(seed=31415)
+  norm = clip(champ_final / VMAX_REFERENCE, 0, 1)      # VMAX_REFERENCE=4.074, déjà utilisé, inchangé
+  ```
+- **Amplitude retenue : `amplitude_fond = 0,35`.** Calibrée pour amener la moyenne exportée de 0,23 à **8,95/255** — une amélioration nette (×39) sans se rapprocher de la moyenne de `l1b` (126) : `localgroup` doit rester visiblement plus sombre/épars que `l1b`, cohérent avec une structure moins développée à cette échelle plus proche. Vérifié : saturation négligeable (0,02% de pixels `>240`, comparable aux cœurs de galaxies déjà brillants avant ce correctif).
+
+Ce correctif est la SEULE différence volontaire entre l'état de production actuel (`a=1`) et la matrice complète à générer (cf. §11.7, non-régression) — tout le reste du rendu à `a=1` doit rester strictement identique à l'existant.
+
 ---
 
 ## 5. Architecture technique (proposition initiale)
@@ -492,6 +509,8 @@ Calibré par le calcul (10 juillet) : reste nul jusqu'à `a≈0,1`, monte à `59
 **Précisé le 10 juillet.** Les layers à sprites (`milkyway`, `RealGalaxiesLayer`) ont, en l'état actuel de production, un fond parfaitement noir autour des sprites — contrairement aux layers de densité qui ont une texture partout. Ça crée une rupture de luminosité moyenne avec le reste des échelles, visible dès `a=1` (pas seulement au moment de la convergence en remontant le temps).
 
 **Correctif à intégrer, y compris dans le rendu de production à `a=1`** : ajouter un léger champ de densité, généré par le MÊME mécanisme que §11.2 (champ FFT, pas un bruit inventé séparément), **ancré sur les 98 galaxies du Groupe Local** (8 réelles nommées + 90 procédurales — même catalogue que `apply_local_group_anchor`, §4.7), avec une amplitude modeste et permanente (pas modulée à zéro à `a=1` — c'est justement là qu'elle sert). Objectif explicite : que la moyenne de couleur de `milkyway`/`RealGalaxiesLayer`/`localgroup` reste cohérente avec celle des layers de densité au-dessus, dès aujourd'hui, pas seulement en cas de convergence lointaine dans le temps.
+
+**Valeurs concrètes calibrées par le calcul, fichier concerné, formule d'intégration : cf. §4.8** — ne pas redeviner ces paramètres, ils sont déjà mesurés (amplitude retenue 0,35, moyenne exportée cible 8,95/255, uniquement `generate_local_group_texture.py` à modifier).
 
 Ce mécanisme est le même que l'ancrage par galaxie déjà validé pour la scène complète du Groupe Local en dissolution (§11.5, prototype `time-axis-fullscene-test.html`) : un renflement à la position réelle de chaque galaxie, mélangé par l'opérateur "screen" (§11.3) — simplement utilisé ici en permanence (amplitude non nulle même à `a=1`), plutôt que seulement comme effet de dissolution.
 
