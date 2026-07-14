@@ -37,28 +37,24 @@ const cv = null, ctx = null
 // cv/ctx sont déclarés dans le script via getElementById -> nos stubs suffisent.
 
 const MATRIX = JSON.parse(fs.readFileSync(path.join(APP, 'data/spacetime_matrix.json')))
-const SIMS = JSON.parse(fs.readFileSync(path.join(APP, 'data/dissolution_keyframes.json')))
-const CATALOG = JSON.parse(fs.readFileSync(path.join(APP, 'data/local_group_catalog.json')))
+const COSMO_TABLE = JSON.parse(fs.readFileSync(path.join(APP, 'data/cosmology_table.json')))
+
 
 const harness = `
 ;(function () {
   MATRIX = __MATRIX__
-  SIMS = __SIMS__
-  const SLUG_BY_NAME = {
-    'Andromède (M31)': 'andromede', 'Triangulum (M33)': 'triangulum',
-    'Grand Nuage de Magellan': 'lmc', 'Petit Nuage de Magellan': 'smc',
-    'Naine du Sagittaire': 'sagittaire', 'NGC 6822': 'ngc6822',
-    'IC 10': 'ic10', 'Leo I': 'leo1',
-  }
-  SCENE = [{ slug: 'milkyway', distanceMpc: 0, angleDeg: 0, radiusMpc: 0.01594329 }]
-  for (const gal of __CATALOG__) {
-    if (gal.isReal && SLUG_BY_NAME[gal.name])
-      SCENE.push({ slug: SLUG_BY_NAME[gal.name], distanceMpc: gal.distanceMpc,
-                   angleDeg: gal.angleDeg, radiusMpc: gal.radiusMpc })
-  }
+  COSMO = __COSMO__.rows
   for (const l of MATRIX.layers) {
     FRAMES[l.key] = l.keyframes_a.map((_, i) => {
       const raw = __READRAW__(l.key, i)
+      const arr = new Float32Array(raw.length)
+      for (let j = 0; j < raw.length; j++) arr[j] = raw[j] / 255
+      return { arr, n: 512 }
+    })
+  }
+  for (const g of MATRIX.real_galaxies.entries) {
+    SPRITE_FRAMES[g.slug] = Array.from({ length: MATRIX.sprites.n_frames }, (_, i) => {
+      const raw = __READRAW__('sprites/' + g.slug, i)
       const arr = new Float32Array(raw.length)
       for (let j = 0; j < raw.length; j++) arr[j] = raw[j] / 255
       return { arr, n: 512 }
@@ -70,16 +66,19 @@ const harness = `
 `
 
 const full = script + harness
+// Les frames de layers sont dans xcheck_tmp/frames/, les sprites dans
+// xcheck_tmp/sprites/ (la clé contient alors déjà son sous-dossier).
 const readRaw = (key, i) =>
-  fs.readFileSync(path.join(XDIR, 'frames', `${key}_${String(i).padStart(2, '0')}.raw`))
+  fs.readFileSync(path.join(XDIR, key.includes('/') ? '.' : 'frames',
+    `${key}_${String(i).padStart(2, '0')}.raw`))
 
 // Évaluation dans une fonction partageant la portée lexicale du script
-const fn = new Function('SpacetimeShared', 'document', '__MATRIX__', '__SIMS__',
-  '__CATALOG__', '__READRAW__',
+const fn = new Function('SpacetimeShared', 'document', '__MATRIX__', '__COSMO__',
+  '__READRAW__',
   'const cvStub=null;' + full.replace(/const cv = document.getElementById\('cv'\)\s*\nconst ctx = cv.getContext\('2d'\)/,
     'const cv = null, ctx = null'))
 const docStub = { getElementById: () => ({ value: '0', textContent: '', innerHTML: '', addEventListener: () => {} }) }
-fn(SpacetimeShared, docStub, MATRIX, SIMS, CATALOG, readRaw)
+fn(SpacetimeShared, docStub, MATRIX, COSMO_TABLE, readRaw)
 
 const computeTone = globalThis.__computeTone
 if (!computeTone) { console.error('computeTone introuvable'); process.exit(1) }

@@ -1,14 +1,21 @@
 {
- "version": 1,
+ "version": 2,
  "generated": "2026-07-13",
  "comment": "SOURCE DE VÉRITÉ éditable — cf. docs/matrice-parametres-zoom-temps.md. Éditer ici puis relancer scripts/generate_spacetime_frames.py et scripts/dev/validate_spacetime_matrix.py.",
  "time_axis": {
   "a_min": 0.00090827,
   "a_max": 1.0,
-  "slider_log10a_range": [
-   -3.0418,
-   0.0
-  ]
+  "display": {
+   "mode": "cosmic_time_gyr_linear",
+   "mapping_table": "data/cosmology_table.json",
+   "t_min_gyr": 0.000365,
+   "t_max_gyr": 13.7903,
+   "readout": [
+    "t_gyr",
+    "z",
+    "a"
+   ]
+  }
  },
  "zoom_axis": {
   "halfwidth_min_mpc": 0.02,
@@ -61,16 +68,162 @@
   "fade_scale_mpc": 0.03,
   "a_multiplier": 6
  },
- "compression": {
-  "lo_mpc": 2.0,
-  "hi_mpc": 15.0
+ "expansion": {
+  "nodes": [
+   [
+    0.03,
+    0.0
+   ],
+   [
+    2.4,
+    0.0
+   ],
+   [
+    8.49,
+    0.15
+   ],
+   [
+    30.0,
+    0.65
+   ],
+   [
+    67.08,
+    0.9
+   ],
+   [
+    150.0,
+    1.0
+   ],
+   [
+    14570.0,
+    1.0
+   ]
+  ],
+  "comment": "≲2.4 Mpc lié (Groupe Local, aucun effet) ; 8.5 Mpc volume local découplé (résiduel 0.15 validé) ; ≥150 Mpc flux de Hubble pur — cf. §11.4.e"
  },
  "sprites": {
-  "visible_below_halfwidth_mpc": 4.0,
-  "keyframes_json": "data/dissolution_keyframes.json",
+  "frames_dir": "data/dissolution_sprites",
+  "frame_pattern": "data/dissolution_sprites/{slug}_f{:02d}.png",
+  "n_frames": 14,
+  "frame_resolution": 512,
+  "progress": "1 - A(galaxy_scale_mpc, a)",
+  "fade_exponent": 2.0,
+  "blend": "screen",
+  "visible_fade_band_mpc": [
+   4.0,
+   6.0
+  ],
   "catalog_json": "data/local_group_catalog.json",
-  "point_radius_growth": 1.2,
-  "global_amp_scale": 0.0025
+  "min_render_comment": "Plancher de lisibilité sur le CŒUR galactique : la frame sprite est cadrée sur la dispersion finale (sprite_halfwidth_units ≈ 7-9 rayons), le cœur n'en occupe que ~1/7 ; un plancher sur la frame entière laisse le cœur sous-échantillonné (aliasing -> galaxie invisible). Rendu : frame_half_px = max(physique, min_render_core_px × sprite_halfwidth_units) => le cœur couvre toujours ≥ ~2 px. Léger surdimensionnement des naines assumé.",
+  "min_render_core_px": 1.25
+ },
+ "real_galaxies": {
+  "generation": {
+   "simulation": {
+    "script": "scripts/simulate_dissolution.mjs",
+    "engine": "N-corps Barnes-Hut, intégrateur leapfrog",
+    "n_steps": 480,
+    "n_keyframes": 14,
+    "theta": 0.75,
+    "softening": 0.018,
+    "particles_per_galaxy": 2500,
+    "initial_conditions": "morphologies GalaxyModel réelles + composantes de vitesse rotationnelles",
+    "output": "data/dissolution_keyframes.json"
+   },
+   "baking": {
+    "script": "scripts/generate_dissolution_sprites.mjs",
+    "point_size": 0.5,
+    "halo_growth": 8.5,
+    "blur_max_px": 6,
+    "filament_amount": 0.8,
+    "tone_transform": "1 - exp(-champ)  (canal saturant, §11.3)",
+    "framing": "demi-largeur = maxExtent(dernière frame) × 1.15, FIXE pour toutes les frames d'une galaxie",
+    "progress_per_frame": "f / 13 (linéaire)"
+   }
+  },
+  "entries": [
+   {
+    "slug": "milkyway",
+    "name": "Voie lactée",
+    "distance_mpc": 0.0,
+    "angle_deg": 0.0,
+    "radius_mpc": 0.01594329,
+    "sprite_halfwidth_units": 7.7199,
+    "sprite_halfwidth_mpc": 0.12308
+   },
+   {
+    "slug": "andromede",
+    "name": "Andromède (M31)",
+    "distance_mpc": 0.78,
+    "angle_deg": 20,
+    "radius_mpc": 0.034,
+    "sprite_halfwidth_units": 7.1484,
+    "sprite_halfwidth_mpc": 0.243047
+   },
+   {
+    "slug": "triangulum",
+    "name": "Triangulum (M33)",
+    "distance_mpc": 0.84,
+    "angle_deg": 55,
+    "radius_mpc": 0.0092,
+    "sprite_halfwidth_units": 7.1836,
+    "sprite_halfwidth_mpc": 0.066089
+   },
+   {
+    "slug": "lmc",
+    "name": "Grand Nuage de Magellan",
+    "distance_mpc": 0.05,
+    "angle_deg": 200,
+    "radius_mpc": 0.0022,
+    "sprite_halfwidth_units": 7.8613,
+    "sprite_halfwidth_mpc": 0.017295
+   },
+   {
+    "slug": "smc",
+    "name": "Petit Nuage de Magellan",
+    "distance_mpc": 0.061,
+    "angle_deg": 210,
+    "radius_mpc": 0.0011,
+    "sprite_halfwidth_units": 9.2923,
+    "sprite_halfwidth_mpc": 0.010222
+   },
+   {
+    "slug": "sagittaire",
+    "name": "Naine du Sagittaire",
+    "distance_mpc": 0.024,
+    "angle_deg": 320,
+    "radius_mpc": 0.0015,
+    "sprite_halfwidth_units": 7.8226,
+    "sprite_halfwidth_mpc": 0.011734
+   },
+   {
+    "slug": "ngc6822",
+    "name": "NGC 6822",
+    "distance_mpc": 0.46,
+    "angle_deg": 110,
+    "radius_mpc": 0.001,
+    "sprite_halfwidth_units": 7.5633,
+    "sprite_halfwidth_mpc": 0.007563
+   },
+   {
+    "slug": "ic10",
+    "name": "IC 10",
+    "distance_mpc": 0.66,
+    "angle_deg": 150,
+    "radius_mpc": 0.0008,
+    "sprite_halfwidth_units": 7.1984,
+    "sprite_halfwidth_mpc": 0.005759
+   },
+   {
+    "slug": "leo1",
+    "name": "Leo I",
+    "distance_mpc": 0.82,
+    "angle_deg": 290,
+    "radius_mpc": 0.0005,
+    "sprite_halfwidth_units": 7.1984,
+    "sprite_halfwidth_mpc": 0.003599
+   }
+  ]
  },
  "layers": [
   {
@@ -88,6 +241,7 @@
    "halfwidth_dex": 0.05,
    "center_dex": -0.05,
    "compression": true,
+   "expansion_strength": 1.0,
    "anchor_a1": null,
    "anchor_scale_mpc": null,
    "keyframes_a": [
@@ -119,6 +273,7 @@
    "halfwidth_dex": 0.05,
    "center_dex": -0.05,
    "compression": true,
+   "expansion_strength": 1.0,
    "anchor_a1": null,
    "anchor_scale_mpc": null,
    "keyframes_a": [
@@ -150,6 +305,7 @@
    "halfwidth_dex": 0.05,
    "center_dex": -0.05,
    "compression": true,
+   "expansion_strength": 1.0,
    "anchor_a1": null,
    "anchor_scale_mpc": null,
    "keyframes_a": [
@@ -181,6 +337,7 @@
    "halfwidth_dex": 0.05,
    "center_dex": -0.05,
    "compression": true,
+   "expansion_strength": 1.0,
    "anchor_a1": null,
    "anchor_scale_mpc": null,
    "keyframes_a": [
@@ -212,6 +369,7 @@
    "halfwidth_dex": 0.05,
    "center_dex": -0.05,
    "compression": true,
+   "expansion_strength": 1.0,
    "anchor_a1": null,
    "anchor_scale_mpc": null,
    "keyframes_a": [
@@ -243,6 +401,7 @@
    "halfwidth_dex": 0.05,
    "center_dex": -0.05,
    "compression": true,
+   "expansion_strength": 1.0,
    "anchor_a1": null,
    "anchor_scale_mpc": null,
    "keyframes_a": [
@@ -274,6 +433,7 @@
    "halfwidth_dex": 0.05,
    "center_dex": -0.05,
    "compression": true,
+   "expansion_strength": 1.0,
    "anchor_a1": null,
    "anchor_scale_mpc": null,
    "keyframes_a": [
@@ -305,6 +465,7 @@
    "halfwidth_dex": 0.1549,
    "center_dex": -0.1549,
    "compression": true,
+   "expansion_strength": 0.9,
    "anchor_a1": {
     "strength": 0.85,
     "real_only": false,
@@ -346,6 +507,7 @@
    "halfwidth_dex": 0.1871,
    "center_dex": -0.1871,
    "compression": true,
+   "expansion_strength": 0.65,
    "anchor_a1": {
     "strength": 1.6,
     "real_only": false,
@@ -387,6 +549,7 @@
    "halfwidth_dex": 0.2596,
    "center_dex": -0.2596,
    "compression": true,
+   "expansion_strength": 0.15,
    "anchor_a1": {
     "strength": 1.0,
     "global_suppression": 0.35,
@@ -430,6 +593,7 @@
    "halfwidth_dex": 0.699,
    "center_dex": -0.699,
    "compression": false,
+   "expansion_strength": 0.0,
    "anchor_a1": null,
    "anchor_scale_mpc": 0.03,
    "residual_bg": {
@@ -455,6 +619,30 @@
    ],
    "frame_pattern": "data/st_localgroup_k{:02d}.png",
    "frame_resolution": 512
+  },
+  {
+   "key": "milkyway",
+   "kind": "sprite_plus_fond",
+   "max_mpc": 0.1,
+   "margin_factor": null,
+   "seed": null,
+   "parent": null,
+   "a_form": 0.2,
+   "dissolution_window_a": [
+    0.04,
+    1.0
+   ],
+   "halfwidth_dex": 0.699,
+   "center_dex": -0.699,
+   "compression": false,
+   "expansion_strength": 0.0,
+   "anchor_a1": null,
+   "anchor_scale_mpc": 0.03,
+   "fond_layer": "localgroup",
+   "sprite_slug": "milkyway",
+   "keyframes_a": [],
+   "frame_pattern": null,
+   "frame_resolution": null
   }
  ],
  "computed": {
@@ -1283,5 +1471,116 @@
     }
    ]
   }
+ },
+ "nomenclature": {
+  "format": "<lettre><chiffre> — la lettre identifie la LIGNE de zoom (vue ancrée au demi-champ max_mpc du layer), le chiffre la COLONNE de temps (linéaire en Gyr, comme le curseur). Ex : C7 = vue l1b (8.49 Mpc) à t≈9.65 Ga.",
+  "zoom_rows": {
+   "A": {
+    "layer": "milkyway",
+    "halfwidth_mpc": 0.1
+   },
+   "B": {
+    "layer": "localgroup",
+    "halfwidth_mpc": 2.4
+   },
+   "C": {
+    "layer": "l1b",
+    "halfwidth_mpc": 8.49
+   },
+   "D": {
+    "layer": "l2",
+    "halfwidth_mpc": 30.0
+   },
+   "E": {
+    "layer": "l2b",
+    "halfwidth_mpc": 67.08
+   },
+   "F": {
+    "layer": "l3",
+    "halfwidth_mpc": 150.0
+   },
+   "G": {
+    "layer": "l3b",
+    "halfwidth_mpc": 212.13
+   },
+   "H": {
+    "layer": "l4",
+    "halfwidth_mpc": 300.0
+   },
+   "I": {
+    "layer": "l4a",
+    "halfwidth_mpc": 793.73
+   },
+   "J": {
+    "layer": "l4b",
+    "halfwidth_mpc": 2100.0
+   },
+   "K": {
+    "layer": "l5a",
+    "halfwidth_mpc": 5531.46
+   },
+   "L": {
+    "layer": "l5",
+    "halfwidth_mpc": 14570.0
+   }
+  },
+  "time_columns": {
+   "0": {
+    "t_gyr": 0.0004,
+    "a": 0.000908,
+    "z": 1100.0
+   },
+   "1": {
+    "t_gyr": 1.3794,
+    "a": 0.186293,
+    "z": 4.3679
+   },
+   "2": {
+    "t_gyr": 2.7584,
+    "a": 0.296912,
+    "z": 2.368
+   },
+   "3": {
+    "t_gyr": 4.1373,
+    "a": 0.391976,
+    "z": 1.5512
+   },
+   "4": {
+    "t_gyr": 5.5163,
+    "a": 0.47989,
+    "z": 1.0838
+   },
+   "5": {
+    "t_gyr": 6.8953,
+    "a": 0.564485,
+    "z": 0.7715
+   },
+   "6": {
+    "t_gyr": 8.2743,
+    "a": 0.648049,
+    "z": 0.5431
+   },
+   "7": {
+    "t_gyr": 9.6533,
+    "a": 0.7322,
+    "z": 0.3657
+   },
+   "8": {
+    "t_gyr": 11.0323,
+    "a": 0.818219,
+    "z": 0.2222
+   },
+   "9": {
+    "t_gyr": 12.4113,
+    "a": 0.907157,
+    "z": 0.1023
+   },
+   "10": {
+    "t_gyr": 13.7903,
+    "a": 0.999999,
+    "z": 0.0
+   }
+  },
+  "comment": "A = vue la plus rapprochée (Voie lactée), L = la plus large (l5, univers observable) ; 0 = recombinaison (t_min), 10 = aujourd'hui (t_max). Toute cellule de la matrice espace-temps × zoom se désigne par son code (ex. A10 = Voie lactée aujourd'hui, L0 = univers observable à la recombinaison). Le montage de validation est étiqueté avec ces codes."
  }
 }

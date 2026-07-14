@@ -13,8 +13,15 @@ for l in MATRIX["layers"]:
         arr = np.array(Image.open(f"{DATA_DIR}/st_{l['key']}_k{i:02d}.png"))
         arr.astype(np.uint8).tofile(f"xcheck_tmp/frames/{l['key']}_{i:02d}.raw")
 
-CELLS = [(0.05, 1.0), (0.05, 0.3), (1.0, 0.01), (5.0, 0.5),
-         (300.0, 0.9), (14570.0, 0.85), (0.02, 0.001)]
+os.makedirs("xcheck_tmp/sprites", exist_ok=True)
+for g in MATRIX["real_galaxies"]["entries"]:
+    for i in range(MATRIX["sprites"]["n_frames"]):
+        arr = np.array(Image.open(
+            f"{DATA_DIR}/dissolution_sprites/{g['slug']}_f{i:02d}.png").convert("L"))
+        arr.astype(np.uint8).tofile(f"xcheck_tmp/sprites/{g['slug']}_{i:02d}.raw")
+
+CELLS = [(0.05, 1.0), (0.05, 0.3), (1.2, 1.0), (1.2, 0.45), (1.2, 0.15),
+         (1.0, 0.01), (5.0, 0.5), (300.0, 0.9), (14570.0, 0.85), (0.02, 0.001)]
 PIXELS = [(10, 10), (150, 150), (80, 220), (250, 40), (299, 299)]
 ref = []
 for hw, a in CELLS:

@@ -111,7 +111,34 @@
     return halfWidthMpc + (compressed - halfWidthMpc) * strength
   }
 
+  // Effet d'expansion PAR ÉCHELLE (matrice v2, 13 juillet) : nœuds
+  // [scaleMpc, strength] lus depuis spacetime_matrix.json, interpolés en
+  // smoothstep sur log10(s). Remplace compressionStrength (rampe globale
+  // lo=2/hi=15, conservée ci-dessus uniquement pour les anciens prototypes)
+  // qui violait le §11.4.e en contractant le champ des galaxies liées.
+  function expansionStrengthFromNodes(nodes, scaleMpc) {
+    const x = Math.log10(Math.max(scaleMpc, 1e-6))
+    const pts = nodes.map(([s, v]) => [Math.log10(s), v])
+    if (x <= pts[0][0]) return pts[0][1]
+    if (x >= pts[pts.length - 1][0]) return pts[pts.length - 1][1]
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (x >= pts[i][0] && x <= pts[i + 1][0]) {
+        const span = pts[i + 1][0] - pts[i][0]
+        const t = span > 0 ? smoothstep((x - pts[i][0]) / span) : 0
+        return pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t
+      }
+    }
+    return pts[pts.length - 1][1]
+  }
+
+  function effectiveHalfWidthMpcNodes(halfWidthMpc, a, nodes) {
+    const strength = expansionStrengthFromNodes(nodes, halfWidthMpc)
+    return halfWidthMpc + (halfWidthMpc / Math.max(a, 1e-6) - halfWidthMpc) * strength
+  }
+
   const SpacetimeShared = {
+    expansionStrengthFromNodes,
+    effectiveHalfWidthMpcNodes,
     aFormForScaleMpc,
     structureAmplitude,
     universeGlowColor,

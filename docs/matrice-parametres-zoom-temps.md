@@ -33,11 +33,40 @@ depuis zéro — **le relancer écrase les ajustements manuels**.
 
 ## 2. Les deux axes
 
-- **Temps** : `a ∈ [1/1101, 1]` (recombinaison → aujourd'hui, §3), curseur
-  en `log10(a) ∈ [−3.0417, 0]`.
+- **Temps** : la génération reste paramétrée en `a ∈ [1/1101, 1]`
+  (recombinaison → aujourd'hui, §3), mais **l'axe d'affichage est le temps
+  cosmique LINÉAIRE en milliards d'années** (v2, 13 juillet) :
+  `t ∈ [0.000365, 13.7903]` Gyr, sans anamorphose, correspondance
+  `a ↔ t ↔ z` lue dans `data/cosmology_table.json` (Planck, H0=67.4).
+  Motif : l'ancien curseur `log10(a)` étalait l'embrasement (t < 38 Ma,
+  soit 0.3 % de l'âge de l'univers) sur 42 % de la course ; en Gyr linéaire
+  il est confiné à 0.31 % de la course, au ras du Big Bang (validé §G).
+  Affichage sous le curseur : `t (Ga) · z · a`.
 - **Zoom** : demi-champ demandé `∈ [0.02, 14570]` Mpc comobiles
   (bornes de `UniverseMap.tsx`). Le demi-champ EFFECTIF appliqué au rendu
-  inclut la compression spatiale (§4 ci-dessous).
+  inclut l'effet d'expansion par échelle (§9 ci-dessous).
+
+### 2.b Nomenclature des cellules (14 juillet)
+
+Toute cellule de la matrice espace-temps × zoom se désigne par un code
+**`<lettre><chiffre>`** (bloc `nomenclature` du JSON, montage de validation
+étiqueté avec ces codes) :
+
+- **Lettre = ligne de zoom**, vue ancrée au `max_mpc` du layer, de la plus
+  rapprochée à la plus large :
+
+| Code | A | B | C | D | E | F | G | H | I | J | K | L |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Layer | milkyway | localgroup | l1b | l2 | l2b | l3 | l3b | l4 | l4a | l4b | l5a | l5 |
+| Demi-champ (Mpc) | 0.1 | 2.4 | 8.49 | 30 | 67.08 | 150 | 212.13 | 300 | 793.73 | 2100 | 5531.46 | 14570 |
+
+- **Chiffre = colonne de temps**, 0 → 10, linéaire en Gyr comme le curseur :
+  `t_k = 0.000365 + k/10 × 13.79` Ga (0 = recombinaison z≈1100,
+  7 ≈ 9.65 Ga soit a≈0.732, 10 = aujourd'hui a=1).
+
+Exemples : `A10` = Voie lactée aujourd'hui, `L0` = univers observable à la
+recombinaison, `C7` = vue l1b (8.49 Mpc) à t≈9.65 Ga. Résolution
+programmatique : `spacetime_pipeline.cell_params("C7") → (hw, a)`.
 
 ## 3. Colonnes de la matrice, par layer (provenance de chaque valeur)
 
@@ -55,10 +84,15 @@ depuis zéro — **le relancer écrase les ajustements manuels**.
 | `uniform_floor` (localgroup) | Convergence vers le ton dissous des layers GRF (129.4/255) | §11.1 point 3 (cohérence de luminosité moyenne) — cf. §7 ci-dessous |
 
 Paramètres globaux : `embrasement` (exp 5, offset 18, ×6, échelle 0.03 —
-§11.4.c, calibré le 10 juillet, inchangé), `compression` (fondu en S entre
-2 et 15 Mpc — §4.7/§11.4.e), `sprites` (croissance 1.2, amplitude 0.0025 —
-correctifs du 10 juillet), `zoom_axis` (frontières/fondus copiés de
+§11.4.c, calibré le 10 juillet, inchangé), `expansion` (nœuds par échelle,
+v2 — §9 ci-dessous), `sprites` + `real_galaxies` (sprites N-corps cuits,
+v2 — §10 ci-dessous), `time_axis.display` (axe Gyr — §2),
+`nomenclature` (§2.b), `zoom_axis` (frontières/fondus copiés de
 `app/src/layerWeights.ts`).
+
+Nouvelle colonne par layer (v2) : `expansion_strength` — effet d'expansion
+à l'échelle du layer (cf. §9). Nouveau layer `milkyway` (kind
+`sprite_plus_fond`, cf. §10.d).
 
 ## 4. Modulations temporelles appliquées à la génération
 
@@ -81,11 +115,11 @@ parent `l2` (héritage passe-bas de production) est modulée par `A(s_l1b,a)`
 et non `A_gal(a)` — effet de second ordre (composante lissée, faible
 amplitude), documenté ici pour ne pas être redécouvert.
 
-La compression spatiale n'est PAS cuite : la grille comobile est figée (§2),
+L'effet d'expansion n'est PAS cuit : la grille comobile est figée (§2),
 la fenêtre d'échantillonnage à l'affichage s'élargit en `hw/a` (pondérée par
-`compressionStrength`), et la sélection de layers se fait sur ce demi-champ
-effectif — les fondus de zoom existants absorbent naturellement le
-changement d'échelle.
+`expansion_strength(hw)`, cf. §9), et la sélection de layers se fait sur ce
+demi-champ effectif — les fondus de zoom existants absorbent naturellement
+le changement d'échelle.
 
 ## 5. Table évaluée (générée depuis les frames cuites — à régénérer après tout ajustement)
 
@@ -150,14 +184,120 @@ Physiquement : la matière ne disparaît pas, elle s'uniformise.
 
 ## 8. Simplifications propres au prototype (à traiter à l'intégration production)
 
-- Le poids du layer `milkyway` est reporté sur `localgroup` : la Voie lactée
-  y est rendue par son sprite N-corps (`dissolution_keyframes.json`), pas par
-  `density_milkyway.png`. L'intégration production devra décider du
-  traitement temporel de la texture `milkyway` elle-même (probablement le
-  même trio sprite + fond ancré + plancher).
+- Le poids de zoom du layer `milkyway` est reporté sur le FOND `localgroup`
+  (cf. §10.d) : la Voie lactée y est rendue par son sprite cuit
+  (`dissolution_sprites/milkyway_f*.png`), pas par `density_milkyway.png`.
+  L'intégration production devra décider du traitement temporel de la
+  texture `milkyway` elle-même (probablement le même trio sprite + fond
+  ancré + plancher).
 - Le fondu entre layers de zoom reste le fondu alpha de production
   (`layerWeights.ts`) — mécanisme d'AXE DE ZOOM existant, distinct de
   l'interdiction §11.3 qui porte sur les transitions temporelles.
 - Frames 512×512 (36 Mo pour 114 frames avant optimisation PNG, ~16 Mo
   réels) — résolution/nombre de keyframes réductibles via la matrice si le
   poids devient un problème.
+
+## 9. Effet d'expansion par échelle (v2 — 13 juillet)
+
+Remplace la rampe globale `lo=2/hi=15` Mpc, qui violait le §11.4.e
+(force 0.66 à 8.5 Mpc → contraction apparente du champ des 96 galaxies
+liées en remontant le temps — problème n°3 du 13 juillet).
+
+- Bloc `expansion.nodes` du JSON : `[[0.03,0], [2.4,0], [8.49,0.15],
+  [30,0.65], [67.08,0.9], [150,1.0], [14570,1.0]]` — `strength(hw)`
+  interpolé en smoothstep sur `log10(s)` entre les nœuds, piloté par le
+  demi-champ DEMANDÉ au curseur.
+- `hw_eff = hw + (hw/a − hw) × strength(hw)`.
+- Justification physique : ≲2.4 Mpc lié (Groupe Local, aucun effet) ;
+  8.5 Mpc dominé visuellement par le volume local découplé (résiduel 0.15,
+  validé par Marc) ; ≥150 Mpc flux de Hubble pur.
+- Chaque layer porte sa valeur dans la colonne `expansion_strength`
+  (redondance de lecture ; la définition fonctionnelle est la courbe des
+  nœuds).
+- Implémentations synchronisées : `SpacetimeShared.expansionStrengthFromNodes`
+  / `effectiveHalfWidthMpcNodes` (JS) et `spacetime_pipeline.expansion_strength`
+  / `effective_halfwidth` (Python). Les anciennes fonctions
+  `compressionStrength`/`effectiveHalfWidthMpc` ne subsistent que pour les
+  anciens prototypes.
+- Validation (§E) : `hw_eff` exactement constant à toute échelle ≤2.4 Mpc ;
+  `strength(max_mpc)` = valeur matrice pour les 12 layers ; écart apparent
+  MW–M31 constant dans le temps (centroïdes, tolérance 3 px couvrant le
+  mouvement propre N-corps cuit dans les frames, qui relève de l'accrétion
+  et PAS de l'expansion).
+
+## 10. Sprites galactiques N-corps cuits (v2 — 13 juillet)
+
+Corrige les problèmes n°1/4/5/6 du 13 juillet : le prototype v1 utilisait
+des splats de particules bruts (points sans morphologie, flux conservé donc
+jamais éteints) au lieu des 126 sprites cuits des sessions des 9-10 juillet.
+
+### 10.a Chaîne de génération (bloc `real_galaxies.generation` du JSON)
+
+1. **Simulation** — `scripts/simulate_dissolution.mjs` : N-corps
+   Barnes-Hut (θ=0.75), intégrateur leapfrog, softening 0.018 (unités
+   rayon=1, équivalent au 900 al/52000 al calibré pour la Voie lactée),
+   480 pas, 14 keyframes, 2500 particules/galaxie, conditions initiales =
+   morphologies GalaxyModel réelles + composantes de vitesse
+   rotationnelles. Sortie : `data/dissolution_keyframes.json`.
+2. **Cuisson** — `scripts/generate_dissolution_sprites.mjs` :
+   `POINT_SIZE=0.5`, `HALO_GROWTH=8.5` (σ_px = 0.5·(1+progress·7.5)),
+   `BLUR_MAX_PX=6` (flou = progress^1.5·6), `FILAMENT_AMOUNT=0.8`
+   (bruit multiplicatif en cloche 4·p·(1−p)), ton final `1−exp(−champ)`
+   (canal saturant, §11.3), amplitude par particule `0.18+b·0.55`.
+   **Cadrage : demi-largeur = maxExtent(dernière frame) × 1.15, FIXE pour
+   toutes les frames d'une galaxie** (pas de « zoom » entre frames au
+   runtime). `progress = f/13` (linéaire). Sortie : 126 PNG 512² gris,
+   `data/dissolution_sprites/{slug}_f00..f13.png` (9 galaxies × 14 frames).
+
+### 10.b Entrées par galaxie (bloc `real_galaxies.entries`)
+
+Positions/angles/rayons du catalogue (`local_group_catalog.json` +
+Voie lactée au centre, rayon 0.01594329 Mpc). Champ dérivé stocké :
+`sprite_halfwidth_units` = maxExtent(f13)×1.15 (unités de rayon
+galactique, recalculable depuis `dissolution_keyframes.json`) et
+`sprite_halfwidth_mpc = sprite_halfwidth_units × radius_mpc` — demi-étendue
+MONDE de la frame sprite. Valeurs : milkyway 0.1231 Mpc, andromede 0.2430,
+triangulum 0.0661, lmc 0.0173, smc 0.0102, sagittaire 0.0117,
+ngc6822 0.0076, ic10 0.0058, leo1 0.0036.
+
+### 10.c Rendu runtime (bloc `sprites`)
+
+- `progress = 1 − A_gal(a)` → paire de frames interpolée linéairement
+  (`frame = progress × 13`).
+- **Extinction : contribution × A_gal(a)^`fade_exponent` avec exposant
+  2.0** — décision du 13 juillet : les sprites se dissolvent DANS le fond
+  AVANT que le fond (ancrages à A_gal^1) ne se dissolve à son tour.
+  Validation empirique (§F) : contraste sprite relatif < contraste fond
+  MESURÉ à a∈{0.5, 0.3, 0.15, 0.1} (ex. a=0.15 : 0.274 vs 0.513) ;
+  extinction complète à a≤0.04.
+- Mélange « screen » (§11.3), jamais de fondu alpha temporel.
+- Zone de visibilité : fondu en S sur le demi-champ EFFECTIF,
+  `visible_fade_band_mpc = [4, 6]` (aucune apparition brutale en zoomant).
+- **Plancher de lisibilité sur le CŒUR** :
+  `frame_half_px = max(physique, min_render_core_px × sprite_halfwidth_units)`
+  avec `min_render_core_px = 1.25`. Motif : la frame est cadrée sur la
+  dispersion finale (~7-9 rayons), le cœur n'en occupe que ~1/7 — un
+  plancher sur la frame entière laissait le cœur sous-échantillonné
+  (aliasing → naines invisibles, bogue attrapé par la validation §F).
+  Léger surdimensionnement des naines assumé aux zooms larges.
+- Implémentations synchronisées 1:1 : `compositeSprites` (prototype JS) et
+  `spacetime_pipeline.composite_sprites` (Python) — contrôle croisé
+  automatique (écarts ≤ 1e-7).
+
+### 10.d Layer `milkyway` (kind `sprite_plus_fond`)
+
+Réintégré le 13 juillet (perdu dans la v1). Aucune frame propre :
+sprite `milkyway_f*` au centre + FOND = frames `st_localgroup_*`
+échantillonnées sur la fenêtre (le poids de zoom milkyway est reporté sur
+localgroup), avec le plancher de convergence §7. Mêmes lois temporelles que
+les autres sprites (`a_form` galaxies = 0.20).
+
+## 11. Validation v2 (sections E/F/G/H du validateur)
+
+157 contrôles au 14 juillet : expansion par échelle (E), sprites cuits —
+présence des 9 galaxies à a=1, extinction, séquencement empirique
+sprites-avant-fond (F), axe de temps Gyr — monotonie, aller-retour exact,
+embrasement à 0.31 % de la course (G), nomenclature — couverture,
+linéarité, résolution des codes (H). Montage : grille canonique étiquetée
+A..L × 0..10 (`scripts/dev/spacetime_matrix_montage.png`). Contrôle croisé
+JS/Python : `xcheck_dump_ref.py` + `xcheck_prototype.mjs` (sprites inclus).

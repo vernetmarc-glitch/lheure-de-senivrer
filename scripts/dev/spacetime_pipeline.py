@@ -26,22 +26,46 @@ for _entry in LAYERS:
         np.array(Image.open(f"{DATA_DIR}/st_{_entry['key']}_k{i:02d}.png")).astype(np.float64) / 255
         for i in range(len(_entry["keyframes_a"]))]
 
-with open(f"{DATA_DIR}/dissolution_keyframes.json") as f:
-    SIMS = json.load(f)
 with open(f"{DATA_DIR}/local_group_catalog.json") as f:
     CATALOG = json.load(f)
 
-SLUG_BY_NAME = {
-    'Andromède (M31)': 'andromede', 'Triangulum (M33)': 'triangulum',
-    'Grand Nuage de Magellan': 'lmc', 'Petit Nuage de Magellan': 'smc',
-    'Naine du Sagittaire': 'sagittaire', 'NGC 6822': 'ngc6822',
-    'IC 10': 'ic10', 'Leo I': 'leo1',
-}
-SCENE = [{'slug': 'milkyway', 'distanceMpc': 0, 'angleDeg': 0, 'radiusMpc': 0.01594329}]
-for gal in CATALOG:
-    if gal.get('isReal') and gal['name'] in SLUG_BY_NAME:
-        SCENE.append({'slug': SLUG_BY_NAME[gal['name']], 'distanceMpc': gal['distanceMpc'],
-                      'angleDeg': gal['angleDeg'], 'radiusMpc': gal['radiusMpc']})
+# Mapping temps cosmique (affichage linéaire en Gyr, matrice v2)
+COSMO_ROWS = json.load(open(f"{DATA_DIR}/cosmology_table.json"))["rows"]
+
+
+# ── Nomenclature des cellules (matrice.nomenclature) : "C7" -> (hw, a)
+NOMEN = MATRIX.get("nomenclature", {})
+
+
+def cell_params(code):
+    """Résout un code de cellule (ex "C7") en (halfwidth_mpc, a)."""
+    code = code.strip().upper()
+    row, col = code[0], code[1:]
+    zr = NOMEN["zoom_rows"][row]
+    tc = NOMEN["time_columns"][col]
+    return zr["halfwidth_mpc"], tc["a"]
+
+
+def t_gyr_of_a(a):
+    rows = COSMO_ROWS
+    if a <= rows[0]["a"]:
+        return rows[0]["t_Gyr"]
+    for i in range(len(rows) - 1):
+        if rows[i]["a"] <= a <= rows[i + 1]["a"]:
+            f = (a - rows[i]["a"]) / (rows[i + 1]["a"] - rows[i]["a"])
+            return rows[i]["t_Gyr"] + (rows[i + 1]["t_Gyr"] - rows[i]["t_Gyr"]) * f
+    return rows[-1]["t_Gyr"]
+
+
+def a_of_t_gyr(t):
+    rows = COSMO_ROWS
+    if t <= rows[0]["t_Gyr"]:
+        return rows[0]["a"]
+    for i in range(len(rows) - 1):
+        if rows[i]["t_Gyr"] <= t <= rows[i + 1]["t_Gyr"]:
+            f = (t - rows[i]["t_Gyr"]) / (rows[i + 1]["t_Gyr"] - rows[i]["t_Gyr"])
+            return rows[i]["a"] + (rows[i + 1]["a"] - rows[i]["a"]) * f
+    return rows[-1]["a"]
 
 
 # ── A(s,a) — port exact de spacetime-shared.js (correctif continuité 13/07).
@@ -78,16 +102,29 @@ def white_channel(a):
     return 1 - math.exp(-(fade ** EMB["exp"]) * EMB["offset_max"])
 
 
-COMP = MATRIX["compression"]
+# Effet d'expansion PAR ÉCHELLE (matrice v2, 13/07) : interpolation
+# smoothstep en log10(s) entre les nœuds validés — remplace la rampe
+# globale lo=2/hi=15 qui contractait le champ des 96 galaxies liées.
+EXP_NODES = MATRIX["expansion"]["nodes"]
 
 
-def compression_strength(scale_mpc):
-    lo, hi = math.log10(COMP["lo_mpc"]), math.log10(COMP["hi_mpc"])
-    return float(smoothstep((math.log10(max(scale_mpc, 1e-6)) - lo) / (hi - lo)))
+def expansion_strength(scale_mpc):
+    x = math.log10(max(scale_mpc, 1e-6))
+    nodes = [(math.log10(s), v) for s, v in EXP_NODES]
+    if x <= nodes[0][0]:
+        return nodes[0][1]
+    if x >= nodes[-1][0]:
+        return nodes[-1][1]
+    for i in range(len(nodes) - 1):
+        if nodes[i][0] <= x <= nodes[i + 1][0]:
+            span = nodes[i + 1][0] - nodes[i][0]
+            t = float(smoothstep((x - nodes[i][0]) / span)) if span else 0.0
+            return nodes[i][1] + (nodes[i + 1][1] - nodes[i][1]) * t
+    return nodes[-1][1]
 
 
 def effective_halfwidth(hw, a):
-    return hw + (hw / max(a, 1e-6) - hw) * compression_strength(hw)
+    return hw + (hw / max(a, 1e-6) - hw) * expansion_strength(hw)
 
 
 # ── Poids de layers — port de app/src/layerWeights.ts (frontières lues dans
@@ -137,44 +174,70 @@ def layer_tone_map(entry, a, hw_eff, canvas_n):
     return tone, out_frac, float(frame.std())
 
 
-def interp_sim_positions(sim, t):
-    frames = sim['frames']
-    pos_t = t * (len(frames) - 1)
-    i0 = min(int(pos_t), len(frames) - 2)
-    frac = pos_t - i0
-    p0 = np.array(frames[i0]['positions'])
-    p1 = np.array(frames[i0 + 1]['positions'])
-    return p0 + (p1 - p0) * frac
-
-
+# ── Sprites N-corps CUITS (matrice v2, 13/07) — les 126 frames
+# dissolution_sprites/{slug}_f00..13.png remplacent les splats runtime.
 SPR = MATRIX["sprites"]
+RG = MATRIX["real_galaxies"]["entries"]
+SPRITE_FRAMES = {}
+for _g in RG:
+    SPRITE_FRAMES[_g["slug"]] = [
+        np.array(Image.open(
+            f"{DATA_DIR}/dissolution_sprites/{_g['slug']}_f{i:02d}.png"
+        ).convert("L")).astype(np.float64) / 255
+        for i in range(SPR["n_frames"])]
 
 
-def splat_sprites(a, hw_eff, canvas_n):
+def sprite_visibility(hw_eff):
+    """Fondu en S de la zone sprites sur le demi-champ effectif."""
+    lo, hi = SPR["visible_fade_band_mpc"]
+    return 1.0 - float(smoothstep((math.log10(max(hw_eff, 1e-6)) - math.log10(lo))
+                                  / (math.log10(hi) - math.log10(lo))))
+
+
+def composite_sprites(bg, a, hw_eff, canvas_n):
+    """Compose les sprites cuits sur le fond en mélange "screen" (§11.3).
+    progress = 1−A_gal(a) -> paire de frames interpolée ;
+    extinction = A_gal(a)^fade_exponent (les sprites se dissolvent dans le
+    fond AVANT la dissolution du fond lui-même) ; visibilité fondue sur la
+    bande visible_fade_band_mpc."""
+    ag = A_gal(a)
+    vis = sprite_visibility(hw_eff)
+    fade = (ag ** SPR["fade_exponent"]) * vis
+    if fade <= 1e-4:
+        return bg
+    progress = 1 - ag
+    fpos = progress * (SPR["n_frames"] - 1)
+    i0 = min(int(fpos), SPR["n_frames"] - 2)
+    mix = fpos - i0
     px_per_mpc = canvas_n / (2 * hw_eff)
     cx = cy = canvas_n / 2
-    field = np.zeros((canvas_n, canvas_n))
-    progress = 1 - structure_amplitude_scale(GAL_A_FORM, a)
-    point_size = max(1.3 * (canvas_n / 300), 0.5)
-    sigma_px = max(point_size * (1 + progress * SPR["point_radius_growth"]), 0.5)
-    r = math.ceil(sigma_px * 3.2)
-    inv2s2 = 1 / (2 * sigma_px ** 2)
-    amp_scale = SPR["global_amp_scale"] / ((1 + progress * SPR["point_radius_growth"]) ** 2)
-    for g in SCENE:
-        sim = SIMS[g['slug']]
-        positions = interp_sim_positions(sim, progress)
-        rad = math.radians(g['angleDeg'])
-        xs = cx + (math.cos(rad) * g['distanceMpc'] + positions[:, 0] * g['radiusMpc']) * px_per_mpc
-        ys = cy + (math.sin(rad) * g['distanceMpc'] + positions[:, 1] * g['radiusMpc']) * px_per_mpc
-        bs = np.array([m['b'] for m in sim['particleMeta']])
-        amps = (0.18 + bs * 0.55) * amp_scale
-        keep = (xs > -r) & (xs < canvas_n + r) & (ys > -r) & (ys < canvas_n + r)
-        for px, py, amp in zip(xs[keep], ys[keep], amps[keep]):
-            x0, x1 = max(0, int(px - r)), min(canvas_n - 1, int(px + r) + 1)
-            y0, y1 = max(0, int(py - r)), min(canvas_n - 1, int(py + r) + 1)
-            gy, gx = np.mgrid[y0:y1, x0:x1]
-            field[y0:y1, x0:x1] += amp * np.exp(-((gx - px) ** 2 + (gy - py) ** 2) * inv2s2)
-    return np.clip(1 - np.exp(-field), 0, 1)
+    out = bg.copy()
+    for g in RG:
+        frames = SPRITE_FRAMES[g["slug"]]
+        frame = frames[i0] * (1 - mix) + frames[i0 + 1] * mix
+        n_spr = frame.shape[0]
+        rad = math.radians(g["angle_deg"])
+        gx = cx + math.cos(rad) * g["distance_mpc"] * px_per_mpc
+        gy = cy + math.sin(rad) * g["distance_mpc"] * px_per_mpc
+        # Plancher de lisibilité sur le CŒUR (cf. matrice sprites.min_render_comment)
+        half_px = max(g["sprite_halfwidth_mpc"] * px_per_mpc,
+                      SPR["min_render_core_px"] * g["sprite_halfwidth_units"])
+        x0 = max(0, int(math.floor(gx - half_px)))
+        x1 = min(canvas_n, int(math.ceil(gx + half_px)) + 1)
+        y0 = max(0, int(math.floor(gy - half_px)))
+        y1 = min(canvas_n, int(math.ceil(gy + half_px)) + 1)
+        if x1 <= x0 or y1 <= y0 or half_px <= 0:
+            continue
+        ys = (np.arange(y0, y1) + 0.5 - gy) / (2 * half_px) + 0.5
+        xs = (np.arange(x0, x1) + 0.5 - gx) / (2 * half_px) + 0.5
+        tv = np.clip(ys, 0, 1) * (n_spr - 1)
+        tu = np.clip(xs, 0, 1) * (n_spr - 1)
+        inside = ((ys >= 0) & (ys <= 1))[:, None] * ((xs >= 0) & (xs <= 1))[None, :]
+        yy, xx = np.meshgrid(tv, tu, indexing="ij")
+        tone = map_coordinates(frame, [yy, xx], order=1, mode="nearest") * inside
+        sub = out[y0:y1, x0:x1]
+        out[y0:y1, x0:x1] = 1 - (1 - sub) * (1 - tone * fade)
+    return out
 
 
 def render_cell(hw, a, canvas_n=160):
@@ -188,9 +251,7 @@ def render_cell(hw, a, canvas_n=160):
         tone, out_frac, f_std = layer_tone_map(BY_KEY[key], a, hw_eff, canvas_n)
         bg += w * tone
         clamp_defect += w * out_frac * (f_std > 0.005)
-    if hw_eff < SPR["visible_below_halfwidth_mpc"]:
-        sprites = splat_sprites(a, hw_eff, canvas_n)
-        bg = 1 - (1 - bg) * (1 - sprites)   # mélange "screen", §11.3
+    bg = composite_sprites(bg, a, hw_eff, canvas_n)
     white = white_channel(a)
     tone = 1 - (1 - bg) * (1 - white)       # embrasement en "screen", §11.4.c
     clamp_visible = clamp_defect * (1 - white)
