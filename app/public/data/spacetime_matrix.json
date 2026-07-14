@@ -1,5 +1,5 @@
 {
- "version": 2,
+ "version": 3,
  "generated": "2026-07-13",
  "comment": "SOURCE DE VÉRITÉ éditable — cf. docs/matrice-parametres-zoom-temps.md. Éditer ici puis relancer scripts/generate_spacetime_frames.py et scripts/dev/validate_spacetime_matrix.py.",
  "time_axis": {
@@ -223,7 +223,21 @@
     "sprite_halfwidth_units": 7.1984,
     "sprite_halfwidth_mpc": 0.003599
    }
-  ]
+  ],
+  "milkyway_hires": {
+   "status": "SPÉCIFIÉ le 14/07 — cuisson en attente (pending_generation)",
+   "problem": "Les frames 512² sont cadrées sur la dispersion finale ×7.7 : le disque d'aujourd'hui n'occupe que ~70 px → bouillie floue au zoom maximal, sans commune mesure avec density_milkyway.png de production.",
+   "script": "scripts/generate_milkyway_hires_sprites.mjs (à écrire — même moteur de cuisson que generate_dissolution_sprites.mjs)",
+   "source": "data/milkyway_dissolution_keyframes.json (simulation N-corps VL existante)",
+   "resolution": 1024,
+   "n_frames": 14,
+   "framing_halfwidth_units": 4.0,
+   "framing_comment": "Cadrage FIXE serré (~4 rayons de disque au lieu de maxExtent(f13)×1.15≈7.7) — décision d du 14/07 : le débordement des frames tardives hors cadre est assumé, car à ce stade l'extinction A_gal² a déjà presque tout éteint et le fond domine.",
+   "output": "data/dissolution_sprites_hires/milkyway_f00..f13.png",
+   "f00_validation": "Corrélation exigée entre f00 et density_milkyway.png (contrôle headless ajouté à la cuisson).",
+   "used_by_layer": "milkyway_hires (ligne A)",
+   "runtime": "Mêmes lois que le bloc sprites : progress = 1−A_gal(a), extinction A_gal², mélange screen, plancher cœur."
+  }
  },
  "layers": [
   {
@@ -256,7 +270,8 @@
     1.0
    ],
    "frame_pattern": "data/st_l5_k{:02d}.png",
-   "frame_resolution": 512
+   "frame_resolution": 512,
+   "filamentarity_ridge_mix": 0.4
   },
   {
    "key": "l5a",
@@ -288,7 +303,8 @@
     1.0
    ],
    "frame_pattern": "data/st_l5a_k{:02d}.png",
-   "frame_resolution": 512
+   "frame_resolution": 512,
+   "filamentarity_ridge_mix": 0.5
   },
   {
    "key": "l4b",
@@ -320,7 +336,8 @@
     1.0
    ],
    "frame_pattern": "data/st_l4b_k{:02d}.png",
-   "frame_resolution": 512
+   "frame_resolution": 512,
+   "filamentarity_ridge_mix": 0.6
   },
   {
    "key": "l4a",
@@ -352,7 +369,8 @@
     1.0
    ],
    "frame_pattern": "data/st_l4a_k{:02d}.png",
-   "frame_resolution": 512
+   "frame_resolution": 512,
+   "filamentarity_ridge_mix": 0.7
   },
   {
    "key": "l4",
@@ -384,7 +402,8 @@
     1.0
    ],
    "frame_pattern": "data/st_l4_k{:02d}.png",
-   "frame_resolution": 512
+   "frame_resolution": 512,
+   "filamentarity_ridge_mix": 0.75
   },
   {
    "key": "l3b",
@@ -416,7 +435,8 @@
     1.0
    ],
    "frame_pattern": "data/st_l3b_k{:02d}.png",
-   "frame_resolution": 512
+   "frame_resolution": 512,
+   "filamentarity_ridge_mix": 0.8
   },
   {
    "key": "l3",
@@ -448,7 +468,8 @@
     1.0
    ],
    "frame_pattern": "data/st_l3_k{:02d}.png",
-   "frame_resolution": 512
+   "frame_resolution": 512,
+   "filamentarity_ridge_mix": 0.85
   },
   {
    "key": "l2b",
@@ -490,7 +511,8 @@
     1.0
    ],
    "frame_pattern": "data/st_l2b_k{:02d}.png",
-   "frame_resolution": 512
+   "frame_resolution": 512,
+   "filamentarity_ridge_mix": 0.85
   },
   {
    "key": "l2",
@@ -532,7 +554,8 @@
     1.0
    ],
    "frame_pattern": "data/st_l2_k{:02d}.png",
-   "frame_resolution": 512
+   "frame_resolution": 512,
+   "filamentarity_ridge_mix": 0.85
   },
   {
    "key": "l1b",
@@ -576,7 +599,8 @@
     1.0
    ],
    "frame_pattern": "data/st_l1b_k{:02d}.png",
-   "frame_resolution": 512
+   "frame_resolution": 512,
+   "filamentarity_ridge_mix": 0.85
   },
   {
    "key": "localgroup",
@@ -643,6 +667,31 @@
    "keyframes_a": [],
    "frame_pattern": null,
    "frame_resolution": null
+  },
+  {
+   "key": "milkyway_hires",
+   "kind": "sprite_plus_fond",
+   "max_mpc": 0.04,
+   "margin_factor": null,
+   "seed": null,
+   "parent": null,
+   "a_form": 0.2,
+   "dissolution_window_a": [
+    0.04,
+    1.0
+   ],
+   "halfwidth_dex": 0.699,
+   "center_dex": -0.699,
+   "compression": false,
+   "expansion_strength": 0.0,
+   "anchor_a1": null,
+   "anchor_scale_mpc": 0.03,
+   "fond_layer": "localgroup",
+   "sprite_slug": "milkyway_hires",
+   "keyframes_a": [],
+   "frame_pattern": null,
+   "frame_resolution": null,
+   "comment": "Ligne A (14/07) : disque Voie lactée détaillé 1024² + fond localgroup. Un layer de zoom = un visuel unique : le sprite hires N'EST PAS une ressource du layer milkyway mais un layer à part entière. Frontière A/B (0.04 Mpc) ajustable après retour visuel. Absent de layerWeights.ts production pour l'instant (zoom prototype)."
   }
  ],
  "computed": {
@@ -1473,53 +1522,57 @@
   }
  },
  "nomenclature": {
-  "format": "<lettre><chiffre> — la lettre identifie la LIGNE de zoom (vue ancrée au demi-champ max_mpc du layer), le chiffre la COLONNE de temps (linéaire en Gyr, comme le curseur). Ex : C7 = vue l1b (8.49 Mpc) à t≈9.65 Ga.",
+  "format": "<lettre><chiffre> — la lettre identifie la LIGNE de zoom (un layer = un visuel unique = un code unique), le chiffre la COLONNE de temps (linéaire en Gyr). Ex : D7 = vue l1b (8.49 Mpc) à t≈9.65 Ga.",
   "zoom_rows": {
    "A": {
+    "layer": "milkyway_hires",
+    "halfwidth_mpc": 0.04
+   },
+   "B": {
     "layer": "milkyway",
     "halfwidth_mpc": 0.1
    },
-   "B": {
+   "C": {
     "layer": "localgroup",
     "halfwidth_mpc": 2.4
    },
-   "C": {
+   "D": {
     "layer": "l1b",
     "halfwidth_mpc": 8.49
    },
-   "D": {
+   "E": {
     "layer": "l2",
     "halfwidth_mpc": 30.0
    },
-   "E": {
+   "F": {
     "layer": "l2b",
     "halfwidth_mpc": 67.08
    },
-   "F": {
+   "G": {
     "layer": "l3",
     "halfwidth_mpc": 150.0
    },
-   "G": {
+   "H": {
     "layer": "l3b",
     "halfwidth_mpc": 212.13
    },
-   "H": {
+   "I": {
     "layer": "l4",
     "halfwidth_mpc": 300.0
    },
-   "I": {
+   "J": {
     "layer": "l4a",
     "halfwidth_mpc": 793.73
    },
-   "J": {
+   "K": {
     "layer": "l4b",
     "halfwidth_mpc": 2100.0
    },
-   "K": {
+   "L": {
     "layer": "l5a",
     "halfwidth_mpc": 5531.46
    },
-   "L": {
+   "M": {
     "layer": "l5",
     "halfwidth_mpc": 14570.0
    }
@@ -1581,6 +1634,50 @@
     "z": 0.0
    }
   },
-  "comment": "A = vue la plus rapprochée (Voie lactée), L = la plus large (l5, univers observable) ; 0 = recombinaison (t_min), 10 = aujourd'hui (t_max). Toute cellule de la matrice espace-temps × zoom se désigne par son code (ex. A10 = Voie lactée aujourd'hui, L0 = univers observable à la recombinaison). Le montage de validation est étiqueté avec ces codes."
+  "comment": "13 lignes depuis le 14/07 (insertion de milkyway_hires en A, décalage unique des codes : l'ancien C (l1b) devient D, etc.). RÈGLE DE PERMANENCE : les lettres sont attribuées une fois pour toutes ; un layer inséré plus tard prend la première lettre libre suivante (N, O, ...) et c'est la table zoom_rows qui donne l'ordre de zoom, pas l'alphabet — un code désigne donc toujours le même visuel. A = Voie lactée détaillée, M = univers observable ; 0 = recombinaison, 10 = aujourd'hui. Montage étiqueté avec ces codes."
+ },
+ "pending_generation": [
+  "Recuisson v3 des frames st_* (filamentarity + tone_mapping + field_evolution) + régénération des textures de production density_l*.png avec les mêmes paramètres (décision a du 14/07 : le changement d'aspect a=1 de l'application principale est assumé)",
+  "Cuisson des sprites milkyway_hires (scripts/generate_milkyway_hires_sprites.mjs à écrire)",
+  "glow-test.html à resynchroniser manuellement après recuisson (risque connu de désynchronisation)"
+ ],
+ "filamentarity": {
+  "status": "SPÉCIFIÉ le 14/07 — recuisson v3 en attente (pending_generation)",
+  "stage": "Transformée 'ridged' appliquée au champ AVANT field_to_log_density, uniquement sur la composante passe-bande de longueur d'onde comobile < filament_max_scale_mpc ; les échelles supérieures restent gaussiennes.",
+  "transform": "ridge = 1 - |2·norm(champ_bande) - 1|^ridge_exponent, mélangé au champ d'origine par ridge_mix ; renforcement HF spectral hf_boost ; assombrissement des vides void_gamma.",
+  "filament_max_scale_mpc": 150.0,
+  "physical_rationale": "Décision c du 14/07 : cohérence avec la réalité — la toile cosmique réelle n'a pas de filaments au-delà de ~100-150 Mpc comobiles. Aux lignes L/M (Gpc), la coupure passe-bande ne laisse subsister que de TOUT PETITS filaments (<1% du cadre) sur un fond statistiquement uniforme, sans structure filamenteuse à grande échelle.",
+  "ridge_exponent": 1.5,
+  "hf_boost": 0.25,
+  "void_gamma": 1.5,
+  "per_layer_ridge_mix_comment": "colonne filamentarity_ridge_mix de chaque layer GRF — valeurs de départ à calibrer (headless + retour visuel sur les cellules D10..M10)",
+  "same_seeds": "Mêmes graines et mêmes phases que la génération actuelle — seule la transformation change, la toile reste la même."
+ },
+ "tone_mapping": {
+  "status": "SPÉCIFIÉ le 14/07 — calibration headless en attente (pending_generation)",
+  "problem": "Saut de ton moyen à la frontière C/D : localgroup ≈ 9/255, layers GRF ≈ 130/255 — aucune raison physique (problème n°2 du 14/07).",
+  "target_mean_tone_255": [
+   30,
+   45
+  ],
+  "method": "Gain + gamma appliqués APRÈS la log-normale, avant la normalisation partagée figée. La chute de moyenne vient d'abord de la filamentarité (vides sombres + crêtes fines) ; le mapping ferme le reste de l'écart.",
+  "cascade": "Le ton uniforme dissous partagé (129.4/255) ET le plancher de convergence localgroup (facteur 4.074) sont rescalés par le MÊME mapping — sinon les layers s'éclairciraient en se dissolvant. L'embrasement (additif, près de la recombinaison) est inchangé.",
+  "validation": "Continuité du ton moyen mesurée à travers le fondu C/D à plusieurs temps (headless, avant tout retour visuel)."
+ },
+ "field_evolution": {
+  "status": "SPÉCIFIÉ le 14/07 — recuisson v3 en attente (pending_generation)",
+  "problem": "v2 : seule l'amplitude est modulée par A(s,a) avant la log-normale — la topologie reste figée, la remontée du temps se lit comme un cross-fade vers un fond uni (constaté sur E≈l2 vers a=0.5). Exigence : les FILAMENTS eux-mêmes se distendent et se dissolvent (accrétion à l'envers).",
+  "principle": "Chaque keyframe temporelle de chaque layer est RÉGÉNÉRÉE en FFT avec les MÊMES graines et MÊMES phases (même toile à un stade antérieur ; l'interpolation entre keyframes reste un morphing du même objet, pas un cross-fade — §11.3 respecté), avec des paramètres dépendant de a.",
+  "schedules": {
+   "filamentarity": "ridge_mix_effectif(s,a) = filamentarity_ridge_mix × A(s,a)^q — la toile se relâche vers l'état gaussien linéaire pré-effondrement",
+   "q": 1.25,
+   "smoothing": "sigma(s,a) = (1 − A(s,a)) × sigma_max_frac × max_mpc — les filaments s'épaississent et fondent dans la moyenne en remontant le temps",
+   "sigma_max_frac": 0.015,
+   "hf_boost": "hf_boost_effectif(s,a) = hf_boost × A(s,a)",
+   "amplitude": "L'enveloppe A(s,a) de la v2 est CONSERVÉE comme modulation finale."
+  },
+  "physical_driver": "Les calendriers sont pilotés par la machinerie d'accrétion existante — a_form(s) et A(s,a) encodent déjà le niveau d'accrétion réel au niveau de zoom et de temps considéré (exigence du 13/07).",
+  "keyframes": "Densité de keyframes à réévaluer aux zones de morphing rapide (balayages denses de continuité, preuve de lissité par division du pas).",
+  "non_regression": "Garantie par construction à a=1 : A=1 → filamentarité pleine (= nouveau look du point 1), sigma=0, amplitude 1."
  }
 }

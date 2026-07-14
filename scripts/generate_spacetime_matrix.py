@@ -62,6 +62,13 @@ for _g in _CATALOG:
             "sprite_halfwidth_mpc": round(_hw * _g["radiusMpc"], 6),
         })
 
+# ── Filamentarité à l'échelle de chaque layer (v3, 14/07 — valeurs de départ
+# à calibrer ; la coupure passe-bande filament_max_scale_mpc fait déjà
+# l'essentiel du travail d'uniformisation aux lignes L/M)
+RIDGE_MIX_AT_LAYER = {"l1b": 0.85, "l2": 0.85, "l2b": 0.85, "l3": 0.85,
+                      "l3b": 0.8, "l4": 0.75, "l4a": 0.7, "l4b": 0.6,
+                      "l5a": 0.5, "l5": 0.4}
+
 # ── Effet d'expansion à l'échelle de chaque layer (nœuds validés 13/07)
 EXPANSION_AT_LAYER = {"localgroup": 0.0, "l1b": 0.15, "l2": 0.65,
                       "l2b": 0.9, "l3": 1.0, "l3b": 1.0, "l4": 1.0,
@@ -168,6 +175,7 @@ for key, max_mpc, seed, parent, margin in GRF_SPECS:
         "center_dex": round(center_dex, 4),
         "compression": True,   # flux de Hubble — cf. bloc "expansion", §11.4.e
         "expansion_strength": EXPANSION_AT_LAYER[key],
+        "filamentarity_ridge_mix": RIDGE_MIX_AT_LAYER[key],   # v3, cf. bloc filamentarity
         "anchor_a1": ANCHORS_A1.get(key),
         "anchor_scale_mpc": GALAXY_SCALE_MPC if anchored else None,
         "keyframes_a": keyframes,
@@ -235,8 +243,22 @@ layers.append({
     "frame_resolution": None,
 })
 
+# ── Ligne A (14/07) : layer milkyway_hires — un layer de zoom = un visuel
+# unique ; le disque VL détaillé 1024² est un layer à part entière, pas une
+# ressource du layer milkyway. Frontière A/B (0.04 Mpc) ajustable.
+hires = dict(layers[-1])          # copie du layer milkyway
+hires["key"] = "milkyway_hires"
+hires["max_mpc"] = 0.04
+hires["sprite_slug"] = "milkyway_hires"
+hires["comment"] = ("Ligne A (14/07) : disque Voie lactée détaillé 1024² + fond "
+    "localgroup. Un layer de zoom = un visuel unique : le sprite hires N'EST PAS une "
+    "ressource du layer milkyway mais un layer à part entière. Frontière A/B (0.04 Mpc) "
+    "ajustable après retour visuel. Absent de layerWeights.ts production pour l'instant "
+    "(zoom prototype).")
+layers.append(hires)
+
 matrix = {
-    "version": 2,
+    "version": 3,
     "generated": "2026-07-13",
     "comment": "SOURCE DE VÉRITÉ éditable — cf. docs/matrice-parametres-zoom-temps.md. "
                "Éditer ici puis relancer scripts/generate_spacetime_frames.py "
@@ -312,6 +334,13 @@ matrix = {
         # de la frame cadrée sur la dispersion finale -> aliasing) :
         # frame_half_px = max(physique, min_render_core_px × halfwidth_units).
         "min_render_core_px": 1.25,
+        "min_render_comment": "Plancher de lisibilité sur le CŒUR galactique : la frame "
+            "sprite est cadrée sur la dispersion finale (sprite_halfwidth_units ≈ 7-9 "
+            "rayons), le cœur n'en occupe que ~1/7 ; un plancher sur la frame entière "
+            "laisse le cœur sous-échantillonné (aliasing -> galaxie invisible). Rendu : "
+            "frame_half_px = max(physique, min_render_core_px × sprite_halfwidth_units) "
+            "=> le cœur couvre toujours ≥ ~2 px. Léger surdimensionnement des naines "
+            "assumé.",
         "catalog_json": "data/local_group_catalog.json",
     },
     # Génération des sprites — chaîne complète (documentée dans la matrice
@@ -354,8 +383,8 @@ matrix = {
 # lettre = ligne de zoom (A = Voie lactée ... L = l5), chiffre = colonne de
 # temps (0 = recombinaison ... 10 = aujourd'hui, linéaire en Gyr comme le
 # curseur). Ex : C7 = vue l1b (8.49 Mpc) à t≈9.65 Ga.
-_ORDER = ['milkyway', 'localgroup', 'l1b', 'l2', 'l2b', 'l3', 'l3b',
-          'l4', 'l4a', 'l4b', 'l5a', 'l5']
+_ORDER = ['milkyway_hires', 'milkyway', 'localgroup', 'l1b', 'l2', 'l2b',
+          'l3', 'l3b', 'l4', 'l4a', 'l4b', 'l5a', 'l5']
 _BY_KEY = {l['key']: l for l in layers}
 _zoom_rows = {chr(ord('A') + i): {"layer": k, "halfwidth_mpc": _BY_KEY[k]['max_mpc']}
               for i, k in enumerate(_ORDER)}
@@ -375,16 +404,78 @@ for _k in range(11):
     _time_cols[str(_k)] = {"t_gyr": round(_t, 4), "a": round(_a, 6),
                            "z": round(1 / _a - 1, 4)}
 matrix["nomenclature"] = {
-    "format": "<lettre><chiffre> — la lettre identifie la LIGNE de zoom (vue ancrée "
-              "au demi-champ max_mpc du layer), le chiffre la COLONNE de temps "
-              "(linéaire en Gyr, comme le curseur). Ex : C7 = vue l1b (8.49 Mpc) à t≈9.65 Ga.",
+    "format": "<lettre><chiffre> — la lettre identifie la LIGNE de zoom (un layer = un "
+              "visuel unique = un code unique), le chiffre la COLONNE de temps (linéaire "
+              "en Gyr). Ex : D7 = vue l1b (8.49 Mpc) à t≈9.65 Ga.",
     "zoom_rows": _zoom_rows,
     "time_columns": _time_cols,
-    "comment": "A = vue la plus rapprochée (Voie lactée), L = la plus large (l5, univers "
-               "observable) ; 0 = recombinaison (t_min), 10 = aujourd'hui (t_max). Toute "
-               "cellule de la matrice espace-temps × zoom se désigne par son code (ex. A10 = "
-               "Voie lactée aujourd'hui, L0 = univers observable à la recombinaison). Le "
-               "montage de validation est étiqueté avec ces codes.",
+    "comment": "13 lignes depuis le 14/07 (insertion de milkyway_hires en A, décalage "
+               "unique des codes : l'ancien C (l1b) devient D, etc.). RÈGLE DE PERMANENCE : "
+               "les lettres sont attribuées une fois pour toutes ; un layer inséré plus tard "
+               "prend la première lettre libre suivante (N, O, ...) et c'est la table "
+               "zoom_rows qui donne l'ordre de zoom, pas l'alphabet — un code désigne donc "
+               "toujours le même visuel. A = Voie lactée détaillée, M = univers observable ; "
+               "0 = recombinaison, 10 = aujourd'hui. Montage étiqueté avec ces codes.",
+}
+
+# ── Blocs de spécification v3 (14 juillet) — cuisson en attente
+matrix["pending_generation"] = [
+    "Recuisson v3 des frames st_* (filamentarity + tone_mapping + field_evolution) + régénération des textures de production density_l*.png avec les mêmes paramètres (décision a du 14/07 : le changement d'aspect a=1 de l'application principale est assumé)",
+    "Cuisson des sprites milkyway_hires (scripts/generate_milkyway_hires_sprites.mjs à écrire)",
+    "glow-test.html à resynchroniser manuellement après recuisson (risque connu de désynchronisation)"
+]
+matrix["filamentarity"] = {
+    "status": "SPÉCIFIÉ le 14/07 — recuisson v3 en attente (pending_generation)",
+    "stage": "Transformée 'ridged' appliquée au champ AVANT field_to_log_density, uniquement sur la composante passe-bande de longueur d'onde comobile < filament_max_scale_mpc ; les échelles supérieures restent gaussiennes.",
+    "transform": "ridge = 1 - |2·norm(champ_bande) - 1|^ridge_exponent, mélangé au champ d'origine par ridge_mix ; renforcement HF spectral hf_boost ; assombrissement des vides void_gamma.",
+    "filament_max_scale_mpc": 150.0,
+    "physical_rationale": "Décision c du 14/07 : cohérence avec la réalité — la toile cosmique réelle n'a pas de filaments au-delà de ~100-150 Mpc comobiles. Aux lignes L/M (Gpc), la coupure passe-bande ne laisse subsister que de TOUT PETITS filaments (<1% du cadre) sur un fond statistiquement uniforme, sans structure filamenteuse à grande échelle.",
+    "ridge_exponent": 1.5,
+    "hf_boost": 0.25,
+    "void_gamma": 1.5,
+    "per_layer_ridge_mix_comment": "colonne filamentarity_ridge_mix de chaque layer GRF — valeurs de départ à calibrer (headless + retour visuel sur les cellules D10..M10)",
+    "same_seeds": "Mêmes graines et mêmes phases que la génération actuelle — seule la transformation change, la toile reste la même."
+}
+matrix["tone_mapping"] = {
+    "status": "SPÉCIFIÉ le 14/07 — calibration headless en attente (pending_generation)",
+    "problem": "Saut de ton moyen à la frontière C/D : localgroup ≈ 9/255, layers GRF ≈ 130/255 — aucune raison physique (problème n°2 du 14/07).",
+    "target_mean_tone_255": [
+        30,
+        45
+    ],
+    "method": "Gain + gamma appliqués APRÈS la log-normale, avant la normalisation partagée figée. La chute de moyenne vient d'abord de la filamentarité (vides sombres + crêtes fines) ; le mapping ferme le reste de l'écart.",
+    "cascade": "Le ton uniforme dissous partagé (129.4/255) ET le plancher de convergence localgroup (facteur 4.074) sont rescalés par le MÊME mapping — sinon les layers s'éclairciraient en se dissolvant. L'embrasement (additif, près de la recombinaison) est inchangé.",
+    "validation": "Continuité du ton moyen mesurée à travers le fondu C/D à plusieurs temps (headless, avant tout retour visuel)."
+}
+matrix["field_evolution"] = {
+    "status": "SPÉCIFIÉ le 14/07 — recuisson v3 en attente (pending_generation)",
+    "problem": "v2 : seule l'amplitude est modulée par A(s,a) avant la log-normale — la topologie reste figée, la remontée du temps se lit comme un cross-fade vers un fond uni (constaté sur E≈l2 vers a=0.5). Exigence : les FILAMENTS eux-mêmes se distendent et se dissolvent (accrétion à l'envers).",
+    "principle": "Chaque keyframe temporelle de chaque layer est RÉGÉNÉRÉE en FFT avec les MÊMES graines et MÊMES phases (même toile à un stade antérieur ; l'interpolation entre keyframes reste un morphing du même objet, pas un cross-fade — §11.3 respecté), avec des paramètres dépendant de a.",
+    "schedules": {
+        "filamentarity": "ridge_mix_effectif(s,a) = filamentarity_ridge_mix × A(s,a)^q — la toile se relâche vers l'état gaussien linéaire pré-effondrement",
+        "q": 1.25,
+        "smoothing": "sigma(s,a) = (1 − A(s,a)) × sigma_max_frac × max_mpc — les filaments s'épaississent et fondent dans la moyenne en remontant le temps",
+        "sigma_max_frac": 0.015,
+        "hf_boost": "hf_boost_effectif(s,a) = hf_boost × A(s,a)",
+        "amplitude": "L'enveloppe A(s,a) de la v2 est CONSERVÉE comme modulation finale."
+    },
+    "physical_driver": "Les calendriers sont pilotés par la machinerie d'accrétion existante — a_form(s) et A(s,a) encodent déjà le niveau d'accrétion réel au niveau de zoom et de temps considéré (exigence du 13/07).",
+    "keyframes": "Densité de keyframes à réévaluer aux zones de morphing rapide (balayages denses de continuité, preuve de lissité par division du pas).",
+    "non_regression": "Garantie par construction à a=1 : A=1 → filamentarité pleine (= nouveau look du point 1), sigma=0, amplitude 1."
+}
+matrix["real_galaxies"]["milkyway_hires"] = {
+    "status": "SPÉCIFIÉ le 14/07 — cuisson en attente (pending_generation)",
+    "problem": "Les frames 512² sont cadrées sur la dispersion finale ×7.7 : le disque d'aujourd'hui n'occupe que ~70 px → bouillie floue au zoom maximal, sans commune mesure avec density_milkyway.png de production.",
+    "script": "scripts/generate_milkyway_hires_sprites.mjs (à écrire — même moteur de cuisson que generate_dissolution_sprites.mjs)",
+    "source": "data/milkyway_dissolution_keyframes.json (simulation N-corps VL existante)",
+    "resolution": 1024,
+    "n_frames": 14,
+    "framing_halfwidth_units": 4.0,
+    "framing_comment": "Cadrage FIXE serré (~4 rayons de disque au lieu de maxExtent(f13)×1.15≈7.7) — décision d du 14/07 : le débordement des frames tardives hors cadre est assumé, car à ce stade l'extinction A_gal² a déjà presque tout éteint et le fond domine.",
+    "output": "data/dissolution_sprites_hires/milkyway_f00..f13.png",
+    "f00_validation": "Corrélation exigée entre f00 et density_milkyway.png (contrôle headless ajouté à la cuisson).",
+    "used_by_layer": "milkyway_hires (ligne A)",
+    "runtime": "Mêmes lois que le bloc sprites : progress = 1−A_gal(a), extinction A_gal², mélange screen, plancher cœur."
 }
 
 with open(OUT_PATH, "w") as f:

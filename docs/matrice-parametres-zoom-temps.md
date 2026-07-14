@@ -46,27 +46,35 @@ depuis zéro — **le relancer écrase les ajustements manuels**.
   (bornes de `UniverseMap.tsx`). Le demi-champ EFFECTIF appliqué au rendu
   inclut l'effet d'expansion par échelle (§9 ci-dessous).
 
-### 2.b Nomenclature des cellules (14 juillet)
+### 2.b Nomenclature des cellules (14 juillet, v3 : 13 lignes)
 
-Toute cellule de la matrice espace-temps × zoom se désigne par un code
-**`<lettre><chiffre>`** (bloc `nomenclature` du JSON, montage de validation
-étiqueté avec ces codes) :
+**Principe : un layer de zoom = un visuel unique = un code unique** (si le
+sprite change en zoomant, c'est un autre layer). Toute cellule de la matrice
+espace-temps × zoom se désigne par un code **`<lettre><chiffre>`** (bloc
+`nomenclature` du JSON, montage de validation étiqueté avec ces codes) :
 
 - **Lettre = ligne de zoom**, vue ancrée au `max_mpc` du layer, de la plus
   rapprochée à la plus large :
 
-| Code | A | B | C | D | E | F | G | H | I | J | K | L |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Layer | milkyway | localgroup | l1b | l2 | l2b | l3 | l3b | l4 | l4a | l4b | l5a | l5 |
-| Demi-champ (Mpc) | 0.1 | 2.4 | 8.49 | 30 | 67.08 | 150 | 212.13 | 300 | 793.73 | 2100 | 5531.46 | 14570 |
+| Code | A | B | C | D | E | F | G | H | I | J | K | L | M |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Layer | milkyway_hires | milkyway | localgroup | l1b | l2 | l2b | l3 | l3b | l4 | l4a | l4b | l5a | l5 |
+| Demi-champ (Mpc) | 0.04 | 0.1 | 2.4 | 8.49 | 30 | 67.08 | 150 | 212.13 | 300 | 793.73 | 2100 | 5531.46 | 14570 |
 
 - **Chiffre = colonne de temps**, 0 → 10, linéaire en Gyr comme le curseur :
   `t_k = 0.000365 + k/10 × 13.79` Ga (0 = recombinaison z≈1100,
   7 ≈ 9.65 Ga soit a≈0.732, 10 = aujourd'hui a=1).
 
-Exemples : `A10` = Voie lactée aujourd'hui, `L0` = univers observable à la
-recombinaison, `C7` = vue l1b (8.49 Mpc) à t≈9.65 Ga. Résolution
-programmatique : `spacetime_pipeline.cell_params("C7") → (hw, a)`.
+Exemples : `A10` = Voie lactée détaillée aujourd'hui, `M0` = univers
+observable à la recombinaison, `D7` = vue l1b (8.49 Mpc) à t≈9.65 Ga.
+Résolution programmatique : `spacetime_pipeline.cell_params("D7") → (hw, a)`.
+
+**Règle de permanence des codes** : les lettres sont attribuées une fois
+pour toutes ; un layer inséré plus tard prend la première lettre libre
+suivante (N, O, …) et c'est la table `zoom_rows` qui donne l'ordre de zoom,
+pas l'alphabet — un code désigne donc toujours le même visuel. Décalage
+unique effectué le 14/07 (insertion de `milkyway_hires` en A : l'ancien C
+= l1b devient D, etc.).
 
 ## 3. Colonnes de la matrice, par layer (provenance de chaque valeur)
 
@@ -92,7 +100,10 @@ v2 — §10 ci-dessous), `time_axis.display` (axe Gyr — §2),
 
 Nouvelle colonne par layer (v2) : `expansion_strength` — effet d'expansion
 à l'échelle du layer (cf. §9). Nouveau layer `milkyway` (kind
-`sprite_plus_fond`, cf. §10.d).
+`sprite_plus_fond`, cf. §10.d). Colonnes/blocs v3 (spécifiés le 14/07, non
+cuits — cf. §12) : `filamentarity_ridge_mix` par layer GRF, blocs globaux
+`filamentarity`, `tone_mapping`, `field_evolution`, layer `milkyway_hires`
+(ligne A) et `real_galaxies.milkyway_hires`.
 
 ## 4. Modulations temporelles appliquées à la génération
 
@@ -301,3 +312,58 @@ embrasement à 0.31 % de la course (G), nomenclature — couverture,
 linéarité, résolution des codes (H). Montage : grille canonique étiquetée
 A..L × 0..10 (`scripts/dev/spacetime_matrix_montage.png`). Contrôle croisé
 JS/Python : `xcheck_dump_ref.py` + `xcheck_prototype.mjs` (sprites inclus).
+
+## 12. Spécification v3 (14 juillet) — SPÉCIFIÉE, NON GÉNÉRÉE
+
+Quatre évolutions validées par Marc le 14/07 (réponses a/b/c/d), décrites
+dans les blocs du JSON listés dans `pending_generation`. Aucune frame ni
+texture n'a encore été cuite avec ces paramètres — la table évaluée §5 et
+les frames `st_*` restent en état v2.
+
+### 12.a Filamentarité à a=1 (bloc `filamentarity`, colonnes D→M)
+
+Étape de squelettisation avant `field_to_log_density` : transformée
+« ridged » `1−|2n−1|^1.5` mélangée au champ d'origine (`ridge_mix` par
+layer : 0.85 sur D..G, décroissant à 0.4 sur M), renforcement HF (0.25),
+assombrissement des vides (gamma 1.5). **Contrainte physique (réponse c)** :
+la transformée n'est appliquée qu'à la composante passe-bande de longueur
+d'onde comobile < **150 Mpc** (`filament_max_scale_mpc`) — la toile
+cosmique réelle n'a pas de filaments au-delà ; aux lignes L/M, seuls
+subsistent de tout petits filaments (<1 % du cadre) sur un fond
+statistiquement uniforme. Mêmes graines et mêmes phases qu'actuellement.
+**Implication validée (réponse a)** : les textures de production
+`density_l*.png` seront régénérées avec les mêmes paramètres — l'application
+principale change d'aspect à a=1, la base de non-régression est rétablie
+sur les nouvelles textures, `glow-test.html` resynchronisé à la main.
+
+### 12.b Mapping de ton (bloc `tone_mapping`)
+
+Cible de ton moyen **30–45/255** (réponse b) pour les layers GRF à a=1,
+contre ~130/255 actuellement (saut injustifié à la frontière C/D, le
+localgroup étant à ~9/255). Gain+gamma post-log-normale ; la filamentarité
+fait l'essentiel de la chute. **Cascade obligatoire** : ton uniforme dissous
+partagé (129.4/255) et plancher localgroup (×4.074) rescalés par le même
+mapping ; embrasement inchangé. Validation : continuité du ton moyen à
+travers le fondu C/D à plusieurs temps.
+
+### 12.c Évolution temporelle du champ (bloc `field_evolution`)
+
+Chaque keyframe de chaque layer est **régénérée en FFT avec les mêmes
+graines et phases** mais des paramètres dépendant de `a` : filamentarité
+relâchée (`ridge_mix × A(s,a)^1.25`), lissage croissant vers le passé
+(`σ = (1−A)·0.015·max_mpc`), HF ∝ A, enveloppe d'amplitude A(s,a) v2
+conservée. Les filaments se distendent et se dissolvent physiquement
+(accrétion à l'envers) au lieu d'un fondu de contraste vers l'uniforme.
+Calendriers pilotés par `a_form(s)`/`A(s,a)` (niveau d'accrétion réel au
+zoom et temps considérés). Non-régression a=1 par construction. Densité de
+keyframes à réévaluer aux zones de morphing rapide.
+
+### 12.d Voie lactée haute résolution (layer `milkyway_hires`, ligne A)
+
+Nouveau layer de zoom (0.04 Mpc, frontière A/B ajustable) : sprites 1024²
+cuits depuis `milkyway_dissolution_keyframes.json` avec **cadrage fixe
+serré à 4 rayons** (réponse d : débordement des frames tardives assumé,
+l'extinction A_gal² ayant déjà presque tout éteint à ce stade) ; f00 devra
+corréler avec `density_milkyway.png` (contrôle de cuisson). Script
+`generate_milkyway_hires_sprites.mjs` à écrire. Absent de `layerWeights.ts`
+production pour l'instant.

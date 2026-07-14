@@ -378,7 +378,7 @@ print("\n═══ H. Nomenclature des cellules ═══")
 from spacetime_pipeline import cell_params, NOMEN
 zr, tc = NOMEN["zoom_rows"], NOMEN["time_columns"]
 check(len(zr) == sum(1 for l in LAYERS) and set(v["layer"] for v in zr.values()) == set(l["key"] for l in LAYERS),
-      "Nomenclature : les lignes A..L couvrent exactement les 12 layers",
+      "Nomenclature : les lignes couvrent exactement tous les layers",
       f"{len(zr)} lignes / {len(LAYERS)} layers")
 codes = sorted(zr.keys())
 check(codes == [chr(ord('A') + i) for i in range(len(zr))],
@@ -396,9 +396,11 @@ for k in range(11):
     a_expected = a_of_t_gyr(tc[str(k)]["t_gyr"])
     assert abs(min(a_expected, 1.0) - tc[str(k)]["a"]) < 1e-4
 check(True, "Nomenclature : a de chaque colonne cohérent avec la table cosmologique")
-hw_c7, a_c7 = cell_params("C7")
-check(abs(hw_c7 - 8.49) < 1e-9 and abs(a_c7 - tc["7"]["a"]) < 1e-9,
-      "Nomenclature : résolution C7 = (l1b 8.49 Mpc, a(t7))", f"({hw_c7}, {a_c7})")
+hw_d7, a_d7 = cell_params("D7")
+check(abs(hw_d7 - 8.49) < 1e-9 and abs(a_d7 - tc["7"]["a"]) < 1e-9,
+      "Nomenclature : résolution D7 = (l1b 8.49 Mpc, a(t7))", f"({hw_d7}, {a_d7})")
+check(cell_params("A10")[0] == 0.04 and cell_params("B10")[0] == 0.1,
+      "Nomenclature v3 : A = milkyway_hires (0.04 Mpc), B = milkyway (0.1 Mpc)")
 
 # ── Montage de vignettes pour confirmation visuelle finale (§13.1).
 ASTRO = np.array([[0, 0, 0], [0x17, 0x0a, 0x05], [0x4a, 0x1f, 0x0a],
