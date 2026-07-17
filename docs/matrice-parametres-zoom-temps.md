@@ -358,12 +358,29 @@ Calendriers pilotés par `a_form(s)`/`A(s,a)` (niveau d'accrétion réel au
 zoom et temps considérés). Non-régression a=1 par construction. Densité de
 keyframes à réévaluer aux zones de morphing rapide.
 
+### 12.c-bis Algorithme de filamentarité v3.1 (15 juillet, calibré en prévisualisation)
+
+Itération après le retour « on ne retrouve pas les filaments de la
+référence » : crêtes **multi-octaves en espace pixel** (128/32/8 px,
+intersectées avec la coupure 150 Mpc — les lignes L/M ne gardent que les
+octaves fines), **modulation par la surdensité grande échelle découplée de
+la coupure** (λ > monde/3, héritée du parent : le Vide Local ~30 Mpc existe
+même dans le cadre l1b) qui sparsifie la toile et donne la connectivité,
+gain de crête 2.6, **renormalisation à variance 1 obligatoire** avant la
+log-normale (qui soustrait var/2 — bogue attrapé en preview), et
+**suppression ambiante des layers ancrés 0.35 → 1.0** (les galaxies siègent
+sur la toile ; la dominance garantie s'adapte). Gamma de ton recalibré
+≈ 2.0. Détails exacts : bloc `filamentarity.algorithm_v3_1` du JSON.
+
 ### 12.d Voie lactée haute résolution (layer `milkyway_hires`, ligne A)
 
-Nouveau layer de zoom (0.04 Mpc, frontière A/B ajustable) : sprites 1024²
-cuits depuis `milkyway_dissolution_keyframes.json` avec **cadrage fixe
-serré à 4 rayons** (réponse d : débordement des frames tardives assumé,
-l'extinction A_gal² ayant déjà presque tout éteint à ce stade) ; f00 devra
-corréler avec `density_milkyway.png` (contrôle de cuisson). Script
+Nouveau layer de zoom (0.04 Mpc, frontière A/B ajustable) : sprites
+**2048²** cuits depuis `milkyway_dissolution_keyframes.json` avec **cadrage
+fixe 2 rayons** (mise à jour du 15/07 : le disque occupe ~1024 px de large,
+pleine résolution téléphone), splats par particule (`sz` de particleMeta,
+amplitude auto-calibrée p99.7→0.95), **apodisation cuite** (fondu cosinus
+sur les derniers 6 % du cadre — aucune coupure carrée du débordement, qui
+reste assumé car l'extinction A_gal² domine à ce stade). Corrélation
+f00/production mesurée en prévisualisation : 0.78. Script
 `generate_milkyway_hires_sprites.mjs` à écrire. Absent de `layerWeights.ts`
 production pour l'instant.

@@ -434,7 +434,18 @@ matrix["filamentarity"] = {
     "hf_boost": 0.25,
     "void_gamma": 1.5,
     "per_layer_ridge_mix_comment": "colonne filamentarity_ridge_mix de chaque layer GRF — valeurs de départ à calibrer (headless + retour visuel sur les cellules D10..M10)",
-    "same_seeds": "Mêmes graines et mêmes phases que la génération actuelle — seule la transformation change, la toile reste la même."
+    "same_seeds": "Mêmes graines et mêmes phases que la génération actuelle — seule la transformation change, la toile reste la même.",
+    "algorithm_v3_1": {
+        "date": "15/07 — calibré par prévisualisation (preview_v3_iter2.py), validé auto-contrôles",
+        "octaves": "Crêtes multi-octaves FIXES en espace pixel (périodes 128/32/8 px, poids 0.45/0.33/0.22), chaque octave intersectée avec la coupure physique k ≥ k(150 Mpc) — aux lignes L/M seules les octaves fines subsistent (uniformité + petits filaments automatiques). Octaves vides ignorées.",
+        "ridge": "1 − |2·n01 − 1|^ridge_exponent, n01 = 0.5 + bande/(3.2σ) clampé [0,1]",
+        "modulation": "Enveloppe de surdensité DÉCOUPLÉE de la coupure : sigmoïde 1/(1+exp(−2.2·low/σ_low)) sur la composante λ > monde/3 (héritée du parent — le Vide Local ~30 Mpc existe même dans le cadre l1b). mod = 0.25 + 0.75·env (env_mix 0.75). C'est elle qui sparsifie la toile (connectivité + crêtes hautes par kurtosis après renormalisation).",
+        "ridge_gain": 2.6,
+        "composition": "out = low + (1−ridge_mix)·high + ridge_mix·web·mod·σ_high·ridge_gain",
+        "renormalisation": "OBLIGATOIRE : normalize_variance(out) avant field_to_log_density (la log-normale soustrait var/2, calibrée pour σ=1 — sans renormalisation la variance gonflée par les crêtes pénalise tout le champ : bogue attrapé en prévisualisation).",
+        "anchored_layers": "global_suppression v2 (0.35 sur l1b, esthétique 'galaxies qui ressortent') passe à 1.0 en v3 : les galaxies siègent SUR la toile (nœuds), la dominance garantie des galaxies réelles s'adapte au niveau local du champ.",
+        "gamma_calibre": 2.0
+    }
 }
 matrix["tone_mapping"] = {
     "status": "SPÉCIFIÉ le 14/07 — calibration headless en attente (pending_generation)",
@@ -464,18 +475,19 @@ matrix["field_evolution"] = {
     "non_regression": "Garantie par construction à a=1 : A=1 → filamentarité pleine (= nouveau look du point 1), sigma=0, amplitude 1."
 }
 matrix["real_galaxies"]["milkyway_hires"] = {
-    "status": "SPÉCIFIÉ le 14/07 — cuisson en attente (pending_generation)",
+    "status": "Spécifié 14/07, paramètres calibrés en prévisualisation 15/07 (corrélation f00/production 0.78) — cuisson des 14 frames en attente",
     "problem": "Les frames 512² sont cadrées sur la dispersion finale ×7.7 : le disque d'aujourd'hui n'occupe que ~70 px → bouillie floue au zoom maximal, sans commune mesure avec density_milkyway.png de production.",
     "script": "scripts/generate_milkyway_hires_sprites.mjs (à écrire — même moteur de cuisson que generate_dissolution_sprites.mjs)",
     "source": "data/milkyway_dissolution_keyframes.json (simulation N-corps VL existante)",
-    "resolution": 1024,
+    "resolution": 2048,
     "n_frames": 14,
-    "framing_halfwidth_units": 4.0,
-    "framing_comment": "Cadrage FIXE serré (~4 rayons de disque au lieu de maxExtent(f13)×1.15≈7.7) — décision d du 14/07 : le débordement des frames tardives hors cadre est assumé, car à ce stade l'extinction A_gal² a déjà presque tout éteint et le fond domine.",
+    "framing_halfwidth_units": 2.0,
+    "framing_comment": "Cadrage FIXE 2 rayons à 2048² : le disque occupe ~1024 px de large (pleine résolution écran téléphone, demande du 15/07). Débordement des frames de dispersion assumé (extinction A_gal² dominante à ce stade) + APODISATION cuite : fondu cosinus sur les derniers 6% du cadre (aucune coupure carrée possible).",
     "output": "data/dissolution_sprites_hires/milkyway_f00..f13.png",
     "f00_validation": "Corrélation exigée entre f00 et density_milkyway.png (contrôle headless ajouté à la cuisson).",
     "used_by_layer": "milkyway_hires (ligne A)",
-    "runtime": "Mêmes lois que le bloc sprites : progress = 1−A_gal(a), extinction A_gal², mélange screen, plancher cœur."
+    "runtime": "Mêmes lois que le bloc sprites : progress = 1−A_gal(a), extinction A_gal², mélange screen, plancher cœur.",
+    "splats": "Par particule : sigma = sz × (résolution/1024) clampé [0.8, 6.0] px (champ 'sz' de particleMeta), amplitude 0.18 + b×0.55, ton 1−exp(−k·champ) avec k auto-calibré (p99.7 du champ non nul -> ton 0.95)."
 }
 
 with open(OUT_PATH, "w") as f:
