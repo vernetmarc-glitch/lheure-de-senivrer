@@ -20,7 +20,12 @@ for g in MATRIX["real_galaxies"]["entries"]:
             f"{DATA_DIR}/dissolution_sprites/{g['slug']}_f{i:02d}.png").convert("L"))
         arr.astype(np.uint8).tofile(f"xcheck_tmp/sprites/{g['slug']}_{i:02d}.raw")
 
-CELLS = [(0.05, 1.0), (0.05, 0.3), (1.2, 1.0), (1.2, 0.45), (1.2, 0.15),
+for i in range(MATRIX["real_galaxies"]["milkyway_hires"]["n_frames"]):
+    arr = np.array(Image.open(
+        f"{DATA_DIR}/dissolution_sprites_hires/milkyway_f{i:02d}.png").convert("L"))
+    arr.astype(np.uint8).tofile(f"xcheck_tmp/sprites/milkyway_hires_{i:02d}.raw")
+
+CELLS = [(0.03, 1.0), (0.05, 1.0), (0.05, 0.3), (1.2, 1.0), (1.2, 0.45), (1.2, 0.15),
          (1.0, 0.01), (5.0, 0.5), (300.0, 0.9), (14570.0, 0.85), (0.02, 0.001)]
 PIXELS = [(10, 10), (150, 150), (80, 220), (250, 40), (299, 299)]
 ref = []

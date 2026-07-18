@@ -392,7 +392,10 @@ def main():
                 N,
                 catalog,
                 strength=1.0,
-                global_suppression=0.35,
+                # v3.2 (16/07) : les galaxies siègent SUR la toile de
+                # Zel'dovich — plus de suppression ambiante (la dominance
+                # garantie des galaxies réelles s'adapte au niveau local).
+                global_suppression=1.0,
                 size_multiplier=1.8,
                 real_only=False,
                 bump_amplitude_factor=0.50,
@@ -463,18 +466,30 @@ def main():
 
         fields[spec["key"]] = field
 
-    # --- Normalisation PARTAGÉE entre tous les layers ---
-    # (au lieu d'une normalisation par percentiles propre à chaque layer, qui
-    # provoquait un désalignement de contraste/luminosité au moment du fondu
-    # entre deux layers adjacents).
-    log_densities = {k: field_to_log_density(f) for k, f in fields.items()}
-    pooled = np.concatenate([ld.ravel() for ld in log_densities.values()])
-    vmin, vmax = np.percentile(pooled, [1, 99.7])
-    print(f"Normalisation partagee : vmin={vmin:.3f} vmax={vmax:.3f}")
+    # --- v3.2 (16/07, matrice bloc `zeldovich`, variante Z2 validée) ---
+    # La densité n'est plus la log-normale du champ : c'est le dépôt CIC
+    # d'une grille de masse advectée par le potentiel du champ (caustiques =
+    # filaments). L'exposition α est GLOBALE, calibrée en pooling (rôle de
+    # l'ancienne normalisation partagée), et stockée dans matrix.computed
+    # pour que les frames temporelles utilisent EXACTEMENT la même.
+    import zeldovich_engine as ze
+
+    matrix_layers = {l["key"]: l for l in ze._MATRIX["layers"]}
+    rhos = {}
+    for spec in LAYER_SPECS:
+        world = box_mpc(spec["max_mpc"], margin_for(spec["key"]))
+        s_px = matrix_layers[spec["key"]]["zeldovich_s_px"]
+        rhos[spec["key"]] = ze.density_from_delta(fields[spec["key"]], world, s_px)
+        print(f"advection {spec['key']} (S={s_px}px)")
+
+    alpha = ze.calibrate_alpha(list(rhos.values()))
+    computed = ze.store_computed(alpha)
+    print(f"Exposition globale : alpha={alpha:.4f}, ton dissous "
+          f"{computed['dissolved_tone_255']}/255 (ecrit dans la matrice)")
 
     for spec in LAYER_SPECS:
         out_path = f"../app/public/data/density_{spec['key']}.png"
-        export_layer_png(log_densities[spec["key"]], vmin, vmax, out_path)
+        ze.export_tone_png(ze.tone(rhos[spec["key"]], alpha), out_path)
         print(f"{spec['key']} (max {spec['max_mpc']} Mpc) -> {out_path}")
 
 

@@ -104,24 +104,21 @@ for spec in LAYER_SPECS:
                         if anchor else base)
     print(f"   {key} ok")
 
-# ── 2. Normalisation partagée FIGÉE (identique à la production, §13.3).
-log_d = {k: field_to_log_density(f) for k, f in prod_fields.items()}
-pooled = np.concatenate([ld.ravel() for ld in log_d.values()])
-VMIN, VMAX = np.percentile(pooled, [1, 99.7])
-print(f"2) Normalisation figée : vmin={VMIN:.5f} vmax={VMAX:.5f}")
+# ── 2. Exposition v3.2 : α GLOBAL calibré par generate_layers.py (matrice
+# computed.zeldovich) — EXACTEMENT le même que les textures de production.
+import zeldovich_engine as ze
+ALPHA = ze.load_alpha()
+DISSOLVED_TONE = ze.dissolved_tone(ALPHA)
+Q_TEMPORAL = MATRIX["zeldovich"]["temporal"]["q"]
+print(f"2) Exposition v3.2 : alpha={ALPHA:.4f}, ton dissous "
+      f"{DISSOLVED_TONE*255:.2f}/255, q={Q_TEMPORAL}")
 
-# Ton de l'état dissous (champ gaussien nul -> log10(exp(0)+0.05)), partagé
-# par TOUS les layers GRF grâce à la normalisation commune.
-DISSOLVED_LOGD = math.log10(math.exp(0.0) + 0.05)
-DISSOLVED_TONE = float(np.clip((DISSOLVED_LOGD - VMIN) / (VMAX - VMIN), 0, 1))
-print(f"   ton uniforme dissous (GRF) : {DISSOLVED_TONE:.4f} ({DISSOLVED_TONE*255:.1f}/255)")
-
-
-def export_512(norm01, path):
-    """Moyenne de blocs 2×2 (1024 -> 512) puis quantification 8 bits."""
-    small = norm01.reshape(512, 2, 512, 2).mean(axis=(1, 3))
-    Image.fromarray((np.clip(small, 0, 1) * 255).astype(np.uint8), mode="L").save(path)
-    return small
+def export_frame(norm01, path):
+    """Export au format PRODUCTION : 1024², 8 bits — identique aux textures
+    density_* de l'application (décision du 17/07 : aucune recuisson après
+    le prototypage, les frames sont directement utilisables en production)."""
+    Image.fromarray((np.clip(norm01, 0, 1) * 255).astype(np.uint8), mode="L").save(path)
+    return norm01
 
 
 def anchor_modulated(base_scaled, spec, entry, ag):
@@ -137,7 +134,11 @@ def anchor_modulated(base_scaled, spec, entry, ag):
     return apply_local_group_anchor(base_scaled, spec["max_mpc"], N, catalog, **p)
 
 
-# ── 3. Cuisson des frames GRF.
+# ── 3. Cuisson des frames GRF — moteur zeldovich, loi S(s,a) = s_px × A^q.
+# Ancrages temporels : δ(a) = δ_brut + (δ_ancré − δ_brut) × A_gal(a) —
+# la CONTRIBUTION des bosses suit A_gal (à A_gal=1 : champ de production
+# exact ; à A_gal=0 : champ brut), puis Ψ est recalculé (le flot se
+# reconnecte aux galaxies au fil de leur formation).
 print("3) Cuisson des frames…")
 computed_layers = {}
 for entry in MATRIX["layers"]:
@@ -145,15 +146,26 @@ for entry in MATRIX["layers"]:
     if entry["kind"] != "grf":
         continue
     spec = specs_by_key[key]
+    world = box_mpc(spec["max_mpc"], margin_for(key))
+    s_px_a1 = entry["zeldovich_s_px"]
+    has_anchor = bool(entry.get("anchor_a1"))
+    if not has_anchor:
+        psi = ze.displacement(base_fields[key], world)
+    anchor_contrib = (prod_fields[key] - base_fields[key]) if has_anchor else None
     stats = []
     for i, a in enumerate(entry["keyframes_a"]):
         aL = structure_amplitude(entry, a)
-        field = base_fields[key] * aL
-        if entry.get("anchor_a1"):
-            field = anchor_modulated(field, spec, entry, a_gal(a))
-        norm = np.clip((field_to_log_density(field) - VMIN) / (VMAX - VMIN), 0, 1)
-        small = export_512(norm, f"{OUT_DIR}/st_{key}_k{i:02d}.png")
+        S = s_px_a1 * (aL ** Q_TEMPORAL)
+        if has_anchor:
+            delta_a = base_fields[key] + anchor_contrib * a_gal(a)
+            psi_a = ze.displacement(delta_a, world)
+        else:
+            psi_a = psi
+        rho = ze.density_from_psi(psi_a, S, N)
+        tone = ze.tone(rho, ALPHA)
+        small = export_frame(tone, f"{OUT_DIR}/st_{key}_k{i:02d}.png")
         stats.append({"a": a, "A_layer": round(aL, 5), "A_gal": round(a_gal(a), 5),
+                      "S_px": round(S, 3),
                       "mean": round(float(small.mean() * 255), 3),
                       "std": round(float(small.std() * 255), 3)})
     computed_layers[key] = stats
@@ -177,7 +189,7 @@ for i, a in enumerate(lg_entry["keyframes_a"]):
     # comme dans la calibration d'origine), le tout modulé par A_gal(a).
     field = (lg_field + lg_bg * rb["amplitude_a1"]) * ag + floor
     norm = np.clip(field / VMAX_LG, 0, 1)
-    small = export_512(norm, f"{OUT_DIR}/st_localgroup_k{i:02d}.png")
+    small = export_frame(norm, f"{OUT_DIR}/st_localgroup_k{i:02d}.png")
     stats.append({"a": a, "A_layer": round(ag, 5), "A_gal": round(ag, 5),
                   "mean": round(float(small.mean() * 255), 3),
                   "std": round(float(small.std() * 255), 3)})
@@ -187,9 +199,8 @@ print(f"   localgroup: {len(stats)} frames (moyenne {stats[0]['mean']:.1f} -> {s
 # ── 5. Réécrire "computed" dans la matrice (traçabilité, cf. §13.3 :
 # normalisation figée UNE fois, réutilisée partout).
 MATRIX["computed"] = {
-    "shared_vmin": round(float(VMIN), 6),
-    "shared_vmax": round(float(VMAX), 6),
-    "dissolved_tone": round(DISSOLVED_TONE, 6),
+    "zeldovich": MATRIX.get("computed", {}).get("zeldovich"),   # α de generate_layers.py
+    "dissolved_tone_255": round(DISSOLVED_TONE * 255, 2),
     "per_layer_frames": computed_layers,
 }
 with open(MATRIX_PATH, "w") as f:

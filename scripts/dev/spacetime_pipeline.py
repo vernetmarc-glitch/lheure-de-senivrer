@@ -178,6 +178,11 @@ def layer_tone_map(entry, a, hw_eff, canvas_n):
 # dissolution_sprites/{slug}_f00..13.png remplacent les splats runtime.
 SPR = MATRIX["sprites"]
 RG = MATRIX["real_galaxies"]["entries"]
+HIRES = MATRIX["real_galaxies"]["milkyway_hires"]
+HIRES_FRAMES = [
+    np.array(Image.open(f"{DATA_DIR}/dissolution_sprites_hires/milkyway_f{i:02d}.png")
+             .convert("L")).astype(np.float64) / 255
+    for i in range(HIRES["n_frames"])]
 SPRITE_FRAMES = {}
 for _g in RG:
     SPRITE_FRAMES[_g["slug"]] = [
@@ -185,6 +190,26 @@ for _g in RG:
             f"{DATA_DIR}/dissolution_sprites/{_g['slug']}_f{i:02d}.png"
         ).convert("L")).astype(np.float64) / 255
         for i in range(SPR["n_frames"])]
+
+
+WA = MATRIX["web_ambient"]
+_AMB_NODES = [(0.04, WA["amplitudes"]["milkyway_hires"]),
+              (0.1, WA["amplitudes"]["milkyway"]),
+              (2.4, WA["amplitudes"]["localgroup"])]
+
+
+def ambient_amplitude(hw_eff):
+    x = math.log10(max(hw_eff, 1e-6))
+    pts = [(math.log10(s), v) for s, v in _AMB_NODES]
+    if x <= pts[0][0]:
+        return pts[0][1]
+    if x >= pts[-1][0]:
+        return pts[-1][1]
+    for i in range(len(pts) - 1):
+        if pts[i][0] <= x <= pts[i + 1][0]:
+            t = float(smoothstep((x - pts[i][0]) / (pts[i + 1][0] - pts[i][0])))
+            return pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t
+    return pts[-1][1]
 
 
 def sprite_visibility(hw_eff):
@@ -211,17 +236,32 @@ def composite_sprites(bg, a, hw_eff, canvas_n):
     mix = fpos - i0
     px_per_mpc = canvas_n / (2 * hw_eff)
     cx = cy = canvas_n / 2
+    # Fondu de ZOOM 512 <-> hires pour la Voie lactée (bande matrice)
+    lo_h, hi_h = HIRES["used_fade_band_mpc"]
+    w_hires = 1.0 - float(smoothstep((math.log10(max(hw_eff, 1e-6)) - math.log10(lo_h))
+                                     / (math.log10(hi_h) - math.log10(lo_h))))
     out = bg.copy()
+    passes = []
     for g in RG:
-        frames = SPRITE_FRAMES[g["slug"]]
+        if g["slug"] == "milkyway" and w_hires > 1e-3:
+            passes.append((g, SPRITE_FRAMES["milkyway"], g["sprite_halfwidth_mpc"],
+                           g["sprite_halfwidth_units"], 1.0 - w_hires))
+            passes.append((g, HIRES_FRAMES, HIRES["sprite_halfwidth_mpc"],
+                           HIRES["sprite_halfwidth_units"], w_hires))
+        else:
+            passes.append((g, SPRITE_FRAMES[g["slug"]], g["sprite_halfwidth_mpc"],
+                           g["sprite_halfwidth_units"], 1.0))
+    for g, frames, hw_mpc, hw_units, w_pass in passes:
+        if w_pass <= 1e-3:
+            continue
         frame = frames[i0] * (1 - mix) + frames[i0 + 1] * mix
         n_spr = frame.shape[0]
         rad = math.radians(g["angle_deg"])
         gx = cx + math.cos(rad) * g["distance_mpc"] * px_per_mpc
         gy = cy + math.sin(rad) * g["distance_mpc"] * px_per_mpc
         # Plancher de lisibilité sur le CŒUR (cf. matrice sprites.min_render_comment)
-        half_px = max(g["sprite_halfwidth_mpc"] * px_per_mpc,
-                      SPR["min_render_core_px"] * g["sprite_halfwidth_units"])
+        half_px = max(hw_mpc * px_per_mpc,
+                      SPR["min_render_core_px"] * hw_units)
         x0 = max(0, int(math.floor(gx - half_px)))
         x1 = min(canvas_n, int(math.ceil(gx + half_px)) + 1)
         y0 = max(0, int(math.floor(gy - half_px)))
@@ -236,7 +276,7 @@ def composite_sprites(bg, a, hw_eff, canvas_n):
         yy, xx = np.meshgrid(tv, tu, indexing="ij")
         tone = map_coordinates(frame, [yy, xx], order=1, mode="nearest") * inside
         sub = out[y0:y1, x0:x1]
-        out[y0:y1, x0:x1] = 1 - (1 - sub) * (1 - tone * fade)
+        out[y0:y1, x0:x1] = 1 - (1 - sub) * (1 - tone * fade * w_pass)
     return out
 
 
@@ -251,6 +291,15 @@ def render_cell(hw, a, canvas_n=160):
         tone, out_frac, f_std = layer_tone_map(BY_KEY[key], a, hw_eff, canvas_n)
         bg += w * tone
         clamp_defect += w * out_frac * (f_std > 0.005)
+    # Toile ambiante A/B/C (matrice web_ambient) : la texture de la ligne D
+    # échantillonnée sur la fenêtre, × amplitude(hw) × part de zone C —
+    # continuité C/D automatique (même toile), fondue quand D prend le relais.
+    w_lg = weights.get("localgroup", 0.0)
+    if w_lg > 1e-3:
+        amb = ambient_amplitude(hw_eff) * w_lg
+        if amb > 1e-3:
+            web, _, _ = layer_tone_map(BY_KEY["l1b"], a, hw_eff, canvas_n)
+            bg = 1 - (1 - bg) * (1 - web * amb)
     bg = composite_sprites(bg, a, hw_eff, canvas_n)
     white = white_channel(a)
     tone = 1 - (1 - bg) * (1 - white)       # embrasement en "screen", §11.4.c

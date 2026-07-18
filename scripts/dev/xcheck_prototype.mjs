@@ -49,15 +49,22 @@ const harness = `
       const raw = __READRAW__(l.key, i)
       const arr = new Float32Array(raw.length)
       for (let j = 0; j < raw.length; j++) arr[j] = raw[j] / 255
-      return { arr, n: 512 }
+      return { arr, n: Math.round(Math.sqrt(raw.length)) }
     })
   }
+  SPRITE_FRAMES.milkyway_hires = Array.from(
+    { length: MATRIX.real_galaxies.milkyway_hires.n_frames }, (_, i) => {
+      const raw = __READRAW__('sprites/milkyway_hires', i)
+      const arr = new Float32Array(raw.length)
+      for (let j = 0; j < raw.length; j++) arr[j] = raw[j] / 255
+      return { arr, n: Math.round(Math.sqrt(raw.length)) }
+    })
   for (const g of MATRIX.real_galaxies.entries) {
     SPRITE_FRAMES[g.slug] = Array.from({ length: MATRIX.sprites.n_frames }, (_, i) => {
       const raw = __READRAW__('sprites/' + g.slug, i)
       const arr = new Float32Array(raw.length)
       for (let j = 0; j < raw.length; j++) arr[j] = raw[j] / 255
-      return { arr, n: 512 }
+      return { arr, n: Math.round(Math.sqrt(raw.length)) }
     })
   }
   framesTotal = 1; framesLoaded = 1

@@ -180,7 +180,7 @@ for key, max_mpc, seed, parent, margin in GRF_SPECS:
         "anchor_scale_mpc": GALAXY_SCALE_MPC if anchored else None,
         "keyframes_a": keyframes,
         "frame_pattern": f"data/st_{key}_k{{:02d}}.png",
-        "frame_resolution": 512,
+        "frame_resolution": 1024,   # format production (17/07)
     })
 
 # localgroup — texture procédurale (98 galaxies) + fond FFT résiduel §4.8.
@@ -213,7 +213,7 @@ layers.append({
     "uniform_floor": "match_grf_dissolved_tone",
     "keyframes_a": lg_keyframes,
     "frame_pattern": "data/st_localgroup_k{:02d}.png",
-    "frame_resolution": 512,
+    "frame_resolution": 1024,   # format production (17/07)
 })
 
 # ── Layer milkyway : la Voie lactée est rendue par son sprite N-corps
@@ -317,7 +317,7 @@ matrix = {
         "frames_dir": "data/dissolution_sprites",
         "frame_pattern": "data/dissolution_sprites/{slug}_f{:02d}.png",
         "n_frames": 14,
-        "frame_resolution": 512,
+        "frame_resolution": 1024,   # format production (17/07)
         # progress = 1 − A_gal(a), frame = progress × 13 (interpolation
         # linéaire entre les deux frames encadrantes)
         "progress": "1 - A(galaxy_scale_mpc, a)",
@@ -501,9 +501,9 @@ matrix["field_evolution"] = {
     "non_regression": "a=1 : A=1 → S=11 px = look Z2 validé."
 }
 matrix["real_galaxies"]["milkyway_hires"] = {
-    "status": "Spécifié 14/07, paramètres calibrés en prévisualisation 15/07 (corrélation f00/production 0.78) — cuisson des 14 frames en attente",
+    "status": "CUIT le 17/07 — 14 frames 2048², corrélation f00/production vérifiée à la cuisson",
     "problem": "Les frames 512² sont cadrées sur la dispersion finale ×7.7 : le disque d'aujourd'hui n'occupe que ~70 px → bouillie floue au zoom maximal, sans commune mesure avec density_milkyway.png de production.",
-    "script": "scripts/generate_milkyway_hires_sprites.mjs (à écrire — même moteur de cuisson que generate_dissolution_sprites.mjs)",
+    "script": "scripts/generate_milkyway_hires_sprites.py (Python, déterministe)",
     "source": "data/milkyway_dissolution_keyframes.json (simulation N-corps VL existante)",
     "resolution": 2048,
     "n_frames": 14,
@@ -513,7 +513,16 @@ matrix["real_galaxies"]["milkyway_hires"] = {
     "f00_validation": "Corrélation exigée entre f00 et density_milkyway.png (contrôle headless ajouté à la cuisson).",
     "used_by_layer": "milkyway_hires (ligne A)",
     "runtime": "Mêmes lois que le bloc sprites : progress = 1−A_gal(a), extinction A_gal², mélange screen, plancher cœur.",
-    "splats": "Par particule : sigma = sz × (résolution/1024) clampé [0.8, 6.0] px (champ 'sz' de particleMeta), amplitude 0.18 + b×0.55, ton 1−exp(−k·champ) avec k auto-calibré (p99.7 du champ non nul -> ton 0.95)."
+    "splats": "Par particule : sigma = sz × (résolution/1024) clampé [0.8, 6.0] px (champ 'sz' de particleMeta), amplitude 0.18 + b×0.55, ton 1−exp(−k·champ) avec k auto-calibré (p99.7 du champ non nul -> ton 0.95).",
+    "sprite_halfwidth_mpc": 0.031887,
+    "halo_growth": 2.5,
+    "exposure": "k calibré sur f00 (p99.7 -> 0.95), PARTAGÉ par les 14 frames (continuité de flux)",
+    "used_fade_band_mpc": [
+        0.4,
+        0.6
+    ],
+    "used_fade_comment": "Fondu de ZOOM (pas temporel, §11.3 respecté) entre le sprite 512 cadrage large (halo 7.7 rayons) et le hires (2 rayons) : poids hires = 1−smoothstep(log hw) sur la bande — évite le pop d'étendue visible au swap.",
+    "sprite_halfwidth_units": 2.0
 }
 
 # v3.2 (16/07) : suppression ambiante levée + toile ambiante A/B/C
