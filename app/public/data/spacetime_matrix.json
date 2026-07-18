@@ -1749,8 +1749,8 @@
   "comment": "13 lignes depuis le 14/07 (insertion de milkyway_hires en A, décalage unique des codes : l'ancien C (l1b) devient D, etc.). RÈGLE DE PERMANENCE : les lettres sont attribuées une fois pour toutes ; un layer inséré plus tard prend la première lettre libre suivante (N, O, ...) et c'est la table zoom_rows qui donne l'ordre de zoom, pas l'alphabet — un code désigne donc toujours le même visuel. A = Voie lactée détaillée, M = univers observable ; 0 = recombinaison, 10 = aujourd'hui. Montage étiqueté avec ces codes."
  },
  "pending_generation": [
-  "Recuisson v3.3 : textures density_l*.png + 114 frames st_* (Ψ comobile, α par frame à ton maintenu, fenêtre galaxies 0.75) — prévisualisation bande D..M avec verrou numérique (identité G10/Z2) avant gravure",
-  "glow-test.html : vérification visuelle de calibration (inchangé)"
+  "glow-test.html : vérification visuelle de calibration sur les textures v3.3 (inchangé structurellement, jamais revérifié à l'œil depuis le moteur Zel'dovich)",
+  "Intégration en production (DensityLayer.tsx / RealGalaxiesLayer.tsx) : tout reste dans app/public/spacetime-matrix-test.html, séparé de l'app réelle — non commencé"
  ],
  "filamentarity": {
   "status": "REMPLACÉ le 16/07 par le bloc zeldovich (v3.2) — les crêtes multi-octaves produisaient de la mousse cellulaire, pas la toile de la référence. Conservé pour l'historique, ne JAMAIS cuire avec.",
@@ -1793,7 +1793,7 @@
   "non_regression": "a=1 : A=1 → S=11 px = look Z2 validé."
  },
  "zeldovich": {
-  "status": "v3.3 SPÉCIFIÉ le 18/07 (retours Marc sur la v3.2 déployée) — recuisson en attente",
+  "status": "v3.3 CUIT le 18/07 — 10 textures density_l*.png + 114 frames st_* régénérées (Ψ comobile G=0.9377, α résolu par frame, ton maintenu 38/255 partout). 163 contrôles OK, xcheck JS/Python ≤ 3.1e-8. Déployé.",
   "principle": "La cascade d'héritage FFT (mêmes graines, coarse 0.74 + detail 0.67) produit δ, INCHANGÉE. Densité = dépôt CIC d'une grille de masse advectée par le potentiel du champ : Ψ̂ = i·k·δ̂/k², les caustiques du flot forment les filaments (mécanisme physique réel de la toile).",
   "displacement_band": "Ψ limité à λ ∈ [lam_min_px, filament_max_scale_mpc comobiles] — la coupure 150 Mpc garantit l'uniformité aux lignes K/L/M (petits filaments seulement, décision c du 14/07).",
   "lam_min_px": 6,
@@ -1825,7 +1825,7 @@
   }
  },
  "web_ambient": {
-  "status": "Amplitudes relevées le 18/07 (0.12/0.20/0.35 -> 0.20/0.35/0.55 : invisibles à l'écran, mesuré ~+7/255 de structure). Ajustables.",
+  "status": "CUIT le 18/07 (amplitudes 0.20/0.35/0.55) — pipeline + prototype. Déployé.",
   "source_row": "D (l1b) : la toile ambiante de A/B/C est la texture de la ligne D échantillonnée sur la fenêtre courante. Même toile de part et d'autre de la frontière C/D → continuité automatique ; l'upsampling d'une petite région la rend naturellement très diffuse (aucun flou artificiel).",
   "blend": "screen (§11.3)",
   "amplitudes": {
@@ -1836,7 +1836,7 @@
   "temporal": "Suit les frames temporelles de la ligne D (même dissolution S(a)) — aucune cuisson propre, échantillonnage à l'affichage."
  },
  "galaxy_formation": {
-  "status": "SPÉCIFIÉ le 18/07 — narration de condensation validée par Marc : brouillard -> nuages/filaments (a_form des layers de champ) -> les galaxies s'y CONDENSENT ensuite. (Le bottom-up cosmologique réel est sciemment écarté, décision réitérée.)",
+  "status": "CUIT le 18/07 — a_form_sprites=0.75 appliqué aux 114 frames (sprites, bosses d'ancrage, galaxies procédurales C). Déployé.",
   "a_form_sprites": 0.75,
   "halfwidth_dex": 0.1249,
   "center_dex": -0.1249,
@@ -1848,7 +1848,7 @@
   "comment": "Même forme de fenêtre (smoothstep en log a) que les layers. Valeur 0.75 ajustable après retour visuel."
  },
  "prototype_rendering": {
-  "status": "SPÉCIFIÉ le 18/07",
+  "status": "CUIT le 18/07 — mips de minification, canvas adaptatif 300/640, codes A..M affichés. Déployé.",
   "adaptive_canvas": "300 px pendant la manipulation des curseurs, raffinement à 640 px au repos (la pixelisation de la Voie lactée hires venait du canvas 300, pas des sprites 2048).",
   "minification": "Moyenne de zone (mip par blocs) quand la fenêtre minifie une texture — sans elle les petits filaments de K/L/M sont avalés par l'échantillonnage ponctuel (M paraissait uniforme/noir).",
   "ui_nomenclature": "Affichage permanent du code de ligne actif : 'D · l1b · 8.49 Mpc' (retour n°6 — les codes A..M sont la langue commune des retours)."

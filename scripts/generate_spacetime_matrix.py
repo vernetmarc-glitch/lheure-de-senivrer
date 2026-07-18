@@ -420,8 +420,8 @@ matrix["nomenclature"] = {
 
 # ── Blocs de spécification v3 (14 juillet) — cuisson en attente
 matrix["pending_generation"] = [
-    "Recuisson v3.3 : textures density_l*.png + 114 frames st_* (Ψ comobile, α par frame à ton maintenu, fenêtre galaxies 0.75) — prévisualisation bande D..M avec verrou numérique (identité G10/Z2) avant gravure",
-    "glow-test.html : vérification visuelle de calibration (inchangé)"
+    "glow-test.html : vérification visuelle de calibration sur les textures v3.3 (inchangé structurellement, jamais revérifié à l'œil depuis le moteur Zel'dovich)",
+    "Intégration en production (DensityLayer.tsx / RealGalaxiesLayer.tsx) : tout reste dans app/public/spacetime-matrix-test.html, séparé de l'app réelle — non commencé"
 ]
 matrix["filamentarity"] = {
     "status": "REMPLACÉ le 16/07 par le bloc zeldovich (v3.2) — les crêtes multi-octaves produisaient de la mousse cellulaire, pas la toile de la référence. Conservé pour l'historique, ne JAMAIS cuire avec.",
@@ -447,7 +447,7 @@ matrix["filamentarity"] = {
     }
 }
 matrix["zeldovich"] = {
-    "status": "v3.3 SPÉCIFIÉ le 18/07 (retours Marc sur la v3.2 déployée) — recuisson en attente",
+    "status": "v3.3 CUIT le 18/07 — 10 textures density_l*.png + 114 frames st_* régénérées (Ψ comobile G=0.9377, α résolu par frame, ton maintenu 38/255 partout). 163 contrôles OK, xcheck JS/Python ≤ 3.1e-8. Déployé.",
     "principle": "La cascade d'héritage FFT (mêmes graines, coarse 0.74 + detail 0.67) produit δ, INCHANGÉE. Densité = dépôt CIC d'une grille de masse advectée par le potentiel du champ : Ψ̂ = i·k·δ̂/k², les caustiques du flot forment les filaments (mécanisme physique réel de la toile).",
     "displacement_band": "Ψ limité à λ ∈ [lam_min_px, filament_max_scale_mpc comobiles] — la coupure 150 Mpc garantit l'uniformité aux lignes K/L/M (petits filaments seulement, décision c du 14/07).",
     "lam_min_px": 6,
@@ -479,7 +479,7 @@ matrix["zeldovich"] = {
     }
 }
 matrix["galaxy_formation"] = {
-    "status": "SPÉCIFIÉ le 18/07 — narration de condensation validée par Marc : brouillard -> nuages/filaments (a_form des layers de champ) -> les galaxies s'y CONDENSENT ensuite. (Le bottom-up cosmologique réel est sciemment écarté, décision réitérée.)",
+    "status": "CUIT le 18/07 — a_form_sprites=0.75 appliqué aux 114 frames (sprites, bosses d'ancrage, galaxies procédurales C). Déployé.",
     "a_form_sprites": 0.75,
     "halfwidth_dex": 0.1249,
     "center_dex": -0.1249,
@@ -491,13 +491,13 @@ matrix["galaxy_formation"] = {
     "comment": "Même forme de fenêtre (smoothstep en log a) que les layers. Valeur 0.75 ajustable après retour visuel."
 }
 matrix["prototype_rendering"] = {
-    "status": "SPÉCIFIÉ le 18/07",
+    "status": "CUIT le 18/07 — mips de minification, canvas adaptatif 300/640, codes A..M affichés. Déployé.",
     "adaptive_canvas": "300 px pendant la manipulation des curseurs, raffinement à 640 px au repos (la pixelisation de la Voie lactée hires venait du canvas 300, pas des sprites 2048).",
     "minification": "Moyenne de zone (mip par blocs) quand la fenêtre minifie une texture — sans elle les petits filaments de K/L/M sont avalés par l'échantillonnage ponctuel (M paraissait uniforme/noir).",
     "ui_nomenclature": "Affichage permanent du code de ligne actif : 'D · l1b · 8.49 Mpc' (retour n°6 — les codes A..M sont la langue commune des retours)."
 }
 matrix["web_ambient"] = {
-    "status": "Amplitudes relevées le 18/07 (0.12/0.20/0.35 -> 0.20/0.35/0.55 : invisibles à l'écran, mesuré ~+7/255 de structure). Ajustables.",
+    "status": "CUIT le 18/07 (amplitudes 0.20/0.35/0.55) — pipeline + prototype. Déployé.",
     "source_row": "D (l1b) : la toile ambiante de A/B/C est la texture de la ligne D échantillonnée sur la fenêtre courante. Même toile de part et d'autre de la frontière C/D → continuité automatique ; l'upsampling d'une petite région la rend naturellement très diffuse (aucun flou artificiel).",
     "blend": "screen (§11.3)",
     "amplitudes": {
@@ -524,6 +524,10 @@ matrix["field_evolution"] = {
     "keyframes": "Densité de keyframes à réévaluer aux zones de dénouement rapide (balayages denses de continuité, preuve de lissité).",
     "non_regression": "a=1 : A=1 → S=11 px = look Z2 validé."
 }
+matrix["pending_generation"] = [
+    "glow-test.html : vérification visuelle de calibration sur les textures v3.3 (inchangé structurellement, jamais revérifié à l'œil depuis le moteur Zel'dovich)",
+    "Intégration en production (DensityLayer.tsx / RealGalaxiesLayer.tsx) : tout reste dans app/public/spacetime-matrix-test.html, séparé de l'app réelle — non commencé"
+]
 matrix["real_galaxies"]["milkyway_hires"] = {
     "status": "CUIT le 17/07 — 14 frames 2048², corrélation f00/production vérifiée à la cuisson",
     "problem": "Les frames 512² sont cadrées sur la dispersion finale ×7.7 : le disque d'aujourd'hui n'occupe que ~70 px → bouillie floue au zoom maximal, sans commune mesure avec density_milkyway.png de production.",
@@ -548,12 +552,11 @@ matrix["real_galaxies"]["milkyway_hires"] = {
     "used_fade_comment": "Fondu de ZOOM (pas temporel, §11.3 respecté) entre le sprite 512 cadrage large (halo 7.7 rayons) et le hires (2 rayons) : poids hires = 1−smoothstep(log hw) sur la bande — évite le pop d'étendue visible au swap.",
     "sprite_halfwidth_units": 2.0
 }
-
 # ── Post-traitements v3.3 (18/07)
 matrix["sprites"]["progress"] = "1 - A_sprite(a)  (bloc galaxy_formation, v3.3)"
 matrix["sprites"]["fade_law"] = "A_sprite(a)^fade_exponent"
 for _l in matrix["layers"]:
-    _l.pop("zeldovich_s_px", None)          # v3.3 : G global, plus d'amplitude par layer
+    _l.pop("zeldovich_s_px", None)
     if _l.get("anchor_a1"):
         _l["anchor_a1"]["global_suppression"] = 1.0
     if _l["key"] in matrix["web_ambient"]["amplitudes"]:
