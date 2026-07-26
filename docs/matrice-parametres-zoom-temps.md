@@ -423,7 +423,6 @@ du JSON.
   contrôle obligatoire avant recuisson (bande D10→M10, cellule C avec
   toile ambiante, bande de dissolution H).
 
-### 12.f v3.3 (18 juillet — retours de Marc sur la v3.2 déployée)
 
 Sept retours, quatre familles de correctifs (blocs `zeldovich`,
 `galaxy_formation`, `web_ambient`, `prototype_rendering` du JSON) :
@@ -449,3 +448,19 @@ Sept retours, quatre familles de correctifs (blocs `zeldovich`,
    échantillonnés), canvas adaptatif 300→640 px (la Voie lactée hires
    était nette, l'écran ne l'était pas), affichage permanent du code de
    ligne « D · l1b · 8.49 Mpc ».
+
+### 12.g Exploration du générateur (19 juillet) — ABANDONNÉE, diagnostic seulement
+
+Suite aux retours sur la v3.3 déployée (sauts de matière au changement de
+zoom, filaments ambiants mal échelonnés, Voie lactée hires décentrée),
+plusieurs moteurs alternatifs ont été testés dans `scripts/dev/` :
+Ψ hiérarchique (cohérence du CHAMP 0.79-0.95 prouvée, mais densité
+DÉPOSÉE incohérente 0.08-0.43 — le repliement CIC est trop sensible pour
+transmettre cette cohérence), catalogue de points par crêtes de Hessienne
+(rendu "mousse"), squelette de crêtes ("grains uniformes"), particules
+advectées seules ("ciel étoilé"), combo dépôt+points ("pas mal" isolément
+mais grosse discontinuité au test de zoom continu). **Aucune de ces pistes
+n'est retenue.** La v3.3 (§12.f) reste la référence de production —
+`git checkout` a confirmé qu'aucun fichier de production ne porte de trace
+de cette exploration. Repartir du DIAGNOSTIC (coupure Mpc vs px, sensibilité
+du repliement CIC), pas du CODE de ces essais, dans une nouvelle conversation.
