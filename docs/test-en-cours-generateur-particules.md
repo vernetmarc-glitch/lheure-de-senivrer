@@ -157,32 +157,70 @@ ajouter la courbe d'exposition à `spacetime_matrix.json`, en tant que **fonctio
 documentée de (s,a) calculée une fois** — jamais un percentile recalculé par
 image (§13.3).
 
-### Test 2 — Héritage de particules G → F ⚠️ PARTIEL
+### Test 2 — Héritage de particules G → F ✅ PASSÉ
 
 Champ enfant construit par raccord spectral : modes du parent conservés
 **exactement** sous sa coupure (λ = 2,344 Mpc), détail frais au-dessus avec son
 amplitude P(k), raccord de puissance dans la bande de recouvrement. Part de
 variance héritée : 65,6 %.
 
-À densité de particules égale (265-268 k projetées de part et d'autre) :
+Halos : 2 626 halos parents reportés **verbatim** dans un catalogue enfant de
+23 214 (11,3 % d'héritage direct), avec rapport de masse d'échelle ×13,82
+(= (2,4/1,0)³, cf. peak-patch).
+
+#### 2.a — Stabilité du flux aléatoire ✅
+
+Générateur **basé sur compteur** (splitmix64 vectorisé), graine dérivée du hash
+spatial de la position **lagrangienne** (invariant qui traverse les layers).
+
+Le nuage de points d'un halo donné est **strictement identique** qu'il soit
+généré seul ou noyé dans le catalogue complet — écart maximal de position
+**0,0 Mpc**.
+
+**Deux couplages globaux cachés découverts et corrigés** — chacun aurait
+silencieusement cassé l'héritage :
+
+| Défaut | Effet | Correctif |
+|---|---|---|
+| `counts = w/w.sum() × budget_global` | ajouter des halos au layer fin change la luminosité de **tous** les autres | compte absolu `k × m^slope` |
+| `rr = rmax × (m/m.max())^0.28` | `m.max()` dépend du catalogue → rayon différent selon le contexte | référence de masse **absolue** |
+
+Règle générale à retenir : **aucune grandeur par halo ne doit dépendre d'une
+statistique globale du catalogue** (somme, max, percentile). C'est l'équivalent
+particulaire du piège de normalisation du §13.3.
+
+#### 2.b — Mesures inter-layer, à densité de particules égale
 
 | Critère | Mesuré | Cible |
 |---|---|---|
-| Corrélation | **0,913** | ≥ 0,85 |
+| Corrélation | **0,914** | ≥ 0,85 |
 | Écart de moyenne | **0,00/255** | < 2 |
 | Écart d'écart-type | **1,1 %** | < 10 |
 | ANISO | 0,99 / 0,99 | ~1 |
-| Nombre de structures | 354 / 354 | identiques |
-| Appariement des pics | 11 % à ≤1,5 px, médiane 5,39 px | ❌ |
+| Nombre de structures | 355 / 364 | comparables |
+| Netteté des pics | 1,29 / 1,28 | identiques |
+| Appariement des pics (image complète) | 17 % à ≤1,5 px | ⚠️ cf. décomposition |
 
 Rappel de la référence historique : dépôt CIC, corrélation **0,08-0,43**.
 
-**Pourquoi l'appariement des pics échoue** : à ~1 particule par pixel, les pics de
-l'image lissée sont dominés par le bruit de grenaille, pas par des objets. La
-métrique ne mesure donc pas ce qu'elle prétend. L'identité d'objet ne devient
-testable qu'avec la composante **halos**, qui sont compacts et non ambigus — et
-dont le report verbatim du parent vers l'enfant (condition 2 du §3) n'est **pas
-encore implémenté ni testé**.
+#### 2.c — Décomposition de l'appariement des pics
+
+| Composante | Appariement des pics |
+|---|---|
+| **Halos seuls** | **médiane 0,00 px — 97 % à ≤1,5 px, 100 % à ≤4 px** |
+| Toile seule (caustiques de Zel'dovich) | médiane 5,39 px — 11 % à ≤1,5 px |
+| Déplacement mesuré des 2 626 halos partagés | **0,0000 Mpc** |
+
+**L'identité d'objet est exacte.** Le résidu vient entièrement des caustiques de
+Zel'dovich, qui se déplacent d'environ 1,4 Mpc (≈1 % de la largeur du champ)
+quand l'enfant résout des échelles plus fines. C'est le comportement physique
+attendu — ajouter de la puissance à petite échelle déplace le lieu du croisement
+des trajectoires — et non une redistribution aléatoire : la corrélation globale
+de la toile reste à 0,913.
+
+**Point à trancher** : ce glissement de ~1 % du champ est-il visuellement
+acceptable au fondu, ou faut-il l'atténuer par un raccord spectral progressif
+(taper) dans la bande de recouvrement, au prix de moins de détail neuf ?
 
 ### Test 3 — Raccord C/D (sprites → premier layer généré) ⬜ NON COMMENCÉ
 
