@@ -222,7 +222,78 @@ de la toile reste à 0,913.
 acceptable au fondu, ou faut-il l'atténuer par un raccord spectral progressif
 (taper) dans la bande de recouvrement, au prix de moins de détail neuf ?
 
-### Test 3 — Raccord C/D (sprites → premier layer généré) ⬜ NON COMMENCÉ
+### Test 2c — `A` appliqué par bande de k ✅ PASSÉ — **corrige un défaut de conception**
+
+**Défaut trouvé** : `A(s,a)` étant indexé par *layer*, une particule partagée entre
+deux layers recevait deux pondérations différentes, donc deux positions.
+
+| a | D/l1b | E/l2 | F/l2b | G/l3 |
+|---|---|---|---|---|
+| 1,00 | 1,000 | 1,000 | 1,000 | 1,000 |
+| 0,90 | 0,978 | 0,959 | 0,941 | 0,563 |
+| 0,80 | 0,909 | 0,834 | **0,768** | **0,003** |
+
+À `a = 0,80`, G est entièrement dissous pendant que F est structuré à 77 % :
+écart de déplacement **4,59 Mpc = 18 px** sur le champ de F pour la même
+particule. C'est la rupture annoncée au §11.1, et elle est fatale.
+
+**Correctif validé par Marc le 27 juillet** :
+
+```
+Psi(a) = Σ_k  A(λ_k, a) · Psi_k          avec  λ_k = 2π/k
+```
+
+La position d'une particule devient une fonction **unique** de `a`, identique
+quel que soit le layer qui la rend ; le layer ne décide plus que des bandes
+qu'il résout. La table `a_form(s)` du §11.4.a est **conservée telle quelle** —
+elle est déjà indexée par échelle, ce qui est sa lecture physique la plus
+fidèle ; elle n'était appliquée par layer que parce que chaque layer était un
+champ séparé.
+
+Contrainte dure revérifiée : `A(λ, a=1) = 1` et `A(λ, 1−10⁻⁹) = 1` pour
+**toutes** les bandes.
+
+Pondération mesurée (6 bandes, λ de 1,05 à 201 Mpc) :
+
+| a | λ=1,6 | λ=8,9 | λ=52,9 | λ=128,9 |
+|---|---|---|---|---|
+| 0,90 | 0,997 | 0,978 | 0,941 | 0,563 |
+| 0,80 | 0,986 | 0,909 | 0,768 | 0,003 |
+| 0,50 | 0,881 | 0,381 | 0,002 | 0,000 |
+
+**Bénéfice de coût** : le coût FFT est payé une fois ; chaque époque se
+recombine au niveau des particules par somme pondérée. Les ~114 frames
+temporelles par layer sont donc bon marché.
+
+### Test 3 — Cohérence zoom × temps croisée (G ↔ F à dates intermédiaires) ✅ PASSÉ
+
+Le terme croisé du §11.1 : deux layers adjacents à une date **intermédiaire**.
+Exposition `alpha` **commune aux deux layers** (pas recalculée par image, §13.3).
+
+| a | Corrélation | Pics ≤1,5 px | Médiane | Δ moyenne | Δ écart-type | ANISO G / F |
+|---|---|---|---|---|---|---|
+| 1,00 | 0,996 | 67 % | 1,00 px | 0,27/255 | 0,1 % | 1,02 / 1,04 |
+| 0,95 | 0,996 | 68 % | 1,00 px | 0,14/255 | 0,1 % | 1,04 / 1,05 |
+| 0,90 | 0,996 | 72 % | 1,00 px | 0,15/255 | 0,1 % | 1,10 / 1,11 |
+| 0,86 | 0,996 | 77 % | 1,00 px | 0,22/255 | 0,1 % | 1,10 / 1,11 |
+| 0,80 | 0,995 | 83 % | 1,00 px | 0,30/255 | 0,1 % | 1,07 / 1,07 |
+| 0,70 | 0,994 | 84 % | 1,00 px | 0,36/255 | 0,2 % | 1,05 / 1,05 |
+| 0,50 | 0,986 | 87 % | 1,00 px | 0,40/255 | 0,4 % | 1,11 / 1,09 |
+
+Tous les critères passent avec une large marge, à **toutes** les époques.
+
+**Effet de bord notable** : la formulation par bande améliore aussi la cohérence
+de zoom **à a=1** — corrélation 0,996 contre 0,914 au test 2, appariement des
+pics 67 % contre 17 %. Le résidu du test 2 n'était donc pas seulement le
+glissement physique des caustiques : il venait en grande partie d'une
+normalisation d'amplitude incohérente entre parent et enfant dans mon protocole.
+La décomposition par bande supprime ce degré de liberté.
+
+**L'appariement s'améliore quand `a` diminue** (67 % → 87 %) : le déplacement de
+grande échelle est supprimé en premier, les structures sont donc moins évoluées
+et plus faciles à apparier.
+
+### Test 7 — Raccord C/D (sprites → premier layer généré) ⬜ NON COMMENCÉ
 
 Enjeu **nouveau**, absent des documents existants : jusqu'ici D était un champ
 lisse sans objets, donc seule la luminosité moyenne devait raccorder (§4.8,
