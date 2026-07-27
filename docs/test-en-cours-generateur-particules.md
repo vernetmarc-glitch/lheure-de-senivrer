@@ -424,3 +424,67 @@ ponctuelles à tous les étages de zoom ».
 
 La dérive de moyenne s'aggrave : **68 → 103/255** contre 68 → 82 au test 1.
 La courbe d'exposition dans `spacetime_matrix.json` n'est plus optionnelle.
+
+### Test 4.d — La dérive de moyenne n'est pas un défaut ✅
+
+Alerte levée. Avec un `alpha` unique figé, la moyenne dérive bien dans le temps
+(68 → 88/255 de a=1 à a=0,3), mais les **deux layers se suivent** :
+
+| a | moy G | moy F | écart |
+|---|---|---|---|
+| 1,00 | 68,0 | 68,3 | 0,27 |
+| 0,80 | 69,9 | 70,2 | 0,32 |
+| 0,60 | 76,3 | 76,9 | 0,61 |
+| 0,40 | 85,1 | 85,3 | 0,16 |
+| 0,30 | 88,0 | 87,4 | 0,58 |
+
+Écart maximal **0,61/255**, très en deçà de la cible de 2. La formulation par
+bande (test 2c) avait déjà réglé la cohérence inter-layer. Il ne reste qu'une
+trajectoire de luminosité partagée, indépendante du layer — à **documenter**
+comme `T(a)`, pas à corriger. Elle va d'ailleurs dans le sens du
+`uniform_floor = 129,4/255` déjà prévu par la matrice.
+
+### Test 5 — Couverture du cadre (§11.4.f) ✅ PASSÉ
+
+Critère repris **du validateur existant** (`validate_spacetime_matrix.py`,
+`spacetime_pipeline.py`) plutôt que réinventé :
+
+```
+clamp_defect = Σ_layers  poids(hw_eff) · fraction_hors_texture · (f_std > 0.005)
+clamp_visible = clamp_defect · (1 − embrasement)          seuil : < 5 %
+```
+
+Un recadrage ne compte que si le layer est **effectivement affiché**, que sa
+frame est **encore structurée**, et que l'**embrasement** ne l'a pas noyée.
+
+Trois conditions à réunir, et deux calculs intermédiaires faux avant d'y arriver :
+
+1. Juger la structure sur la seule échelle du layer → E et F apparaissent en
+   défaut (marges 1,72 et 1,77). **Faux** : avec `A` par bande, les petites
+   échelles persistent bien plus longtemps.
+2. Juger sur la plus petite bande encore structurée → neuf layers sur dix en
+   défaut, jusqu'à ×10. **Faux aussi** : quand le cadre s'élargit, les **poids
+   de layers changent** et un layer plus grossier prend le relais.
+3. Poids réels + bande structurée **et** résolue à l'écran + embrasement :
+
+| Layer | Extent disponible | Extent requis | a critique | Marge requise | Verdict |
+|---|---|---|---|---|---|
+| l1b | 12,7 | 9,9 | 0,095 | **1,16** | OK |
+| l2 | 45,0 | 34,9 | 0,287 | 1,16 | OK |
+| l2b | 100,6 | 78,1 | 0,081 | 1,16 | OK |
+| l3 | 225,0 | 174,6 | 0,380 | 1,16 | OK |
+| l3b | 318,2 | 247,0 | 0,229 | 1,16 | OK |
+| l4 | 450,0 | 349,4 | 0,097 | 1,16 | OK |
+| l4a | 1190,6 | 924,2 | 0,456 | 1,16 | OK |
+| l4b | 3150,0 | 2445,0 | 0,469 | 1,16 | OK |
+| l5a | 8297,2 | 6440,2 | 0,788 | 1,16 | OK |
+| l5 | 34968,0 | 17733,7 | 0,822 | **1,22** | OK |
+
+**Aucun layer en défaut.** Les marges de production (1,5 ; 2,4 pour M) couvrent
+le besoin réel (1,16 ; 1,22) avec de la réserve. La course est gagnée par la
+dissolution : la structure disparaît avant que le cadre ne dépasse la texture.
+
+**Réserve** : dérivation géométrique à partir des poids de layers, de la règle
+d'expansion par échelle, de l'embrasement et du `A` par bande — pas une mesure
+sur rendus réels. Une confirmation par cuisson reste souhaitable.
+
