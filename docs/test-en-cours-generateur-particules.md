@@ -335,3 +335,92 @@ population (creux bimodal), concentration du flux, nombre et élongation des
 structures, netteté des pics, résolution effective, corrélation et appariement
 inter-layer. Un défaut d'aspect en dehors de ces axes passerait au travers — la
 confirmation visuelle par Marc reste requise avant clôture (§13.1).
+
+### Test 4 — Dissolution des points lumineux en filaments ✅ MÉCANISME VALIDÉ
+
+Demande de Marc (27 juillet) : les points lumineux des layers de densité élevée
+n'existaient pas dans l'ancien générateur. Ils ne doivent pas **pâlir sur place**
+en remontant le temps — ils doivent **s'étirer le long du filament** qui a
+alimenté le halo, puis se fondre dans la nappe.
+
+**Mécanisme : ancrage lagrangien.** Chaque point du halo est un élément de masse
+avec sa position initiale `q_i`, tirée dans la *patch lagrangienne* du halo :
+
+```
+pos_i(a) = q_i + Psi(q_i, a) + C(a) · ( cible_compacte_i − [q_i + Psi(q_i, 1)] )
+```
+
+`C(a)` suit l'`a_form` de l'échelle propre du halo (§11.4.a). À `a=1`, `C=1` et
+la position vaut exactement la cible compacte — **le rendu validé est reproduit
+au bit près** (vérifié : `cible identique = True`).
+
+| a | C(a) | Élongation du nuage | Nettété | Structures | ANISO | HF (var. lapl.) | σ |
+|---|---|---|---|---|---|---|---|
+| 1,00 | 1,000 | 1,21 | 1,08 | 405 | 1,03 | 4,39e-1 | 76,5 |
+| 0,90 | 0,975 | 1,42 | 1,07 | 373 | 1,10 | 4,46e-1 | 77,2 |
+| 0,80 | 0,895 | 2,46 | 1,33 | 358 | 1,09 | 4,49e-1 | 77,8 |
+| 0,70 | 0,757 | 3,08 | 1,27 | 370 | 1,05 | 4,70e-1 | 78,4 |
+| **0,60** | 0,560 | **3,25** | 1,29 | 442 | 1,10 | 5,25e-1 | 77,4 |
+| 0,50 | 0,318 | 2,90 | 1,44 | 627 | 1,10 | 6,03e-1 | 73,3 |
+| 0,40 | 0,081 | 2,13 | 1,75 | 995 | 1,07 | 6,61e-1 | 69,0 |
+| 0,30 | 0,000 | 1,45 | 1,79 | 1018 | 1,04 | 6,99e-1 | 65,9 |
+| 0,20 | 0,000 | 1,21 | 1,82 | 937 | 1,04 | 7,36e-1 | 62,0 |
+
+Trajectoire en trois phases : **point compact → filament étiré à 3,25:1 →
+retour au verre uniforme**. Les hautes fréquences montent continûment sans
+jamais s'effondrer ; l'anisotropie reste entre 1,03 et 1,10. Rien n'est flouté,
+rien ne pâlit : les points se **déplacent**.
+
+#### 4.a — Le verre ne coûte rien
+
+Le test 1 imposait un verre en remplacement du réseau régulier. Vérifié à
+paramètres égaux (layer G, demi-champ 150) :
+
+| départ | Netteté à a=1 | ANISO à a=1 | ANISO à A=0 |
+|---|---|---|---|
+| Réseau régulier | 1,81 | 1,01 | **18,9** |
+| Verre ¼ cellule | 1,85* | 1,01 | 7,04 |
+| **Verre ½ cellule** | **1,85** | 1,00 | **1,09** |
+
+Le verre à ½ cellule est donc gratuit en aspect et indispensable en dissolution.
+Le ¼ de cellule ne suffit pas à casser les pics de Bragg.
+
+#### 4.b — Fausse alerte de non-régression, et correctif de métrique
+
+Une chute apparente de la netteté (1,81 → 1,25) a d'abord été attribuée au
+générateur. **Reconstruction à l'identique de la configuration validée : 1,81 /
+417 structures / ANISO 1,02, exactement.** Puis variation d'un seul paramètre :
+
+| Variation | Netteté |
+|---|---|
+| Baseline, demi-champ 150 Mpc | 1,81 |
+| Mêmes particules, demi-champ 100 | 1,57 |
+| Mêmes particules, demi-champ **67,08** | **1,25** |
+| Mêmes particules, demi-champ 40 | 2,10 |
+
+Le 1,81 était mesuré sur le layer **G** (150 Mpc), le banc de test sur **F**
+(67,08 Mpc) : deux scènes différentes. **Il n'y a jamais eu de régression.**
+
+**Correctif de métrique obligatoire** : `peak_sharpness` utilisait une fenêtre de
+11 pixels fixes, donc une taille *physique* différente à chaque zoom. À fenêtre
+physique constante (3 Mpc) :
+
+| demi-champ | fenêtre 5 px | fenêtre 3 Mpc |
+|---|---|---|
+| 150 Mpc | 1,81 | 1,49 |
+| 100 Mpc | 1,57 | 1,56 |
+| 67 Mpc | 1,25 | 1,36 |
+| 40 Mpc | 2,10 | **2,47** |
+
+Le creux était un artefact. La netteté est plate de 150 à 67 Mpc, et **remonte
+au zoom profond** parce que la sous-structure des halos devient résolue — c'est
+la récursion fractale qui tient l'exigence « zones les plus lumineuses quasi
+ponctuelles à tous les étages de zoom ».
+
+**Règle** : toute métrique spatiale de ce banc doit être exprimée en unités
+**comobiles**, jamais en pixels. Même piège que `lam_min_px` (§11.9).
+
+#### 4.c — Reste à traiter
+
+La dérive de moyenne s'aggrave : **68 → 103/255** contre 68 → 82 au test 1.
+La courbe d'exposition dans `spacetime_matrix.json` n'est plus optionnelle.
