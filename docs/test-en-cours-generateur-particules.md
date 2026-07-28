@@ -488,3 +488,98 @@ dissolution : la structure disparaît avant que le cadre ne dépasse la texture.
 d'expansion par échelle, de l'embrasement et du `A` par bande — pas une mesure
 sur rendus réels. Une confirmation par cuisson reste souhaitable.
 
+---
+
+## RÉVISION MAJEURE — 28 juillet : croissance globale et conservation de la masse
+
+Retour visuel de Marc sur le montage de dissolution : *« on a l'impression que
+des structures plus petites apparaissent lors de la dissolution et finissent par
+coloniser l'espace, plutôt qu'une réelle dissolution des structures initiales.
+Cela ne ressemble pas à une dissolution naturelle, comme une goutte dans un
+liquide. »*
+
+**Diagnostic — deux défauts de fond, pas des réglages.**
+
+### R.1 — `A` par bande était physiquement faux
+
+En théorie linéaire, le facteur de croissance s'applique **identiquement à
+toutes les échelles** : `Psi_k(a) = D(a)/D(1) · Psi_k(1)` pour tout k. La
+hiérarchie du §11.4.a (galaxies tôt, amas tard) n'est **pas** une différence de
+vitesse de croissance : c'est une conséquence **émergente** de la non-linéarité
+— les petites échelles ont plus d'amplitude au départ, donc franchissent le
+seuil d'effondrement plus tôt.
+
+En imposant `a_form` **en entrée** par bande, je faisais survivre les petites
+échelles artificiellement. À `a = 0,4` : λ=1,6 Mpc à **80 %** d'amplitude, λ≥53 Mpc
+à **0 %**. Les petites structures envahissaient l'image dès que l'enveloppe qui
+les organisait disparaissait.
+
+**Correctif** : un seul scalaire `D(a)` ΛCDM pour toutes les échelles. La
+hiérarchie passe dans le facteur d'effondrement des halos, où elle est
+**dérivée** au lieu d'être posée :
+
+```
+C(a) = smoothstep( clamp( D(a) / D_form ) )     D_form = min(delta_c / nu, 1)
+```
+
+`nu` = hauteur du pic. `C(a=1) = 1` est **exact pour tous les halos** par
+construction (contrainte §11.4.b).
+
+| a | Structures (A par bande) | Structures (D global) |
+|---|---|---|
+| 1,00 | 141 | 141 |
+| 0,60 | 234 | 175 |
+| **0,40** | **539** | **185** |
+| 0,20 | 407 | 223 |
+
+L'explosion ×3,8 devient ×1,3. `a=1` strictement inchangé.
+
+### R.2 — Les halos ajoutaient de la masse au lieu d'en concentrer
+
+Défaut révélé en cherchant à re-valider le test 5 : même à `a = 0,01` avec un
+déplacement quasi nul, il restait **13,96/255** de structure lissée. Cause : les
+points de halos étaient **ajoutés** à la toile dans des patches sphériques
+isolés, qui ne pavent pas l'espace. À dissolution totale il restait donc des
+grumeaux là où l'univers doit être uniforme — la dissolution ne se terminait
+jamais.
+
+**Correctif** : un halo ne crée pas de matière, il **concentre** celle qui
+existe. Ses points sont désormais **prélevés** dans la toile (les particules de
+verre les plus proches de son centre lagrangien, les halos massifs se servant en
+premier). Conséquences :
+
+- masse totale conservée
+- à `C = 0`, les points reviennent **exactement** dans le verre → uniformité exacte
+- 25 % de la toile assignée aux halos
+
+| a | D(a) | σ structure (lissée 8 px) |
+|---|---|---|
+| — | — | **0,65 = verre pur (référence)** |
+| 1,00 | 1,0000 | 43,01 |
+| 0,40 | 0,4957 | 31,15 |
+| 0,20 | 0,2531 | 19,39 |
+| 0,10 | 0,1269 | 10,77 |
+| 0,05 | 0,0635 | 5,68 |
+| 0,02 | 0,0254 | **2,38** |
+
+Décroissance monotone vers le verre. **Correctif de métrique associé** : σ brut
+mélange structure et bruit de grenaille (il stagne à ~41/255 même dissous) ; il
+faut mesurer σ **après lissage à 8 px** pour isoler la structure. Troisième
+occurrence du même piège après `peak_sharpness` en pixels et le critère de
+couverture — toute métrique de ce banc doit isoler explicitement l'échelle
+qu'elle prétend mesurer.
+
+### R.3 — Tests à refaire
+
+Cette révision invalide les résultats obtenus avec `A` par bande :
+
+| Test | Impact | À refaire |
+|---|---|---|
+| 1 — dissolution layer isolé | mécanisme changé | **oui** |
+| 2 / 2b — héritage, identité d'objet | indépendant de `A` | non |
+| 2c — `A` par bande | **remplacé par `D` global** | obsolète |
+| 3 — cohérence croisée | `D` global est un scalaire partagé : plus facile à satisfaire | **oui**, par sécurité |
+| 4 — points → filaments | `C(a)` redéfini | **oui** |
+| 5 — couverture du cadre | dépend du moment où la structure disparaît, qui a changé | **oui** |
+| 6 à 9 | non commencés | — |
+
