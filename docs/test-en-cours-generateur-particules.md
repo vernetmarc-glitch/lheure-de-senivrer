@@ -663,3 +663,65 @@ Greatness » du §4.1. Mais **ce banc de test travaille dans une boîte de 201 M
 et ne peut pas le mesurer.** Une cuisson à l'échelle de `l5` est requise pour
 trancher.
 
+### Test 5 — `l5` : ouvert, à trancher dans le vrai validateur ⚠️
+
+Cuisson à l'échelle de `l5` (boîte 69 936 Mpc, cellule 182 Mpc, 3,5 M particules).
+
+**Ce qui est établi :**
+
+- le déplacement de Zel'dovich vaut **0,105 pixel** à cette échelle (6 Mpc rms
+  pour 56,9 Mpc/px) — il ne peut produire aucune structure ;
+- à `a = 1`, l'indicateur de structure vaut **3,55** contre 0,53 pour le verre
+  pur : `l5` est bien quasi uniforme, conforme au « End of Greatness » (§4.1) ;
+- la seule structure possible y est le **regroupement des halos**.
+
+**Ce qui reste ouvert** : le comportement au recadrage (`a < 0,417`). Trois
+erreurs de protocole successives sur cette mesure, toutes détectées par des
+sauts d'écart-type incohérents :
+
+1. tranche de particules dimensionnée pour `hw = 14570` puis rendue à 34 968 —
+   les bords se vidaient ;
+2. `alpha` figé alors que la tranche s'épaissit avec le champ — l'image saturait
+   à 235/255 ;
+3. un écart-type anormal sur le rendu pleine boîte, non expliqué.
+
+**Recommandation** : ne pas continuer à rapiécer ce banc. Le dépôt contient déjà
+`scripts/dev/validate_spacetime_matrix.py` (157 contrôles, dont §11.4.f, avec
+contrôle croisé JS/Python à ~1e-7). Y brancher le générateur par particules vaut
+mieux que réimplémenter le contrôle — c'est d'ailleurs ce validateur qui a
+détecté un vrai écart d'ordre d'embrasement le 13 juillet.
+
+### Test 6 — Composition (§11.3) ✅ PASSÉ
+
+**6.a — toile et halos forment UNE seule population.**
+
+| Méthode | moy | σ | Netteté |
+|---|---|---|---|
+| Somme **avant** la courbe de ton | 68,0 | 67,5 | **1,65** |
+| « Screen » après deux courbes séparées | 73,3 | 74,4 | 1,10 |
+
+Écart moyen 5,28/255, maximum 244,9/255. Le « screen » **détruit la netteté des
+pics** (1,65 → 1,10), chaque population étant normalisée séparément et la couche
+de halos, éparse, se trouvant gonflée.
+
+Surtout, la question ne se pose plus depuis la conservation de la masse : les
+halos **sont** des particules de la toile, prélevées et déplacées. Les composer
+en « screen » reviendrait à compter deux fois la même matière. La somme avant
+courbe de ton est la seule option correcte, et le §11.3 est respecté — il n'y a
+bien qu'**un** type de contenu ici.
+
+**6.b — l'embrasement, lui, doit être en « screen » APRÈS la courbe de ton.**
+
+| a | white | Screen après ton (moy / σ) | Offset avant ton (moy / σ) | Écart max |
+|---|---|---|---|---|
+| 0,050 | 0,0543 | 78,2 / 28,6 | 68,0 / 20,9 | 29,7/255 |
+| 0,030 | 0,5926 | 178,8 / 12,1 | 68,0 / 5,1 | 130,5/255 |
+| 0,020 | 0,9761 | 250,5 / 0,7 | 68,0 / 3,3 | 187,4/255 |
+| 0,015 | 0,9995 | **254,9 / 0,0** | 68,0 / 3,3 | 193,2/255 |
+
+Seul le « screen » après le ton converge vers le blanc. En offset avant le ton,
+la résolution de `alpha` compense l'offset et la moyenne reste clouée à 68 —
+l'embrasement n'a littéralement aucun effet. Écart jusqu'à **193/255** : c'est
+exactement le type d'erreur d'ordre que le contrôle croisé du projet avait
+détecté le 13 juillet. La règle du §11.4.c est confirmée par la mesure.
+
