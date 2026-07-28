@@ -888,3 +888,73 @@ cascade deviennent **obsolètes** ; `spacetime_matrix.json` doit porter une
 courbe d'exposition `α(s,a)` résolue pour tenir la moyenne à 68/255 à chaque
 cellule, l'embrasement restant seul responsable de la montée finale.
 
+---
+
+## NOUVELLE RÉFÉRENCE `a = 1` — 28 juillet
+
+Le changement de l'aspect à `a=1` a été **acté par Marc**. La référence du §11.7
+(rendu log-normale de production) est remplacée par la signature ci-dessous.
+Générateur canonique : `scripts/dev/reference_a1.py`.
+
+### Paramètres canoniques figés
+
+| Paramètre | Valeur | Justification |
+|---|---|---|
+| P(k) | BBKS, ns=0,965, Γ=0,21231 | repris à l'identique de `generate_layers.py` |
+| Grille du champ | `n_field = 384` | homogène pour les 10 layers |
+| Positions initiales | verre = réseau + jitter **½ cellule** | le réseau seul : anisotropie 2,7e9 (test 1) ; ¼ de cellule insuffisant (7,04) |
+| Déplacement | Zel'dovich sur les **positions** | jamais de dépôt CIC — c'est lui qui détruisait la cohérence (0,08-0,43) |
+| Amplitude | `6,0 Mpc × boîte / 450` | δ étant à variance unité par boîte, `Ψ ~ δ/k` impose `rms(Ψ) ∝ boîte`. Renormaliser à 6 Mpc partout sur-déplacerait les petits layers |
+| Halos | peak-patch, points **prélevés** dans la toile | conservation de la masse : sans elle la dissolution ne se termine jamais (σ stagnait à 13,96) |
+| Part de toile prélevée | 25 % | — |
+| Profil | `r = rmax·u^0,6`, 2 niveaux de sous-halos, `sub_frac = 0,30` | calibré sur la référence Millennium |
+| Tranche | 0,06 × largeur de champ | slices Millennium ≈ 3 % ; 15 % écrasait le contraste |
+| PSF | 0,45 px | 0 → quantification entière visible (creux 7,3) |
+| Densité projetée | **cible 2,2 M**, réplication par jitter sous-cellule | la densité doit venir de la résolution de **sortie**, pas de la grille physique (règle du test 2) |
+| Ton | `1 − exp(−α·ρ)`, γ = 1,0 | courbe **ponctuelle** — aucune non-linéarité spatiale en aval |
+| Cible de moyenne | **68/255**, α résolu par cellule | politique 2, décision du 28/07 |
+
+### Signature d'acceptation mesurée
+
+| Layer | Demi-champ | Projetées | Moy | sat>240 | sat<8 | ANISO | Structures | Netteté (3 Mpc) | σ structure | Creux |
+|---|---|---|---|---|---|---|---|---|---|---|
+| D / l1b | 8,49 | 4 456 k | 68,0 | 0,71 % | 0,3 % | 1,13 | 819 | 3,61 | 13,12 | 0,78 |
+| E / l2 | 30 | 4 605 k | 68,0 | 0,99 % | 0,8 % | 0,94 | 622 | 2,78 | 20,52 | 0,50 |
+| F / l2b | 67,08 | 3 937 k | 68,0 | 0,87 % | 3,2 % | 0,89 | 556 | 1,99 | 26,98 | 0,12 |
+| G / l3 | 150 | 3 758 k | 68,0 | 0,93 % | 5,8 % | 0,99 | 496 | 1,37 | — | 0,06 |
+| H / l3b | 212,13 | 3 968 k | 68,0 | 1,07 % | 6,4 % | 1,04 | 430 | 1,14 | 30,19 | 0,10 |
+| I / l4 | 300 | 4 077 k | 68,0 | 1,08 % | 7,1 % | 1,20 | 504 | 1,01 | 31,21 | 0,19 |
+| J / l4a | 793,73 | 4 088 k | 68,0 | 0,92 % | 2,4 % | 0,93 | 700 | 1,03 | 22,58 | 0,46 |
+| K / l4b | 2100 | 3 924 k | 68,0 | 0,80 % | 0,6 % | 1,08 | 897 | 1,05 | 16,70 | 0,47 |
+| L / l5a | 5531,46 | 4 018 k | 68,0 | 0,79 % | 0,1 % | 1,00 | 1235 | 1,07 | 10,44 | 0,56 |
+| M / l5 | 14570 | 4 395 k | 68,0 | 0,89 % | 0,3 % | 0,98 | 995 | 1,01 | 11,13 | 0,84 |
+
+Planche visuelle : `60_reference_a1_D_a_M.png`.
+
+### Lecture
+
+- **Moyenne 68,0 exacte sur les dix layers** — la politique 2 est tenue.
+- **Saturation homogène**, 0,79 à 1,08 %. C'est au-dessus des 0,2 % mesurés sur
+  la référence Millennium : marge d'amélioration identifiée, non traitée.
+- **Anisotropie 0,89 à 1,20**, moyenne 1,02. `I/l4` à 1,20 est le point le plus
+  éloigné et mériterait un examen.
+- **σ structure culmine à `I/l4`** (31,21) et décroît des deux côtés. Attention
+  toutefois : cette métrique est mesurée à 8 px du champ de chaque layer, donc à
+  une **échelle physique différente** à chaque ligne — le même piège que
+  `peak_sharpness` et le critère de couverture. La tendance n'est pas
+  directement interprétable comme un « End of Greatness ». À reprendre en unités
+  comobiles.
+- **Creux bimodal en U** : bas au centre (0,06 à G) et haut aux extrêmes
+  (0,78 à D, 0,84 à M). Les deux bouts de la gamme de zoom ont une distribution
+  moins continue. **Non expliqué, à traiter.**
+
+### Deux corrections apportées en cours de cuisson
+
+1. `G/l3` sortait à ANISO 0,72 / 26 % de noir / creux 0,61 : il ne recevait que
+   **1,15 particule par pixel** contre 16 pour D. Après normalisation de la
+   densité projetée : 0,99 / 5,8 % / 0,06. La règle du test 2 n'avait pas été
+   appliquée en écrivant ce générateur.
+2. L'amplitude de déplacement était renormalisée à 6 Mpc **dans toutes les
+   boîtes**, ce qui sur-déplaçait les petits layers et aurait cassé la cohérence
+   inter-layer qu'avait établie le test 2c.
+
