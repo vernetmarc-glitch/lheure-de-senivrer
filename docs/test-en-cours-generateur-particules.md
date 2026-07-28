@@ -784,3 +784,107 @@ paramètre, soit un `q` fonction de l'échelle. **Non tranché.**
 - La bande de fondu `visible_fade_band_mpc = [4, 6]` n'a pas été testée en tant
   que telle.
 
+---
+
+## Décisions du 28 juillet — sprites, morphologies, luminosité
+
+### D.1 — Le moteur sprite l'emporte (validé visuellement par Marc)
+
+Comparaison à l'échelle galactique (`53`, `54`, cadre ±0,14 à ±0,40 Mpc, même
+fond) entre les nuages de halos et le sprite réellement cuit : **le sprite est
+nettement meilleur**. Mesure concordante — les profils de nuage saturent 3,1 à
+6,7 % des pixels contre **0,8 %** pour le sprite, dont la décroissance est bien
+plus douce.
+
+**Conséquence** : les nuages de halos ne rendent pas les galaxies. Option **C**
+retenue — traitement de type sprite pour les 98 objets.
+
+### D.2 — Sept archétypes morphologiques paramétriques
+
+`scripts/dev/morphologies.py`. Assignation depuis `radiusMpc` du catalogue.
+
+| Type | v_rot/σ | c/a | Bulbe | Grumeaux |
+|---|---|---|---|---|
+| spirale_barree | 6,0 | 0,12 | 0,18 | 4 |
+| spirale | 5,0 | 0,14 | 0,14 | 3 |
+| lenticulaire | 3,5 | 0,25 | 0,35 | 0 |
+| elliptique | 1,2 | 0,70 | 1,00 | 0 |
+| irreguliere | 2,5 | 0,30 | 0,05 | 6 |
+| naine_irreguliere | 2,0 | 0,35 | 0,05 | 4 |
+| naine_spheroidale | 1,4 | 0,75 | 1,00 | 0 |
+
+**Réserve** : l'assignation par rayon donne ~59 % de naines sur les 98. La
+variété portera surtout sur les grandes, qui ont déjà leurs sprites N-corps.
+Forcer plus de diversité dans le tirage des naines reste à arbitrer.
+
+### D.3 — L'aspect filamenteux vient du RENDU, pas de la dynamique
+
+Lecture de `generate_dissolution_sprites.mjs` (28/07) :
+
+```
+filIntensity = FILAMENT_AMOUNT(0.8) × 4 × progress × (1 − progress)
+v = tone × (1 + (bruit_multi_octave − 0.5) × 2 × filIntensity)
+```
+
+Bruit de valeur à 3 octaves (grilles 8 / 19 / 44), intensité en cloche, nulle
+aux deux extrémités. **Accepté par Marc** malgré le rejet du bruit de valeur au
+§11.2 : ici il ne module qu'un champ déjà structuré et s'annule aux bornes.
+
+**À surveiller** : mesurer la variance du laplacien des sprites aux époques
+intermédiaires, où la modulation est maximale, pour vérifier qu'on ne dégrade
+pas le contenu haute fréquence au moment où il est le plus sollicité.
+
+Corollaire : la dynamique n'a pas besoin de produire des courants de marée. Ma
+tentative de les obtenir par N-corps a d'ailleurs **échoué** — l'élongation
+*diminue* pendant la dissolution (facteur 0,46 à 0,94 selon le type).
+
+### D.4 — Le splat de production ne conserve pas le flux ⚠️ DÉFAUT DE PRODUCTION
+
+Dans `generate_dissolution_sprites.mjs`, chaque particule dépose
+`amp × exp(−r²/2σ²)` **sans normalisation**. Le total par particule vaut donc
+`amp × 2πσ²` et croît comme σ². Avec σ de 0,5 à 4,25 px : **facteur 72**.
+
+Vérification sur le sprite réel `andromede` : flux **830 → 64 071**, facteur
+**77**. La correspondance confirme le diagnostic.
+
+| progress | Production : flux / pic | Flux conservé : flux / pic | rayon |
+|---|---|---|---|
+| 0,00 | ×1,0 / 1,000 | ×1,00 / 1,000 | ×1,0 |
+| 0,50 | ×26,1 / **1,000** | ×5,57 / **0,509** | ×5,9 |
+| 1,00 | **×101,2** / **1,000** | ×5,52 / **0,118** | ×11,6 |
+
+En production le pic reste saturé du début à la fin : la tache **grossit sans
+jamais pâlir**. Avec le flux conservé elle s'étale *et* s'éteint — le
+comportement d'une goutte d'encre qui se diffuse, exigence explicite de Marc.
+
+**Correctifs retenus** : splat à flux conservé, expansion ramenée de ×7,7 à
+×4,2, flou réduit à 45 %. Port Python de référence dans
+`scripts/dev/bake_sprites.py`.
+
+**Conséquence lourde** : impose de **recuire les 9 sprites existants**, pas
+seulement d'en cuire 89 nouveaux — et change l'aspect à `a=1` (le pic saturé
+disparaît), donc touche à nouveau §11.7.
+
+### D.5 — Politique de luminosité : moyenne constante (choisie par Marc)
+
+Trois politiques comparées (`58`, composition complète avec fond et embrasement) :
+
+| Politique | a=1 | 0,5 | 0,2 | 0,08 | 0,03 | 0,018 |
+|---|---|---|---|---|---|---|
+| 1 — ratio matrice ×3,4 | 68,0 | 132,1 | 189,7 | 214,5 | 242,7 | 254,8 |
+| **2 — moyenne constante** | **68,0** | **68,0** | **68,0** | **68,1** | 178,8 | 253,7 |
+| 3 — âges sombres | 74,0 | 47,3 | 23,2 | 13,1 | 154,6 | 253,3 |
+
+**Politique 2 retenue.** Justification : le rapport 3,4 du ton dissous
+(129,4/255 contre 30-45) avait été calibré sur l'ancien générateur, dont l'état
+dissous tendait vers un **gris plat** qu'il fallait remonter pour rester
+lisible. Le générateur par particules ne fait plus ça — l'état dissous est
+« uniforme mais plein de grains », contenu haute fréquence en hausse de 2,36e-1
+à 3,81e-1. Le rapport n'a donc plus de justification, et la politique 1 mène à
+des cellules quasi blanches dès `a=0,2`, ce qui vole son effet à l'embrasement.
+
+**Conséquences sur la matrice** : `uniform_floor = 129,4` et le facteur de
+cascade deviennent **obsolètes** ; `spacetime_matrix.json` doit porter une
+courbe d'exposition `α(s,a)` résolue pour tenir la moyenne à 68/255 à chaque
+cellule, l'embrasement restant seul responsable de la montée finale.
+
