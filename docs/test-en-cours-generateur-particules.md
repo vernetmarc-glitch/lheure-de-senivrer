@@ -725,3 +725,62 @@ l'embrasement n'a littéralement aucun effet. Écart jusqu'à **193/255** : c'es
 exactement le type d'erreur d'ordre que le contrôle croisé du projet avait
 détecté le 13 juillet. La règle du §11.4.c est confirmée par la mesure.
 
+### Test 7 — Raccord C/D (sprites ↔ layer D) ⚠️ PARTIEL
+
+**Bonne nouvelle de départ** : les sprites sont eux aussi des **rendus de
+particules** (2 500 par galaxie, Barnes-Hut, `simulate_dissolution.mjs`) et
+utilisent **la même transformation de ton** que le générateur —
+`1 − exp(−champ)`. Le raccord est donc mesurable directement, sans conversion.
+
+Mesure sur le sprite cuit `andromede_f00` (état formé, `a=1`), recadré sur
+`sprite_halfwidth_mpc = 0,243047` :
+
+| Grandeur | Sprite | En unités du rayon catalogue (0,034 Mpc) |
+|---|---|---|
+| Rayon à 50 % du flux | 0,0133 Mpc | **0,391 × R_cat** |
+| Rayon à 90 % du flux | 0,0247 Mpc | 0,726 × R_cat |
+| Rapport r90/r50 | — | **1,86** |
+
+La lumière est concentrée **bien à l'intérieur** du rayon catalogue.
+
+#### 7.a — Contrainte de taille : `rmax` doit suivre le rayon physique
+
+Profil actuel : `r = rmax · (m/m_ref)^0.28 · u^q` avec `rmax = 2,2 Mpc`.
+Pour Andromède il faudrait `rmax = 0,0201 Mpc` — le profil est **surdimensionné
+d'un facteur ~109**.
+
+L'exposant 0,28 ne peut pas couvrir cet écart : il faudrait un rapport de masses
+de 1,3 × 10⁻⁸. **Correctif** : passer à la relation viriel `R ∝ M^(1/3)`, qui
+demande un rapport de masses de 1,3 × 10⁶ entre une galaxie et un amas —
+physiquement plausible. La constante se calibre alors sur le sprite.
+
+Pour les 98 galaxies ancrées, `radiusMpc` est **connu du catalogue** : leur rayon
+de profil doit en être déduit directement, pas d'une relation statistique.
+
+#### 7.b — Conflit de forme de profil, non résolu
+
+| Exposant q | r90/r50 |
+|---|---|
+| 0,33 | 1,21 |
+| 0,50 | 1,34 |
+| **0,60** (calibré sur Millennium) | 1,42 |
+| 0,80 | 1,60 |
+| **1,00** | **1,80** ← correspond au sprite (1,86) |
+
+Le `q = 0,6` calibré sur la référence Millennium (échelle des amas) et le
+`q ≈ 1,0` exigé par le sprite (échelle galactique) sont **incompatibles avec une
+loi de puissance unique**. C'est attendu — un profil réel type NFW n'a pas la
+même pente logarithmique à toutes les échelles. Il faut soit un second
+paramètre, soit un `q` fonction de l'échelle. **Non tranché.**
+
+#### 7.c — Reste à mesurer
+
+- Le flux du sprite **croît d'un facteur 77** entre l'état formé (830) et
+  dissous (64 071), compensé par l'extinction `A_sprite²` (`fade_exponent = 2,0`).
+  La cohérence de luminosité moyenne entre sprites et layer D **à toute époque**
+  (§11.1 point 3, §11.4.d) n'est pas vérifiée.
+- Les 89 galaxies du catalogue **sans sprite** (seules 9 en ont un) : leur
+  traitement au raccord n'est pas établi.
+- La bande de fondu `visible_fade_band_mpc = [4, 6]` n'a pas été testée en tant
+  que telle.
+
