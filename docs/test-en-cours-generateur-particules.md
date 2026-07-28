@@ -583,3 +583,83 @@ Cette révision invalide les résultats obtenus avec `A` par bande :
 | 5 — couverture du cadre | dépend du moment où la structure disparaît, qui a changé | **oui** |
 | 6 à 9 | non commencés | — |
 
+---
+
+## Re-validation apres la revision du 28 juillet
+
+Tous les chiffres ci-dessous sont obtenus avec **croissance lineaire globale
+`D(a)` + halos a masse conservee** (points preleves dans la toile).
+
+### Test 1 (rejoue) ✅
+
+| a | D(a) | ANISO | HF (lapl.) | σ structure | moy | Netteté |
+|---|---|---|---|---|---|---|
+| 1,00 | 1,0000 | 1,02 | 2,36e-1 | 43,01 | 68,0 | 1,65 |
+| 0,70 | 0,7975 | 0,97 | 2,42e-1 | 39,74 | 70,7 | 1,57 |
+| 0,50 | 0,6068 | 0,95 | 2,61e-1 | 34,83 | 74,7 | 1,64 |
+| 0,30 | 0,3768 | 1,08 | 3,10e-1 | 26,21 | 82,8 | 1,72 |
+| 0,15 | 0,1901 | 1,12 | 3,55e-1 | 15,26 | 90,2 | 1,79 |
+| 0,05 | 0,0635 | 1,13 | 3,78e-1 | 5,68 | 93,8 | 2,01 |
+| 0,02 | 0,0254 | 1,04 | 3,81e-1 | **2,38** | 94,2 | 2,09 |
+
+Anisotropie 0,95-1,13, HF jamais effondré, σ structure décroissante et monotone
+vers le verre pur (0,65).
+
+### Test 3 (rejoue) ✅ — nettement meilleur qu'avec `A` par bande
+
+| a | Corrélation | Pics ≤1,5 px | Médiane | Δ moyenne | Δ écart-type |
+|---|---|---|---|---|---|
+| 1,00 | 0,998 | 87 % | **0,00 px** | 0,17/255 | 0,7 % |
+| 0,90 | 0,999 | 98 % | 0,00 px | 0,13/255 | 0,6 % |
+| 0,80 | 0,999 | 91 % | 0,00 px | 0,06/255 | 0,4 % |
+| 0,60 | 0,999 | 95 % | 0,00 px | 0,05/255 | 0,0 % |
+| 0,40 | 0,999 | 94 % | 0,00 px | 0,00/255 | 0,2 % |
+| 0,20 | 0,998 | 94 % | 0,00 px | 0,08/255 | 0,4 % |
+
+(Pour mémoire, avec `A` par bande : 0,986-0,996 et 67-87 % ; avec dépôt CIC
+historique : 0,08-0,43.)
+
+Le déplacement médian des pics est **exactement nul à toutes les époques** :
+un scalaire `D(a)` partagé rend le déplacement des bandes communes strictement
+identique entre layers.
+
+### Test 4 (rejoue) ✅
+
+| a | D(a) | C médian | Élongation | Étendue rms |
+|---|---|---|---|---|
+| 1,00 | 1,000 | 1,000 | 1,30 | 0,41 Mpc |
+| 0,80 | 0,876 | 1,000 | 1,81 | 0,67 |
+| 0,60 | 0,708 | 1,000 | 2,38 | 1,26 |
+| **0,50** | 0,607 | 1,000 | **2,39** | 1,60 |
+| 0,30 | 0,377 | 0,999 | 2,10 | 1,89 |
+| 0,10 | 0,127 | 0,257 | 1,75 | 2,06 |
+
+Observation notable : l'élongation monte **alors que `C` vaut encore 1**. Le
+moteur de l'étirement n'est donc pas la décompaction du halo mais le
+**cisaillement de marée** à travers sa patch lagrangienne — la variation
+anisotrope de Psi sur ~2,4 Mpc. C'est le mécanisme physique correct, et il n'est
+pas imposé : il émerge.
+
+### Test 5 (rejoue) ⚠️ PASSÉ SAUF `l5`, non vérifiable sur ce banc
+
+La partie géométrique est inchangée : chaque layer borné n'est affiché que sur
+sa bande de zoom, un layer plus grossier prenant le relais quand le cadre
+s'élargit. Marge requise **1,16** contre 1,5 disponible — inchangé, ce résultat
+ne dépend pas du modèle de croissance.
+
+**`l5` est le seul cas ouvert.** Dernier de l'ordre, il n'a aucun layer plus
+grossier pour prendre le relais ; son cadre est recadré dès `a < 0,417`
+(hw_eff > 34 968 Mpc), et à `a = 0,3` c'est **48 %** du cadre qui sort de la
+texture — très au-delà du seuil de 5 %.
+
+Avec `A` par bande, `a_form(14570) = 1,0` faisait disparaître sa structure dès
+`a = 0,82` et le recadrage devenait invisible. Avec la croissance globale, sa
+structure persiste : le critère `f_std > 0,005` risque de rester vrai.
+
+L'argument qui devrait le sauver : à l'échelle de `l5`, les structures de la
+toile (~50-150 Mpc) sont **très en dessous du pixel** (68 Mpc/px à `a=1`), donc
+sa texture est déjà un grain quasi uniforme — conforme d'ailleurs au « End of
+Greatness » du §4.1. Mais **ce banc de test travaille dans une boîte de 201 Mpc
+et ne peut pas le mesurer.** Une cuisson à l'échelle de `l5` est requise pour
+trancher.
+
