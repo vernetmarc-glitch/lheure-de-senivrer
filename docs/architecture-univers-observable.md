@@ -1,6 +1,22 @@
 # Architecture — Carte interactive de l'univers observable
 ### Document de référence technique et scientifique
-Version 1.0 — Juillet 2026
+Version 1.1 — Juillet 2026
+
+---
+
+> ## ⚠ Ce document est le NIVEAU 2 de la hiérarchie
+>
+> **Niveau 1 — `docs/demandes-client.md`** : ce que l'œuvre doit **montrer**.
+> Source de vérité sur le besoin. **À lire en entier avant ce document.**
+> Le présent document décrit COMMENT, et ne contredit jamais le niveau 1.
+>
+> **Niveau 3 — `docs/invariants.md`** *(à créer)* : ce qui ne doit jamais
+> arriver, sous forme de contrôles exécutables.
+>
+> **Rappel de l'intention** (cf. niveau 1, §0) : l'objet de l'œuvre est de faire
+> comprendre visuellement **l'univers observable, la sphère de Hubble et
+> l'horizon des événements**. Tout le reste est un fond de carte à leur service.
+> En cas de conflit, la lisibilité des trois sphères l'emporte.
 
 ---
 
@@ -220,7 +236,7 @@ Ce découpage en 5 est conceptuel/scientifique. L'implémentation réelle compte
 **Champ gaussien aléatoire (GRF) contraint par le spectre de puissance cosmologique P(k), puis transformation log-normale.**
 
 Pipeline :
-1. Calcul de P(k) via une formule de transfert analytique (Eisenstein & Hu 1998, sans nécessiter de solveur de Boltzmann complet).
+1. Calcul de P(k) via une formule de transfert analytique. **Corrigé le 29 juillet** : le code implémente le transfert **BBKS** (Bardeen, Bond, Kaiser & Szalay 1986), et non Eisenstein & Hu 1998 comme l'annonçait ce document — vérifié dans `scripts/generate_layers.py` (`bbks_transfer`, `ns=0.965`, `Γ=Ωm·h=0.21231`).
 2. Tirage d'un champ gaussien 2D en espace de Fourier : amplitudes fixées par √P(k), phases aléatoires (mais **fixées une fois pour toutes** — voir §4.4).
 3. Transformation inverse de Fourier (FFT2D) → champ réel.
 4. Transformation log-normale pour garantir des densités positives et un bon accord avec les statistiques observées (fonction de corrélation, pic BAO ~150 Mpc) :
@@ -486,9 +502,30 @@ A(s, a)  = t² × (3 − 2t)                              sinon   [smoothstep]
 
 **Correctif du 13 juillet (continuité, plancher actif)** : quand le PLANCHER de largeur (0,05 dex) est actif (`a_form > 10^−0,05 ≈ 0,891`, soit l3 → l5), la fenêtre centrée sur `log10(a_form)` déborde au-delà de `a=1` et `A` saute de 1 à ~0,5 juste sous `a=1` (mesuré : `A(l5, 1−ε)=0,4995`). La fenêtre est désormais recentrée pour se terminer TOUJOURS exactement à `a=1` : `centre = min(log10(a_form), −w)` — appliqué dans `spacetime-shared.js`, `scripts/dev/spacetime_pipeline.py` et `scripts/dev/validate_fullscene_render.py`. Sans effet pour les échelles à plancher inactif (galaxies, l1b, l2, l2b). Conséquence : les fenêtres de l3 → l5 coïncident sur `a ∈ [0,794, 1]` — cf. docs/matrice-parametres-zoom-temps.md §6.
 
+> **⚠ Mise à jour du 28 juillet 2026.** `A(s,a)` était indexé **par layer**. Une
+> particule partagée entre deux layers recevait donc deux déplacements différents
+> — écart mesuré de 4,59 Mpc, soit 18 px, entre `l2b` et `l3` à `a=0,80`. Marc a
+> validé le remplacement par un **facteur de croissance linéaire global `D(a)`**,
+> identique à toutes les échelles, la hiérarchie de `a_form(s)` passant dans le
+> facteur d'effondrement des halos où elle est **dérivée** de la hauteur de pic au
+> lieu d'être imposée. La table `a_form(s)` du §11.4.a reste valide.
+>
+> Voir `docs/test-en-cours-generateur-particules.md`, §R.1.
+
 **Utilisation de `A(s,a)` selon le type de layer :**
 - Layers de densité (`l1b` → `l5`) : multiplie le champ gaussien source avant transformation non linéaire (§11.2).
-- Sprites : pilote la croissance du halo par étoile et l'intensité de la texture filamenteuse. Paramètres validés (8 juillet, à conserver) : `pointSize=0,5`, `filamentAmount≈0,8` (cf. `scripts/generate_dissolution_sprites.mjs`). **Correctif du 10 juillet** : la croissance du rayon par étoile doit rester MODESTE (facteur `1 + progress×1.2`, pas `×6` ni `×8,5` comme testé initialement) — un rayon qui grandit fortement est lui-même un filtre passe-bas (une gaussienne plus large a moins de hautes fréquences) ; la dispersion spatiale visible doit venir de la VRAIE simulation N-corps (§11.5), pas d'un grossissement artificiel du rendu de chaque point. **Conservation du flux obligatoire** quand le rayon grandit : diviser l'amplitude par le CARRÉ du facteur d'élargissement (pas sa racine) — sans cette correction, le champ sature dès `a=1`, avant même toute dissolution, par simple chevauchement de milliers de particules (bug réel rencontré et corrigé, cf. `scripts/dev/validate_fullscene_render.py`).
+- Sprites : pilote la croissance du halo par étoile et l'intensité de la texture filamenteuse. Paramètres validés (8 juillet, à conserver) : `pointSize=0,5`, `filamentAmount≈0,8` (cf. `scripts/generate_dissolution_sprites.mjs`). **Correctif du 10 juillet** : la croissance du rayon par étoile doit rester MODESTE (facteur `1 + progress×1.2`, pas `×6` ni `×8,5` comme testé initialement) — un rayon qui grandit fortement est lui-même un filtre passe-bas (une gaussienne plus large a moins de hautes fréquences) ; la dispersion spatiale visible doit venir de la VRAIE simulation N-corps (§11.5), pas d'un grossissement artificiel du rendu de chaque point. **⚠ 29 juillet : LE CODE DE PRODUCTION VIOLE CETTE RÈGLE.**
+`scripts/generate_dissolution_sprites.mjs` utilise `HALO_GROWTH = 8.5` — la
+valeur que cette section interdit explicitement — et **ne conserve pas le flux** :
+le dépôt `amp × exp(−r²/2σ²)` a une intégrale `amp × 2πσ²` qui croît comme σ².
+Facteur mesuré sur le sprite `andromede` cuit : flux **830 → 64 071**, soit ×77,
+ce qui correspond exactement au ×72 prédit par σ² de 0,5 à 4,25 px. Conséquence
+visible : la galaxie **grossit sans jamais pâlir** au lieu de se diffuser.
+Défaut redécouvert le 28 juillet, alors qu'il était documenté comme corrigé ici
+le 10 juillet — **le code a dérivé de son architecture**.
+Recuisson des 9 sprites nécessaire. Voir `docs/test-en-cours-…`, §D.4.
+
+**Conservation du flux obligatoire** quand le rayon grandit : diviser l'amplitude par le CARRÉ du facteur d'élargissement (pas sa racine) — sans cette correction, le champ sature dès `a=1`, avant même toute dissolution, par simple chevauchement de milliers de particules (bug réel rencontré et corrigé, cf. `scripts/dev/validate_fullscene_render.py`).
 - Ancrage forcé du Groupe Local sur `l1b`/`l2`/`l2b` (`apply_local_group_anchor`, §4.7) : le paramètre `strength` existant doit être multiplié par `A(s_local, a)` où `s_local` est l'échelle DES GALAXIES (≈0,03 Mpc, `a_form≈0,20`) — pas celle du layer qui accueille l'ancrage. L'ancrage reste net tant que les galaxies elles-mêmes sont formées, et se dissout avec elles.
 
 **c) Embrasement (convergence vers le blanc à la recombinaison)**
@@ -559,7 +596,15 @@ Documenter cette matrice avant de produire le moindre visuel — c'est elle qui 
 
 **Fait le 13 juillet** : matrice canonique versionnable dans `app/public/data/spacetime_matrix.json` (source de vérité éditable), documentée champ par champ dans **`docs/matrice-parametres-zoom-temps.md`** (provenance de chaque valeur, flux d'ajustement, table évaluée). Consommée telle quelle par `scripts/generate_spacetime_frames.py` (cuisson des 114 frames temporelles `st_*.png`), `scripts/dev/spacetime_pipeline.py` (pipeline headless partagé), `scripts/dev/validate_spacetime_matrix.py` (validation §13) et le prototype `app/public/spacetime-matrix-test.html`.
 
-### 11.7 Non-régression
+### 11.7 Non-régression — ⚠ CADUQUE depuis le 28 juillet 2026
+
+**Marc a explicitement acté que le rendu à `a=1` CHANGE**, pour appliquer les
+méthodes définies dans le document de test du générateur par particules. Cette
+section ne s'applique plus telle quelle : la référence à `a=1` est à reconstruire,
+et la nouvelle signature d'acceptation la remplacera. Les valeurs calibrées
+ci-dessous restent utiles comme **historique**, pas comme cible.
+
+*Texte d'origine, conservé pour mémoire :*
 
 Le rendu à `a=1` (aujourd'hui) doit être strictement identique à la production actuelle déjà calibrée, à tout niveau de zoom, **à l'exception explicite de l'ajout du léger ancrage résiduel décrit en §11.4.d** (seule différence volontaire entre l'état de production actuel et la matrice complète à générer). Si un autre paramètre nouveau change ce rendu de référence, c'est un bug à corriger avant de continuer, pas un détail à ajuster plus tard.
 
@@ -648,3 +693,49 @@ Pour toute modification touchant un rendu visuel (courbe de temps, texture gén�
 ### 13.4 Rappel — ce que Claude ne peut pas faire
 
 Pas de mode "plusieurs agents Claude en parallèle" pour développer/tester/valider séparément. Un seul thread d'exécution, dans l'ordre. Pas de modification directe du prompt système (fixé par Anthropic/la configuration du projet) — un rappel du principe ci-dessus peut être ajouté aux instructions personnalisées du projet par l'utilisateur, et/ou à la mémoire persistante de ce projet (déjà fait le 9 juillet).
+
+---
+
+## 14. Sections à concevoir — exigences du niveau 1 sans architecture
+
+Ces trois blocs correspondent à des demandes client formulées le 29 juillet 2026
+qui n'ont **aucune conception technique à ce jour**. Ils sont ouverts ici pour ne
+pas être perdus. Les remplir demande des décisions que Marc n'a pas encore prises.
+
+### 14.1 Représentation de la vitesse de la lumière *(exigence H8)*
+
+Le fond de carte doit porter une représentation de la vitesse de la lumière,
+étalon qui rend les trois sphères intelligibles — en particulier le fait que
+certaines régions s'éloignent de nous plus vite qu'elle.
+
+**À concevoir.** Rien n'existe.
+
+### 14.2 Parcours guidés dans la matrice *(exigences J1 à J3)*
+
+Petites animations suivant des trajectoires choisies dans la matrice zoom × temps,
+destinées à faire **voir évoluer** les trois sphères. Reprise de la main par
+l'utilisateur à tout moment.
+
+**À concevoir.** Rien n'existe. Note : le curseur temporel étant linéaire en
+milliards d'années (exigence L3, arbitrée), les époques anciennes sont très brèves
+à l'écran — ces parcours sont le principal moyen de les rendre lisibles malgré ce
+choix.
+
+### 14.3 Deux niveaux de résolution *(exigences K1 et K2)*
+
+Navigation fluide pendant le déplacement, qualité maximale dès l'arrêt. Méthode
+envisagée par Marc : deux jeux de layers, basse résolution pendant le défilement,
+haute résolution à l'arrêt.
+
+**À concevoir.** Rien n'existe. Impacts à évaluer : volume de textures à cuire et
+à servir, stratégie de chargement, comportement pendant la bascule.
+
+### 14.4 Deux des trois sphères ne sont pas tracées
+
+`app/src/cosmology.ts` calcule bien les trois horizons — `chi_particle_Mpc`,
+`r_hubble_comoving_Mpc`, `chi_event_Mpc` — en comobile et en propre. Mais
+`UniverseMap.tsx` **n'en trace qu'un seul**, l'horizon des particules.
+
+**La sphère de Hubble et l'horizon des événements sont calculés et jamais
+affichés.** C'est l'écart le plus direct entre l'intention de l'œuvre (niveau 1,
+§0) et ce qui tourne aujourd'hui — et les données nécessaires existent déjà.
