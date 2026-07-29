@@ -21,6 +21,19 @@ temporelle — est un **fond de carte au service de cette compréhension**.
 En cas de conflit, la lisibilité des trois sphères l'emporte sur la beauté du
 fond de carte.
 
+## Séquence de démarrage — obligatoire
+
+À faire au début de **chaque** session, dans cet ordre, et le **dire à Marc** pour
+qu'il puisse vérifier que ça a été fait :
+
+1. Lire `docs/demandes-client.md` **en entier**.
+2. Lire la §0 de `docs/architecture-univers-observable.md`.
+3. Lire `docs/decisions.md` — ce qui est déjà tranché ne se rediscute pas.
+4. Lire `docs/approches-ecartees.md` — ne pas reparcourir une impasse.
+5. Exécuter `python3 scripts/dev/invariants.py` pour connaître l'**état réel** du
+   code, pas l'état supposé.
+6. Regarder `docs/reference-visuelle.md` et sa signature chiffrée.
+
 ## Hiérarchie des documents — ordre de lecture imposé
 
 Trois niveaux, à consulter **dans cet ordre**, avant toute proposition :
@@ -30,9 +43,15 @@ Trois niveaux, à consulter **dans cet ordre**, avant toute proposition :
    sur le besoin.** Se lit en entier au début de chaque session.
 2. **`docs/architecture-univers-observable.md`** — COMMENT c'est réalisé.
    Découle du niveau 1 et ne le contredit jamais. Lire la §0 en premier.
-3. **`docs/invariants.md`** *(à créer)* — CE QUI NE DOIT JAMAIS ARRIVER. Liste
-   plate de contrôles, chacun né d'un échec daté, exécutables via
-   `scripts/dev/validate_spacetime_matrix.py`.
+3. **`docs/invariants.md`** — CE QUI NE DOIT JAMAIS ARRIVER. Contrôles
+   **exécutables** (`scripts/dev/invariants.py`), chacun né d'un échec daté.
+   Exécutés automatiquement à chaque push par `.github/workflows/invariants.yml`,
+   de façon **bloquante**.
+
+**Registres annexes**, à consulter avant toute proposition :
+`docs/decisions.md` (ce qui est tranché) · `docs/approches-ecartees.md` (les
+impasses, avec la mesure qui les a écartées) · `docs/reference-visuelle.md`
+(l'image cible et sa signature).
 
 **Règle de dérivation.** Toute proposition de méthode cite les exigences
 numérotées qu'elle sert. Une méthode qui n'en cite aucune est incomplète et doit
@@ -46,6 +65,14 @@ explicite de Marc, jamais par omission. En cas de doute, relire le niveau 1.
 
 - **Proposition avant implémentation.** Toute évolution significative est
   proposée et validée avant d'écrire du code.
+- **Ne jamais présenter une image sans avoir exécuté `invariants.py --render`
+  dessus.** Non négociable. Des montages entièrement noirs ont été livrés à Marc
+  le 28 juillet 2026 parce que ce contrôle n'existait pas : 93 à 99 % des pixels
+  sous 8/255, moyenne réelle de 2/255 au lieu des 68 annoncés. Le contrôle existe
+  désormais ; l'oublier n'est plus une erreur mais une négligence.
+- **Tout nouvel échec devient un invariant**, avec sa date et l'exigence qu'il
+  protège. Un seuil qui gêne ne se desserre pas sans écrire pourquoi dans
+  `docs/invariants.md`.
 - **Validation objective avant tout retour visuel.** Ne jamais présenter un
   résultat visuel comme corrigé sans l'avoir mesuré par script headless en
   Python (`scripts/dev/`) : saturation, continuité, contraste interne,
