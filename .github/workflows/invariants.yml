@@ -1,0 +1,54 @@
+name: Invariants
+
+# Pourquoi ce workflow existe
+# ---------------------------
+# `HALO_GROWTH = 8.5` a survecu TROIS SEMAINES dans le code alors que le document
+# d'architecture l'interdisait explicitement depuis le 10 juillet 2026. Personne
+# ne l'a vu : ni la relecture, ni la memoire, ni les scripts qu'il fallait penser
+# a lancer.
+#
+# Un garde-fou qui depend de la memoire de quelqu'un n'est pas un garde-fou.
+# Celui-ci s'execute a chaque push et FAIT ECHOUER le build s'il est viole.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'app/public/data/**'
+      - 'docs/invariants.md'
+      - '.github/workflows/invariants.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  invariants:
+    name: Contrôles bloquants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Dépendances
+        run: pip install --quiet numpy scipy pillow
+
+      - name: Contrôles statiques sur le code
+        env:
+          REPO_ROOT: ${{ github.workspace }}
+        run: python3 scripts/dev/invariants.py --source
+
+      - name: Constantes du code vs document d'architecture
+        env:
+          REPO_ROOT: ${{ github.workspace }}
+        run: python3 scripts/dev/invariants.py --constants
+
+      - name: Récapitulatif
+        if: always()
+        run: |
+          echo "Invariants : docs/invariants.md"
+          echo "Un échec ici est un défaut réel, pas un faux positif à contourner."
+          echo "Desserrer un seuil exige d'écrire pourquoi dans docs/invariants.md."
