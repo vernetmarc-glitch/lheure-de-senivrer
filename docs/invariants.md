@@ -151,6 +151,43 @@ semaines. **INV-G1 a été corrigé le 30 juillet** ; INV-E4 sur `l4a` reste ouv
 
 ---
 
+## Exceptions acceptées
+
+Un portail rouge en permanence devient du bruit et perd son effet. Une violation
+**connue et assumée** se déclare ici, avec sa raison et son échéance — elle n'est
+jamais ignorée en silence. Le contrôle l'affiche alors comme `TOLERE`, non comme
+`OK`.
+
+| Invariant | Fichier | Raison | Levée prévue |
+|---|---|---|---|
+| INV-B1 | `generate_layers.py:155` | Normalisation par boîte du moteur log-normale de **production**. Défaut réel, mais sa correction exige l'adoption du générateur par particules | chantier 3 de l'état des lieux |
+| INV-B1 | `generate_density_demo.py` | Script de démonstration, hors chaîne de cuisson | — |
+| INV-B1 | `test_style_layer.py` | Script de test de style, hors chaîne de cuisson | — |
+
+*Toutes acceptées le 30/07/2026.*
+
+Une ligne peut aussi porter le commentaire `# invariant-ok` pour un cas
+légitime ponctuel — mais une exception structurelle se déclare dans le tableau
+ci-dessus, pas en commentaire.
+
+---
+
+## Deux limites du contrôleur, corrigées le 30/07/2026
+
+**Il se détectait lui-même.** Ses expressions régulières contiennent les motifs
+qu'il traque, ce qui produisait un faux positif systématique. Il s'exclut
+désormais du scan.
+
+**Il ratait le vrai défaut.** `generate_layers.py` normalise par
+`std = field.std()` sur deux lignes — forme que la regex initiale ne voyait pas,
+alors qu'elle voyait les deux scripts de démonstration. Le motif a été élargi.
+
+Leçon : un contrôle qui passe n'est pas nécessairement un contrôle qui contrôle.
+Tout nouvel invariant doit être vérifié **sur un cas connu comme fautif** avant
+d'être considéré comme opérationnel.
+
+---
+
 ## Règle d'usage
 
 1. **Avant toute cuisson**, exécuter `--source` et `--constants`. Un échec
