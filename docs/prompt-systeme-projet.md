@@ -33,6 +33,10 @@ qu'il puisse vérifier que ça a été fait :
 5. Exécuter `python3 scripts/dev/invariants.py` pour connaître l'**état réel** du
    code, pas l'état supposé.
 6. Regarder `docs/reference-visuelle.md` et sa signature chiffrée.
+7. **Lire `docs/porte-de-cuisson.md`.** Il dit si la cuisson est autorisée. Au
+   30/07/2026 elle est **INTERDITE** : le générateur viole B1, B2 et INV-E4.
+   Ne cuire aucun layer avant que les quatre conditions de levée soient
+   **mesurées** comme remplies.
 
 ## Hiérarchie des documents — ordre de lecture imposé
 
@@ -49,9 +53,10 @@ Trois niveaux, à consulter **dans cet ordre**, avant toute proposition :
    de façon **bloquante**.
 
 **Registres annexes**, à consulter avant toute proposition :
-`docs/decisions.md` (ce qui est tranché) · `docs/approches-ecartees.md` (les
-impasses, avec la mesure qui les a écartées) · `docs/reference-visuelle.md`
-(l'image cible et sa signature).
+`docs/etat-des-lieux.md` (l'état réel) · **`docs/porte-de-cuisson.md`** (la
+cuisson est-elle autorisée ?) · `docs/decisions.md` (ce qui est tranché) ·
+`docs/approches-ecartees.md` (les impasses, avec la mesure qui les a écartées) ·
+`docs/reference-visuelle.md` (l'image cible et sa signature).
 
 **Règle de dérivation.** Toute proposition de méthode cite les exigences
 numérotées qu'elle sert. Une méthode qui n'en cite aucune est incomplète et doit

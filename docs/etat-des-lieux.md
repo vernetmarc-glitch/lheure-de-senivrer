@@ -3,6 +3,17 @@
 **Document de passation.** À lire après `docs/demandes-client.md` et avant toute
 proposition. Décrit l'**état réel**, pas l'historique.
 
+> ## ⛔ LA CUISSON EST INTERDITE EN L'ÉTAT
+>
+> Le générateur produit des layers qui violent **B1** (héritage à 100 %), **B2**
+> (similarité entre layers voisins) et **INV-E4** (isotropie, en échec sur `l4a`
+> et `l3b`). Le raccord spectral est cassé.
+>
+> **Aucun layer ne doit être cuit avant correction.** Conditions de levée,
+> mesurables, dans **`docs/porte-de-cuisson.md`**.
+>
+> *Instruction de Marc, 30/07/2026.*
+
 ---
 
 ## Ce qui est acquis
