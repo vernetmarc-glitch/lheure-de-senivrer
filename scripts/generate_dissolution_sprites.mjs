@@ -32,7 +32,11 @@ import path from 'node:path'
 
 const N = 512
 const POINT_SIZE = 0.5
-const HALO_GROWTH = 8.5
+const HALO_GROWTH = 1.2 // corrige le 29/07/2026 : l'architecture §11.4.b impose
+                        // `1 + progress x1.2` et interdit x8,5 depuis le
+                        // 10/07/2026. Un rayon qui grandit fortement est lui-meme
+                        // un filtre passe-bas ; la dispersion spatiale doit venir
+                        // de la simulation N-corps, pas du rendu. Voir INV-G1.
 const BLUR_MAX_PX = 6
 const FILAMENT_AMOUNT = 0.8 // meme valeur par defaut que le prototype (jamais changee par l'utilisateur dans la capture)
 
@@ -143,13 +147,20 @@ function renderFrame(sim, frameIdx, progress) {
   const sigmaPx = Math.max(POINT_SIZE * (1 + progress * (HALO_GROWTH - 1)), 0.5)
   const r = Math.ceil(sigmaPx * 3.2)
   const inv2s2 = 1 / (2 * sigmaPx * sigmaPx)
+  // CONSERVATION DU FLUX (architecture §11.4.b, invariant INV-D2) : quand le
+  // rayon grandit, diviser l'amplitude par le CARRE du facteur d'elargissement.
+  // Sans cela le total depose croit comme sigma^2 -- facteur x77 mesure sur
+  // `andromede` (830 -> 64071) -- et la galaxie GROSSIT sans jamais palir au
+  // lieu de se diffuser comme une goutte d'encre (demandes client C1, C2).
+  const widen = sigmaPx / POINT_SIZE
+  const fluxNorm = 1 / (widen * widen)
 
   const field = new Float32Array(N * N)
   for (let i = 0; i < meta.length; i++) {
     const [x, y] = frame.positions[i]
     const px = cx + x * pxPerUnit, py = cy + y * pxPerUnit
     if (px < -r || px > N + r || py < -r || py > N + r) continue
-    const amp = 0.18 + meta[i].b * 0.55
+    const amp = (0.18 + meta[i].b * 0.55) * fluxNorm
     const x0 = Math.max(0, Math.floor(px-r)), x1 = Math.min(N-1, Math.ceil(px+r))
     const y0 = Math.max(0, Math.floor(py-r)), y1 = Math.min(N-1, Math.ceil(py+r))
     for (let y = y0; y <= y1; y++) {
