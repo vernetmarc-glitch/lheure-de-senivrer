@@ -39,8 +39,8 @@ refusée, pas l'entrée qui se discute.
 | # | Décision | Date |
 |---|---|---|
 | **D-11** | Le **moteur sprite** l'emporte visuellement sur les nuages de halos pour les galaxies. Option C : traitement de type sprite pour les 98 objets | 28/07/2026 |
-| **D-12** | Splat **à flux conservé** obligatoire. Impose la recuisson des 9 sprites existants | 28/07/2026 |
-| **D-13** | Expansion de dissolution ramenée à **×4,2** (au lieu de ×7,7), flou à **45 %** | 28/07/2026 |
+| **D-12** | Splat **à flux conservé** obligatoire. ✅ **Fait le 30/07/2026** — commit `5957ae6f`, 9 sprites recuits, flux ×77 → ×2,18 | 28/07/2026 |
+| **D-13** | Expansion de dissolution ramenée à **×4,2** (au lieu de ×7,7), flou à **45 %**. *Concernait le portage Python `bake_sprites.py` ; le script de production utilise désormais `HALO_GROWTH = 1,2`, la dispersion venant de la simulation N-corps* | 28/07/2026 |
 | **D-14** | Le bruit de valeur multi-octave est **accepté** pour la modulation filamenteuse des sprites, par dérogation au §11.2 — il ne module qu'un champ déjà structuré et s'annule aux deux extrémités | 28/07/2026 |
 | **D-15** | **Sept archétypes morphologiques** paramétriques, assignés depuis `radiusMpc` | 28/07/2026 |
 

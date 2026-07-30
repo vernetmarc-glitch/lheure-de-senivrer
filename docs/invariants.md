@@ -130,8 +130,11 @@ Constantes actuellement sous contrôle :
 | `generate_dissolution_sprites.mjs` | `FILAMENT_AMOUNT` | 0,8 | §11.4.b |
 | `generate_layers.py` | `NS` | 0,965 | §4.3 |
 
-**État au 29 juillet 2026 : INV-G1 est EN ÉCHEC.**
-`HALO_GROWTH = 8.5` au lieu de 1,2. À corriger, avec recuisson des 9 sprites.
+**État au 30 juillet 2026 : INV-G1 PASSE.**
+`HALO_GROWTH` corrigé à 1,2 et conservation du flux implémentée
+(`fluxNorm = 1/widen²`) ; les 9 sprites ont été recuits (126 frames).
+Flux mesuré sur `andromede` : **×77 → ×2,18** ; pic **1,000 constant → 0,067**.
+État formé à `a=1` inchangé (flux `f00` = 830 identique). Commit `5957ae6f`.
 
 ---
 
@@ -139,12 +142,12 @@ Constantes actuellement sous contrôle :
 
 | Contrôle | Cible | Résultat |
 |---|---|---|
-| INV-G1 | constantes conformes | ❌ `HALO_GROWTH = 8.5` |
+| INV-G1 | constantes conformes | ✅ *(corrigé le 30/07, commit `5957ae6f`)* |
 | INV-E1 à E5 sur `l3` | signature de rendu | ✅ 6/6 |
 | INV-E4 sur `l4a` | isotropie | ❌ **0,60** |
 
 Deux vrais défauts détectés au premier lancement, dont un vieux de trois
-semaines.
+semaines. **INV-G1 a été corrigé le 30 juillet** ; INV-E4 sur `l4a` reste ouvert.
 
 ---
 

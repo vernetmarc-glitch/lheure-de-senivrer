@@ -1,5 +1,19 @@
 # Test en cours — Générateur par particules (Zel'dovich + halos récursifs)
 
+> ## ⚠ Ce document est un JOURNAL, pas une référence
+>
+> Il retrace chronologiquement une exploration, corrections et impasses comprises.
+> **Ne pas y chercher l'état courant** : plusieurs tableaux qu'il contient ont été
+> périmés par des révisions ultérieures, et la référence `a=1` du commit
+> `f0e0203f` est **caduque**.
+>
+> Pour l'état réel : `docs/etat-des-lieux.md`.
+> Pour ce qui est tranché : `docs/decisions.md`.
+> Pour ce qu'il ne faut pas reproposer : `docs/approches-ecartees.md`.
+
+---
+
+
 **Statut : EN COURS DE VALIDATION — ne pas intégrer à `architecture-univers-observable.md` ni à la production avant clôture des trois tests unitaires ci-dessous.**
 
 Date d'ouverture : 27 juillet 2026
