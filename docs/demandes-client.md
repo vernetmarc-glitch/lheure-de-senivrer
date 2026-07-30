@@ -4,7 +4,7 @@
 paramètre, aucune implémentation. Chaque exigence est formulée de façon
 **observable à l'œil** et doit pouvoir être jugée sans connaître le code.
 
-**Statut.** Version 1.0, arrêtée le 29 juillet 2026. Reconstitution à partir du document
+**Statut.** Version 1.1, arrêtée le 30 juillet 2026. Reconstitution à partir du document
 d'architecture, de l'historique du projet et des échanges de session. **À
 relire ligne à ligne par Marc** — l'objet même de ce document étant ce qui a été
 oublié, son exhaustivité ne peut pas être garantie par celui qui a oublié.
@@ -51,36 +51,54 @@ Une carte interactive de l'univers observable, parcourue selon **deux axes** :
 Les deux axes forment une matrice : toute combinaison (échelle, époque) doit
 produire une image juste et belle.
 
+**La matrice compte 15 lignes et 11 colonnes**, soit 165 cellules, codées de
+`A0` à `O10`. Toutes les lignes portent les **mêmes** 11 époques : une colonne
+est un instant de l'univers, identique d'un bout à l'autre de l'échelle de zoom.
+Les positions intermédiaires des deux curseurs sont obtenues par interpolation à
+l'affichage.
+
+*(Origine : 30/07. Auparavant chaque ligne avait son propre axe du temps — la
+colonne 4 valait a = 0,891 sur une ligne et a = 0,480 sur une autre. Voir
+`approches-ecartees.md`.)*
+
 ### Structure des layers
 
-**Trois layers bas, à sprites** — objets réels, rendus individuellement :
+**Quinze lignes, codées A à O**, de la Voie lactée à l'horizon des particules.
+Le demi-champ est le rayon du cadre en mégaparsecs comobiles.
 
-| Code | Contenu |
-|---|---|
-| **A** | La Voie lactée |
-| **B** | Les galaxies nommées du Groupe Local, en sprites individuels |
-| **C** | Le Groupe Local dans son ensemble |
+| Code | Demi-champ (Mpc) | Ce que la ligne montre | Rendu |
+|---|---|---|---|
+| **A** | 0,035 | **La Voie lactée**, occupant tout le cadre | sprite |
+| **B** | 0,088 | **La Voie lactée et ses voisines proches** — Sagittaire, Grand et Petit Nuage de Magellan | sprites |
+| **C** | 0,222 | Le halo de la Voie lactée qui s'efface ; ses satellites deviennent petits | sprites |
+| **D** | 0,560 | L'approche du Groupe Local ; NGC 6822 entre dans le cadre | sprites |
+| **E** | 1,41 | **Le Groupe Local dans son ensemble** — IC 10, Andromède, Leo I, Triangulum | sprites |
+| **F** | 3,56 | Le Groupe Local et ses abords — 29 galaxies du catalogue | sprites |
+| **G** | 8,96 | **Le voisinage complet** — 86 des 98 galaxies du catalogue. Dernière ligne à sprites | sprites |
+| **H** | 22,6 | Le catalogue est épuisé ; la matière devient statistique | généré |
+| **I** | 56,9 | | généré |
+| **J** | 143 | | généré |
+| **K** | 361 | | généré |
+| **L** | 911 | | généré |
+| **M** | 2 295 | | généré |
+| **N** | 5 782 | La sphère de Hubble et l'horizon des événements entrent dans le cadre | généré |
+| **O** | 14 570 | **L'horizon des particules — l'univers observable entier** | généré |
 
-**Dix layers hauts, générés** — matière statistique, du voisinage à l'univers
-observable :
-
-| Code | Clé | Demi-champ (Mpc) |
-|---|---|---|
-| **D** | l1b | 8,49 |
-| **E** | l2 | 30 |
-| **F** | l2b | 67,08 |
-| **G** | l3 | 150 |
-| **H** | l3b | 212,13 |
-| **I** | l4 | 300 |
-| **J** | l4a | 793,73 |
-| **K** | l4b | 2 100 |
-| **L** | l5a | 5 531,46 |
-| **M** | l5 | 14 570 |
-
-`M` correspond au rayon de l'univers observable, soit ~95 milliards d'années-lumière
+`O` correspond au rayon de l'univers observable, soit ~95 milliards d'années-lumière
 de diamètre.
 
-*(À confirmer par Marc : la répartition exacte des contenus entre A, B et C.)*
+**Le passage des sprites à la matière générée se fait entre G et H**, là où le
+catalogue s'épuise : sa galaxie la plus lointaine est à 9,82 Mpc. C'est le seul
+endroit de l'échelle où les deux représentations peuvent être comparées côte à
+côte, et donc le seul endroit où **D1** est vérifiable.
+
+Les lignes C et D n'apportent aucune galaxie nouvelle : entre les satellites de
+la Voie lactée (0,06 Mpc) et Andromède (0,78 Mpc), notre voisinage est
+physiquement vide. Elles portent l'effacement du halo et le fond filamentaire
+ambiant demandé en **A8**.
+
+*(Origine : 30/07. Cette échelle remplace une échelle à 13 lignes dont les pas
+allaient de ×1,41 à ×24 — voir `decisions.md`, D-21.)*
 
 ---
 
@@ -111,13 +129,13 @@ fond diffus : une seule population de matière, pas deux calques superposés.
 *(Origine : 28/07 — « il n'y a pas de continuité d'aspect entre les points
 blancs et les nuages ».)*
 
+**A7.** La palette est celle du projet (« Astro », du noir au blanc chaud par le
+rouge sombre et l'orange). Le rendu ne doit jamais être en noir et blanc pur.
 **A8.** Les layers bas montrant des galaxies doivent porter, eux aussi, un
 **fond généré de matière filamentaire subtil**, afin de rester visuellement
 cohérents avec les layers supérieurs. Une galaxie ne flotte pas sur du vide.
 *(Origine : 29/07.)*
 
-**A7.** La palette est celle du projet (« Astro », du noir au blanc chaud par le
-rouge sombre et l'orange). Le rendu ne doit jamais être en noir et blanc pur.
 
 ---
 
@@ -128,7 +146,7 @@ rouge sombre et l'orange). Le rendu ne doit jamais être en noir et blanc pur.
 endroit** sur le layer adjacent. Le zoom **précise**, il ne réinvente pas.
 *(Exigence formulée le 27/07 ; c'est la contrainte la plus forte du projet.)*
 
-**B2. Similarité entre layers voisins.** Au-dessus de F, chaque layer doit offrir
+**B2. Similarité entre layers voisins.** Au-dessus de H, chaque layer doit offrir
 un rendu **très similaire** au précédent : les structures du centre héritent
 directement de ce qui était visible, et des structures de **plus grande échelle**
 apparaissent en plus. On ne doit **pas perdre** les détails haute fréquence en
@@ -284,7 +302,10 @@ ni de direction privilégiée horizontale ou verticale.
 
 - **G1.** Forme du profil des objets brillants : une seule loi ne satisfait pas à
   la fois l'échelle des amas et celle des galaxies.
-- **G2.** Traitement des 89 galaxies du catalogue sans sprite dédié.
+- **G2.** Traitement des 90 galaxies procédurales du catalogue sans sprite dédié.
+  L'échelle du 30/07 les place toutes sur les lignes F et G, où elles sont
+  visibles individuellement. Reste à trancher : sprites dédiés, ou points du
+  champ généré ancrés sur leur position réelle ?
 - **G3.** Faut-il forcer davantage de diversité morphologique parmi les naines,
   qui représentent ~59 % du catalogue ?
 - **G4.** Les trois sphères s'affichent-elles simultanément, ou une à une ?
@@ -320,12 +341,6 @@ donner à comprendre.
 évoluent avec l'époque, et différemment les uns des autres. Leur représentation
 doit rester juste à toute position du curseur temporel.
 
-**H8. La vitesse de la lumière représentée.** Le fond de carte doit porter, sous
-une forme ou une autre, une représentation de la **vitesse de la lumière** —
-c'est l'étalon qui rend les trois sphères intelligibles, et notamment le fait que
-certaines régions s'éloignent de nous plus vite qu'elle.
-*(Origine : 29/07.)*
-
 **H6. Lisibilité prioritaire.** Les trois sphères doivent rester **lisibles et
 distinctes** à toute position des deux curseurs. En cas de conflit entre la
 beauté du fond de carte et la lisibilité des sphères, la lisibilité l'emporte.
@@ -337,6 +352,12 @@ explicatif vient **en appui** et reste optionnel — il ne porte jamais seul la
 compréhension.
 
 *(Origine : 29/07.)*
+**H8. La vitesse de la lumière représentée.** Le fond de carte doit porter, sous
+une forme ou une autre, une représentation de la **vitesse de la lumière** —
+c'est l'étalon qui rend les trois sphères intelligibles, et notamment le fait que
+certaines régions s'éloignent de nous plus vite qu'elle.
+*(Origine : 29/07.)*
+
 
 ---
 
@@ -392,11 +413,11 @@ trois sphères y sera peu lisible. *(Arbitré par Marc le 29/07.)*
 **L5.** Les distances doivent pouvoir se lire en **comobile** et en **propre** —
 la distinction fait partie de ce qu'il y a à comprendre.
 
-**L7.** Le **redshift n'est pas affiché**. *(Arbitré par Marc le 29/07.)*
-
 **L6.** L'interface est en **français**.
 
 *(Origine : 29/07, relevé sur l'application en production.)*
+**L7.** Le **redshift n'est pas affiché**. *(Arbitré par Marc le 29/07.)*
+
 
 ---
 
@@ -416,3 +437,23 @@ demandes. Ils relèvent du document d'architecture.
 
 Toute exigence ajoutée porte sa **date** et son **origine**. Une exigence n'est
 retirée que sur décision explicite de Marc, jamais par omission.
+
+### Historique
+
+**v1.1 — 30/07/2026.** Aucune exigence retirée ni ajoutée. Modifications de
+structure uniquement, sur décision de Marc :
+
+- §0, structure des layers : échelle refondue à 15 lignes géométriques `A`→`O`
+  (raison ×2,520) en remplacement des 13 lignes précédentes, dont les pas
+  allaient de ×1,41 à ×24. Les trois contenus définis par Marc — la Voie lactée,
+  la Voie lactée et ses voisines, le Groupe Local entier — se placent en `A`,
+  `B` et `E`.
+- §0, deux axes : grille figée à 15 × 11, colonnes communes à toutes les lignes.
+- **B2** : la référence « au-dessus de F » devient « au-dessus de H », le
+  demi-champ visé (~60 Mpc) ayant changé de lettre.
+- **G2** : reformulée — 90 galaxies procédurales et non 89, et la question
+  restante précisée.
+- **A7/A8**, **H6/H7/H8**, **L6/L7** remis dans l'ordre. Aucune n'avait changé
+  de contenu ; dans un document cité par numéro, l'ordre de lecture compte.
+
+**v1.0 — 29/07/2026.** Reconstitution initiale.

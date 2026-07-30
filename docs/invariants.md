@@ -138,6 +138,72 @@ Flux mesuré sur `andromede` : **×77 → ×2,18** ; pic **1,000 constant → 0,
 
 ---
 
+## Groupe H — Grille de la matrice zoom × temps
+
+**Origine : 30 juillet 2026.** La matrice v3 déclarait 11 colonnes communes,
+mais les fichiers cuits portaient **un axe du temps par ligne**. `st_l5_k04.png`
+valait `a = 0,891` quand la colonne 4 déclarée valait `a = 0,480`. Sept lignes
+sur treize n'avaient aucune image avant `a = 0,794`, soit avant 10,7 Ga : le
+rendu comblait avec le ton dissous uniforme. Bilan : 143 cellules déclarées,
+114 fichiers, 2 lignes vides, **42 aplats**.
+
+| ID | Invariant | Protège | Né de |
+|---|---|---|---|
+| **INV-H1** | L'échelle de zoom est géométrique, raison constante à 5 % près | B2, D2 | le trou de ×24 entre `B` et `C`, masqué par un fondu local de 0,52 dex |
+| **INV-H2** | La bande de déplacement est non vide sur chaque ligne | B3, C8 | plancher de 6 px = 410 Mpc contre plafond de 150 Mpc → `Ψ = 0`, std = 0,00 |
+| **INV-H3** | Aucun paramètre en pixels dans les blocs de génération | B5, B2 | `lam_min_px`, quatrième occurrence du même piège |
+| **INV-H4** | Les 165 cellules existent, aucune manquante, aucune hors grille | D3 | 143 déclarées contre 114 fichiers |
+| **INV-H5** | Continuité temporelle entre colonnes voisines d'une même ligne | **D3** | aucun contrôle n'existait — le document client appelle D3 « la contrainte la plus facile à oublier » |
+| **INV-H6** | Aucun aplat parmi les actifs cuits | **C8**, B6 | voir ci-dessous |
+
+### Pourquoi INV-H6 double INV-E5
+
+INV-E5 (« contenu haute fréquence ≥ 1e-3, jamais nul ») existait depuis le
+29 juillet et attrapait exactement ce défaut. Il n'a jamais été exécuté sur les
+fichiers concernés : le mode `--render` ne prend **qu'un fichier à la fois, à la
+demande**. `density_l5.png` et les 9 frames `st_l5_*` sont donc partis en
+production à `std = 0,00` sur 1024² — un aplat de gris uni là où l'œuvre montre
+l'univers observable dans son ensemble.
+
+Le défaut n'était pas l'absence de règle. La règle était écrite, juste, et
+exécutable. Le défaut était qu'**il fallait penser à la lancer**. Le mode
+`--assets` balaie désormais tous les actifs sans qu'on ait à les nommer.
+
+*C'est la même leçon que le groupe G, à un cran de plus : une règle exécutable
+qui dépend de la mémoire de quelqu'un pour être exécutée n'est pas un garde-fou.*
+
+### Périmètre de INV-H3 — resserré le 30/07, avec son motif
+
+Au premier passage, H3 signalait `blur_max_px` et `min_render_core_px`. Examen
+fait, ce sont des grandeurs **raster** : le flou de cuisson d'un sprite dans sa
+propre trame de 512 px, et un plancher de lisibilité à l'écran. Leur sens ne
+varie pas d'une ligne à l'autre.
+
+Le piège n'est pas le pixel en soi, c'est **un pixel qui vaut une échelle
+physique différente à chaque ligne** — `lam_min_px = 6` valait 0,6 Mpc en bas de
+l'échelle et 410 Mpc en haut. H3 ne scanne donc que les blocs qui pilotent le
+champ : `zoom_axis`, `time_axis`, `cells`, `expansion`, `embrasement`.
+
+### État au 30 juillet 2026
+
+```
+invariants.py                → 7 passes, 0 échec   (définition de la grille)
+invariants.py --assets       → 0 passe,  3 échecs  (actifs)
+```
+
+| Contrôle | Résultat |
+|---|---|
+| INV-H1, H2, H3 | **PASSENT** — la grille est saine |
+| INV-H4 | **ÉCHEC** — 165 cellules manquantes, 114 fichiers hors grille |
+| INV-H5 | **ÉCHEC** — aucune paire, cuisson non faite |
+| INV-H6 | **ÉCHEC** — 42 aplats parmi 136 actifs |
+
+C'est l'état attendu : la **définition** est arrêtée, la **cuisson** ne l'est
+pas. Les actifs de la v3 sont périmés et seront retirés avec la première cuisson
+au nouveau nommage.
+
+---
+
 ## Résultats du premier passage — 29 juillet 2026
 
 | Contrôle | Cible | Résultat |

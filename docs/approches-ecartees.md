@@ -120,6 +120,59 @@ amas fait 2,2.
 
 ---
 
+## Structure de la matrice
+
+### Axes du temps privés par ligne
+*`dissolution_window_a` + `keyframes_a` par layer — matrice v3.*
+**Écartée le 30/07/2026** : les colonnes déclarées cessent d'être des époques.
+Mesure — la matrice déclarait 11 colonnes communes, mais les fichiers cuits
+portaient des axes distincts par ligne :
+
+| Lignes | Fenêtre | Keyframes |
+|---|---|---|
+| `G`→`M` | a ∈ [0,794 ; 1,0] | 9 |
+| `D`→`F` | a ∈ [0,303 ; 1,0] | 13 |
+| `C` | a ∈ [0,040 ; 1,0] | 12 |
+| `A`, `B` | — | **0** |
+
+`st_l5_k04.png` valait `a = 0,891` quand la colonne 4 déclarée valait
+`a = 0,480`. Sept lignes sur treize n'avaient **aucune image** avant `a = 0,794`,
+soit avant 10,7 Ga : le rendu comblait avec le ton dissous uniforme, ce qui a
+produit les aplats. 143 cellules déclarées, 114 fichiers, 11 axes du temps.
+*Remplacée par la grille rigide — décisions D-22 et D-23.*
+
+### Plancher de déplacement exprimé en pixels
+*`lam_min_px = 6`, combiné à `filament_max_scale_mpc = 150`.*
+**Écartée le 30/07/2026** : un plancher en pixels vaut une échelle physique
+différente à chaque ligne, et croise le plafond comobile. Mesure — à `l5`,
+1 px = 68,3 Mpc, donc le plancher vaut **410 Mpc** contre un plafond de 150 : la
+bande de déplacement est **vide**, `Ψ = 0`, l'image est un aplat exact
+(std = 0,00 sur 1024², en production comme sur les 9 frames du prototype). Le
+`std` mesuré suit la largeur de bande sur toute la colonne :
+
+| Ligne | λ min réel | Bande | std |
+|---|---|---|---|
+| `l5` | 410 Mpc | **vide** | **0,0** |
+| `l5a` | 97 Mpc | [97 ; 150] | 21,7 |
+| `l4b` | 37 Mpc | [37 ; 150] | 32,7 |
+| `l2` | 1 Mpc | [1 ; 150] | 52,8 |
+
+Quatrième occurrence du même piège, après `lam_min_px`, `peak_sharpness`, le
+critère de couverture et le σ mélangeant structure et grenaille.
+*Remplacé par une loi de contraste décroissant — décisions D-25 et D-26.*
+
+### Échelle de zoom à pas irréguliers
+*13 lignes, pas de ×1,41 à ×24.*
+**Écartée le 30/07/2026** : un fondu ne peut pas se comporter de la même façon
+sur un pas de ×1,41 et sur un pas de ×24. Le trou entre `B` (0,1 Mpc) et `C`
+(2,4 Mpc) avait été rattrapé en silence par un fondu local de **0,52 dex** là où
+toutes les autres arêtes valaient 0,15 — une rustine, pas une correction. À
+l'autre bout, `150 → 212 → 300` subdivisait en √2, deux fois plus fin que partout
+ailleurs.
+*Remplacée par l'échelle géométrique ×2,520 — décision D-21.*
+
+---
+
 ## Métriques écartées
 
 | Métrique | Pourquoi |

@@ -14,6 +14,16 @@ proposition. Décrit l'**état réel**, pas l'historique.
 >
 > *Instruction de Marc, 30/07/2026.*
 
+> ## 🔁 LA GRILLE A ÉTÉ REFONDUE — 30/07/2026, seconde session
+>
+> L'échelle de zoom passe de 13 lignes à pas irréguliers (×1,41 à ×24) à
+> **15 lignes géométriques `A`→`O`**, raison ×2,520. L'axe du temps passe de
+> onze axes privés par ligne à **11 colonnes communes**, uniformes en facteur de
+> croissance. Grille rigide : 165 cellules, `A0` à `O10`, un code par fichier.
+>
+> **Tous les actifs existants sont périmés.** Décisions D-21 à D-26 ;
+> nomenclature dans `docs/matrice-parametres-zoom-temps.md` v4.
+
 ---
 
 ## Ce qui est acquis

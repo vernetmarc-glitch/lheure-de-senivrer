@@ -19,56 +19,84 @@ Version 1.1 — Juillet 2026
 > En cas de conflit, la lisibilité des trois sphères l'emporte.
 
 ---
-
 ## 0. État actuel du projet — résumé pour reprise de contexte
 
-*(Section mise à jour le 18 juillet 2026, pensée pour permettre à Claude de reprendre ce projet dans une nouvelle conversation sans relire tout l'historique. Décrit l'état ACTUEL et son rationnel — pas l'historique des étapes pour y arriver.)*
+*(Section réécrite le **30 juillet 2026**. Elle est lue en deuxième par la
+séquence de démarrage : elle doit donc décrire l'état RÉEL, jamais un état
+souhaité. La version précédente datait du 18 juillet et présentait le moteur
+v3.3 comme déployé et validé, alors qu'il a été écarté le 29 — une nouvelle
+instance recevait l'impasse comme état courant.)*
 
-**Dépôt et déploiement**
-- Dépôt : `vernetmarc-glitch/lheure-de-senivrer` (renommé depuis `carte-univers-observable`)
-- Site en ligne : https://vernetmarc-glitch.github.io/lheure-de-senivrer/
-- Outils de calibration : `glow-test.html` (style/couleur des textures de densité) et `l1b-anchor-test.html` (halo/bruit de fond de l'ancrage du Groupe Local sur `l1b`) — cf. §4.7
-- Déploiement automatique via GitHub Actions (`.github/workflows/deploy.yml`) sur push vers `main`
-- Projet installable en PWA (`manifest.json`, icônes générées depuis le logo fourni), nom affiché "L'Heure de s'enivrer"
+### En un paragraphe
 
-**Architecture de rendu actuelle**
-- App plein écran (pas d'onglets, pas de légendes texte) : titre en haut à gauche, bouton réglages (⚙) en haut à droite (style + présence du fond), curseur de zoom vertical à droite, curseur de temps horizontal en bas — tous en overlay sur la carte, avec `env(safe-area-inset-*)`.
-- Zone de rendu clampée à un ratio max de 2,4:1 (bandes noires fixes au-delà) pour éviter qu'un layer ne "disparaisse" sur écrans très larges/étroits.
-- Canvas dimensionnés selon `devicePixelRatio` (plafonné à 3) pour la netteté sur écrans Retina.
-- Chargement des textures progressif et priorisé (le layer du zoom courant en premier, affichage dès l'arrivée de chaque texture), avec indicateur discret en bas à droite.
-- **Principe général de performance retenu** : tout ce qui PEUT être pré-calculé hors-ligne (Node/Python) et livré sous forme de bitmap L'EST, plutôt que d'être recalculé à chaque frame côté client. Les seuls rendus encore "en direct" (RealGalaxiesLayer, cf. §4.6) le sont par nécessité (position/taille dépendent du zoom courant), mais restent légers : quelques `drawImage`, jamais de génération procédurale ni de boucle sur des milliers d'éléments par frame.
+**La cuisson est interdite.** Le moteur v3.3 (dépôt CIC d'une grille advectée
+par Zel'dovich) a été écarté le 29/07 pour raison structurelle. La grille de la
+matrice a été refondue le 30/07 — 15 lignes × 11 colonnes, tous les actifs
+existants sont périmés. Un générateur par particules le remplace, dont le
+raccord spectral inter-lignes n'est **pas encore réparé**. Rien ne doit être
+cuit avant que la porte de `docs/porte-de-cuisson.md` ne soit levée.
 
-**Les layers, du plus proche au plus lointain**
+### Ce qui est arrêté
 
-1. **`milkyway`** (`DensityLayer.tsx`, texture `density_milkyway.png`) : disque + bulbe de la Voie lactée UNIQUEMENT (pas les galaxies voisines, cf. point 2). Généré hors-ligne en exécutant le vrai module partagé `GalaxyModel` (récupéré depuis le dépôt `le-silence-du-cosmos` au moment de la génération, jamais réimplémenté localement) — cf. `scripts/generate_simulated_textures.mjs`. N'est plus chargé côté client en JavaScript : seul le résultat pré-cuit (bitmap) est livré à l'app.
+| | |
+|---|---|
+| **Grille** | 15 lignes `A`→`O`, raison géométrique ×2,520, de 0,035 à 14 570 Mpc · 11 colonnes uniformes en facteur de croissance `D(a)` · 165 cellules, `A0` à `O10` |
+| **Adressage** | une cellule = un code = un fichier `st_<code>.png` (D-24) |
+| **Source de vérité** | `app/public/data/spacetime_matrix.json` **v4** |
+| **Paramétrage** | héritage `defaults → by_row → by_cell` |
+| **Portail** | `scripts/dev/invariants.py`, groupes A à H |
 
-2. **`RealGalaxiesLayer`** (composant React séparé, `app/src/RealGalaxiesLayer.tsx`, PAS une entrée de `DensityLayer`) : compose au runtime 9 sprites pré-cuits individuels — la Voie lactée elle-même (pour rester visible même une fois sortie du zoom rapproché du point 1) + les 8 galaxies réelles nommées du Groupe Local (Andromède, Triangulum/M33, Grand/Petit Nuage de Magellan, Naine du Sagittaire, NGC 6822, IC 10, Leo I). Chaque sprite est généré séparément (`generateRealGalaxySprite()` / `generateMilkyWay()` dans `generate_simulated_textures.mjs`), dimensionné sur SA PROPRE taille (résolution relative identique pour toutes, quelle que soit leur distance réelle), avec un halo doux qui s'étend au-delà du nuage d'étoiles net pour amorcer une transition avec le layer de densité au-dessus (§4.6). La Voie lactée est dessinée EN PREMIER (dessous) : son halo, même réduit, ne doit jamais pouvoir recouvrir visuellement une galaxie plus proche (la Naine du Sagittaire, à seulement 0,024 Mpc, est la plus proche des 8).
+Détail complet : `docs/matrice-parametres-zoom-temps.md`.
 
-3. **`localgroup`** (`DensityLayer.tsx`, texture `density_localgroup.png`) : texture procédurale pour les ~90 galaxies de champ NON nommées du Groupe Local (halo dépendant de la distance, pas de sprite individuel) — cf. `generate_local_group_texture.py`.
+### Ce qui n'est pas fait
 
-4. **`l1b` → `l5`** (`DensityLayer.tsx`) : 10 layers procéduraux de densité (doublé depuis 5 initialement) : `l1b`, `l2`, `l2b`, `l3`, `l3b`, `l4`, `l4a`, `l4b`, `l5a`, `l5`. Les paliers "a"/"b" sont des paliers TECHNIQUES (pas de nouveaux layers scientifiques). Champ gaussien aléatoire (GRF) généré GRAND → PETIT (`l5`, le plus grand et le plus lisse, sert de racine ; chaque layer plus fin hérite de son plus proche ancêtre scientifique et y ajoute du détail passe-haut, poids 0,74/0,67) — cf. §4.3-4.4, principe **non modifié** malgré la tentation d'inverser ce sens (cf. §4.7). En plus de ce champ hérité, `l1b`/`l2`/`l2b` reçoivent un ANCRAGE ADDITIONNEL sur les positions réelles du catalogue du Groupe Local (98 galaxies), avec une intensité décroissante à mesure qu'on s'éloigne, volontairement arrêtée à `l2b` (~67 Mpc) — cf. §4.7.
+| Chantier | État |
+|---|---|
+| **Raccord spectral inter-lignes** | cassé — `rms(Ψ)` mesuré à 2 253 Mpc pour 10 attendus. Cause : FFT appliquée à un sous-volume parent interpolé, donc non périodique dans la boîte enfant. Correction proposée : faire le raccord dans l'espace de Ψ, chaque boîte ne subissant de FFT que là où elle est périodique |
+| **Anisotropie** | deux lignes du nouveau générateur mesurent 0,60 et 0,75 contre 0,80 exigé. À bissecter par étage, pas à conjecturer |
+| **Cuisson** | aucune cellule du nouveau schéma n'existe. `--assets` : 165 manquantes, 114 fichiers hors grille, **42 aplats** parmi les actifs v3 |
+| **Calibrations** | `contrast_rolloff`, `web_ambient.amplitudes`, `sprites.visible_fade_band_mpc` — marquées `À CALIBRER` dans le JSON, à mesurer, jamais à inventer |
+| **Les trois sphères** | `cosmology.ts` calcule les trois rayons ; `UniverseMap.tsx` n'en trace qu'un. Le sujet de l'œuvre est rempli au tiers |
 
-**Fichiers de génération (dans `/scripts`)**
-- `generate_layers.py` (Python) : génère les 10 textures procédurales de densité (résolution 1024, marge de génération ×1,5 — ×2,4 pour L5 spécifiquement, seul layer visible pile à son bord extrême) + l'ancrage du Groupe Local sur `l1b`/`l2`/`l2b` (fonction `apply_local_group_anchor`, cf. §4.7).
-- `generate_simulated_textures.mjs` (Node) : génère la texture `milkyway` (disque + bulbe, via le vrai `GalaxyModel` distant) et les 9 sprites individuels de `RealGalaxiesLayer` (Voie lactée + 8 galaxies réelles, avec halo).
-- `generate_local_group_texture.py` (Python) : texture `localgroup` (galaxies procédurales non nommées).
-- `generate_local_group_catalog.py` (Python) : construit le catalogue JSON de 98 galaxies (8 réelles nommées, positions/tailles réelles + ~90 galaxies de champ procédurales, distance 1-10 Mpc, `isReal: false`) — SOURCE UNIQUE consommée à la fois par `RealGalaxiesLayer.tsx`, `generate_local_group_texture.py` et `generate_layers.py`.
-- `local_group_style.py` (Python) : source unique des constantes de rendu des galaxies réelles pour le champ de densité (taille de halo, suppression de bruit local...) — ne jamais redéfinir ailleurs.
+### Dépôt et déploiement
 
-**Processus de développement/validation pour tout travail génératif ou visuel** : cf. §13 — toujours valider par un calcul objectif hors-ligne (`scripts/dev/`) avant de présenter un résultat comme corrigé, jamais sur la seule base des courbes de paramètres.
+- Dépôt `vernetmarc-glitch/lheure-de-senivrer` · site
+  https://vernetmarc-glitch.github.io/lheure-de-senivrer/
+- Déploiement par GitHub Actions sur push vers `main` ; les invariants tournent
+  en bloquant (`.github/workflows/invariants.yml`)
+- Depuis le bac à sable : `api.github.com` est joignable, `github.io` ne l'est
+  pas — vérifier par l'API Pages (`status: "built"`)
 
-**Points de vigilance connus — synchronisation manuelle requise**
-- `app/public/glow-test.html` duplique manuellement la liste des layers de densité et leurs marges (pas de build partagé). Toute évolution côté production (`DensityLayer.tsx`) doit être répercutée à la main, sinon désynchronisation silencieuse (déjà arrivé une fois).
-- `app/public/l1b-anchor-test.html` est un outil de calibration VISUELLE (aperçu approximatif, bruit de démonstration plutôt que le vrai champ BBKS) — les valeurs qu'il affiche sont un point de départ à reporter et affiner dans `generate_layers.py`, pas une garantie de rendu pixel-identique.
-- `generateRealGalaxySprite()`/`generateMilkyWay()` (JS, `generate_simulated_textures.mjs`) et `RealGalaxiesLayer.tsx` partagent des constantes (`SPRITE_MARGIN`, le rayon de la Voie lactée) qui doivent rester synchronisées manuellement entre les deux fichiers — commentées explicitement à chaque occurrence.
-- `field_to_log_density()` (dans `generate_layers.py`) applique un `exp()` avant le calcul de densité — toute valeur ajoutée en amont (ex. un ancrage) y est donc amplifiée de façon EXPONENTIELLE, pas linéaire. Une amplitude qui semble modeste dans le champ brut peut dominer complètement l'export après ce passage ; à l'inverse, un flou (`gaussian_filter`) appliqué avant ce transform peut détruire une texture fine de façon disproportionnée. Toujours vérifier le résultat exporté (histogramme, écart-type, comparaison visuelle), pas seulement les paramètres d'entrée.
+### Rendu — ce qui est en production et reste valide
 
-**Chantiers en attente, déjà cadrés (cf. §11, qui remplace/complète §9)**
-L'axe du temps (a(t)) n'est pas encore implémenté en production : actuellement la carte est en coordonnées comobiles fixes (rien ne bouge avec le temps, seule la luminosité change). La conception complète — compression spatiale, dissolution des structures par époque de formation propre à chaque échelle, règle de composition "screen" (jamais de flou ni de calque couleur), moteur N-corps pour l'accrétion des galaxies, embrasement par décalage avant transformation — est documentée en détail au §11 (matrice zoom × temps), avec plusieurs prototypes déjà réalisés et listés en §11.9.
+- App plein écran, curseurs de zoom et de temps en overlay, zone de rendu
+  clampée à 2,4:1, canvas selon `devicePixelRatio` plafonné à 3
+- Chargement des textures progressif et priorisé
+- **Principe de performance** : tout ce qui peut être pré-calculé hors ligne
+  l'est et est livré en bitmap. Seul `RealGalaxiesLayer` rend en direct, par
+  nécessité, et reste léger
+- Les 9 sprites N-corps (Voie lactée + 8 galaxies réelles nommées) sont cuits et
+  valides — ils ne dépendent pas du moteur de champ
 
-**État au 18 juillet — matrice v3.3, entièrement cuite et déployée dans le prototype (PAS en production)** : `app/public/data/spacetime_matrix.json` (source de vérité, nomenclature permanente A→M / 0→10, cf. §11.9) + `docs/matrice-parametres-zoom-temps.md` §12 (journal des versions v2→v3.3) + `scripts/zeldovich_engine.py` (moteur de densité partagé par `generate_layers.py` ET `generate_spacetime_frames.py` — une seule chaîne, les frames a=1 sont identiques au pixel près aux textures de production) + prototype `spacetime-matrix-test.html`. Le moteur génère la densité par **advection de Zel'dovich** (dépôt CIC d'une grille de masse advectée par le potentiel du champ, δ commun hérité comme avant) plutôt que par la log-normale ou des crêtes — cf. §12.e/12.f pour l'historique des tentatives écartées (crêtes multi-octaves = mousse cellulaire, non retenu). Trois propriétés clés v3.3 : (1) luminosité moyenne **conservée** pendant la dissolution (α résolu par keyframe, fond dissous = 38/255 partagé, pas de passage au noir) ; (2) **Ψ comobile unique** sans renormalisation par layer (cohérence des caustiques entre zooms adjacents garantie par construction) ; (3) narration de **condensation** (nuages/filaments d'abord, galaxies ensuite, bloc `galaxy_formation`). Sprite Voie lactée haute résolution (`milkyway_hires`, ligne A, 2048², fondu de zoom avec le sprite 512 existant) et toile ambiante diffuse sous les layers à sprites (A/B/C, bloc `web_ambient`) également cuits. 163 contrôles headless + contrôle croisé JS/Python passent (cf. §13). **Reste à faire** : vérification visuelle de `glow-test.html` sur les nouvelles textures, et intégration en production (`DensityLayer.tsx`/`RealGalaxiesLayer.tsx`) — tout reste dans le prototype `*-test.html` pour l'instant.
+### Points de vigilance — synchronisation manuelle
 
----
+- `app/public/glow-test.html` duplique la liste des layers et leurs marges :
+  toute évolution de `DensityLayer.tsx` doit y être répercutée à la main
+- `generate_simulated_textures.mjs` et `RealGalaxiesLayer.tsx` partagent
+  `SPRITE_MARGIN` et le rayon de la Voie lactée
+- `field_to_log_density()` applique un `exp()` : toute valeur ajoutée en amont y
+  est amplifiée exponentiellement. Vérifier l'export, jamais les seuls paramètres
+
+### Méthode — non négociable
+
+1. **Lire les quatre registres avant toute proposition** : `demandes-client.md`
+   en entier, cette §0, `decisions.md`, `approches-ecartees.md`.
+2. **Proposition avant implémentation.**
+3. **Ne jamais présenter une image sans avoir exécuté `invariants.py` dessus.**
+   Le retour visuel de Marc est la confirmation finale, jamais la méthode de
+   détection.
+4. **Tout nouvel échec devient un invariant**, daté, rattaché à l'exigence qu'il
+   protège. Un seuil qui gêne ne se desserre pas sans écrire pourquoi.
 
 ## 1. Vision du projet
 

@@ -9,6 +9,8 @@ Usage :
     python3 invariants.py --source          # controles statiques sur le code
     python3 invariants.py --render fichier  # controles sur une texture cuite
     python3 invariants.py --constants       # code vs document d'architecture
+    python3 invariants.py --grid            # grille de la matrice : axes et cellules
+    python3 invariants.py --assets          # balaye TOUS les actifs cuits
 
 Sortie : code 0 si tout passe, 1 sinon. A brancher en pre-cuisson bloquant.
 """
@@ -378,6 +380,174 @@ def G1_code_matches_doc(root=REPO):
 
 
 # ===========================================================================
+# GROUPE H — grille de la matrice zoom x temps
+# ===========================================================================
+# Origine : 30/07/2026. La matrice v3 declarait 11 colonnes communes mais les
+# fichiers cuits portaient un axe du temps par ligne (st_l5_k04 valait a=0,891
+# quand la colonne 4 declaree valait a=0,480). 143 cellules declarees, 114
+# fichiers, 2 lignes vides, et sept lignes sans aucune image avant a=0,794 : le
+# rendu comblait avec le ton dissous uniforme, ce qui a produit les aplats.
+# Protege : demandes-client D3, C8, B6, B2, D2.
+
+MATRIX = os.path.join(REPO, "app", "public", "data", "spacetime_matrix.json")
+
+
+def _matrix():
+    with open(MATRIX) as fh:
+        return json.load(fh)
+
+
+def H1_ladder_geometric(tol=0.05):
+    """L'echelle de zoom est geometrique : raison constante a `tol` pres.
+
+    Ne du trou de x24 entre B et C (v3), masque par un fondu local de 0,52 dex
+    la ou toutes les autres aretes valaient 0,15.
+    """
+    m = _matrix()
+    rows = m["zoom_axis"]["rows"]
+    hs = [rows[c]["halfwidth_mpc"] for c in sorted(rows)]
+    ratios = [hs[i + 1] / hs[i] for i in range(len(hs) - 1)]
+    r0 = m["zoom_axis"]["ratio"]
+    bad = [f"{sorted(rows)[i]}->{sorted(rows)[i+1]}={r:.3f}"
+           for i, r in enumerate(ratios) if abs(r / r0 - 1) > tol]
+    return check(not bad, "INV-H1",
+                 f"echelle de zoom geometrique (raison {r0:.3f} a {tol:.0%} pres)",
+                 " | ".join(bad))
+
+
+def H2_band_never_empty():
+    """La bande de deplacement est non vide sur CHAQUE ligne.
+
+    Ne de l'aplat de la ligne la plus haute : plancher de 6 px = 410 Mpc contre
+    un plafond comobile de 150 Mpc, donc bande vide, Psi = 0, std = 0,00.
+    """
+    rows = _matrix()["zoom_axis"]["rows"]
+    bad = [f"{c}: [{v['lam_min_mpc']:.3g}, {v['lam_max_mpc']:.3g}] Mpc"
+           for c, v in rows.items() if v["lam_min_mpc"] >= v["lam_max_mpc"]]
+    return check(not bad, "INV-H2",
+                 "bande de deplacement non vide sur chaque ligne", " | ".join(bad))
+
+
+# Perimetre du controle H3 -- resserre le 30/07/2026, avec son motif.
+#
+# Le piege n'est pas le pixel en soi : c'est un pixel qui vaut une echelle
+# PHYSIQUE DIFFERENTE a chaque ligne. `lam_min_px = 6` valait 0,6 Mpc en bas de
+# l'echelle et 410 Mpc en haut -- d'ou la bande vide et l'aplat.
+#
+# Restent donc legitimes les grandeurs dont le pixel est l'unite NATIVE et dont
+# le sens ne varie pas d'une ligne a l'autre : le flou de cuisson d'un sprite
+# dans sa propre trame de 512 px, un plancher de lisibilite a l'ecran. Elles
+# vivent dans les blocs raster, jamais dans les blocs qui pilotent le champ.
+#
+# H3 ne scanne donc que les blocs de generation. Si un parametre en pixels
+# apparait dans `zoom_axis`, `time_axis` ou `cells`, c'est le piege qui revient.
+GEN_BLOCKS = ("zoom_axis", "time_axis", "cells", "expansion", "embrasement")
+
+
+def H3_no_pixel_units_in_matrix():
+    """Aucun parametre spatial des blocs de generation n'est en pixels (D-26)."""
+    m = _matrix()
+    bad = []
+    for blk in GEN_BLOCKS:
+        if blk not in m:
+            continue
+        for name in set(re.findall(r'"([a-z_0-9]*(?:_px|_pixels))"',
+                                   json.dumps(m[blk], ensure_ascii=False))):
+            bad.append(f"{blk}.{name}")
+    return check(not bad, "INV-H3",
+                 "aucun parametre en pixels dans les blocs de generation",
+                 " | ".join(sorted(bad)))
+
+
+def _expected_cells():
+    m = _matrix()
+    codes = sorted(m["zoom_axis"]["rows"])
+    cols = [c["col"] for c in m["time_axis"]["columns"]]
+    return [f"{r}{c}" for r in codes for c in cols]
+
+
+def H4_grid_complete(data_dir=None):
+    """Les 165 cellules existent, aucune manquante, aucune en trop."""
+    data_dir = data_dir or os.path.join(REPO, "app", "public", "data")
+    want = set(_expected_cells())
+    have = {f[3:-4] for f in os.listdir(data_dir)
+            if f.startswith("st_") and f.endswith(".png")}
+    if not have:
+        return check(False, "INV-H4", "grille complete",
+                     "AUCUN ACTIF — cuisson non faite")
+    missing, extra = sorted(want - have), sorted(have - want)
+    d = []
+    if missing:
+        d.append(f"{len(missing)} manquantes ({', '.join(missing[:5])}…)")
+    if extra:
+        d.append(f"{len(extra)} hors grille ({', '.join(extra[:5])}…)")
+    return check(not d, "INV-H4", f"grille complete ({len(want)} cellules)", " | ".join(d))
+
+
+def H5_time_continuity(data_dir=None, rho_min=0.85, dmean_max=0.06):
+    """Continuite temporelle : deux colonnes voisines d'une meme ligne restent
+    correlees et ne sautent pas en ton.
+
+    Protege D3, appelee dans le document client « la contrainte la plus facile a
+    oublier » — et qui n'avait aucun controle executable avant le 30/07/2026.
+    """
+    from PIL import Image
+    data_dir = data_dir or os.path.join(REPO, "app", "public", "data")
+    m = _matrix()
+    codes = sorted(m["zoom_axis"]["rows"])
+    cols = [c["col"] for c in m["time_axis"]["columns"]]
+    bad, seen = [], 0
+    for r in codes:
+        prev = None
+        for c in cols:
+            f = os.path.join(data_dir, f"st_{r}{c}.png")
+            if not os.path.exists(f):
+                prev = None
+                continue
+            a = np.asarray(Image.open(f).convert("L"), dtype=np.float32) / 255
+            if prev is not None:
+                seen += 1
+                rho = float(np.corrcoef(prev.ravel(), a.ravel())[0, 1])
+                dm = abs(float(a.mean() - prev.mean()))
+                if not np.isfinite(rho) or rho < rho_min:
+                    bad.append(f"{r}{c-1}->{r}{c} rho={rho:.2f}")
+                elif dm > dmean_max:
+                    bad.append(f"{r}{c-1}->{r}{c} dton={dm*255:.0f}/255")
+            prev = a
+    if seen == 0:
+        return check(False, "INV-H5", "continuite temporelle",
+                     "AUCUNE PAIRE — cuisson non faite")
+    return check(not bad, "INV-H5",
+                 f"continuite temporelle ({seen} paires de colonnes voisines)",
+                 " | ".join(bad[:6]))
+
+
+def H6_no_flat_asset(data_dir=None, std_min=1.0):
+    """Aucun actif cuit n'est un aplat (C8).
+
+    INV-E5 existait depuis le 29/07 et attrapait ce defaut, mais n'etait jamais
+    execute que sur un fichier a la fois, a la demande. Resultat : density_l5.png
+    et les 9 frames st_l5_* sont partis en production a std = 0,00 sur 1024².
+    Un garde-fou qui depend de la memoire de quelqu'un n'est pas un garde-fou.
+    """
+    from PIL import Image
+    data_dir = data_dir or os.path.join(REPO, "app", "public", "data")
+    files = sorted(f for f in os.listdir(data_dir)
+                   if f.endswith(".png") and (f.startswith("st_") or f.startswith("density_")))
+    if not files:
+        return check(False, "INV-H6", "aucun aplat parmi les actifs cuits",
+                     "AUCUN ACTIF — cuisson non faite")
+    bad = []
+    for f in files:
+        a = np.asarray(Image.open(os.path.join(data_dir, f)).convert("L"), dtype=np.float32)
+        if a.std() < std_min:
+            bad.append(f"{f} std={a.std():.2f}")
+    return check(not bad, "INV-H6",
+                 f"aucun aplat parmi {len(files)} actifs cuits",
+                 " | ".join(bad[:8]) + (f" (+{len(bad)-8})" if len(bad) > 8 else ""))
+
+
+# ===========================================================================
 def report():
     print(f"\n{'='*72}\n{len(PASSED)} passes, {len(FAILED)} echecs")
     if FAILED:
@@ -401,6 +571,12 @@ if __name__ == "__main__":
     if "--constants" in args or not args:
         print("— code vs document d'architecture —")
         G1_code_matches_doc()
+    if "--grid" in args or not args:
+        print("— grille de la matrice —")
+        H1_ladder_geometric(); H2_band_never_empty(); H3_no_pixel_units_in_matrix()
+    if "--assets" in args:
+        print("— balayage de tous les actifs cuits —")
+        H4_grid_complete(); H6_no_flat_asset(); H5_time_continuity()
     if "--render" in args:
         f = args[args.index("--render") + 1]
         t = np.load(f) if f.endswith(".npy") else None

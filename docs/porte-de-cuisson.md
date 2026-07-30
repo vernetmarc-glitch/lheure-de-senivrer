@@ -9,9 +9,27 @@ Lancer une cuisson maintenant produirait une série à refaire.
 > « Si le générateur donne des layers qui ne respectent pas les règles alors la
 > prochaine instance devra le corriger avant de cuire quoi que ce soit. »
 
+**Mise à jour du 30/07, seconde session.** La grille de la matrice a été refondue
+(15 lignes × 11 colonnes, décisions D-21 à D-26). **Tous les actifs existants
+sont périmés** : 165 cellules manquantes, 114 fichiers hors grille, 42 aplats.
+Une condition de levée s'ajoute, ci-dessous.
+
 ---
 
 ## Ce qui bloque
+
+### ⛔ Grille de la matrice : DÉFINIE, NON CUITE
+
+`invariants.py --assets` au 30/07 :
+
+```
+INV-H4  grille complete (165 cellules)   ECHEC — 165 manquantes, 114 hors grille
+INV-H6  aucun aplat parmi 136 actifs     ECHEC — 42 aplats
+INV-H5  continuite temporelle            ECHEC — aucune paire, cuisson non faite
+```
+
+La **définition** est saine (`INV-H1`, `H2`, `H3` passent). C'est la cuisson qui
+manque, et elle ne peut pas partir avant les deux conditions ci-dessous.
 
 ### ⛔ B1 — Héritage à 100 % : NON SATISFAIT
 
