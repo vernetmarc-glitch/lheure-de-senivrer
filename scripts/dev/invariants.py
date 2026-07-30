@@ -547,6 +547,31 @@ def H6_no_flat_asset(data_dir=None, std_min=1.0):
                  " | ".join(bad[:8]) + (f" (+{len(bad)-8})" if len(bad) > 8 else ""))
 
 
+def H7_particles_in_zoom_window(sub=1, ratio=2.51991, n_out=320):
+    """Densite de particules dans la fenetre QUE L'ENFANT VA MAGNIFIER.
+
+    Origine : 30/07/2026. INV-C2 exige 4 a 40 particules par pixel, et cette
+    borne etait tenue sur l'image entiere (18,9/px mesures a la ligne N). Mais
+    la comparaison inter-lignes ne porte que sur le carre central du parent, de
+    cote 1/2,520 : la densite y tombe a 2,99/px, SOUS le plancher, et le rendu
+    du parent magnifie est alors a 69 % du bruit (auto-correlation 0,306).
+
+    C'est ce qui plafonnait F2 a 0,25 alors que le raccord lui-meme tient 0,875.
+    Mesurer la densite sur l'image entiere ne protegeait pas la seule zone ou
+    elle compte.
+
+    Ce controle est declaratif tant que la cuisson n'a pas eu lieu : il rappelle
+    le facteur, il ne remplace pas la mesure sur actifs.
+    """
+    dens_full = sub ** 3 * 18.9
+    dens_win = dens_full / ratio ** 2
+    ok = dens_win >= 4.0
+    return check(ok, "INV-H7",
+                 "densite de particules >= 4/px dans la fenetre magnifiee",
+                 f"{dens_win:.2f}/px (image entiere {dens_full:.1f}/px, "
+                 f"facteur {ratio**2:.2f})" if not ok else "")
+
+
 # ===========================================================================
 def report():
     print(f"\n{'='*72}\n{len(PASSED)} passes, {len(FAILED)} echecs")
@@ -574,6 +599,7 @@ if __name__ == "__main__":
     if "--grid" in args or not args:
         print("— grille de la matrice —")
         H1_ladder_geometric(); H2_band_never_empty(); H3_no_pixel_units_in_matrix()
+        H7_particles_in_zoom_window()
     if "--assets" in args:
         print("— balayage de tous les actifs cuits —")
         H4_grid_complete(); H6_no_flat_asset(); H5_time_continuity()

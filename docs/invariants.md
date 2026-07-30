@@ -155,6 +155,23 @@ rendu comblait avec le ton dissous uniforme. Bilan : 143 cellules déclarées,
 | **INV-H4** | Les 165 cellules existent, aucune manquante, aucune hors grille | D3 | 143 déclarées contre 114 fichiers |
 | **INV-H5** | Continuité temporelle entre colonnes voisines d'une même ligne | **D3** | aucun contrôle n'existait — le document client appelle D3 « la contrainte la plus facile à oublier » |
 | **INV-H6** | Aucun aplat parmi les actifs cuits | **C8**, B6 | voir ci-dessous |
+| **INV-H7** | Densité de particules ≥ 4/px **dans la fenêtre magnifiée** | B1, B2 | INV-C2 tenait sur l'image entière et laissait passer 2,99/px là où ça compte |
+
+### Pourquoi INV-H7 double INV-C2
+
+INV-C2 exige 4 à 40 particules par pixel, et la borne était **tenue** : 18,9/px
+mesurées à la ligne `N`. Mais la comparaison entre deux lignes voisines ne porte
+que sur le carré central du parent, de côté 1/2,520. La densité y tombe à
+**2,99/px**, sous le plancher, et le rendu du parent magnifié est alors à 69 % du
+bruit — auto-corrélation mesurée à 0,306 entre deux réalisations du verre.
+
+C'est ce qui plafonnait F2 à 0,25 alors que le raccord lui-même tient 0,875.
+En multipliant les particules du parent par 8 : densité 23,9/px,
+auto-corrélation 0,789, F2 0,442.
+
+*Mesurer une densité sur l'image entière ne protège pas la seule zone où elle
+compte. C'est le même piège que les fenêtres en pixels du groupe A, transposé à
+l'aire de mesure.*
 
 ### Pourquoi INV-H6 double INV-E5
 
