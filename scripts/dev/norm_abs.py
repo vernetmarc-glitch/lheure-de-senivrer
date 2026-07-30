@@ -77,7 +77,19 @@ def gen_delta_abs(shape, box, seed):
     kmag = np.sqrt(KX ** 2 + KY ** 2 + KZ ** 2)
     P = M.power_spectrum(kmag)
     dk = (rng.normal(size=kmag.shape) + 1j * rng.normal(size=kmag.shape))
-    dk *= np.sqrt(P / 2.0) * np.prod(shape) ** 0.5
+    # CONVENTION DE VOLUME -- corrigee le 30/07/2026.
+    #
+    # On veut  delta(x) = (1/V) somme_k delta_k e^{ikx}  avec  <|delta_k|^2> = V P(k).
+    # numpy irfftn porte deja un 1/N, donc il faut  dk = (N/V) delta_k,
+    # soit  E|dk|^2 = N^2 P / V,  soit une amplitude  N sqrt(P / 2V).
+    #
+    # L'ancienne ligne ecrivait  sqrt(P/2) * sqrt(N)  : elle supposait
+    # implicitement une cellule de volume 1 Mpc^3. Le champ sortait donc
+    # sqrt(V_cellule) fois trop grand -- invisible pres de la grille de
+    # reference (V_cellule = 1,6 Mpc^3, facteur 1,27) et catastrophique sur la
+    # dalle (facteur 3 476 a la ligne O, d'ou rms(Psi) = 5 150 Mpc au lieu de 6).
+    V = float(box[0] * box[1] * box[2])
+    dk *= np.sqrt(P / 2.0) * np.prod(shape) / np.sqrt(V)
     f = np.fft.irfftn(dk, s=shape)
     # amener a l'amplitude absolue : le champ brut a un sigma_8 connu
     f = f * norm_factor()
