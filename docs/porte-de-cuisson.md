@@ -100,6 +100,21 @@ production. Ils portent les défauts suivants, connus :
 - la cuisson pleine résolution demande **1 492 M cellules et 6,0 Go**, hors de
   portée d'un bac à sable : elle doit tourner sur une machine de cuisson.
 
+### Les scripts de recherche violent eux-mêmes des invariants
+
+`invariants.py` les signale en `RECHERCHE … (non bloquant)` :
+
+| Fichier | Violation |
+|---|---|
+| `zel_particles.py:197,202` · `gen_full.py:140` | rayon normalisé par `mass.max()` — INV-B1 |
+| `norm_abs.py:4` · `test2_heritage.py:80` | normalisation par l'écart-type courant — INV-B1 |
+| `bake_one.py:13` · `zel_particles.py:118` | filtre spatial après la courbe de ton — INV-D1 |
+
+**Ces défauts doivent être corrigés avant qu'un de ces scripts ne devienne
+production.** Le périmètre du contrôle distingue `scripts/` (bloquant) de
+`scripts/dev/` (signalé) : un portail qui échoue sur du code de recherche
+deviendrait du bruit et cesserait de protéger la production.
+
 Le contenu de chaque mesure citée ici est dans
 `docs/test-en-cours-generateur-particules.md`, qui est un **journal** — voir son
 bandeau.

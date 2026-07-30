@@ -39,13 +39,26 @@ def check(ok, ident, label, detail=""):
 def _scannable(paths):
     """Le controleur ne se scanne pas lui-meme : ses regex contiennent les
     motifs interdits, ce qui produirait un faux positif systematique."""
-    return [p for p in paths if os.path.basename(p) != "invariants.py"]
+    return [p for p in paths if os.path.basename(p) != "invariants.py"
+            and "/archive/" not in p.replace("\\", "/")]
+
+
+def _is_prod(path):
+    """`scripts/*.py` est la chaine de PRODUCTION -- violation bloquante.
+    `scripts/dev/*.py` est de la RECHERCHE -- violation signalee, non bloquante.
+    `scripts/archive/` regroupe les approches ecartees -- non scanne.
+
+    Le perimetre importe autant que le controle : un portail qui echoue sur du
+    code de recherche devient du bruit et cesse de proteger la production.
+    """
+    q = path.replace("\\", "/")
+    return "/scripts/" in q and "/scripts/dev/" not in q and "/scripts/archive/" not in q
 
 
 def A1_no_pixel_windows(src_paths):
     """Aucune fenetre de mesure spatiale exprimee en pixels."""
     src_paths = _scannable(src_paths)
-    bad = []
+    bad, research = [], []
     pat = re.compile(r"def\s+(peak_sharpness|aniso|elongation|punctuality|"
                      r"cloud_shape|filamentarity)\s*\([^)]*\br\s*=\s*\d")
     for p in src_paths:
@@ -54,7 +67,9 @@ def A1_no_pixel_windows(src_paths):
         except OSError:
             continue
         for m in pat.finditer(t):
-            bad.append(f"{os.path.basename(p)}:{m.group(1)}")
+            (bad if _is_prod(p) else research).append(f"{os.path.basename(p)}:{m.group(1)}")
+    for e in research:
+        print(f"  RECHERCHE INV-A1    {e}  (non bloquant)")
     return check(not bad, "INV-A1",
                  "aucune metrique spatiale a fenetre en pixels par defaut",
                  ", ".join(bad))
@@ -119,7 +134,7 @@ FORBIDDEN_GLOBAL = [
 
 
 def B1_no_global_stats(src_paths):
-    bad, excused = [], []
+    bad, excused, research = [], [], []
     for p in _scannable(src_paths):
         try:
             lines = open(p).read().splitlines()
@@ -133,9 +148,16 @@ def B1_no_global_stats(src_paths):
                     if "invariant-ok" in ln:
                         continue
                     ex = _excused("INV-B1", p)
-                    (excused if ex else bad).append(f"{os.path.basename(p)}:{i} ({why})")
+                    if ex:
+                        excused.append(f"{os.path.basename(p)}:{i} ({why})")
+                    elif _is_prod(p):
+                        bad.append(f"{os.path.basename(p)}:{i} ({why})")
+                    else:
+                        research.append(f"{os.path.basename(p)}:{i} ({why})")
     for e in excused:
         print(f"  TOLERE INV-B1     {e}")
+    for e in research:
+        print(f"  RECHERCHE INV-B1    {e}  (non bloquant)")
     return check(not bad, "INV-B1",
                  "aucune grandeur par objet issue d'une statistique globale",
                  "; ".join(bad[:4]) + (f" … +{len(bad)-4}" if len(bad) > 4 else ""))
@@ -201,7 +223,7 @@ def C3_displacement_physical(psi_rms_mpc, lo=3.0, hi=12.0):
 def D1_no_downstream_nonlinear(src_paths):
     """Entre generateur et ecran : operateurs lineaires + courbes ponctuelles."""
     src_paths = _scannable(src_paths)
-    bad = []
+    bad, research = [], []
     pat = re.compile(r"(gaussian_filter|uniform_filter|median_filter|maximum_filter)"
                      r"\s*\(\s*(?:t|tone|img_tone|out_tone)\b")
     for p in src_paths:
@@ -213,7 +235,9 @@ def D1_no_downstream_nonlinear(src_paths):
             if ln.strip().startswith("#"):
                 continue
             if pat.search(ln):
-                bad.append(f"{os.path.basename(p)}:{i}")
+                (bad if _is_prod(p) else research).append(f"{os.path.basename(p)}:{i}")
+    for e in research:
+        print(f"  RECHERCHE INV-D1    {e}  (non bloquant)")
     return check(not bad, "INV-D1",
                  "aucun filtre spatial applique APRES la courbe de ton",
                  ", ".join(bad))
