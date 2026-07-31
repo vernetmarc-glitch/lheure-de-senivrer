@@ -4,7 +4,7 @@
 paramètre, aucune implémentation. Chaque exigence est formulée de façon
 **observable à l'œil** et doit pouvoir être jugée sans connaître le code.
 
-**Statut.** Version 1.2, arrêtée le 31 juillet 2026. Reconstitution à partir du document
+**Statut.** Version 1.3, arrêtée le 31 juillet 2026. Reconstitution à partir du document
 d'architecture, de l'historique du projet et des échanges de session. **À
 relire ligne à ligne par Marc** — l'objet même de ce document étant ce qui a été
 oublié, son exhaustivité ne peut pas être garantie par celui qui a oublié.
@@ -305,6 +305,14 @@ doivent rester cohérentes. C'est la contrainte la plus facile à oublier.
 **position réelle**. Leur influence s'atténue avec l'échelle et disparaît au-delà
 du voisinage — elles ne doivent pas marquer les grandes échelles.
 
+**D6. Les galaxies réelles sont des centres de gravité.** Sur les lignes générées
+les plus basses, les filaments doivent **converger vers** les positions du
+catalogue, et non s'illuminer à leur endroit. En descendant vers les lignes à
+sprites, chaque galaxie nommée doit apparaître **au nœud d'une structure qui la
+désignait déjà** avant qu'elle ne soit visible. C'est ce qui rend **D1** vrai à
+l'œil, et pas seulement en moyenne.
+*(Origine : 31/07, formulée par Marc.)*
+
 **D5. Morphologies variées.** Les galaxies doivent présenter des formes
 **variées**. Le réalisme n'est pas l'objectif — à ces échelles on ne les voit
 quasiment pas — mais leur **dissolution** doit être juste (cf. C1 à C3).
@@ -488,6 +496,12 @@ Toute exigence ajoutée porte sa **date** et son **origine**. Une exigence n'est
 retirée que sur décision explicite de Marc, jamais par omission.
 
 ### Historique
+
+**v1.3 — 31/07/2026.** **D6** ajoutée : les galaxies du catalogue sont des
+centres de gravité pour les filaments, et non des taches brillantes posées à
+leurs coordonnées. Implémentée par ancrage dans le champ de déplacement Ψ et non
+dans la densité — écart assumé par rapport au mécanisme de la §4.7, acté par
+Marc. Aucune exigence retirée.
 
 **v1.2 — 31/07/2026.** Une exigence ajoutée, une bornée. Aucune retirée.
 

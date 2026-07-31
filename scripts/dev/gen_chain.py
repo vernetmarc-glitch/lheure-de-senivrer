@@ -35,6 +35,7 @@ l'interpolation sous forme de gradient lent (translation d'ensemble + champ de
 maree). C'est physiquement ce qu'il faut, et c'est impossible a obtenir en
 re-FFT-ant l'enfant.
 """
+import json
 import os
 
 import numpy as np
@@ -87,6 +88,71 @@ CHAIN = [
     ("K", 361.3426, 1.5, 11), ("J", 143.3950, 1.5, 7),
     ("I", 56.9048, 1.5, 5), ("H", 22.5821, 1.5, 3),
 ]
+
+
+# ------------------------------------------------------------------ ancrage
+# D6 (31/07) : « les galaxies reelles sont des centres de gravite ». Les
+# filaments doivent CONVERGER vers les positions du catalogue, pas s'illuminer a
+# leur endroit.
+#
+# Le mecanisme de la §4.7 ajoutait un halo doux + un pic au champ de DENSITE : il
+# peignait des taches brillantes aux bonnes coordonnees. Une tache posee sur un
+# filament qui passe ailleurs n'est pas un centre de gravite, c'est un decalque.
+# Et ces bosses traversaient ensuite un exp() qui les amplifiait.
+#
+# On ancre donc dans Psi, le champ qui DEPLACE la matiere. Le catalogue est
+# depose comme des masses ponctuelles, puis on lui applique le meme operateur de
+# deplacement que le reste : l'ecoulement de Zel'dovich transporte reellement les
+# particules vers ces points. Trois consequences :
+#   - purement lineaire et additif -> conforme a l'interdit sur les operateurs
+#     spatialement non lineaires en aval du generateur ;
+#   - herite gratuitement, le raccord transmettant deja Psi ;
+#   - aucune contribution ajoutee avant la transformation non lineaire, donc le
+#     piege de l'exp() signale en §0 ne s'applique pas.
+CATALOG = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       "..", "..", "app", "public", "data", "local_group_catalog.json")
+R_REF_MPC = 0.01          # rayon de reference, ABSOLU (INV-B1 : jamais w.sum())
+ANCHOR_GAIN = 2.235e3
+# Calibre le 31/07 sur la geometrie reelle de la ligne H (grille 480x480x107,
+# cellule 0,1411 Mpc) pour rms(Psi_ancrage) = 1,0 Mpc, soit environ l@echelle de
+# convergence d@un filament a cette ligne, contre rms(Psi) ~ 10 Mpc pour le champ.
+# Reste A CONFIRMER VISUELLEMENT : c@est un point d@equilibre, pas une mesure.
+
+# D4 : l'influence s'attenue avec l'echelle et disparait au-dela du voisinage.
+# La §4.7 s'arretait a 67 Mpc, ce qui tombe sur la ligne I dans l'echelle du 30/07.
+ANCHOR_STRENGTH = {"H": 1.00, "I": 0.45, "J": 0.12}
+
+
+def anchor_psi(code, shape, box, cell):
+    """Deplacement attractif vers les positions reelles du catalogue.
+
+    Retourne None si la ligne n'est pas ancree (D4 : au-dela du voisinage, le
+    Groupe Local redevient statistiquement invisible, comme n'importe quelle
+    autre region -- c'est le comportement correct, pas une limitation).
+    """
+    w0 = ANCHOR_STRENGTH.get(code, 0.0)
+    if w0 <= 0.0:
+        return None
+    with open(os.path.normpath(CATALOG)) as fh:
+        gals = json.load(fh)
+    d = np.array([g["distanceMpc"] for g in gals], np.float64)
+    th = np.radians([g["angleDeg"] for g in gals])
+    # poids ABSOLU, proportionnel au volume ; jamais normalise par le catalogue,
+    # sinon ajouter une galaxie modifierait toutes les autres (INV-B1).
+    w = (np.array([g["radiusMpc"] for g in gals], np.float64) / R_REF_MPC) ** 3
+    pos = np.stack([d * np.cos(th), d * np.sin(th), np.zeros_like(d)], 1)
+
+    nx, ny, nz = shape
+    bx, _, Lz = box
+    ix = np.round((pos[:, 0] / bx + 0.5) * nx - 0.5).astype(np.int64)
+    iy = np.round((pos[:, 1] / bx + 0.5) * ny - 0.5).astype(np.int64)
+    iz = np.round((pos[:, 2] / Lz + 0.5) * nz - 0.5).astype(np.int64)
+    keep = ((ix >= 0) & (ix < nx) & (iy >= 0) & (iy < ny) & (iz >= 0) & (iz < nz))
+    if not keep.any():
+        return None
+    rho = np.zeros(shape, np.float32)
+    np.add.at(rho, (ix[keep], iy[keep], iz[keep]), (w[keep] * ANCHOR_GAIN).astype(np.float32))
+    return psi_band(rho, box, 0.0, 2 * np.pi / (2 * cell)) * np.float32(w0), int(keep.sum())
 
 
 # ---------------------------------------------------------------- geometrie
@@ -202,7 +268,7 @@ class Layer:
     """
     __slots__ = ("code", "half", "cell", "box_xy", "Lz", "shape",
                  "delta", "delta_lo", "psi_lo", "k_cut", "psi_rms", "web", "n_halo",
-                 "std_delta")
+                 "std_delta", "n_anchor")
 
     def drop_heavy(self):
         """Libere ce dont l'enfant n'a pas besoin."""
@@ -233,6 +299,15 @@ def bake_layer(code, half, margin, seed, parent=None):
         PSI = psi_hi                         # Psi_lo s'ajoute aux positions, plus bas
         del d_hi, d_lo
     del d_fresh
+
+    # --- ancrage du catalogue (D6), ajoute a Psi AVANT la propagation ---
+    L_anchor = anchor_psi(code, shape, box, cell)
+    if L_anchor is not None:
+        PSI += L_anchor[0]
+        n_anchor = L_anchor[1]
+        del L_anchor
+    else:
+        n_anchor = 0
 
     # ce que CETTE ligne transmettra : sa coupure vaut la moitie de sa Nyquist
     k_cut = np.pi / (K_CUT_SAFETY * cell)
@@ -284,6 +359,7 @@ def bake_layer(code, half, margin, seed, parent=None):
 
     L = Layer()
     L.code, L.half, L.cell, L.box_xy, L.Lz, L.shape = code, half, cell, box_xy, Lz, shape
+    L.n_anchor = n_anchor
     L.delta, L.delta_lo, L.psi_lo, L.k_cut = delta, delta_lo, psi_lo, k_cut
     L.psi_rms = float(np.sqrt(ss / nQ))
     L.std_delta = float(delta.std())
@@ -432,7 +508,8 @@ def bake_one(code, out_dir=None):
     np.save(os.path.join(out_dir, code + "_rendu.npy"), render(L, seed))
     np.save(os.path.join(out_dir, code + "_champ.npy"), field_projection(L, L.delta))
     print(f"  {code:4s}{half:11.2f} {L.cell:9.4f} {str(L.shape):>16s}"
-          f" {L.std_delta:8.3f} {L.psi_rms:10.3f} {L.n_halo:7d}", flush=True)
+          f" {L.std_delta:8.3f} {L.psi_rms:10.3f} {L.n_halo:7d}"
+          f" {getattr(L, 'n_anchor', 0):7d}", flush=True)
     return L
 
 

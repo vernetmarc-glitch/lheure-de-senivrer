@@ -173,7 +173,8 @@
     "void_mpc": [
      10.0,
      30.0
-    ]
+    ],
+    "anchor_strength": 1.0
    },
    "I": {
     "halfwidth_mpc": 56.9048,
@@ -194,7 +195,8 @@
     "void_mpc": [
      20.0,
      50.0
-    ]
+    ],
+    "anchor_strength": 0.45
    },
    "J": {
     "halfwidth_mpc": 143.395,
@@ -215,7 +217,8 @@
     "void_mpc": [
      30.0,
      60.0
-    ]
+    ],
+    "anchor_strength": 0.12
    },
    "K": {
     "halfwidth_mpc": 361.3426,
@@ -308,7 +311,8 @@
    }
   },
   "structure_table_origin": "Table de reference B8 du document client, v1.2 du 31/07. Sourcee sur la litterature. Arbitre l'echelle apparente des structures, controlee par INV-H8.",
-  "void_note": "Diametre des vides COURANTS, 30-50 Mpc. A distinguer du reseau superamas-vides (140-200 Mpc), qui est l'espacement des vides les plus rares, traces par les amas riches. La reference visuelle montre des vides a 5,0 % de la largeur du cadre."
+  "void_note": "Diametre des vides COURANTS, 30-50 Mpc. A distinguer du reseau superamas-vides (140-200 Mpc), qui est l'espacement des vides les plus rares, traces par les amas riches. La reference visuelle montre des vides a 5,0 % de la largeur du cadre.",
+  "anchor_note": "D6 : ancrage du catalogue dans le champ de deplacement Psi, non dans la densite. Les filaments convergent vers les galaxies au lieu de s'illuminer a leur endroit. Attenuation avec l'echelle (D4) : plein sur H, decroissant sur I et J, nul au-dela. ANCHOR_GAIN calibre pour rms(Psi_ancrage) = 1,0 Mpc a la ligne H contre ~10 Mpc pour le champ. A CONFIRMER VISUELLEMENT."
  },
  "time_axis": {
   "law": "uniforme en facteur de croissance linéaire D(a) (D-22)",

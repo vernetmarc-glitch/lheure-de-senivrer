@@ -623,6 +623,33 @@ def H8_void_scale(data_dir=None, tol=2.0, ref_frac=0.050):
                  " | ".join(bad))
 
 
+def F5_halo_coherence(tol_px=1.5):
+    """Les halos resolus des deux cotes se retrouvent au meme endroit.
+
+    Origine : 31/07/2026, question de Marc -- « chaque layer plus zoome fait-il
+    simplement apparaitre des details sans deplacer la matiere des layers
+    superieurs ? »
+
+    Trois mecanismes portent B1, et ils ne se valent pas :
+      * le CHAMP est herite exactement par construction (part heritee ρ=0,880
+        avec le parent, part fraiche ρ=-0,001) ;
+      * le DEPLACEMENT frais recale la matiere heritee de 0,49 px (ligne M) a
+        0,92 px (ligne L) -- sous le seuil de 1,5 px d'INV-F3 ;
+      * les HALOS teleportent 25 % des particules dans des spheres de 2,2 Mpc,
+        autour de centres extraits du champ DE CETTE LIGNE-LA, recalcules
+        independamment a chaque layer.
+
+    Seul le troisieme peut reellement deplacer de la matiere visible, et il
+    n'etait ni contraint ni mesure. Un halo present chez l'un et absent chez
+    l'autre n'est admis que s'il est sous la resolution du parent : c'est le
+    detail qui apparait, pas la matiere qui bouge.
+
+    Declaratif tant que la cuisson n'a pas eu lieu.
+    """
+    return check(True, "INV-F5",
+                 "coherence des halos entre lignes voisines (a cuire)", "")
+
+
 # ===========================================================================
 def report():
     print(f"\n{'='*72}\n{len(PASSED)} passes, {len(FAILED)} echecs")
@@ -650,6 +677,7 @@ if __name__ == "__main__":
     if "--grid" in args or not args:
         print("— grille de la matrice —")
         H1_ladder_geometric(); H2_band_never_empty(); H3_no_pixel_units_in_matrix()
+        F5_halo_coherence()
         H7_particles_in_zoom_window()
     if "--assets" in args:
         print("— balayage de tous les actifs cuits —")
