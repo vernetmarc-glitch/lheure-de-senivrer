@@ -32,7 +32,13 @@
     "cell_out_mpc": 0.000103,
     "lam_min_mpc": 0.000308,
     "lam_max_mpc": 0.0525,
-    "render": "sprites"
+    "render": "sprites",
+    "structure_mpc": [
+     0.01,
+     0.05
+    ],
+    "structure": "disque galactique",
+    "homogene": false
    },
    "B": {
     "halfwidth_mpc": 0.0882,
@@ -43,7 +49,13 @@
     "cell_out_mpc": 0.000258,
     "lam_min_mpc": 0.000775,
     "lam_max_mpc": 0.1323,
-    "render": "sprites"
+    "render": "sprites",
+    "structure_mpc": [
+     0.02,
+     0.06
+    ],
+    "structure": "satellites",
+    "homogene": false
    },
    "C": {
     "halfwidth_mpc": 0.2222,
@@ -54,7 +66,13 @@
     "cell_out_mpc": 0.000651,
     "lam_min_mpc": 0.001953,
     "lam_max_mpc": 0.3333,
-    "render": "sprites"
+    "render": "sprites",
+    "structure_mpc": [
+     0.1,
+     0.3
+    ],
+    "structure": "halo galactique",
+    "homogene": false
    },
    "D": {
     "halfwidth_mpc": 0.56,
@@ -65,7 +83,13 @@
     "cell_out_mpc": 0.001641,
     "lam_min_mpc": 0.004922,
     "lam_max_mpc": 0.84,
-    "render": "sprites"
+    "render": "sprites",
+    "structure_mpc": [
+     0.3,
+     0.8
+    ],
+    "structure": "abords du Groupe Local",
+    "homogene": false
    },
    "E": {
     "halfwidth_mpc": 1.4113,
@@ -76,7 +100,13 @@
     "cell_out_mpc": 0.004135,
     "lam_min_mpc": 0.012404,
     "lam_max_mpc": 2.117,
-    "render": "sprites"
+    "render": "sprites",
+    "structure_mpc": [
+     1.0,
+     3.0
+    ],
+    "structure": "groupe de galaxies",
+    "homogene": false
    },
    "F": {
     "halfwidth_mpc": 3.5563,
@@ -87,7 +117,13 @@
     "cell_out_mpc": 0.010419,
     "lam_min_mpc": 0.031257,
     "lam_max_mpc": 5.3344,
-    "render": "sprites"
+    "render": "sprites",
+    "structure_mpc": [
+     2.0,
+     3.0
+    ],
+    "structure": "rayon viriel d'un amas",
+    "homogene": false
    },
    "G": {
     "halfwidth_mpc": 8.9615,
@@ -98,7 +134,13 @@
     "cell_out_mpc": 0.026254,
     "lam_min_mpc": 0.078763,
     "lam_max_mpc": 13.4422,
-    "render": "sprites"
+    "render": "sprites",
+    "structure_mpc": [
+     2.0,
+     6.0
+    ],
+    "structure": "amas entier, largeur de filament",
+    "homogene": false
    },
    "H": {
     "halfwidth_mpc": 22.5821,
@@ -109,7 +151,13 @@
     "cell_out_mpc": 0.066158,
     "lam_min_mpc": 0.198475,
     "lam_max_mpc": 33.8732,
-    "render": "genere"
+    "render": "genere",
+    "structure_mpc": [
+     6.0,
+     32.0
+    ],
+    "structure": "longueur de filament, epaisseur de superamas",
+    "homogene": false
    },
    "I": {
     "halfwidth_mpc": 56.9048,
@@ -120,7 +168,13 @@
     "cell_out_mpc": 0.166713,
     "lam_min_mpc": 0.50014,
     "lam_max_mpc": 85.3572,
-    "render": "genere"
+    "render": "genere",
+    "structure_mpc": [
+     8.0,
+     45.0
+    ],
+    "structure": "superamas",
+    "homogene": false
    },
    "J": {
     "halfwidth_mpc": 143.395,
@@ -131,7 +185,13 @@
     "cell_out_mpc": 0.420103,
     "lam_min_mpc": 1.260308,
     "lam_max_mpc": 215.0925,
-    "render": "genere"
+    "render": "genere",
+    "structure_mpc": [
+     140.0,
+     150.0
+    ],
+    "structure": "vides, BAO",
+    "homogene": false
    },
    "K": {
     "halfwidth_mpc": 361.3426,
@@ -142,7 +202,13 @@
     "cell_out_mpc": 1.058621,
     "lam_min_mpc": 3.175863,
     "lam_max_mpc": 542.0139,
-    "render": "genere"
+    "render": "genere",
+    "structure_mpc": [
+     170.0,
+     400.0
+    ],
+    "structure": "reseau superamas-vides, grandes murailles",
+    "homogene": false
    },
    "L": {
     "halfwidth_mpc": 910.5509,
@@ -153,7 +219,13 @@
     "cell_out_mpc": 2.66763,
     "lam_min_mpc": 8.002889,
     "lam_max_mpc": 1365.8263,
-    "render": "genere"
+    "render": "genere",
+    "structure_mpc": [
+     null,
+     null
+    ],
+    "structure": "homogene",
+    "homogene": true
    },
    "M": {
     "halfwidth_mpc": 2294.5067,
@@ -164,7 +236,13 @@
     "cell_out_mpc": 6.722188,
     "lam_min_mpc": 20.166563,
     "lam_max_mpc": 3441.76,
-    "render": "genere"
+    "render": "genere",
+    "structure_mpc": [
+     null,
+     null
+    ],
+    "structure": "homogene",
+    "homogene": true
    },
    "N": {
     "halfwidth_mpc": 5781.9515,
@@ -175,7 +253,13 @@
     "cell_out_mpc": 16.939311,
     "lam_min_mpc": 50.817933,
     "lam_max_mpc": 8672.9273,
-    "render": "genere"
+    "render": "genere",
+    "structure_mpc": [
+     null,
+     null
+    ],
+    "structure": "homogene",
+    "homogene": true
    },
    "O": {
     "halfwidth_mpc": 14570.0,
@@ -186,9 +270,16 @@
     "cell_out_mpc": 42.685547,
     "lam_min_mpc": 128.056641,
     "lam_max_mpc": 21855.0,
-    "render": "genere"
+    "render": "genere",
+    "structure_mpc": [
+     null,
+     null
+    ],
+    "structure": "homogene",
+    "homogene": true
    }
-  }
+  },
+  "structure_table_origin": "Table de reference B8 du document client, v1.2 du 31/07. Sourcee sur la litterature. Arbitre l'echelle apparente des structures, controlee par INV-H8."
  },
  "time_axis": {
   "law": "uniforme en facteur de croissance linéaire D(a) (D-22)",

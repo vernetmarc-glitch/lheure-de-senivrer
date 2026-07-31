@@ -547,7 +547,7 @@ def H6_no_flat_asset(data_dir=None, std_min=1.0):
                  " | ".join(bad[:8]) + (f" (+{len(bad)-8})" if len(bad) > 8 else ""))
 
 
-def H7_particles_in_zoom_window(sub=1, ratio=2.51991, n_out=320):
+def H7_particles_in_zoom_window(sub=2, ratio=2.51991, n_out=320):
     """Densite de particules dans la fenetre QUE L'ENFANT VA MAGNIFIER.
 
     Origine : 30/07/2026. INV-C2 exige 4 a 40 particules par pixel, et cette
@@ -563,13 +563,62 @@ def H7_particles_in_zoom_window(sub=1, ratio=2.51991, n_out=320):
     Ce controle est declaratif tant que la cuisson n'a pas eu lieu : il rappelle
     le facteur, il ne remplace pas la mesure sur actifs.
     """
-    dens_full = sub ** 3 * 18.9
+    dens_full = sub * 18.9   # raffinement en z seulement (SUB_Z)
     dens_win = dens_full / ratio ** 2
     ok = dens_win >= 4.0
     return check(ok, "INV-H7",
                  "densite de particules >= 4/px dans la fenetre magnifiee",
                  f"{dens_win:.2f}/px (image entiere {dens_full:.1f}/px, "
                  f"facteur {ratio**2:.2f})" if not ok else "")
+
+
+def H8_structure_scale(data_dir=None, tol=2.0):
+    """Le pic du spectre par octave tombe sur la taille reelle de la structure.
+
+    Origine : 31/07/2026, sur constat visuel de Marc -- « on a seulement un
+    dezoom sur une structure a frequence spatiale fixe ». Mesure : le pic passait
+    de 2,1 a 80 pixels de la ligne O a la ligne I, soit un facteur 38, alors que
+    l'echelle PHYSIQUE dominante restait coincee entre 20 et 100 Mpc quelle que
+    soit la ligne.
+
+    L'arbitre n'est pas l'auto-similarite mais la table B8 du document client :
+    a chaque ligne, la structure dominante doit etre celle qui existe reellement
+    a cette echelle. Les lignes declarees homogenes (L a O) en sont exemptees --
+    il n'y a plus rien de nouveau a y voir au-dela de ~300 Mpc.
+    """
+    from PIL import Image
+    data_dir = data_dir or os.path.join(REPO, "app", "public", "data")
+    rows = _matrix()["zoom_axis"]["rows"]
+    bad, seen = [], 0
+    for code, r in sorted(rows.items()):
+        if r.get("homogene", False):
+            continue
+        lo, hi = r["structure_mpc"]
+        f = os.path.join(data_dir, f"st_{code}10.png")
+        if not os.path.exists(f):
+            continue
+        seen += 1
+        a = np.asarray(Image.open(f).convert("L"), dtype=np.float64)
+        a -= a.mean()
+        n = a.shape[0]
+        F = np.abs(np.fft.rfft2(a)) ** 2
+        ky = np.fft.fftfreq(n)[:, None] * n
+        kx = np.fft.rfftfreq(n)[None, :] * n
+        kk = np.sqrt(ky ** 2 + kx ** 2).ravel()
+        idx = np.digitize(kk, np.arange(1, n // 2))
+        Pk = np.array([F.ravel()[idx == i].mean() if (idx == i).any() else 0.0
+                       for i in range(1, n // 2 - 1)])
+        kb = np.arange(1, n // 2 - 1)
+        kpeak = kb[int(np.argmax(kb ** 2 * Pk))]
+        lam_mpc = (n / kpeak) * (2 * r["halfwidth_mpc"] / n)
+        if not (lo / tol <= lam_mpc <= hi * tol):
+            bad.append(f"{code}: pic {lam_mpc:.0f} Mpc, attendu {lo:g}-{hi:g}")
+    if seen == 0:
+        return check(False, "INV-H8", "echelle des structures conforme a B8",
+                     "AUCUN ACTIF — cuisson non faite")
+    return check(not bad, "INV-H8",
+                 f"echelle des structures conforme a B8 ({seen} lignes)",
+                 " | ".join(bad))
 
 
 # ===========================================================================
@@ -603,6 +652,7 @@ if __name__ == "__main__":
     if "--assets" in args:
         print("— balayage de tous les actifs cuits —")
         H4_grid_complete(); H6_no_flat_asset(); H5_time_continuity()
+        H8_structure_scale()
     if "--render" in args:
         f = args[args.index("--render") + 1]
         t = np.load(f) if f.endswith(".npy") else None

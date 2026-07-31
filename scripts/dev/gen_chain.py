@@ -35,6 +35,8 @@ l'interpolation sous forme de gradient lent (translation d'ensemble + champ de
 maree). C'est physiquement ce qu'il faut, et c'est impossible a obtenir en
 re-FFT-ant l'enfant.
 """
+import os
+
 import numpy as np
 from scipy import ndimage
 from scipy.spatial import cKDTree
@@ -45,7 +47,9 @@ import slab_test as ST
 
 OUT_N = 320
 TARGET_MEAN = 68.0
-SLAB_FRAC = 0.06
+SLAB_FRAC = 0.15   # 0,06 -> 0,15 le 31/07 : mesure sur la ligne J, le pic du
+# spectre passe de 20,5 a 47,8 Mpc. Au-dela de 0,15 il sature -- la dalle n@est
+# donc pas le levier principal pour B8.
 PSF_PX = 0.45
 JITTER = 0.5
 SUB_Z = 2                   # raffinement du reseau lagrangien selon z.
@@ -166,11 +170,20 @@ def sample_parent(fieldp, pts, p_box_xy, p_Lz):
 def sample_parent_grid(fieldp, shape, box_xy, Lz, p_box_xy, p_Lz):
     """Echantillonne un champ parent SCALAIRE sur toute la grille de l'enfant."""
     nx, ny, nz = shape
-    gx = (np.arange(nx) + 0.5) * (box_xy / nx) - box_xy / 2
-    gy = (np.arange(ny) + 0.5) * (box_xy / ny) - box_xy / 2
-    gz = (np.arange(nz) + 0.5) * (Lz / nz) - Lz / 2
-    P = np.stack(np.meshgrid(gx, gy, gz, indexing="ij"), -1).reshape(-1, 3)
-    return sample_parent(fieldp, P, p_box_xy, p_Lz).reshape(shape)
+    gx = ((np.arange(nx) + 0.5) * (box_xy / nx) - box_xy / 2).astype(np.float32)
+    gy = ((np.arange(ny) + 0.5) * (box_xy / ny) - box_xy / 2).astype(np.float32)
+    gz = ((np.arange(nz) + 0.5) * (Lz / nz) - Lz / 2).astype(np.float32)
+    # Par tranches de x : le maillage complet en float64 pesait 592 Mo a la
+    # ligne H, plus que le champ lui-meme. Une tranche en pese 1,2.
+    out = np.empty(shape, np.float32)
+    Y, Z = np.meshgrid(gy, gz, indexing="ij")
+    Y, Z = Y.ravel(), Z.ravel()
+    P = np.empty((Y.size, 3), np.float32)
+    P[:, 1], P[:, 2] = Y, Z
+    for i in range(nx):
+        P[:, 0] = gx[i]
+        out[i] = sample_parent(fieldp, P, p_box_xy, p_Lz).reshape(ny, nz)
+    return out
 
 
 # --------------------------------------------------------------------- couche
@@ -234,30 +247,41 @@ def bake_layer(code, half, margin, seed, parent=None):
 
     # Psi est INTERPOLE aux positions lagrangiennes reelles, pas lu au noeud de
     # grille : le reseau est raffine en z, les noeuds ne coincident plus.
+    # Le deplacement est applique PAR BLOCS, directement dans le nuage : garder
+    # un tableau `disp` complet coutait 592 Mo de plus a la ligne H, ce qui
+    # suffisait a faire tuer le processus. On n'en conserve que la trace utile --
+    # la somme des carres, et le sous-reseau de base pour les halos.
     nQ = Q.shape[0]
-    disp = np.empty((nQ, 3), np.float32)
+    nb = (nQ + SUB_Z - 1) // SUB_Z
+    disp_b = np.empty((nb, 3), np.float32)
+    ss, nb_done = 0.0, 0
     for s0 in range(0, nQ, CHUNK):
         s1 = min(s0 + CHUNK, nQ)
         C = np.stack([(Q[s0:s1, 0] / box_xy + 0.5) * nxy - 0.5,
                       (Q[s0:s1, 1] / box_xy + 0.5) * nxy - 0.5,
                       (Q[s0:s1, 2] / Lz + 0.5) * nz - 0.5])
+        d = np.empty((s1 - s0, 3), np.float32)
         for a in range(3):
-            disp[s0:s1, a] = ndimage.map_coordinates(PSI[..., a], C, order=1,
-                                                     mode="nearest")
+            d[:, a] = ndimage.map_coordinates(PSI[..., a], C, order=1, mode="nearest")
         del C
+        if parent is not None:
+            d += sample_parent(parent.psi_lo, Q[s0:s1], parent.box_xy, parent.Lz)
+        ss += float((d.astype(np.float64) ** 2).sum())
+        k0 = (s0 + SUB_Z - 1) // SUB_Z
+        sel = d[(-s0) % SUB_Z::SUB_Z]
+        disp_b[k0:k0 + len(sel)] = sel
+        nb_done += len(sel)
+        Q[s0:s1] += d
+        del d, sel
     del PSI
-    if parent is not None:
-        disp += sample_parent(parent.psi_lo, Q, parent.box_xy, parent.Lz)
-    disp_b = disp[::SUB_Z].copy()  # deplacement du reseau de base, pour les halos
-    Q += disp                      # en place : evite une troisieme copie du nuage
+    disp_b = disp_b[:nb_done]
     web = Q
 
     L = Layer()
     L.code, L.half, L.cell, L.box_xy, L.Lz, L.shape = code, half, cell, box_xy, Lz, shape
     L.delta, L.delta_lo, L.psi_lo, L.k_cut = delta, delta_lo, psi_lo, k_cut
-    L.psi_rms = float(np.sqrt((disp ** 2).sum(1).mean()))
+    L.psi_rms = float(np.sqrt(ss / nQ))
     L.std_delta = float(delta.std())
-    del disp
 
     # ------------------------------------------------------------------ halos
     px = 2 * half / OUT_N
@@ -271,8 +295,12 @@ def bake_layer(code, half, margin, seed, parent=None):
             # depuis le reseau de base preserve exactement le comportement
             # d'avant SUB_Z, et le raffinement en z ne sert qu'a echantillonner
             # le champ plus finement.
+            # Q a ete deplace EN PLACE : il faut remonter aux positions
+            # lagrangiennes pour apparier les centres de halos, qui sont
+            # lagrangiens eux aussi. Bug introduit le 30/07 par le passage au
+            # deplacement en place, corrige le 31/07.
             base = np.arange(0, len(Q), SUB_Z)
-            Qb = Q[base]
+            Qb = Q[base] - disp_b
             tree = cKDTree(Qb)
             _, near = tree.query(qL)
             pos_e = qL + disp_b[near]
@@ -349,6 +377,58 @@ def render(L, seed):
     img = ndimage.gaussian_filter(img, PSF_PX)
     a = M.solve_alpha(img, TARGET_MEAN, gamma=1.0)
     return M.tone(img, a, gamma=1.0)
+
+
+# ---------------------------------------------------------- relais sur disque
+# La chaine entiere ne tient pas en memoire : a la ligne H le nuage compte 49 M
+# de points et le processus se fait tuer (mesure du 30/07, 4 Go). Chaque ligne
+# s'execute donc dans son propre processus et ne transmet a la suivante que sa
+# charge utile passe-bas, via un .npz. C'est aussi l'architecture qu'il faudra
+# pour la cuisson en 1024 : jamais deux lignes vivantes a la fois.
+CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_chaine")
+
+
+def save_payload(L, path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    np.savez(path, delta_lo=L.delta_lo, psi_lo=L.psi_lo,
+             meta=np.array([L.half, L.cell, L.box_xy, L.Lz, L.k_cut,
+                            L.psi_rms, L.std_delta, L.n_halo]))
+
+
+def load_payload(path):
+    z = np.load(path)
+    L = Layer()
+    (L.half, L.cell, L.box_xy, L.Lz, L.k_cut,
+     L.psi_rms, L.std_delta, L.n_halo) = z["meta"]
+    L.n_halo = int(L.n_halo)
+    L.delta_lo, L.psi_lo = z["delta_lo"], z["psi_lo"]
+    L.shape = L.delta_lo.shape
+    return L
+
+
+def bake_one(code, out_dir=None):
+    """Cuit UNE ligne, en repartant de la charge utile de son parent sur disque.
+
+    La charge utile passe-bas est ecrite sur disque AVANT le placement des
+    particules, puis liberee : a la ligne H elle pese 395 Mo, et les garder
+    pendant que le nuage de 49 M de points existe suffisait a tuer le processus.
+    """
+    out_dir = out_dir or CACHE
+    idx = [c[0] for c in CHAIN].index(code)
+    _, half, margin, seed = CHAIN[idx]
+    parent = None
+    if idx > 0:
+        parent = load_payload(os.path.join(out_dir, CHAIN[idx - 1][0] + ".npz"))
+    L = bake_layer(code, half, margin, seed, parent)
+    del parent
+    save_payload(L, os.path.join(out_dir, code + ".npz"))
+    L.delta_lo = None
+    L.psi_lo = None
+    np.save(os.path.join(out_dir, code + "_rendu.npy"), render(L, seed))
+    np.save(os.path.join(out_dir, code + "_champ.npy"), field_projection(L, L.delta))
+    print(f"  {code:4s}{half:11.2f} {L.cell:9.4f} {str(L.shape):>16s}"
+          f" {L.std_delta:8.3f} {L.psi_rms:10.3f} {L.n_halo:7d}", flush=True)
+    return L
 
 
 def run_chain(codes=None, verbose=True, keep_images=True):

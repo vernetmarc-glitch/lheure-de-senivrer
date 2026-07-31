@@ -9,3 +9,4 @@ __pycache__/
 *.tsbuildinfo
 xcheck_tmp/
 scripts/dev/spacetime_matrix_montage.png
+_chaine/

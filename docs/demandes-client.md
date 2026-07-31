@@ -4,7 +4,7 @@
 paramètre, aucune implémentation. Chaque exigence est formulée de façon
 **observable à l'œil** et doit pouvoir être jugée sans connaître le code.
 
-**Statut.** Version 1.1, arrêtée le 30 juillet 2026. Reconstitution à partir du document
+**Statut.** Version 1.2, arrêtée le 31 juillet 2026. Reconstitution à partir du document
 d'architecture, de l'historique du projet et des échanges de session. **À
 relire ligne à ligne par Marc** — l'objet même de ce document étant ce qui a été
 oublié, son exhaustivité ne peut pas être garantie par celui qui a oublié.
@@ -157,9 +157,16 @@ montant dans les layers.
 seuls, tendent vers une plus grande **isotropie** : plus de structure à basse
 fréquence. C'est le « End of Greatness ».
 
-**B4. Effet fractal.** En descendant dans les niveaux de zoom, on doit retrouver
-**une même structure à une échelle très inférieure**. La sous-structure doit
-exister à tous les étages.
+**B4. Effet fractal — et son domaine de validité.** En descendant dans les
+niveaux de zoom, on doit retrouver **une même structure à une échelle très
+inférieure**. La sous-structure doit exister à tous les étages **de la fenêtre où
+l'univers est effectivement auto-similaire : d'environ 0,1 à 150 Mpc, soit les
+lignes `D` à `J`.** En dessous, les objets sont liés gravitationnellement et
+cessent de se subdiviser. Au-dessus, l'univers est statistiquement homogène et
+rien de nouveau n'apparaît. Exiger la sous-structure hors de cette fenêtre
+reviendrait à représenter un univers qui n'existe pas.
+*(Domaine borné le 31/07, après recherche sur les échelles réelles. L'exigence
+n'est pas retirée : elle est située.)*
 
 **B5. Taille des structures fidèle à l'échelle.** Une structure d'une taille
 physique donnée doit occuper la place qui lui revient à chaque échelle
@@ -167,6 +174,40 @@ d'observation.
 
 **B6. Aucune zone vide.** Sur toute la grille zoom × temps, aucune partie du
 cadre affiché ne doit être noire, neutre ou par défaut.
+
+**B8. Échelle des structures conforme au réel.** À chaque ligne, la structure
+dominante visible doit être **celle qui existe physiquement à cette échelle**. La
+table ci-dessous fixe, ligne par ligne, la structure attendue et sa taille
+caractéristique. C'est cette table — et non une auto-similarité imposée — qui
+arbitre l'échelle apparente des structures. Une ligne dont la structure dominante
+est deux fois trop fine ou deux fois trop large ne montre pas l'univers.
+*(Origine : 31/07, sur constat visuel de Marc — « on a seulement un dézoom sur
+une structure à fréquence spatiale fixe ».)*
+
+### Table de référence des structures cosmiques
+
+| Structure | Taille caractéristique | Ligne |
+|---|---|---|
+| Disque galactique | 0,01 – 0,05 Mpc | `A` |
+| Satellites de la Voie lactée | 0,02 – 0,06 Mpc | `B` |
+| Halo galactique | 0,1 – 0,3 Mpc | `C` |
+| Abords du Groupe Local | ~0,5 Mpc | `D` |
+| **Groupe de galaxies** | 1 – 3 Mpc | `E` |
+| **Rayon viriel d'un amas** | ~2,3 Mpc | `F` |
+| **Amas entier, largeur de filament** | 2 – 6 Mpc *(0,1–0,6 en matière noire seule, 1–3 avec baryons)* | `G` |
+| **Longueur de filament, épaisseur de superamas** | 25 – 32 Mpc · 6 – 9 Mpc | `H` |
+| **Superamas** | 45 Mpc de grand axe, 8 de petit *(Vierge)* ; Laniakea ~160 | `I` |
+| **Vides, oscillations acoustiques baryoniques** | ~140 Mpc · ~150 Mpc | `J` |
+| **Réseau superamas-vides, grandes murailles** | 170 – 200 Mpc · ~400 Mpc *(Sloan)* | `K` |
+| **Passage à l'homogénéité** | 100 – 300 Mpc *(contesté)* | entre `J` et `L` |
+| — | *rien de nouveau au-delà* | `L` → `O` |
+
+**Conséquence assumée : les lignes `L` à `O` sont homogènes.** La toile n'y est
+plus qu'une texture sous-pixellaire — à la ligne `O`, un vide de 140 Mpc mesure
+1,6 pixel. Ce n'est pas une limite de l'implémentation, c'est l'univers. Ce sont
+les **trois sphères** qui portent ces lignes, ce qui est cohérent puisqu'elles
+sont le sujet de l'œuvre.
+*(Arbitré par Marc le 31/07.)*
 
 **B7. Sens de construction.** Les grandes échelles précèdent les petites. Le
 Groupe Local ne doit **pas** être un point spécial au centre de la carte.
@@ -439,6 +480,17 @@ Toute exigence ajoutée porte sa **date** et son **origine**. Une exigence n'est
 retirée que sur décision explicite de Marc, jamais par omission.
 
 ### Historique
+
+**v1.2 — 31/07/2026.** Une exigence ajoutée, une bornée. Aucune retirée.
+
+- **B8** ajoutée : l'échelle apparente des structures est arbitrée par une table
+  de référence des structures cosmiques réelles, sourcée, et non par une
+  auto-similarité imposée. Origine : constat visuel de Marc sur la
+  planche-contact du 31/07.
+- **B4** bornée à sa fenêtre de validité, 0,1 à 150 Mpc. L'exigence n'est pas
+  retirée, elle est située — hors de cette fenêtre, l'auto-similarité n'existe
+  pas dans l'univers.
+- Acté que les lignes `L` à `O` sont homogènes et portées par les trois sphères.
 
 **v1.1 — 30/07/2026.** Aucune exigence retirée ni ajoutée. Modifications de
 structure uniquement, sur décision de Marc :
