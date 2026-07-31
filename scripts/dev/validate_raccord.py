@@ -6,6 +6,20 @@ Mesure les quatre criteres d'acceptation avant toute presentation visuelle :
   B2  std(delta) conforme a la theorie   -- normalisation absolue tenue
   F2  correlation inter-lignes >= 0,85   -- HERITAGE (B1) : la matiere n'est pas
                                             redistribuee d'une ligne a l'autre
+
+F2 SE MESURE CONTRE LA PROJECTION DU CHAMP DU PARENT, PAS CONTRE SON RENDU.
+Decide le 30/07/2026 par Marc, apres mesure. Motif : comparer deux rendus
+particulaires mesure aussi la grenaille du parent MAGNIFIE. La fenetre comparee
+est le carre central du parent, de cote 1/2,520 : la densite y tombe a 2,99
+particules par pixel et le rendu du parent y est a 69 % de bruit. On mesurait la
+finesse du tirage, pas l'heritage -- alors que B1 porte sur la matiere.
+
+Chiffres qui ont motive le changement, couple O->N :
+    champ parent vs champ enfant   0,875
+    champ parent vs rendu enfant   0,822
+    rendu parent vs rendu enfant   0,247   <- ce qu'on mesurait avant
+La qualite d'echantillonnage reste protegee, par INV-H7, qui la mesure la ou
+elle compte.
   F3  deplacement median <= 1,5 px       -- IDENTITE D'OBJET : un objet visible
                                             reste au meme endroit
 
@@ -105,14 +119,14 @@ def main():
     fails = []
 
     print("\n--- C3 : rms(Psi) dans [%.0f, %.0f] Mpc ---" % (PSI_MIN, PSI_MAX))
-    for L, _ in res:
+    for L, _, _ in res:
         ok = PSI_MIN <= L.psi_rms <= PSI_MAX
         print("  %-4s rms(Psi) = %8.3f Mpc   %s" % (L.code, L.psi_rms, "OK" if ok else "HORS BANDE"))
         if not ok:
             fails.append(f"C3 {L.code}: {L.psi_rms:.2f} Mpc")
 
     print("\n--- B2 : std(delta) conforme a la theorie (+-15 %) ---")
-    for L, _ in res:
+    for L, _, _ in res:
         th = sigma_theorique(L.shape, (L.box_xy, L.box_xy, L.Lz))
         r = L.std_delta / th if th > 0 else float("nan")
         ok = 0.85 <= r <= 1.15
@@ -124,7 +138,8 @@ def main():
     print("\n--- F2 / F3 : heritage entre lignes voisines ---")
     print("  %-9s %8s %10s %13s %8s" % ("paire", "lam_cut", "rho", "deplacement", "verdict"))
     for i in range(len(res) - 1):
-        (Lp, ip), (Lc, ic) = res[i], res[i + 1]
+        (Lp, _, champ_p), (Lc, ic, _) = res[i], res[i + 1]
+        ip = champ_p
         ratio = Lp.half / Lc.half
         lam_px = (2 * np.pi / Lp.k_cut) / (2 * Lc.half / G.OUT_N)
         pa, ch = bande_commune(ip, ic, ratio, lam_px)

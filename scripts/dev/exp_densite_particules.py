@@ -46,7 +46,7 @@ def psi_total_grid(L, parent):
     return psi
 
 
-def particules(L, PSI, verre_seed, sub=1):
+def particules(L, PSI, verre_seed, sub=1, sub_z=None):
     """Verre lagrangien, eventuellement sur-echantillonne d'un facteur `sub`.
 
     `sub` raffine UNIQUEMENT le reseau de particules : le champ et Psi sont
@@ -55,11 +55,14 @@ def particules(L, PSI, verre_seed, sub=1):
     """
     rng = np.random.default_rng(verre_seed)
     nx, ny, nz = L.shape
-    c = L.cell / sub
+    sub_z = sub if sub_z is None else sub_z
+    c, cz = L.cell / sub, L.cell / sub_z
     gx = (np.arange(nx * sub) + 0.5) * c - L.box_xy / 2
-    gz = (np.arange(nz * sub) + 0.5) * c - L.Lz / 2
+    gz = (np.arange(nz * sub_z) + 0.5) * cz - L.Lz / 2
     Q = np.stack(np.meshgrid(gx, gx, gz, indexing="ij"), -1).reshape(-1, 3).astype(np.float32)
-    Q += (rng.random(Q.shape).astype(np.float32) - 0.5) * c * 2 * G.JITTER
+    J = rng.random(Q.shape).astype(np.float32) - 0.5
+    Q[:, :2] += J[:, :2] * c * 2 * G.JITTER
+    Q[:, 2] += J[:, 2] * cz * 2 * G.JITTER
     C = np.stack([(Q[:, 0] / L.box_xy + 0.5) * nx - 0.5,
                   (Q[:, 1] / L.box_xy + 0.5) * ny - 0.5,
                   (Q[:, 2] / L.Lz + 0.5) * nz - 0.5])

@@ -58,6 +58,13 @@ Détail complet : `docs/matrice-parametres-zoom-temps.md`.
 | **Calibrations** | `contrast_rolloff`, `web_ambient.amplitudes`, `sprites.visible_fade_band_mpc` — marquées `À CALIBRER` dans le JSON, à mesurer, jamais à inventer |
 | **Les trois sphères** | `cosmology.ts` calcule les trois rayons ; `UniverseMap.tsx` n'en trace qu'un. Le sujet de l'œuvre est rempli au tiers |
 
+### Porte laissée ouverte
+
+`docs/montee-en-complexite-nbody.md` — passage éventuel à un moteur N-corps
+particule-maille pour approcher le visuel Millennium. Rien n'est engagé ; le
+document existe pour qu'une session ultérieure n'ait à redécouvrir ni le
+raisonnement ni les chiffres. Question **O-07**, à trancher après retour visuel.
+
 ### Dépôt et déploiement
 
 - Dépôt `vernetmarc-glitch/lheure-de-senivrer` · site

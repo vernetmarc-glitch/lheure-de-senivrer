@@ -48,6 +48,14 @@ TARGET_MEAN = 68.0
 SLAB_FRAC = 0.06
 PSF_PX = 0.45
 JITTER = 0.5
+SUB_Z = 2                   # raffinement du reseau lagrangien selon z.
+# Calibre le 30/07 : rho_auto du rendu ne depend QUE du nombre de particules par
+# pixel, n/(n+6,8), quel que soit l'axe raffine -- verifie sur (1,1), (2,1),
+# (1,2), (2,2). Raffiner en z coute donc x2 la ou raffiner en x,y coute x4 pour
+# le meme gain. Contre-intuitif : on attendait des echantillons correles en z.
+#   sub_z=1 -> 2,99 part/px dans la fenetre magnifiee (SOUS le plancher INV-C2)
+#   sub_z=2 -> 5,98 part/px                            <- retenu
+
 TARGET_PROJ = 1_600_000
 HALO_FRAC = 0.25
 PROFILE_Q = 0.6
@@ -124,6 +132,13 @@ def _idx_from_mpc(pts, p_box_xy, p_Lz, p_shape):
     ])
 
 
+CHUNK = 4_000_000           # points par bloc d'interpolation.
+# A la ligne H, le nuage compte 49 M de points : construire le tableau de
+# coordonnees d'un coup demande 592 Mo de plus que le nuage lui-meme, et la
+# chaine se fait tuer. Par blocs, le temporaire reste sous 100 Mo, quelle que
+# soit la resolution -- c'est ce qui rendra la cuisson 1024 tenable.
+
+
 def sample_parent(fieldp, pts, p_box_xy, p_Lz):
     """Echantillonne un champ parent (scalaire ou vectoriel) en des points Mpc.
 
@@ -132,12 +147,19 @@ def sample_parent(fieldp, pts, p_box_xy, p_Lz):
     `mode="nearest"` en bord : les points de l'enfant sont tres a l'interieur du
     parent, le mode ne joue que sur l'arrondi du dernier demi-pixel.
     """
-    C = _idx_from_mpc(pts, p_box_xy, p_Lz, fieldp.shape[:3])
-    if fieldp.ndim == 3:
-        return ndimage.map_coordinates(fieldp, C, order=3, mode="nearest").astype(np.float32)
-    out = np.empty((pts.shape[0], fieldp.shape[3]), np.float32)
-    for a in range(fieldp.shape[3]):
-        out[:, a] = ndimage.map_coordinates(fieldp[..., a], C, order=3, mode="nearest")
+    n = pts.shape[0]
+    scal = fieldp.ndim == 3
+    out = np.empty(n if scal else (n, fieldp.shape[3]), np.float32)
+    for s0 in range(0, n, CHUNK):
+        s1 = min(s0 + CHUNK, n)
+        C = _idx_from_mpc(pts[s0:s1], p_box_xy, p_Lz, fieldp.shape[:3])
+        if scal:
+            out[s0:s1] = ndimage.map_coordinates(fieldp, C, order=3, mode="nearest")
+        else:
+            for a in range(fieldp.shape[3]):
+                out[s0:s1, a] = ndimage.map_coordinates(fieldp[..., a], C, order=3,
+                                                        mode="nearest")
+        del C
     return out
 
 
@@ -201,16 +223,34 @@ def bake_layer(code, half, margin, seed, parent=None):
 
     # --------------------------------------------------- positions lagrangiennes
     rng = np.random.default_rng(seed + 7)
+    cz = cell / SUB_Z
     gx = (np.arange(nxy) + 0.5) * cell - box_xy / 2
-    gz = (np.arange(nz) + 0.5) * cell - Lz / 2
+    gz = (np.arange(nz * SUB_Z) + 0.5) * cz - Lz / 2
     Q = np.stack(np.meshgrid(gx, gx, gz, indexing="ij"), -1).reshape(-1, 3).astype(np.float32)
-    Q += (rng.random(Q.shape).astype(np.float32) - 0.5) * cell * 2 * JITTER
+    J = rng.random(Q.shape).astype(np.float32) - 0.5
+    Q[:, :2] += J[:, :2] * cell * 2 * JITTER
+    Q[:, 2] += J[:, 2] * cz * 2 * JITTER
+    del J
 
-    disp = PSI.reshape(-1, 3).copy()
+    # Psi est INTERPOLE aux positions lagrangiennes reelles, pas lu au noeud de
+    # grille : le reseau est raffine en z, les noeuds ne coincident plus.
+    nQ = Q.shape[0]
+    disp = np.empty((nQ, 3), np.float32)
+    for s0 in range(0, nQ, CHUNK):
+        s1 = min(s0 + CHUNK, nQ)
+        C = np.stack([(Q[s0:s1, 0] / box_xy + 0.5) * nxy - 0.5,
+                      (Q[s0:s1, 1] / box_xy + 0.5) * nxy - 0.5,
+                      (Q[s0:s1, 2] / Lz + 0.5) * nz - 0.5])
+        for a in range(3):
+            disp[s0:s1, a] = ndimage.map_coordinates(PSI[..., a], C, order=1,
+                                                     mode="nearest")
+        del C
     del PSI
     if parent is not None:
         disp += sample_parent(parent.psi_lo, Q, parent.box_xy, parent.Lz)
-    web = Q + disp
+    disp_b = disp[::SUB_Z].copy()  # deplacement du reseau de base, pour les halos
+    Q += disp                      # en place : evite une troisieme copie du nuage
+    web = Q
 
     L = Layer()
     L.code, L.half, L.cell, L.box_xy, L.Lz, L.shape = code, half, cell, box_xy, Lz, shape
@@ -225,21 +265,29 @@ def bake_layer(code, half, margin, seed, parent=None):
     if R_HALO_MPC > 0.6 * px:
         qL, mass = M.extract_halos(delta, box_xy, 2 * cell, 0.5, 2 * cell, 40000)
         if len(qL):
-            tree = cKDTree(Q)
+            # L'appariement des halos se fait sur le RESEAU DE BASE, pas sur le
+            # nuage raffine : un cKDTree sur 49 M de points demande plus d'un Go
+            # et tue la chaine. Les halos sont des objets compacts -- les peupler
+            # depuis le reseau de base preserve exactement le comportement
+            # d'avant SUB_Z, et le raffinement en z ne sert qu'a echantillonner
+            # le champ plus finement.
+            base = np.arange(0, len(Q), SUB_Z)
+            Qb = Q[base]
+            tree = cKDTree(Qb)
             _, near = tree.query(qL)
-            pos_e = qL + (web - Q)[near]
-            budget = int(HALO_FRAC * len(Q))
+            pos_e = qL + disp_b[near]
+            budget = int(HALO_FRAC * len(Qb))
             w = mass ** 0.9
             cnt = np.maximum((w / w.sum() * budget).astype(np.int64), 0)
             k = cnt > 0
             qL, mass, cnt, pos_e = qL[k], mass[k], cnt[k], pos_e[k]
-            taken = np.zeros(len(Q), bool)
-            owner = np.full(len(Q), -1, np.int32)
+            taken = np.zeros(len(Qb), bool)
+            owner = np.full(len(Qb), -1, np.int32)
             for i in np.argsort(mass)[::-1]:
                 c = int(cnt[i])
                 if c < 1:
                     continue
-                _, idx = tree.query(qL[i], k=min(c * 3, len(Q)))
+                _, idx = tree.query(qL[i], k=min(c * 3, len(Qb)))
                 idx = np.atleast_1d(idx)
                 free = idx[~taken[idx]][:c]
                 taken[free] = True
@@ -256,12 +304,30 @@ def bake_layer(code, half, margin, seed, parent=None):
             ct = 2 * rng.random(nh) - 1
             st = np.sqrt(np.maximum(1 - ct ** 2, 0))
             ph = 2 * np.pi * rng.random(nh)
-            web[taken] = (pos_e[hid] + r[:, None] *
-                          np.stack([st * np.cos(ph), st * np.sin(ph), ct], 1)).astype(np.float32)
-            del tree
+            web[base[taken]] = (pos_e[hid] + r[:, None] *
+                                np.stack([st * np.cos(ph), st * np.sin(ph), ct], 1)).astype(np.float32)
+            del tree, Qb
     del Q
     L.web = web
     return L
+
+
+def field_projection(L, delta):
+    """Projection du champ dans la dalle visible, sans particules.
+
+    Sert de reference a F2 : B1 porte sur la MATIERE, pas sur la finesse du
+    tirage. Comparer deux rendus particulaires mesure aussi la grenaille du
+    parent magnifie, qui n'a rien a voir avec l'heritage.
+    """
+    nz = delta.shape[2]
+    k = int(max(1, round(SLAB_FRAC * 2 * L.half / (L.Lz / nz))))
+    z0 = (nz - k) // 2
+    im = delta[:, :, z0:z0 + k].sum(2)
+    w = int(round(im.shape[0] * L.half / (L.box_xy / 2)))
+    c = (im.shape[0] - w) // 2
+    yy, xx = np.mgrid[0:OUT_N, 0:OUT_N] * (w / OUT_N) + c
+    return ndimage.map_coordinates(im.astype(np.float64), np.stack([yy, xx]),
+                                   order=1, mode="nearest")
 
 
 def render(L, seed):
@@ -300,11 +366,12 @@ def run_chain(codes=None, verbose=True, keep_images=True):
     for code, half, margin, seed in todo:
         L = bake_layer(code, half, margin, seed, parent)
         img = render(L, seed) if keep_images else None
+        champ = field_projection(L, L.delta) if keep_images else None
         if verbose:
             print(f"  {L.code:4s}{half:11.2f} {L.cell:9.4f} {str(L.shape):>16s}"
                   f" {L.std_delta:8.3f} {L.psi_rms:10.3f} {L.n_halo:7d}")
         L.drop_heavy()
-        out.append((L, img))
+        out.append((L, img, champ))
         if parent is not None:
             parent.delta_lo = None
             parent.psi_lo = None

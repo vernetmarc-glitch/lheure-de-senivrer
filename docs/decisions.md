@@ -84,4 +84,5 @@ proposer est légitime ; les traiter comme acquis ne l'est pas.
 | **O-03** | Les trois sphères s'affichent-elles simultanément ou une à une ? | 29/07/2026 |
 | **O-04** | Provenance et attribution de l'image de référence visuelle | 29/07/2026 |
 | **O-05** | Les 90 galaxies procédurales du catalogue (lignes `F` et `G`) : sprites dédiés, ou points du champ généré ancrés sur leur position réelle ? *(= G2 du document client)* | 30/07/2026 |
+| **O-07** | **Monter vers un moteur N-corps** (particule-maille) sur les lignes `E`→`K`, pour approcher le visuel Millennium ? Zel'dovich ne peut structurellement pas produire le resserrement des filaments après croisement de nappes, les profils de halo ni la sous-structure. À trancher **après retour visuel de Marc** sur le moteur actuel. Dossier complet : `docs/montee-en-complexite-nbody.md` | 30/07/2026 |
 | **O-06** | Faut-il une seizième ligne ? À 15 lignes, `C` et `D` n'apportent aucune galaxie nouvelle — c'est un fait physique de notre voisinage, pas un défaut de l'échelle. À revoir si le rendu de ces deux lignes déçoit | 30/07/2026 |
