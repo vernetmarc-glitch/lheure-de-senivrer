@@ -572,52 +572,54 @@ def H7_particles_in_zoom_window(sub=2, ratio=2.51991, n_out=320):
                  f"facteur {ratio**2:.2f})" if not ok else "")
 
 
-def H8_structure_scale(data_dir=None, tol=2.0):
-    """Le pic du spectre par octave tombe sur la taille reelle de la structure.
+def H8_void_scale(data_dir=None, tol=2.0, ref_frac=0.050):
+    """La taille des vides correspond a la structure reelle de la ligne (B8).
 
-    Origine : 31/07/2026, sur constat visuel de Marc -- « on a seulement un
-    dezoom sur une structure a frequence spatiale fixe ». Mesure : le pic passait
-    de 2,1 a 80 pixels de la ligne O a la ligne I, soit un facteur 38, alors que
-    l'echelle PHYSIQUE dominante restait coincee entre 20 et 100 Mpc quelle que
-    soit la ligne.
+    PREMIERE FORMULATION, ECARTEE le 31/07 : le pic du spectre par octave. Elle
+    testait la mauvaise chose. A la ligne J le champ fait 287 Mpc de large et un
+    vide de 140 Mpc y tient deux fois -- exiger que 140 Mpc soit le PIC serait
+    exiger qu'un seul vide remplisse le cadre, une tache et non un reseau. Une
+    coupe montre DEUX echelles a la fois : une texture de filaments organisee en
+    vides. Le pic voit la texture, pas l'organisation.
 
-    L'arbitre n'est pas l'auto-similarite mais la table B8 du document client :
-    a chaque ligne, la structure dominante doit etre celle qui existe reellement
-    a cette echelle. Les lignes declarees homogenes (L a O) en sont exemptees --
-    il n'y a plus rien de nouveau a y voir au-dela de ~300 Mpc.
+    On mesure donc le diametre du plus grand disque inscriptible dans une region
+    sombre -- la definition usuelle du rayon d'un vide, et celle que l'oeil juge.
+    Voir scripts/dev/void_scale.py.
+
+    Deux controles :
+      * en Mpc   : le diametre tombe dans la fourchette physique de la ligne ;
+      * en cadre : sur les lignes ou la toile est le sujet, la fraction du cadre
+                   doit approcher celle de l'image de reference, 5,0 % -- valeur
+                   mesuree sur reference-toile-cosmique.jpg, stable de 4,4 a
+                   5,8 % pour un seuil balaye de 35 a 55 %.
+
+    Les lignes declarees homogenes (L a O) sont exemptees : au-dela de ~300 Mpc
+    il n'y a plus rien de nouveau a voir.
     """
     from PIL import Image
+    import sys
+    sys.path.insert(0, os.path.join(REPO, "scripts", "dev"))
+    import void_scale as VS
     data_dir = data_dir or os.path.join(REPO, "app", "public", "data")
     rows = _matrix()["zoom_axis"]["rows"]
     bad, seen = [], 0
     for code, r in sorted(rows.items()):
         if r.get("homogene", False):
             continue
-        lo, hi = r["structure_mpc"]
+        lo, hi = r["void_mpc"] if "void_mpc" in r else r["structure_mpc"]
         f = os.path.join(data_dir, f"st_{code}10.png")
         if not os.path.exists(f):
             continue
         seen += 1
         a = np.asarray(Image.open(f).convert("L"), dtype=np.float64)
-        a -= a.mean()
-        n = a.shape[0]
-        F = np.abs(np.fft.rfft2(a)) ** 2
-        ky = np.fft.fftfreq(n)[:, None] * n
-        kx = np.fft.rfftfreq(n)[None, :] * n
-        kk = np.sqrt(ky ** 2 + kx ** 2).ravel()
-        idx = np.digitize(kk, np.arange(1, n // 2))
-        Pk = np.array([F.ravel()[idx == i].mean() if (idx == i).any() else 0.0
-                       for i in range(1, n // 2 - 1)])
-        kb = np.arange(1, n // 2 - 1)
-        kpeak = kb[int(np.argmax(kb ** 2 * Pk))]
-        lam_mpc = (n / kpeak) * (2 * r["halfwidth_mpc"] / n)
-        if not (lo / tol <= lam_mpc <= hi * tol):
-            bad.append(f"{code}: pic {lam_mpc:.0f} Mpc, attendu {lo:g}-{hi:g}")
+        d_mpc, frac, _ = VS.void_scale_mpc(a, r["halfwidth_mpc"])
+        if not (lo / tol <= d_mpc <= hi * tol):
+            bad.append(f"{code}: vides {d_mpc:.0f} Mpc, attendu {lo:g}-{hi:g}")
     if seen == 0:
-        return check(False, "INV-H8", "echelle des structures conforme a B8",
+        return check(False, "INV-H8", "taille des vides conforme a B8",
                      "AUCUN ACTIF — cuisson non faite")
     return check(not bad, "INV-H8",
-                 f"echelle des structures conforme a B8 ({seen} lignes)",
+                 f"taille des vides conforme a B8 ({seen} lignes)",
                  " | ".join(bad))
 
 
@@ -652,7 +654,7 @@ if __name__ == "__main__":
     if "--assets" in args:
         print("— balayage de tous les actifs cuits —")
         H4_grid_complete(); H6_no_flat_asset(); H5_time_continuity()
-        H8_structure_scale()
+        H8_void_scale()
     if "--render" in args:
         f = args[args.index("--render") + 1]
         t = np.load(f) if f.endswith(".npy") else None

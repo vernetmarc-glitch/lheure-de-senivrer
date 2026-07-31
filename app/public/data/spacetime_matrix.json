@@ -106,7 +106,11 @@
      3.0
     ],
     "structure": "groupe de galaxies",
-    "homogene": false
+    "homogene": false,
+    "void_mpc": [
+     1.0,
+     3.0
+    ]
    },
    "F": {
     "halfwidth_mpc": 3.5563,
@@ -123,7 +127,11 @@
      3.0
     ],
     "structure": "rayon viriel d'un amas",
-    "homogene": false
+    "homogene": false,
+    "void_mpc": [
+     2.0,
+     5.0
+    ]
    },
    "G": {
     "halfwidth_mpc": 8.9615,
@@ -140,7 +148,11 @@
      6.0
     ],
     "structure": "amas entier, largeur de filament",
-    "homogene": false
+    "homogene": false,
+    "void_mpc": [
+     3.0,
+     10.0
+    ]
    },
    "H": {
     "halfwidth_mpc": 22.5821,
@@ -157,7 +169,11 @@
      32.0
     ],
     "structure": "longueur de filament, epaisseur de superamas",
-    "homogene": false
+    "homogene": false,
+    "void_mpc": [
+     10.0,
+     30.0
+    ]
    },
    "I": {
     "halfwidth_mpc": 56.9048,
@@ -174,7 +190,11 @@
      45.0
     ],
     "structure": "superamas",
-    "homogene": false
+    "homogene": false,
+    "void_mpc": [
+     20.0,
+     50.0
+    ]
    },
    "J": {
     "halfwidth_mpc": 143.395,
@@ -191,7 +211,11 @@
      150.0
     ],
     "structure": "vides, BAO",
-    "homogene": false
+    "homogene": false,
+    "void_mpc": [
+     30.0,
+     60.0
+    ]
    },
    "K": {
     "halfwidth_mpc": 361.3426,
@@ -208,7 +232,11 @@
      400.0
     ],
     "structure": "reseau superamas-vides, grandes murailles",
-    "homogene": false
+    "homogene": false,
+    "void_mpc": [
+     30.0,
+     60.0
+    ]
    },
    "L": {
     "halfwidth_mpc": 910.5509,
@@ -279,7 +307,8 @@
     "homogene": true
    }
   },
-  "structure_table_origin": "Table de reference B8 du document client, v1.2 du 31/07. Sourcee sur la litterature. Arbitre l'echelle apparente des structures, controlee par INV-H8."
+  "structure_table_origin": "Table de reference B8 du document client, v1.2 du 31/07. Sourcee sur la litterature. Arbitre l'echelle apparente des structures, controlee par INV-H8.",
+  "void_note": "Diametre des vides COURANTS, 30-50 Mpc. A distinguer du reseau superamas-vides (140-200 Mpc), qui est l'espacement des vides les plus rares, traces par les amas riches. La reference visuelle montre des vides a 5,0 % de la largeur du cadre."
  },
  "time_axis": {
   "law": "uniforme en facteur de croissance linéaire D(a) (D-22)",

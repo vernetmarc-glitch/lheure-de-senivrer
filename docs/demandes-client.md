@@ -181,6 +181,13 @@ table ci-dessous fixe, ligne par ligne, la structure attendue et sa taille
 caractéristique. C'est cette table — et non une auto-similarité imposée — qui
 arbitre l'échelle apparente des structures. Une ligne dont la structure dominante
 est deux fois trop fine ou deux fois trop large ne montre pas l'univers.
+
+**La grandeur qui arbitre est la taille des vides** — le diamètre du plus grand
+disque inscriptible dans une région sombre. C'est ce que l'œil juge, et c'est la
+définition usuelle du rayon d'un vide. Le pic du spectre de puissance, essayé le
+31/07, mesure la texture et non l'organisation : il ne convient pas.
+Sur l'image de référence, les vides mesurent **5,0 % de la largeur du cadre** —
+valeur stable de 4,4 à 5,8 % pour un seuil balayé de 35 à 55 %.
 *(Origine : 31/07, sur constat visuel de Marc — « on a seulement un dézoom sur
 une structure à fréquence spatiale fixe ».)*
 
@@ -197,7 +204,8 @@ une structure à fréquence spatiale fixe ».)*
 | **Amas entier, largeur de filament** | 2 – 6 Mpc *(0,1–0,6 en matière noire seule, 1–3 avec baryons)* | `G` |
 | **Longueur de filament, épaisseur de superamas** | 25 – 32 Mpc · 6 – 9 Mpc | `H` |
 | **Superamas** | 45 Mpc de grand axe, 8 de petit *(Vierge)* ; Laniakea ~160 | `I` |
-| **Vides, oscillations acoustiques baryoniques** | ~140 Mpc · ~150 Mpc | `J` |
+| **Vides courants** | 30 – 60 Mpc de diamètre | `I` – `K` |
+| **Vides du réseau superamas-vides, BAO** | ~140 Mpc · ~150 Mpc | `J` – `K` |
 | **Réseau superamas-vides, grandes murailles** | 170 – 200 Mpc · ~400 Mpc *(Sloan)* | `K` |
 | **Passage à l'homogénéité** | 100 – 300 Mpc *(contesté)* | entre `J` et `L` |
 | — | *rien de nouveau au-delà* | `L` → `O` |

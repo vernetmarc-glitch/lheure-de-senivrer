@@ -47,9 +47,14 @@ import slab_test as ST
 
 OUT_N = 320
 TARGET_MEAN = 68.0
-SLAB_FRAC = 0.15   # 0,06 -> 0,15 le 31/07 : mesure sur la ligne J, le pic du
-# spectre passe de 20,5 a 47,8 Mpc. Au-dela de 0,15 il sature -- la dalle n@est
-# donc pas le levier principal pour B8.
+SLAB_FRAC = 0.06
+# Essai du 31/07, REVENU EN ARRIERE. Porter la dalle de 0,06 a 0,15 fait passer
+# le pic du spectre de 20,5 a 47,8 Mpc a la ligne J, puis il SATURE : a 0,30,
+# 0,60 et 1,00 il revient a 20,5. La dalle n'est donc pas le levier de B8.
+# Le cout etait de surcroit prohibitif : l'epaisseur fixe nz, donc le volume de
+# grille -- nz passait de 19 a 48 a la ligne O, soit 2,5x sur toute la chaine.
+# La puissance manquante entre 140 et 400 Mpc n'est pas coupee par la
+# projection : elle n'est pas dans le champ.
 PSF_PX = 0.45
 JITTER = 0.5
 SUB_Z = 2                   # raffinement du reseau lagrangien selon z.
