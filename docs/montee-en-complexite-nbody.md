@@ -89,8 +89,38 @@ Ordre de grandeur, à vérifier avant tout engagement : 384³ particules sur une
 maille de 768³ tiennent dans ~4 Go, quelques heures par ligne, soit une journée
 ou deux de calcul sur une machine de bureau pour les lignes concernées.
 
-Un `scripts/dev/pm_gravity.py` existe déjà — **non relu au 30/07**. L'ampleur
-réelle du travail restant n'a pas été évaluée.
+### `pm_gravity.py` — relu et testé le 31/07
+
+**Meilleur état qu'espéré.** C'est un PM cosmologique complet et correct :
+leapfrog kick-drift-kick, temps en facteur d'échelle, équations justes, et — point
+important — **le CIC n'y sert qu'au calcul interne des forces**, la sortie restant
+les positions continues des particules. L'approche écartée du 18/07 était le CIC
+comme *rendu* ; ici il est interne, ce qui ne tombe pas sous le même interdit.
+Il embarque en outre `fractal_slope`, `peak_sharpness` et `punctuality`.
+
+**Premier test**, ligne `I`, boîte 170,7 Mpc, grille 128³, 64³ particules,
+32 pas de a = 0,02 à 1 :
+
+| | Vides / cadre | Vides | std |
+|---|---|---|---|
+| Zel'dovich *(production)* | 10,2 % | 11,6 Mpc | 0,224 |
+| **PM** | **6,4 %** | **7,3 Mpc** | 0,412 |
+| *cible (référence)* | *5,0 %* | — | — |
+
+Le PM franchit les deux tiers de l'écart restant, et double l'écart-type : les
+nœuds se virialisent au lieu de se disperser. C'est l'effet recherché.
+
+**Trois défauts à corriger, tous connus :**
+
+1. **Initialisation en grille régulière** → anisotropie 1,44 pour 0,85–1,2 admis.
+   `approches-ecartees.md` l'a déjà établi : le **verre est obligatoire**.
+2. **Courbe de ton non calibrée** → 21 % de saturation claire et 72 % de noir.
+   La dynamique du PM est bien plus large que celle de Zel'dovich ; `solve_alpha`
+   à gamma = 1 ne convient plus. C'est aussi ce qui met `fractal_slope` et
+   `peak_sharpness` à zéro — les percentiles hauts tombent tous sur 1,0, donc ces
+   deux métriques ne mesurent rien tant que la saturation n'est pas traitée.
+3. **Boîte cubique périodique** → incompatible avec les dalles anisotropes, qui
+   valaient 39× d'économie de volume à la ligne `M`.
 
 ---
 
