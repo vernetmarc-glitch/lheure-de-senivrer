@@ -107,10 +107,30 @@ c'est une reprise du §4.4.
 
 ---
 
-## Décision
+## Décision — tranchée par la mesure le 31/07/2026
 
-**À trancher après retour visuel de Marc sur une planche-contact du moteur
-actuel** — question ouverte **O-07**. L'écart au visuel Millennium doit être
+Le retour visuel a eu lieu, et il est négatif : « sur le layer `H`, il n'y a
+quasiment aucune structure haute fréquence apparue en plus par rapport au layer
+`K` » — trois lignes plus haut, soit un facteur 16 de zoom sans structure neuve.
+
+La cause a été cherchée ailleurs d'abord, et l'alternative la moins coûteuse a
+été testée puis écartée : élargir la bande fraîche du raccord de 6 à 100 pixels
+fait passer les vides de 10,2 % à 8,5 % du cadre au mieux, sans monotonie, pour
+une cible de 5,0 %. Détail dans `approches-ecartees.md`.
+
+**Le verrou n'est pas le raccord, c'est le moteur.** Zel'dovich disperse les
+structures fines au lieu de les faire s'effondrer.
+
+Portée réelle du blocage : la règle `web_ambient` fait dépendre les sept lignes à
+sprites `A`→`G` de la seule texture de `H`, rééchantillonnée jusqu'à ×645. Si `H`
+ne porte pas de structure fine, **aucune des quinze lignes n'en portera** sous
+22 Mpc. C'est la moitié basse de l'œuvre qui est en jeu, pas un layer.
+
+**Reste à l'arbitrage de Marc**, qui a indiqué être prêt à payer du calcul pour
+un résultat plus esthétique.
+
+*(Formulation initiale : à trancher après retour visuel — question ouverte
+**O-07**.)* L'écart au visuel Millennium doit être
 constaté à l'œil avant qu'un changement de moteur soit engagé. Marc a indiqué le
 30/07 être prêt à payer du calcul pour un résultat plus esthétique ; la question
 n'est donc pas le coût, mais de savoir si l'écart le justifie.

@@ -222,19 +222,28 @@ def sample_parent(fieldp, pts, p_box_xy, p_Lz):
     `mode="nearest"` en bord : les points de l'enfant sont tres a l'interieur du
     parent, le mode ne joue que sur l'arrondi du dernier demi-pixel.
     """
+    # map_coordinates(order=3) refiltre le tableau d'entree A CHAQUE APPEL. Avec
+    # 8 blocs x 3 composantes, c'etait 24 prefiltrages d'une grille de 14 M de
+    # cellules -- la ligne I n'arrivait jamais au bout. On prefiltre UNE fois par
+    # composante, puis prefilter=False.
     n = pts.shape[0]
     scal = fieldp.ndim == 3
-    out = np.empty(n if scal else (n, fieldp.shape[3]), np.float32)
-    for s0 in range(0, n, CHUNK):
-        s1 = min(s0 + CHUNK, n)
-        C = _idx_from_mpc(pts[s0:s1], p_box_xy, p_Lz, fieldp.shape[:3])
-        if scal:
-            out[s0:s1] = ndimage.map_coordinates(fieldp, C, order=3, mode="nearest")
-        else:
-            for a in range(fieldp.shape[3]):
-                out[s0:s1, a] = ndimage.map_coordinates(fieldp[..., a], C, order=3,
-                                                        mode="nearest")
-        del C
+    ncomp = 1 if scal else fieldp.shape[3]
+    out = np.empty(n if scal else (n, ncomp), np.float32)
+    for a in range(ncomp):
+        src = fieldp if scal else fieldp[..., a]
+        pref = ndimage.spline_filter(src, order=3, output=np.float32)
+        for s0 in range(0, n, CHUNK):
+            s1 = min(s0 + CHUNK, n)
+            C = _idx_from_mpc(pts[s0:s1], p_box_xy, p_Lz, fieldp.shape[:3])
+            v = ndimage.map_coordinates(pref, C, order=3, mode="nearest",
+                                        prefilter=False)
+            if scal:
+                out[s0:s1] = v
+            else:
+                out[s0:s1, a] = v
+            del C, v
+        del pref
     return out
 
 
@@ -251,9 +260,12 @@ def sample_parent_grid(fieldp, shape, box_xy, Lz, p_box_xy, p_Lz):
     Y, Z = Y.ravel(), Z.ravel()
     P = np.empty((Y.size, 3), np.float32)
     P[:, 1], P[:, 2] = Y, Z
+    pref = ndimage.spline_filter(fieldp, order=3, output=np.float32)
     for i in range(nx):
         P[:, 0] = gx[i]
-        out[i] = sample_parent(fieldp, P, p_box_xy, p_Lz).reshape(ny, nz)
+        C = _idx_from_mpc(P, p_box_xy, p_Lz, fieldp.shape[:3])
+        out[i] = ndimage.map_coordinates(pref, C, order=3, mode="nearest",
+                                         prefilter=False).reshape(ny, nz)
     return out
 
 

@@ -171,6 +171,40 @@ l'autre bout, `150 → 212 → 300` subdivisait en √2, deux fois plus fin que 
 ailleurs.
 *Remplacée par l'échelle géométrique ×2,520 — décision D-21.*
 
+### Élargissement de la bande fraîche du raccord
+*`K_CUT_SAFETY` porté de 1,2 à 7 puis 20 — testé le 31/07/2026, écarté le jour même.*
+
+**Hypothèse.** Le contenu neuf de chaque ligne se situe entre 6 et 2 pixels —
+`k_cut = π/(1,2 × cellule_parent)` et la cellule parent vaut 2,52 cellules
+enfant. C'est le domaine du grain, pas du filament, et ce contenu est déplacé de
+13,6 px, soit deux fois sa propre longueur d'onde. Abaisser `k_cut` devait
+amener le neuf à des échelles visibles.
+
+**Mesure**, ligne `I`, taille des vides en fraction du cadre (cible : 5,0 %,
+valeur de l'image de référence) :
+
+| `K_CUT_SAFETY` | Bande fraîche | Vides | rms(Ψ) |
+|---|---|---|---|
+| 1,2 *(production)* | 6,0 px | 10,2 % | 12,74 |
+| 7,0 | 35,3 px | **8,5 %** | 12,71 |
+| 20,0 | 100,8 px | 9,4 % | 12,22 |
+
+**Écartée** : le gain plafonne à 1,7 point et **n'est pas monotone** — à 100 px la
+mesure remonte. Multiplier par 17 la largeur de la bande fraîche ne rapproche pas
+de la cible.
+
+**Ce que cela démontre.** Le défaut ne vient pas de la largeur de bande. Donner
+du contenu neuf à grande échelle ne produit pas de filaments fins, parce que
+l'approximation de Zel'dovich ne les **fabrique** pas : après croisement de
+nappes, les particules se traversent et les structures se délavent au lieu de
+s'effondrer. La structure fine naît de l'effondrement gravitationnel, absent au
+premier ordre.
+
+*Constat visuel de Marc, confirmé par la mesure : « sur le layer H, il n'y a
+quasiment aucune structure haute fréquence apparue en plus par rapport au layer
+K », trois lignes plus haut. Cette mesure tranche **O-07** — voir
+`docs/montee-en-complexite-nbody.md`.*
+
 ---
 
 ## Métriques écartées
