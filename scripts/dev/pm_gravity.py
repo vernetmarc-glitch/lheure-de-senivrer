@@ -77,8 +77,20 @@ def accel(x, ng, box, a, kx, ky, kz, k2inv):
 
 
 def run_pm(n_field, n_part, box, seed, a_init=0.02, a_end=1.0, n_steps=32,
-           lam_min_mpc=None, verbose=True):
-    """ICs de Zel'dovich a a_init, puis integration PM jusqu'a a_end."""
+           lam_min_mpc=None, verbose=True, glass=True, jitter=0.5):
+    """ICs de Zel'dovich a a_init, puis integration PM jusqu'a a_end.
+
+    `glass=True` (defaut depuis le 31/07/2026) : les positions lagrangiennes sont
+    perturbees au lieu de former un reseau regulier. Sans cela, le reseau laisse
+    une signature alignee sur les axes -- anisotropie mesuree a 1,44 pour 0,85 a
+    1,2 admis. `approches-ecartees.md` l'avait deja etabli pour la chaine de
+    Zel'dovich : l'initialisation en verre est OBLIGATOIRE, et la raison vaut
+    identiquement ici.
+
+    Consequence technique : les particules ne tombent plus sur une sous-grille,
+    donc Psi doit etre INTERPOLE a leurs positions et non lu au noeud le plus
+    proche.
+    """
     ng = n_field
     delta = M.gen_delta3(ng, box, seed)
     KX, KY, KZ, kmag = M.k_grid3(ng, box)
@@ -88,18 +100,28 @@ def run_pm(n_field, n_part, box, seed, a_init=0.02, a_end=1.0, n_steps=32,
     band = kmag <= (2 * np.pi / lam_min_mpc if lam_min_mpc else np.inf)
 
     step = ng // n_part
-    g = (np.arange(n_part) * step + 0.5) * (box / ng) - box / 2.0
-    x = np.stack(np.meshgrid(g, g, g, indexing="ij"), axis=-1).astype(np.float32)
-    u = np.zeros_like(x)
+    cell_p = box / n_part
+    g = (np.arange(n_part) + 0.5) * cell_p - box / 2.0
+    q = np.stack(np.meshgrid(g, g, g, indexing="ij"), axis=-1).astype(np.float32).reshape(-1, 3)
+    if glass:
+        rng = np.random.default_rng(seed + 17)
+        q += (rng.random(q.shape).astype(np.float32) - 0.5) * cell_p * 2 * jitter
+        q = np.mod(q + box / 2, box) - box / 2
+    x = q.copy()
+    u = np.zeros_like(q)
+    # coordonnees de grille des positions lagrangiennes, pour interpoler Psi
+    C = ((q / box + 0.5) * ng - 0.5).T.copy()
     # facteur de croissance lineaire normalise : D(a) ~ a en matiere dominante
     for j, K in enumerate((KX, KY, KZ)):
         psi = np.fft.irfftn(np.where(band, 1j * K * dk / k2, 0), s=(ng,) * 3).astype(np.float32)
-        x[..., j] += a_init * psi[::step, ::step, ::step]
-        u[..., j] = a_init ** 2 * E(a_init) * a_init * psi[::step, ::step, ::step]
-        del psi
-    del dk
-    x = x.reshape(-1, 3)
-    u = u.reshape(-1, 3)
+        if glass:
+            pj = ndimage.map_coordinates(psi, C, order=1, mode="wrap")
+        else:
+            pj = psi[::step, ::step, ::step].reshape(-1)
+        x[:, j] += a_init * pj
+        u[:, j] = a_init ** 2 * E(a_init) * a_init * pj
+        del psi, pj
+    del dk, C, q
 
     k2inv = np.where(kmag > 0, 1.0 / k2, 0.0)
     das = np.diff(np.linspace(a_init, a_end, n_steps + 1))

@@ -58,6 +58,44 @@ SLAB_FRAC = 0.06
 # projection : elle n'est pas dans le champ.
 PSF_PX = 0.45
 JITTER = 0.5
+# ---------------------------------------------------------------- champ fin
+# Retabli le 02/08 apres constat de Marc : « je ne vois plus de structure
+# filamentaire apparaitre a petite echelle ». Mesure a l'appui -- la puissance a
+# 10 px valait 0,099 contre 0,834 sur l'image de reference.
+#
+# CAUSE. Le contenu frais de chaque ligne occupe la bande 6->2 px et subit un
+# deplacement de 13,6 px, soit deux fois sa propre longueur d'onde : il est
+# disperse avant d'etre visible. Elargir la bande ne suffit pas (teste, ecarte),
+# le PM non plus a cette resolution (teste, pic invariant a 40 px).
+#
+# MECANISME. Un champ 2D frais, a bande LARGE et amplitude IMPOSEE, module la
+# densite APRES le depot -- il n'est donc pas deplace, donc pas delave. C'est
+# l'ingredient de la toute premiere iteration (commit e0d5336, 05/07), que la
+# refonte des 30-31/07 avait supprime.
+#
+# La modulation est LOG-NORMALE : positive par construction, moyenne preservee,
+# et c'est la forme physique d'un champ de densite cosmologique. La variante
+# additive (1 + A*f) devenait negative, le clip a zero fabriquait une seconde
+# population -- creux bimodal 0,54, INV-E3 en echec.
+#
+# Le fond diffus evite des vides absolument noirs (21,6 % -> 0 %) : les vides
+# reels contiennent de la matiere diffuse, et l'image de reference n'a que 4,7 %
+# de noir.
+FINE_A = 1.7                # amplitude de la modulation log-normale
+FINE_FLOOR = 0.12           # fond diffus, en fraction de la moyenne
+FINE_GAMMA = 0.45           # compression du ton (sinon 4,3 % de blanc pur)
+FINE_LAM_HI_PX = 40.0       # bande du champ fin : 40 px -> Nyquist
+FINE_LAM_LO_PX = 2.2
+FINE_NORM = 0.0             # calibre au premier appel pour var(champ complet)=1
+
+# B4 borne l'auto-similarite a 0,1-150 Mpc, B8 declare L->O homogenes. Le champ
+# fin est defini en PIXELS : a la ligne O, 40 px valent 3 642 Mpc, l'appliquer y
+# fabriquerait des structures inexistantes. Son amplitude suit donc la fenetre
+# de validite de B4.
+FINE_STRENGTH = {"A":1.0,"B":1.0,"C":1.0,"D":1.0,"E":1.0,"F":1.0,"G":1.0,
+                 "H":1.0,"I":1.0,"J":1.0,"K":0.45,"L":0.15,
+                 "M":0.0,"N":0.0,"O":0.0}
+
 SUB_Z = 2                   # raffinement du reseau lagrangien selon z.
 # Calibre le 30/07 : rho_auto du rendu ne depend QUE du nombre de particules par
 # pixel, n/(n+6,8), quel que soit l'axe raffine -- verifie sur (1,1), (2,1),
@@ -280,7 +318,7 @@ class Layer:
     """
     __slots__ = ("code", "half", "cell", "box_xy", "Lz", "shape",
                  "delta", "delta_lo", "psi_lo", "k_cut", "psi_rms", "web", "n_halo",
-                 "std_delta", "n_anchor")
+                 "std_delta", "n_anchor", "fine")
 
     def drop_heavy(self):
         """Libere ce dont l'enfant n'a pas besoin."""
@@ -372,6 +410,10 @@ def bake_layer(code, half, margin, seed, parent=None):
     L = Layer()
     L.code, L.half, L.cell, L.box_xy, L.Lz, L.shape = code, half, cell, box_xy, Lz, shape
     L.n_anchor = n_anchor
+    _calib_fine_norm()
+    L.fine = fine_for(code, seed + 4242,
+                      None if parent is None else getattr(parent, "fine", None),
+                      None if parent is None else parent.half / half)
     L.delta, L.delta_lo, L.psi_lo, L.k_cut = delta, delta_lo, psi_lo, k_cut
     L.psi_rms = float(np.sqrt(ss / nQ))
     L.std_delta = float(delta.std())
@@ -451,6 +493,98 @@ def field_projection(L, delta):
                                    order=1, mode="nearest")
 
 
+def _fine_spectrum(k, n, lam_hi, lam_lo):
+    return np.where((k >= n / lam_hi) & (k <= n / lam_lo),
+                    np.maximum(k, 1e-9) ** -2.2, 0.0)
+
+
+def fine_fresh(seed, lam_hi, lam_lo, n=None):
+    """Bande fraiche du champ fin, amplitude ABSOLUE (jamais f/f.std()).
+
+    La normalisation par l'ecart-type mesure est une statistique globale : elle
+    ferait dependre l'amplitude de chaque ligne du contenu de cette ligne, et
+    l'heritage se casserait silencieusement (INV-B1). C'est le defaut de
+    `normalize_variance` de la premiere iteration, que Marc avait vu comme des
+    « deplacements de matiere ».
+    """
+    n = n or OUT_N
+    rng = np.random.default_rng(seed)
+    kx = np.fft.fftfreq(n)[:, None] * n
+    ky = np.fft.rfftfreq(n)[None, :] * n
+    k = np.sqrt(kx ** 2 + ky ** 2)
+    P = _fine_spectrum(k, n, lam_hi, lam_lo)
+    z = (rng.normal(size=k.shape) + 1j * rng.normal(size=k.shape)) * np.sqrt(P / 2)
+    return (np.fft.irfft2(z, s=(n, n)) * FINE_NORM).astype(np.float32)
+
+
+def fine_inherit(fine_parent, ratio, n=None):
+    """Part du champ fin heritee du parent : recadrage central + agrandissement.
+
+    C'est le mecanisme `crop_and_upsample` de la premiere iteration (e0d5336),
+    applique au CHAMP FIN et non au champ de densite. Purement lineaire.
+    """
+    n = n or OUT_N
+    w = n / ratio
+    c = (n - w) / 2.0
+    yy, xx = np.mgrid[0:n, 0:n].astype(np.float64)
+    C = np.stack([c + yy * w / n, c + xx * w / n])
+    return ndimage.map_coordinates(fine_parent.astype(np.float64), C,
+                                   order=3, mode="nearest").astype(np.float32)
+
+
+def fine_for(code, seed, fine_parent=None, ratio=None):
+    """Champ fin d'une ligne : part heritee + bande fraiche a SA resolution.
+
+    Le parent resout jusqu'a FINE_LAM_LO_PX de SA grille ; agrandi d'un facteur
+    `ratio`, cela devient ratio x FINE_LAM_LO_PX sur l'enfant. L'enfant n'ajoute
+    donc du neuf QUE sous cette limite -- ce qu'il est seul a pouvoir resoudre.
+    Aucun double comptage, et la bande commune est heritee a l'identique.
+    """
+    if fine_parent is None:
+        return fine_fresh(seed, FINE_LAM_HI_PX, FINE_LAM_LO_PX)
+    return (fine_inherit(fine_parent, ratio)
+            + fine_fresh(seed, ratio * FINE_LAM_LO_PX, FINE_LAM_LO_PX))
+
+
+def fine_field(seed, n=None):
+    """Champ 2D frais, bande large, variance normalisee a 1.
+
+    Amplitude IMPOSEE et non issue de sigma_8 : le spectre LCDM ne donne presque
+    aucune puissance aux petites echelles, c'est precisement pourquoi le contenu
+    fin restait invisible.
+    """
+    n = n or OUT_N
+    rng = np.random.default_rng(seed)
+    kx = np.fft.fftfreq(n)[:, None] * n
+    ky = np.fft.rfftfreq(n)[None, :] * n
+    k = np.sqrt(kx ** 2 + ky ** 2)
+    P = np.where((k >= n / FINE_LAM_HI_PX) & (k <= n / FINE_LAM_LO_PX),
+                 np.maximum(k, 1e-9) ** -2.2, 0.0)
+    z = (rng.normal(size=k.shape) + 1j * rng.normal(size=k.shape)) * np.sqrt(P / 2)
+    f = np.fft.irfft2(z, s=(n, n))
+    return (f / f.std()).astype(np.float32)
+
+
+def apply_fine(img, code, fine):
+    """Module la densite deposee par le champ fin, puis ajoute le fond diffus."""
+    w = FINE_STRENGTH.get(code, 0.0)
+    if w <= 0.0 or fine is None:
+        return img, 1.0
+    A = FINE_A * w
+    out = img * np.exp(fine * A - A * A / 2)
+    return out + FINE_FLOOR * w * out.mean(), FINE_GAMMA
+
+
+def _calib_fine_norm():
+    """Constante d'amplitude ABSOLUE, calculee une fois, jamais mesuree."""
+    global FINE_NORM
+    if FINE_NORM:
+        return
+    FINE_NORM = 1.0
+    f = fine_fresh(0, FINE_LAM_HI_PX, FINE_LAM_LO_PX)
+    FINE_NORM = 1.0 / float(f.std())
+
+
 def render(L, seed):
     slab = SLAB_FRAC * 2 * L.half
     rng = np.random.default_rng(seed + 991)
@@ -468,8 +602,9 @@ def render(L, seed):
         np.add.at(img, (ix, iy), np.float32(1.0))
         del p, q
     img = ndimage.gaussian_filter(img, PSF_PX)
-    a = M.solve_alpha(img, TARGET_MEAN, gamma=1.0)
-    return M.tone(img, a, gamma=1.0)
+    img, gm = apply_fine(img, L.code, getattr(L, "fine", None))
+    a = M.solve_alpha(img, TARGET_MEAN, gamma=gm)
+    return M.tone(img, a, gamma=gm)
 
 
 # ---------------------------------------------------------- relais sur disque
@@ -483,7 +618,7 @@ CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_chaine")
 
 def save_payload(L, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    np.savez(path, delta_lo=L.delta_lo, psi_lo=L.psi_lo,
+    np.savez(path, delta_lo=L.delta_lo, psi_lo=L.psi_lo, fine=L.fine,
              meta=np.array([L.half, L.cell, L.box_xy, L.Lz, L.k_cut,
                             L.psi_rms, L.std_delta, L.n_halo]))
 
@@ -495,6 +630,7 @@ def load_payload(path):
      L.psi_rms, L.std_delta, L.n_halo) = z["meta"]
     L.n_halo = int(L.n_halo)
     L.delta_lo, L.psi_lo = z["delta_lo"], z["psi_lo"]
+    L.fine = z["fine"] if "fine" in z.files else None
     L.shape = L.delta_lo.shape
     return L
 
