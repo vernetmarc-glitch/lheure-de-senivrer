@@ -224,7 +224,74 @@ dissolution et les petites structures coloniseraient l'image.
 
 ---
 
-## 8. Valeurs restant à calibrer
+## 8. Génération ligne par ligne — état au 03/08/2026
+
+Chaque ligne se recuit seule à partir de la charge utile de sa mère. Le germe est
+dans `generation.seeds` ; verre `+7`, champ fin `+4242`, rendu `+991`.
+
+| Code | Demi-champ | Mécanisme | Ancrage | Champ fin | Fond ambiant |
+|---|---|---|---|---|---|
+| **O** | 14 570 | champ, racine de chaîne | — | 0,45 | — |
+| **N** | 5 782 | champ hérité | — | 0,55 | — |
+| **M** | 2 295 | champ hérité | — | 0,65 | — |
+| **L** | 911 | champ hérité | — | 0,75 | — |
+| **K** | 361 | champ + halos | — | 0,85 | — |
+| **J** | 143 | champ + halos | 0,12 | 1,00 | — |
+| **I** | 56,9 | champ + halos | 0,45 | 1,00 | — |
+| **H** | 22,6 | champ + halos | 1,00 | 1,00 | — |
+| **G** | 8,96 | sprites sur trame `H` | — | 1,00 | 1,00 |
+| **F** | 3,56 | sprites sur trame `H` | — | 1,00 | 1,00 |
+| **E** | 1,41 | sprites sur trame `H` | — | 1,00 | 0,75 |
+| **D** | 0,560 | sprites sur trame `H` | — | 1,00 | 0,45 |
+| **C** | 0,222 | sprites sur trame `H` | — | 1,00 | 0,25 |
+| **B** | 0,0882 | sprites, Voie lactée en 2048 | — | 1,00 | 0,12 |
+| **A** | 0,0350 | sprites, Voie lactée en 2048 | — | 1,00 | 0,06 |
+
+**Textures de production.** Elles couvrent ±`demi-champ` × 1,5 sur 480 px, la
+marge servant au recadrage rectangulaire de l'application. L'échelle Mpc/pixel
+est celle de la fenêtre visible, si bien que le champ fin — dont les longueurs
+d'onde sont en pixels — garde exactement le même sens physique dans les deux
+rendus. **Le ton se cale sur la fenêtre visible**, jamais sur la texture entière.
+
+**Le champ fin est calculé une seule fois par ligne, sur la boîte complète.** Le
+régénérer au moment du rendu de production le privait de son héritage : c'est la
+régression du 02/08, invisible sur l'aperçu parce que la mesure n'y avait pas été
+refaite.
+
+---
+
+## 9. Test de non-régression
+
+`scripts/dev/validate_production.py [répertoire]` vérifie les textures
+**publiées** contre chaque exigence mesurable. À exécuter avant toute mise en
+ligne — c'est le contrôle qui manquait quand la régression du 02/08 est passée.
+
+Il énumère aussi ce qu'il **ne couvre pas** — axe du temps, trois sphères,
+interaction, performances. Une exigence oubliée en silence est pire qu'une
+exigence en échec.
+
+### État au 03/08 — 10 contrôles passés, 4 en échec
+
+| Contrôle | Exigence | État |
+|---|---|---|
+| C8 · A7 · E4a · E4b | aplat, ton, saturations | **OK** |
+| B3 · B5 · B8 | contraste, homogénéité, vides | **OK** |
+| A1 · GEO1 · GEO2 | référence, résolution, paramètres figés | **OK** |
+| **B1** | héritage F2 ≥ 0,85 | **ÉCHEC** — `I→H` 0,68 · `H→G` 0,80 |
+| **B2/D2** | déplacement ≤ 3 px | **ÉCHEC** — 3,2 à 7,2 px sur `K`→`G` |
+| **E5/E6** | artefact de grille | **ÉCHEC** — `G` ×166 · `F` ×83 · `D` ×63 |
+| **A3/A4** | brillances ponctuelles | **ÉCHEC** — `C` à 1,3 |
+
+**Lecture des échecs.** Ils se concentrent tous entre `K` et `C`, et trois
+d'entre eux pointent vers la même zone : la charnière `H|G`, où la trame passe
+du champ généré à un rééchantillonnage de `H` agrandi ×2,52. L'agrandissement
+d'une texture est le suspect n° 1 pour `E5/E6`, et la rupture de mécanisme pour
+`B1`. `A3/A4` sur `C` est distinct : le fond y est atténué à 0,25 et cinq
+sprites seulement subsistent, l'image manque de points brillants.
+
+---
+
+## 10. Valeurs restant à calibrer
 
 Explicitement marquées `À CALIBRER` dans le JSON. Elles ne doivent pas être
 inventées : chacune sort d'une mesure headless.
