@@ -1,0 +1,821 @@
+{
+ "version": 4,
+ "generated": "2026-07-30",
+ "comment": "SOURCE DE VÉRITÉ éditable de la matrice zoom × temps. Voir docs/matrice-parametres-zoom-temps.md pour la nomenclature et docs/architecture-univers-observable.md §0 pour l'état du moteur. Toute grandeur spatiale est en Mpc comobiles (D-26). Après édition : relancer la cuisson puis scripts/dev/invariants.py --assets.",
+ "grid": {
+  "rows": 15,
+  "cols": 11,
+  "cells": 165,
+  "cell_code": "<lettre A-O><colonne 0-10>",
+  "asset_name": "st_<code>.png  (ex. st_A0.png, st_O10.png)",
+  "rule": "Grille rigide (D-23) : toutes les lignes portent les mêmes 11 colonnes. Aucune ligne ne possède d'axe du temps propre."
+ },
+ "zoom_axis": {
+  "law": "géométrique, raison constante (D-21)",
+  "ratio": 2.51991,
+  "ratio_dex": 0.401385,
+  "halfwidth_min_mpc": 0.035,
+  "halfwidth_max_mpc": 14570.0,
+  "min_origin": "halo de la Voie lactée = 0,028 Mpc, soit 80 % du demi-champ de A",
+  "max_origin": "horizon des particules aujourd'hui (H1)",
+  "fade_width_dex": 0.15,
+  "fade_comment": "Valeur unique pour TOUTES les arêtes : 0,15 dex = 37 % du pas. En v3 elle valait 0,15 partout sauf 0,52 sur l'arête 2,4 Mpc, pour masquer un pas de ×24 — voir approches-ecartees.md.",
+  "sprite_to_field_edge": "G|H",
+  "sprite_to_field_origin": "la galaxie la plus lointaine du catalogue est à 9,82 Mpc",
+  "rows": {
+   "A": {
+    "halfwidth_mpc": 0.035,
+    "margin_factor": 1.5,
+    "parent": "B",
+    "seed": 1000,
+    "box_mpc": 0.105,
+    "cell_out_mpc": 0.000103,
+    "lam_min_mpc": 0.000308,
+    "lam_max_mpc": 0.0525,
+    "render": "sprites",
+    "structure_mpc": [
+     0.01,
+     0.05
+    ],
+    "structure": "disque galactique",
+    "homogene": false
+   },
+   "B": {
+    "halfwidth_mpc": 0.0882,
+    "margin_factor": 1.5,
+    "parent": "C",
+    "seed": 1007,
+    "box_mpc": 0.2646,
+    "cell_out_mpc": 0.000258,
+    "lam_min_mpc": 0.000775,
+    "lam_max_mpc": 0.1323,
+    "render": "sprites",
+    "structure_mpc": [
+     0.02,
+     0.06
+    ],
+    "structure": "satellites",
+    "homogene": false
+   },
+   "C": {
+    "halfwidth_mpc": 0.2222,
+    "margin_factor": 1.5,
+    "parent": "D",
+    "seed": 1014,
+    "box_mpc": 0.6666,
+    "cell_out_mpc": 0.000651,
+    "lam_min_mpc": 0.001953,
+    "lam_max_mpc": 0.3333,
+    "render": "sprites",
+    "structure_mpc": [
+     0.1,
+     0.3
+    ],
+    "structure": "halo galactique",
+    "homogene": false
+   },
+   "D": {
+    "halfwidth_mpc": 0.56,
+    "margin_factor": 1.5,
+    "parent": "E",
+    "seed": 1021,
+    "box_mpc": 1.68,
+    "cell_out_mpc": 0.001641,
+    "lam_min_mpc": 0.004922,
+    "lam_max_mpc": 0.84,
+    "render": "sprites",
+    "structure_mpc": [
+     0.3,
+     0.8
+    ],
+    "structure": "abords du Groupe Local",
+    "homogene": false
+   },
+   "E": {
+    "halfwidth_mpc": 1.4113,
+    "margin_factor": 1.5,
+    "parent": "F",
+    "seed": 1028,
+    "box_mpc": 4.2339,
+    "cell_out_mpc": 0.004135,
+    "lam_min_mpc": 0.012404,
+    "lam_max_mpc": 2.117,
+    "render": "sprites",
+    "structure_mpc": [
+     1.0,
+     3.0
+    ],
+    "structure": "groupe de galaxies",
+    "homogene": false,
+    "void_mpc": [
+     1.0,
+     3.0
+    ]
+   },
+   "F": {
+    "halfwidth_mpc": 3.5563,
+    "margin_factor": 1.5,
+    "parent": "G",
+    "seed": 1035,
+    "box_mpc": 10.6689,
+    "cell_out_mpc": 0.010419,
+    "lam_min_mpc": 0.031257,
+    "lam_max_mpc": 5.3344,
+    "render": "sprites",
+    "structure_mpc": [
+     2.0,
+     3.0
+    ],
+    "structure": "rayon viriel d'un amas",
+    "homogene": false,
+    "void_mpc": [
+     2.0,
+     5.0
+    ]
+   },
+   "G": {
+    "halfwidth_mpc": 8.9615,
+    "margin_factor": 1.5,
+    "parent": "H",
+    "seed": 1042,
+    "box_mpc": 26.8845,
+    "cell_out_mpc": 0.026254,
+    "lam_min_mpc": 0.078763,
+    "lam_max_mpc": 13.4422,
+    "render": "sprites",
+    "structure_mpc": [
+     2.0,
+     6.0
+    ],
+    "structure": "amas entier, largeur de filament",
+    "homogene": false,
+    "void_mpc": [
+     3.0,
+     10.0
+    ]
+   },
+   "H": {
+    "halfwidth_mpc": 22.5821,
+    "margin_factor": 1.5,
+    "parent": "I",
+    "seed": 1049,
+    "box_mpc": 67.7463,
+    "cell_out_mpc": 0.066158,
+    "lam_min_mpc": 0.198475,
+    "lam_max_mpc": 33.8732,
+    "render": "genere",
+    "structure_mpc": [
+     6.0,
+     32.0
+    ],
+    "structure": "longueur de filament, epaisseur de superamas",
+    "homogene": false,
+    "void_mpc": [
+     10.0,
+     30.0
+    ],
+    "anchor_strength": 1.0
+   },
+   "I": {
+    "halfwidth_mpc": 56.9048,
+    "margin_factor": 1.5,
+    "parent": "J",
+    "seed": 1056,
+    "box_mpc": 170.7144,
+    "cell_out_mpc": 0.166713,
+    "lam_min_mpc": 0.50014,
+    "lam_max_mpc": 85.3572,
+    "render": "genere",
+    "structure_mpc": [
+     8.0,
+     45.0
+    ],
+    "structure": "superamas",
+    "homogene": false,
+    "void_mpc": [
+     20.0,
+     50.0
+    ],
+    "anchor_strength": 0.45
+   },
+   "J": {
+    "halfwidth_mpc": 143.395,
+    "margin_factor": 1.5,
+    "parent": "K",
+    "seed": 1063,
+    "box_mpc": 430.185,
+    "cell_out_mpc": 0.420103,
+    "lam_min_mpc": 1.260308,
+    "lam_max_mpc": 215.0925,
+    "render": "genere",
+    "structure_mpc": [
+     140.0,
+     150.0
+    ],
+    "structure": "vides, BAO",
+    "homogene": false,
+    "void_mpc": [
+     30.0,
+     60.0
+    ],
+    "anchor_strength": 0.12
+   },
+   "K": {
+    "halfwidth_mpc": 361.3426,
+    "margin_factor": 1.5,
+    "parent": "L",
+    "seed": 1070,
+    "box_mpc": 1084.0278,
+    "cell_out_mpc": 1.058621,
+    "lam_min_mpc": 3.175863,
+    "lam_max_mpc": 542.0139,
+    "render": "genere",
+    "structure_mpc": [
+     170.0,
+     400.0
+    ],
+    "structure": "reseau superamas-vides, grandes murailles",
+    "homogene": false,
+    "void_mpc": [
+     30.0,
+     60.0
+    ]
+   },
+   "L": {
+    "halfwidth_mpc": 910.5509,
+    "margin_factor": 1.5,
+    "parent": "M",
+    "seed": 1077,
+    "box_mpc": 2731.6527,
+    "cell_out_mpc": 2.66763,
+    "lam_min_mpc": 8.002889,
+    "lam_max_mpc": 1365.8263,
+    "render": "genere",
+    "structure_mpc": [
+     null,
+     null
+    ],
+    "structure": "homogene",
+    "homogene": true
+   },
+   "M": {
+    "halfwidth_mpc": 2294.5067,
+    "margin_factor": 1.5,
+    "parent": "N",
+    "seed": 1084,
+    "box_mpc": 6883.5201,
+    "cell_out_mpc": 6.722188,
+    "lam_min_mpc": 20.166563,
+    "lam_max_mpc": 3441.76,
+    "render": "genere",
+    "structure_mpc": [
+     null,
+     null
+    ],
+    "structure": "homogene",
+    "homogene": true
+   },
+   "N": {
+    "halfwidth_mpc": 5781.9515,
+    "margin_factor": 1.5,
+    "parent": "O",
+    "seed": 1091,
+    "box_mpc": 17345.8545,
+    "cell_out_mpc": 16.939311,
+    "lam_min_mpc": 50.817933,
+    "lam_max_mpc": 8672.9273,
+    "render": "genere",
+    "structure_mpc": [
+     null,
+     null
+    ],
+    "structure": "homogene",
+    "homogene": true
+   },
+   "O": {
+    "halfwidth_mpc": 14570.0,
+    "margin_factor": 1.5,
+    "parent": null,
+    "seed": 1098,
+    "box_mpc": 43710.0,
+    "cell_out_mpc": 42.685547,
+    "lam_min_mpc": 128.056641,
+    "lam_max_mpc": 21855.0,
+    "render": "genere",
+    "structure_mpc": [
+     null,
+     null
+    ],
+    "structure": "homogene",
+    "homogene": true
+   }
+  },
+  "structure_table_origin": "Table de reference B8 du document client, v1.2 du 31/07. Sourcee sur la litterature. Arbitre l'echelle apparente des structures, controlee par INV-H8.",
+  "void_note": "Diametre des vides COURANTS, 30-50 Mpc. A distinguer du reseau superamas-vides (140-200 Mpc), qui est l'espacement des vides les plus rares, traces par les amas riches. La reference visuelle montre des vides a 5,0 % de la largeur du cadre.",
+  "anchor_note": "D6 : ancrage du catalogue dans le champ de deplacement Psi, non dans la densite. Les filaments convergent vers les galaxies au lieu de s'illuminer a leur endroit. Attenuation avec l'echelle (D4) : plein sur H, decroissant sur I et J, nul au-dela. ANCHOR_GAIN calibre pour rms(Psi_ancrage) = 1,0 Mpc a la ligne H contre ~10 Mpc pour le champ. A CONFIRMER VISUELLEMENT."
+ },
+ "time_axis": {
+  "law": "uniforme en facteur de croissance linéaire D(a) (D-22)",
+  "cosmology": {
+   "Omega_m": 0.315,
+   "Omega_L": 0.685,
+   "H0_km_s_Mpc": 67.4
+  },
+  "amplitude_rule": "colonne n → amplitude de structure = n/10",
+  "column_0": "ancre de recombinaison ; porte seule l'embrasement (C7)",
+  "display": {
+   "unit": "milliards d'années",
+   "linear_in": "t",
+   "comment": "L3 et D-17 contraignent le CURSEUR, pas les keyframes. Le curseur reste linéaire en Ga ; les colonnes sont placées là où l'image change. L'interpolation fait le raccord."
+  },
+  "columns": [
+   {
+    "col": 0,
+    "amp": 0.001153,
+    "a": 0.000908,
+    "t_gyr": 0.0005,
+    "z": 1100.3216
+   },
+   {
+    "col": 1,
+    "amp": 0.1,
+    "a": 0.07879649,
+    "t_gyr": 0.3811,
+    "z": 11.6909
+   },
+   {
+    "col": 2,
+    "amp": 0.2,
+    "a": 0.15780674,
+    "t_gyr": 1.0787,
+    "z": 5.3369
+   },
+   {
+    "col": 3,
+    "amp": 0.3,
+    "a": 0.2375866,
+    "t_gyr": 1.986,
+    "z": 3.209
+   },
+   {
+    "col": 4,
+    "amp": 0.4,
+    "a": 0.31909344,
+    "t_gyr": 3.0707,
+    "z": 2.1339
+   },
+   {
+    "col": 5,
+    "amp": 0.5,
+    "a": 0.4037627,
+    "t_gyr": 4.3219,
+    "z": 1.4767
+   },
+   {
+    "col": 6,
+    "amp": 0.6,
+    "a": 0.49367073,
+    "t_gyr": 5.7432,
+    "z": 1.0256
+   },
+   {
+    "col": 7,
+    "amp": 0.7,
+    "a": 0.59185577,
+    "t_gyr": 7.3516,
+    "z": 0.6896
+   },
+   {
+    "col": 8,
+    "amp": 0.8,
+    "a": 0.70295106,
+    "t_gyr": 9.1818,
+    "z": 0.4226
+   },
+   {
+    "col": 9,
+    "amp": 0.9,
+    "a": 0.83450298,
+    "t_gyr": 11.2942,
+    "z": 0.1983
+   },
+   {
+    "col": 10,
+    "amp": 1.0,
+    "a": 1.0,
+    "t_gyr": 13.7962,
+    "z": 0.0
+   }
+  ]
+ },
+ "cells": {
+  "inheritance": "defaults → by_row → by_cell (le plus spécifique gagne)",
+  "defaults": {
+   "output_resolution": 1024,
+   "lam_min_cells": 3.0,
+   "lam_min_rule": "lam_min_mpc = lam_min_cells × taille de cellule de SORTIE. Jamais un nombre de pixels fixe partagé entre lignes (D-26).",
+   "lam_max_rule": "lam_max_mpc = box/2, relatif à la ligne. Le plafond dur de 150 Mpc est supprimé (D-25) : combiné à un plancher, il vidait la bande.",
+   "band_nonempty": true,
+   "target_mean_255": [
+    65,
+    70
+   ],
+   "dissolved_state": "uniforme EN MOYENNE, jamais un aplat : le grain de la distribution de particules subsiste (C8). std > 0 sur toute cellule.",
+   "contrast_rolloff": {
+    "status": "À CALIBRER",
+    "purpose": "Décroissance du contraste avec l'échelle — le « End of Greatness » (B3). Remplace le plafond dur de 150 Mpc. Ne doit jamais annuler la bande."
+   }
+  },
+  "by_row": {
+   "A": {},
+   "B": {},
+   "C": {},
+   "D": {},
+   "E": {},
+   "F": {},
+   "G": {},
+   "H": {},
+   "I": {},
+   "J": {},
+   "K": {},
+   "L": {},
+   "M": {},
+   "N": {},
+   "O": {}
+  },
+  "by_cell": {}
+ },
+ "galaxy_scale_mpc": 0.03,
+ "embrasement": {
+  "exp": 5,
+  "offset_max": 18,
+  "fade_scale_mpc": 0.03,
+  "a_multiplier": 6
+ },
+ "expansion": {
+  "nodes": [
+   [
+    0.03,
+    0.0
+   ],
+   [
+    2.4,
+    0.0
+   ],
+   [
+    8.49,
+    0.15
+   ],
+   [
+    30.0,
+    0.65
+   ],
+   [
+    67.08,
+    0.9
+   ],
+   [
+    150.0,
+    1.0
+   ],
+   [
+    14570.0,
+    1.0
+   ]
+  ],
+  "comment": "≲2.4 Mpc lié (Groupe Local, aucun effet) ; 8.5 Mpc volume local découplé (résiduel 0.15 validé) ; ≥150 Mpc flux de Hubble pur — cf. §11.4.e"
+ },
+ "sprites": {
+  "frames_dir": "data/dissolution_sprites",
+  "frame_pattern": "data/dissolution_sprites/{slug}_f{:02d}.png",
+  "n_frames": 14,
+  "frame_resolution": 512,
+  "progress": "1 - A_sprite(a)  (bloc galaxy_formation, v3.3)",
+  "fade_exponent": 2.0,
+  "blend": "screen",
+  "visible_fade_band_mpc": [
+   4.0,
+   6.0
+  ],
+  "catalog_json": "data/local_group_catalog.json",
+  "min_render_comment": "Plancher de lisibilité sur le CŒUR galactique : la frame sprite est cadrée sur la dispersion finale (sprite_halfwidth_units ≈ 7-9 rayons), le cœur n'en occupe que ~1/7 ; un plancher sur la frame entière laisse le cœur sous-échantillonné (aliasing -> galaxie invisible). Rendu : frame_half_px = max(physique, min_render_core_px × sprite_halfwidth_units) => le cœur couvre toujours ≥ ~2 px. Léger surdimensionnement des naines assumé.",
+  "min_render_core_px": 1.25,
+  "fade_law": "A_sprite(a)^fade_exponent"
+ },
+ "real_galaxies": {
+  "generation": {
+   "simulation": {
+    "script": "scripts/simulate_dissolution.mjs",
+    "engine": "N-corps Barnes-Hut, intégrateur leapfrog",
+    "n_steps": 480,
+    "n_keyframes": 14,
+    "theta": 0.75,
+    "softening": 0.018,
+    "particles_per_galaxy": 2500,
+    "initial_conditions": "morphologies GalaxyModel réelles + composantes de vitesse rotationnelles",
+    "output": "data/dissolution_keyframes.json"
+   },
+   "baking": {
+    "script": "scripts/generate_dissolution_sprites.mjs",
+    "point_size": 0.5,
+    "halo_growth": 8.5,
+    "blur_max_px": 6,
+    "filament_amount": 0.8,
+    "tone_transform": "1 - exp(-champ)  (canal saturant, §11.3)",
+    "framing": "demi-largeur = maxExtent(dernière frame) × 1.15, FIXE pour toutes les frames d'une galaxie",
+    "progress_per_frame": "f / 13 (linéaire)"
+   }
+  },
+  "entries": [
+   {
+    "slug": "milkyway",
+    "name": "Voie lactée",
+    "distance_mpc": 0.0,
+    "angle_deg": 0.0,
+    "radius_mpc": 0.01594329,
+    "sprite_halfwidth_units": 7.7199,
+    "sprite_halfwidth_mpc": 0.12308
+   },
+   {
+    "slug": "andromede",
+    "name": "Andromède (M31)",
+    "distance_mpc": 0.78,
+    "angle_deg": 20,
+    "radius_mpc": 0.034,
+    "sprite_halfwidth_units": 7.1484,
+    "sprite_halfwidth_mpc": 0.243047
+   },
+   {
+    "slug": "triangulum",
+    "name": "Triangulum (M33)",
+    "distance_mpc": 0.84,
+    "angle_deg": 55,
+    "radius_mpc": 0.0092,
+    "sprite_halfwidth_units": 7.1836,
+    "sprite_halfwidth_mpc": 0.066089
+   },
+   {
+    "slug": "lmc",
+    "name": "Grand Nuage de Magellan",
+    "distance_mpc": 0.05,
+    "angle_deg": 200,
+    "radius_mpc": 0.0022,
+    "sprite_halfwidth_units": 7.8613,
+    "sprite_halfwidth_mpc": 0.017295
+   },
+   {
+    "slug": "smc",
+    "name": "Petit Nuage de Magellan",
+    "distance_mpc": 0.061,
+    "angle_deg": 210,
+    "radius_mpc": 0.0011,
+    "sprite_halfwidth_units": 9.2923,
+    "sprite_halfwidth_mpc": 0.010222
+   },
+   {
+    "slug": "sagittaire",
+    "name": "Naine du Sagittaire",
+    "distance_mpc": 0.024,
+    "angle_deg": 320,
+    "radius_mpc": 0.0015,
+    "sprite_halfwidth_units": 7.8226,
+    "sprite_halfwidth_mpc": 0.011734
+   },
+   {
+    "slug": "ngc6822",
+    "name": "NGC 6822",
+    "distance_mpc": 0.46,
+    "angle_deg": 110,
+    "radius_mpc": 0.001,
+    "sprite_halfwidth_units": 7.5633,
+    "sprite_halfwidth_mpc": 0.007563
+   },
+   {
+    "slug": "ic10",
+    "name": "IC 10",
+    "distance_mpc": 0.66,
+    "angle_deg": 150,
+    "radius_mpc": 0.0008,
+    "sprite_halfwidth_units": 7.1984,
+    "sprite_halfwidth_mpc": 0.005759
+   },
+   {
+    "slug": "leo1",
+    "name": "Leo I",
+    "distance_mpc": 0.82,
+    "angle_deg": 290,
+    "radius_mpc": 0.0005,
+    "sprite_halfwidth_units": 7.1984,
+    "sprite_halfwidth_mpc": 0.003599
+   }
+  ],
+  "milkyway_hires": {
+   "status": "CUIT le 17/07 — 14 frames 2048², corrélation f00/production vérifiée à la cuisson",
+   "problem": "Les frames 512² sont cadrées sur la dispersion finale ×7.7 : le disque d'aujourd'hui n'occupe que ~70 px → bouillie floue au zoom maximal, sans commune mesure avec density_milkyway.png de production.",
+   "script": "scripts/generate_milkyway_hires_sprites.py (Python, déterministe)",
+   "source": "data/milkyway_dissolution_keyframes.json (simulation N-corps VL existante)",
+   "resolution": 2048,
+   "n_frames": 14,
+   "framing_halfwidth_units": 2.0,
+   "framing_comment": "Cadrage FIXE 2 rayons à 2048² : le disque occupe ~1024 px de large (pleine résolution écran téléphone, demande du 15/07). Débordement des frames de dispersion assumé (extinction A_gal² dominante à ce stade) + APODISATION cuite : fondu cosinus sur les derniers 6% du cadre (aucune coupure carrée possible).",
+   "output": "data/dissolution_sprites_hires/milkyway_f00..f13.png",
+   "f00_validation": "Corrélation exigée entre f00 et density_milkyway.png (contrôle headless ajouté à la cuisson).",
+   "used_by_layer": "milkyway_hires (ligne A)",
+   "runtime": "Mêmes lois que le bloc sprites : progress = 1−A_gal(a), extinction A_gal², mélange screen, plancher cœur.",
+   "splats": "Par particule : sigma = sz × (résolution/1024) clampé [0.8, 6.0] px (champ 'sz' de particleMeta), amplitude 0.18 + b×0.55, ton 1−exp(−k·champ) avec k auto-calibré (p99.7 du champ non nul -> ton 0.95).",
+   "sprite_halfwidth_mpc": 0.031887,
+   "halo_growth": 2.5,
+   "exposure": "k calibré sur f00 (p99.7 -> 0.95), PARTAGÉ par les 14 frames (continuité de flux)",
+   "used_fade_band_mpc": [
+    0.4,
+    0.6
+   ],
+   "used_fade_comment": "Fondu de ZOOM (pas temporel, §11.3 respecté) entre le sprite 512 cadrage large (halo 7.7 rayons) et le hires (2 rayons) : poids hires = 1−smoothstep(log hw) sur la bande — évite le pop d'étendue visible au swap.",
+   "sprite_halfwidth_units": 2.0
+  }
+ },
+ "galaxy_formation": {
+  "status": "Valeurs conservees de la v3.3 ; le PERIMETRE change avec l'echelle a 15 lignes (30/07) : 7 lignes a sprites au lieu de 3, ancrage sur H→J.",
+  "a_form_sprites": 0.75,
+  "halfwidth_dex": 0.1249,
+  "center_dex": -0.1249,
+  "window_a": [
+   0.5625,
+   1.0
+  ],
+  "drives": "A_sprite(a) pilote : progression et extinction des sprites sur les lignes A→G, et l'amplitude des bosses d'ancrage du catalogue injectees dans δ sur les lignes H→J. L'EMBRASEMENT garde son propre calage (A_gal a_form=0,20, inchange).",
+  "comment": "Même forme de fenêtre (smoothstep en log a) que les layers. Valeur 0.75 ajustable après retour visuel."
+ },
+ "web_ambient": {
+  "status": "À RECALIBRER pour l'échelle à 15 lignes (30/07)",
+  "source_row": "H — première ligne générée. La toile ambiante des lignes à sprites A→G est la texture de H échantillonnée sur la fenêtre courante. Même toile de part et d'autre de l'arête G|H → continuité automatique (A8).",
+  "blend": "screen (§11.3)",
+  "amplitudes": {
+   "A": null,
+   "B": null,
+   "C": null,
+   "D": null,
+   "E": null,
+   "F": null,
+   "G": null
+  },
+  "temporal": "Suit les frames temporelles de la ligne D (même dissolution S(a)) — aucune cuisson propre, échantillonnage à l'affichage.",
+  "amplitudes_status": "À CALIBRER — 7 lignes à sprites au lieu de 3 en v3"
+ },
+ "tone_mapping": {
+  "target_mean_255": [
+   65,
+   70
+  ],
+  "origin": "D-01 du 28/07",
+  "status": "La cible de 38/255 de la v3 est caduque (D-03)",
+  "method": "Gain + gamma appliqués APRÈS la log-normale, avant la normalisation partagée figée. La chute de moyenne vient d'abord de la filamentarité (vides sombres + crêtes fines) ; le mapping ferme le reste de l'écart.",
+  "cascade": "SUPPRIMÉE. Le plancher de ton uniforme de 129,4/255 et le ton dissous partagé produisaient des aplats, contraires à C8."
+ },
+ "prototype_rendering": {
+  "status": "Mips de minification et canvas adaptatif 300/640 : valides, conserves. L'affichage des codes passe de A..M a A..O.",
+  "adaptive_canvas": "300 px pendant la manipulation des curseurs, raffinement à 640 px au repos (la pixelisation de la Voie lactée hires venait du canvas 300, pas des sprites 2048).",
+  "minification": "Moyenne de zone (mip par blocs) quand la fenêtre minifie une texture — sans elle les petits filaments de K/L/M sont avalés par l'échantillonnage ponctuel (M paraissait uniforme/noir).",
+  "ui_nomenclature": "Affichage permanent du code de cellule actif : 'H · 22,6 Mpc · colonne 7' — les codes A..O sont la langue commune des retours."
+ },
+ "generation": {
+  "version": "1.0 — 02/08/2026",
+  "status": "FIGÉ. Toute cuisson doit reproduire ces valeurs à l'identique.",
+  "engine": "scripts/dev/gen_chain.py + scripts/dev/sprites_layer.py",
+  "principle": "Chaîne emboîtée du plus grand au plus petit (§4.4). Chaque ligne hérite du champ passe-bas et du DÉPLACEMENT RÉELLEMENT APPLIQUÉ de sa mère, puis ajoute la bande qu'elle est seule à résoudre. Aucun paramètre ne dépend d'une statistique mesurée sur une image (INV-B1).",
+  "render": {
+   "out_n": 320,
+   "target_mean_255": 68.0,
+   "slab_frac": 0.06,
+   "psf_px": 0.45,
+   "jitter": 0.5,
+   "target_proj": 1600000,
+   "slab_note": "0,06 : porter à 0,15 fait saturer le pic du spectre puis régresser, et multiplie par 2,5 le volume de grille. Voir approches-ecartees."
+  },
+  "raccord": {
+   "k_cut_safety": 1.2,
+   "k_cut": "pi / (k_cut_safety * cellule_parent)",
+   "calibration": {
+    "1.2": "rho 0,960 — retenu",
+    "2.0": "rho 0,919",
+    "1.0": "rho 0,958"
+   },
+   "psi_transmis": "le DÉPLACEMENT APPLIQUÉ (Psi frais + Psi hérité interpolé), filtré à k_cut — jamais un Psi recalculé depuis delta. Corrigé le 02/08 : le recalcul faisait diverger position transmise et position réelle.",
+   "sub_z": 2,
+   "fresh_psi_gain": 1.0,
+   "chunk": 4000000
+  },
+  "champ_fin": {
+   "role": "Module la densité APRÈS le dépôt, donc n'est pas déplacé et ne subit pas le délavage de Zel'dovich. C'est lui qui porte le détail fin (B4).",
+   "a": 1.7,
+   "floor": 0.12,
+   "gamma": 0.45,
+   "lam_hi_px": 40.0,
+   "lam_lo_px": 2.2,
+   "homogeneity_mpc": 300.0,
+   "lam_hi_rule": "min(lam_hi_px, homogeneity_mpc / taille_pixel)",
+   "norm": 33749.463690811,
+   "norm_rule": "constante ABSOLUE, calibrée une fois — jamais f/f.std()",
+   "spectral_slope": -2.2,
+   "modulation": "log-normale : img * exp(A*fine - A^2/2), puis + floor*mean",
+   "inheritance": "recadrage central + agrandissement du champ fin mère, pondéré par la racine des variances THÉORIQUES des deux bandes",
+   "strength": {
+    "A": 1.0,
+    "B": 1.0,
+    "C": 1.0,
+    "D": 1.0,
+    "E": 1.0,
+    "F": 1.0,
+    "G": 1.0,
+    "H": 1.0,
+    "I": 1.0,
+    "J": 1.0,
+    "K": 0.85,
+    "L": 0.75,
+    "M": 0.65,
+    "N": 0.55,
+    "O": 0.45
+   }
+  },
+  "halos": {
+   "frac": 0.25,
+   "profile_q": 0.6,
+   "r_mpc": 2.2,
+   "sub_levels": 2,
+   "sub_frac": 0.3
+  },
+  "ancrage": {
+   "gain": 2235.0,
+   "r_ref_mpc": 0.01,
+   "strength": {
+    "H": 1.0,
+    "I": 0.45,
+    "J": 0.12
+   },
+   "space": "Psi, jamais delta (D6)",
+   "weight": "(radiusMpc / r_ref_mpc)^3 — ABSOLU"
+  },
+  "sprites": {
+   "dir": "app/public/data/dissolution_sprites",
+   "hires_dir": "app/public/data/dissolution_sprites_hires",
+   "hires_below_half_mpc": 0.15,
+   "n_frames": 14,
+   "frame_rule": "round((1 - amp^0.5) * (n_frames - 1)) — f00 formée, f13 dissoute",
+   "extent_r90": {
+    "normal": 0.094,
+    "hires": 0.344
+   },
+   "particle_reach": 1.37,
+   "diam_rule": "2 * (particle_reach * radiusMpc / px) / extent_r90[famille]",
+   "gain": 30.0,
+   "mw_radius_mpc": 0.016,
+   "mw_note": "la Voie lactée est ABSENTE du catalogue : ajoutée en tête",
+   "files": {
+    "Voie lactée": "milkyway",
+    "Andromède (M31)": "andromede",
+    "Triangulum (M33)": "triangulum",
+    "Grand Nuage de Magellan": "lmc",
+    "Petit Nuage de Magellan": "smc",
+    "Naine du Sagittaire": "sagittaire",
+    "NGC 6822": "ngc6822",
+    "IC 10": "ic10",
+    "Leo I": "leo1"
+   },
+   "ambient_strength": {
+    "G": 1.0,
+    "F": 1.0,
+    "E": 0.75,
+    "D": 0.45,
+    "C": 0.25,
+    "B": 0.12,
+    "A": 0.06
+   },
+   "procedural": {
+    "spread": "amp^-0.35",
+    "brightness": "amp^1.2",
+    "profile": "exp(-r^1.4)",
+    "gain": 3.5
+   }
+  },
+  "seeds": {
+   "O": 23,
+   "N": 19,
+   "M": 17,
+   "L": 13,
+   "K": 11,
+   "J": 7,
+   "I": 5,
+   "H": 3
+  },
+  "seeds_sprites": {
+   "G": 101,
+   "F": 103,
+   "E": 107,
+   "D": 109,
+   "C": 113,
+   "B": 127,
+   "A": 131
+  },
+  "seed_rule": "verre = seed+7, champ fin = seed+4242, rendu = seed+991, halos = seed+7. Reproductibilité bit-à-bit."
+ }
+}

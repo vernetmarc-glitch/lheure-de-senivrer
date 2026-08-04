@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { densityDilutionFactor, type CosmologyState } from './cosmology'
 import DensityLayer from './DensityLayer'
 import RealGalaxiesLayer from './RealGalaxiesLayer'
+import { USE_V4 } from './layersV4'
 import { type DensityStyle } from './colormaps'
 import InfoModal from './InfoModal'
 
@@ -232,13 +233,17 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
             height={pixelHeight}
             onLoadProgress={(loaded, total) => setLoadProgress({ loaded, total })}
           />
-          <RealGalaxiesLayer
-            style={DENSITY_STYLE}
-            opacity={DENSITY_PRESENCE}
-            halfWidthMpc={halfWidthMpc}
-            width={pixelWidth}
-            height={pixelHeight}
-          />
+          {/* Essai V4 : les galaxies sont deja composees dans les textures,
+              cette couche en direct ferait doublon. */}
+          {!USE_V4 && (
+            <RealGalaxiesLayer
+              style={DENSITY_STYLE}
+              opacity={DENSITY_PRESENCE}
+              halfWidthMpc={halfWidthMpc}
+              width={pixelWidth}
+              height={pixelHeight}
+            />
+          )}
           <canvas
             ref={gridCanvasRef}
             width={Math.round(pixelWidth)}
