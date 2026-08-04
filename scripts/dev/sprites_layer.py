@@ -49,6 +49,28 @@ N_FRAMES = 14
 # Rayons physiques, en Mpc. Valeurs ABSOLUES (INV-B1) : aucune ne depend du
 # catalogue ni de l'image courante.
 MW_RADIUS_MPC = 0.016
+
+# Etendue effective des vignettes, mesuree le 02/08 sur les frames f00 : rayon
+# contenant 90 % du flux, en fraction du demi-cote.
+#
+# Les deux familles de sprites N'ONT PAS la meme echelle interne : 0,094 pour les
+# vignettes 512, 0,344 pour la Voie lactee en 2048. Appliquer le meme facteur aux
+# deux rendait la galaxie 3,7 fois trop petite sur les lignes servies par la
+# vignette normale -- l'incoherence de taille signalee par Marc entre C/D et B/A.
+#
+# Le facteur est fige sur f00 et NE VARIE PAS avec la frame : c'est ainsi que
+# l'etalement du sprite pendant la dissolution reste visible (C1).
+SPRITE_EXTENT = {"normal": 0.094, "hires": 0.344}
+PARTICLE_REACH = 1.37     # etendue des particules, en unites de rayon galactique
+                          # (mesure : max|x| = 71 235 ly pour mwRadius = 52 000)
+
+# Attenuation du fond ambiant sur les lignes basses. Arbitrage de Marc du 02/08 :
+# « le fond genere est beaucoup trop lumineux sur les layers A a D, on n'arrive
+# pas a distinguer les galaxies du Groupe Local ». En descendant vers A, la toile
+# cosmique n'a plus de sens physique -- a 0,035 Mpc on est DANS une galaxie. Le
+# fond s'efface donc au profit des objets, ce qui sert aussi A8.
+AMBIENT_STRENGTH = {"G": 1.0, "F": 1.0, "E": 0.75, "D": 0.45,
+                    "C": 0.25, "B": 0.12, "A": 0.06}
 SPRITE_FILE = {
     "Voie lactée": "milkyway", "Andromède (M31)": "andromede",
     "Triangulum (M33)": "triangulum", "Grand Nuage de Magellan": "lmc",
@@ -105,8 +127,14 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
     """
     n = G.OUT_N
     px = 2.0 * half / n
+    w_amb = AMBIENT_STRENGTH.get(code, 1.0)
     img, gm = G.apply_fine(np.maximum(base_img, 1e-6), code, fine)
     mean0 = float(img.mean())
+    if w_amb < 1.0:
+        # Le fond s'efface vers un plancher uniforme ; seules subsistent ses
+        # zones les plus denses, qui entourent les galaxies. Operateur
+        # PONCTUEL (aucun filtre spatial en aval du generateur).
+        img = mean0 * (1.0 - w_amb) * 0.25 + img * w_amb
 
     with open(CATALOG) as fh:
         gals = json.load(fh)
@@ -124,14 +152,18 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
         key = SPRITE_FILE.get(g["name"])
         if key:
             # Sprite N-corps : il porte deja sa propre dissolution.
-            sp = load_sprite(key, amp, hires=(key == "milkyway" and half < 0.15))
+            hires = (key == "milkyway" and half < 0.15)
+            sp = load_sprite(key, amp, hires=hires)
             if sp is not None:
+                frac = SPRITE_EXTENT["hires" if hires else "normal"]
                 # Gain 30 calibre le 02/08 : la courbe de ton a gamma 0,45 comprime fortement
                 # les hautes valeurs, un gain de 6 y disparaissait (pic local 170
                 # contre 170 pour le fond seul). A 30 : 246 aujourd hui, 168 a la
                 # dissolution totale, saturation 0,05 %.
-                # le sprite couvre ~4 rayons de galaxie dans sa vignette
-                d_px = 8.0 * g["radiusMpc"] / px
+                # Diametre de la vignette tel que le rayon a 90 % du flux tombe
+                # sur PARTICLE_REACH rayons galactiques -- independant de la
+                # famille de sprite, donc taille coherente d'une ligne a l'autre.
+                d_px = 2.0 * (PARTICLE_REACH * g["radiusMpc"] / px) / frac
                 if _paste(img, sp, cx, cy, d_px, mean0 * 30.0 * g["brightness"]):
                     n_real += 1
                     continue
