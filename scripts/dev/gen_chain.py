@@ -736,6 +736,43 @@ def _calib_fine_norm():
     FINE_NORM = 1.0 / float(f.std())
 
 
+def render_full(L, seed, margin=1.5):
+    """Texture de PRODUCTION : couvre +/- half*margin, pas seulement +/- half.
+
+    L'application recadre rectangulairement pour remplir l'ecran sans
+    deformation (DensityLayer.tsx, MARGIN_FACTOR) : une texture limitee au champ
+    nominal produirait des bandes noires sur les ecrans allonges.
+
+    La taille de sortie suit la marge, `OUT_N * margin`, de sorte que l'echelle
+    Mpc/pixel soit INCHANGEE. C'est ce qui permet de reutiliser tel quel le champ
+    fin, dont les longueurs d'onde sont en pixels : elles gardent exactement la
+    meme signification physique.
+    """
+    n = int(round(OUT_N * margin))
+    ext = L.half * margin
+    slab = SLAB_FRAC * 2 * L.half
+    rng = np.random.default_rng(seed + 991)
+    img = np.zeros((n, n), np.float32)
+    web = L.web
+    base = ((np.abs(web[:, 2]) < slab / 2).mean() * 1.0) or 1.0
+    rep = int(np.clip(round(TARGET_PROJ * margin ** 2 / max(len(web) * base * 0.9, 1)), 1, 20))
+    for k in range(rep):
+        p = web if k == 0 else web + (rng.random(web.shape).astype(np.float32) - 0.5) * L.cell
+        m = ((np.abs(p[:, 2]) < slab / 2) & (np.abs(p[:, 0]) < ext) & (np.abs(p[:, 1]) < ext))
+        q = p[m]
+        ix = np.clip(((q[:, 0] + ext) / (2 * ext) * n).astype(np.int32), 0, n - 1)
+        iy = np.clip(((q[:, 1] + ext) / (2 * ext) * n).astype(np.int32), 0, n - 1)
+        np.add.at(img, (ix, iy), np.float32(1.0))
+        del p, q
+    img = ndimage.gaussian_filter(img, PSF_PX)
+    fine = fine_for(L.code, 4242 + seed, None, None, half=L.half * margin)
+    if fine.shape[0] != n:
+        fine = ndimage.zoom(fine, n / fine.shape[0], order=1)
+    img, gm = apply_fine(img, L.code, fine)
+    a = M.solve_alpha(img, TARGET_MEAN, gamma=gm)
+    return M.tone(img, a, gamma=gm)
+
+
 def render(L, seed):
     slab = SLAB_FRAC * 2 * L.half
     rng = np.random.default_rng(seed + 991)

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { type DensityStyle } from './colormaps'
 import { getLayerWeights } from './layerWeights'
 import { processDensityField, getStyleParamsForLayer } from './densityStyle'
+import { USE_V4, V4_ORDER, V4_HALF_MPC, V4_MARGIN, V4_TEXTURE, getV4Weights } from './layersV4'
 
 // Marge de génération des textures (cf. scripts/generate_layers.py et
 // generate_local_group_texture.py) : chaque texture couvre en réalité
@@ -14,11 +15,30 @@ const MARGIN_FACTOR = 1.5
 // écrans très allongés. Cf. scripts/generate_layers.py : MARGIN_FACTOR_L5.
 const MARGIN_FACTOR_L5 = 2.4
 function marginFor(key: string): number {
+  // Essai V4 : marge uniforme, aucune exception par layer.
+  if (USE_V4) return V4_MARGIN
   return key === 'l5' ? MARGIN_FACTOR_L5 : MARGIN_FACTOR
 }
 
+// Liste active — V4 uniquement si la bascule est armée, sinon la production
+// intacte. Aucune valeur de l'échelle historique n'est modifiée.
+const V4_LAYERS: ProceduralLayer[] = V4_ORDER.map(
+  (k) => ({ key: k, maxMpc: V4_HALF_MPC[k] }) as unknown as ProceduralLayer
+)
+function activeLayers(): ProceduralLayer[] {
+  return USE_V4 ? V4_LAYERS : PROCEDURAL_LAYERS
+}
+function textureUrl(key: string): string {
+  return USE_V4
+    ? `${import.meta.env.BASE_URL}${V4_TEXTURE(key as never)}`
+    : `${import.meta.env.BASE_URL}data/density_${key}.png`
+}
+function weightsFor(halfWidthMpc: number): Record<string, number> {
+  return USE_V4 ? getV4Weights(halfWidthMpc) : getLayerWeights(halfWidthMpc)
+}
+
 interface ProceduralLayer {
-  key: 'milkyway' | 'localgroup' | 'l1b' | 'l2' | 'l2b' | 'l3' | 'l3b' | 'l4' | 'l4a' | 'l4b' | 'l5a' | 'l5'
+  key: string
   maxMpc: number
 }
 
@@ -103,7 +123,7 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
   // d'abord (avec un indice fetchPriority='high'), et en ne déclenchant
   // les 11 autres qu'une fois celle-ci arrivée.
   useEffect(() => {
-    const ordered = [...PROCEDURAL_LAYERS].sort(
+    const ordered = [...activeLayers()].sort(
       (a, b) => Math.abs(Math.log(halfWidthMpc / a.maxMpc)) - Math.abs(Math.log(halfWidthMpc / b.maxMpc))
     )
 
@@ -113,7 +133,7 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
       // selon la version de TS/lib — cast défensif, propriété bien
       // supportée par les moteurs de rendu principaux.
       ;(img as unknown as { fetchPriority: string }).fetchPriority = priority
-      img.src = `${import.meta.env.BASE_URL}data/density_${layer.key}.png`
+      img.src = textureUrl(layer.key)
       img.onload = () => {
         const off = document.createElement('canvas')
         off.width = img.naturalWidth
@@ -125,7 +145,7 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
         recolorLayer(layer.key)
         draw()
         loadedCountRef.current += 1
-        onLoadProgress?.(loadedCountRef.current, PROCEDURAL_LAYERS.length)
+        onLoadProgress?.(loadedCountRef.current, activeLayers().length)
       }
       return img
     }
@@ -166,7 +186,7 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
   }
 
   function recolorAll() {
-    PROCEDURAL_LAYERS.forEach((layer) => recolorLayer(layer.key))
+    activeLayers().forEach((layer) => recolorLayer(layer.key))
   }
 
   function draw() {
@@ -179,7 +199,7 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
     const H = outCanvas.height
     ctx.clearRect(0, 0, W, H)
 
-    const weights = getLayerWeights(halfWidthMpc)
+    const weights = weightsFor(halfWidthMpc)
     const shortSide = Math.min(W, H)
     // Demi-largeur physique (Mpc) couverte par chaque axe de l'écran — basée
     // sur le côté le plus court pour que "halfWidthMpc" garde son sens de
@@ -189,8 +209,8 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
 
     // Ordre du plus grand (coarse) au plus petit (fin) — cohérent avec la
     // construction emboîtée des textures (§4.4 du document d'architecture).
-    for (let i = PROCEDURAL_LAYERS.length - 1; i >= 0; i--) {
-      const layer = PROCEDURAL_LAYERS[i]
+    for (let i = activeLayers().length - 1; i >= 0; i--) {
+      const layer = activeLayers()[i]
       const w = weights[layer.key]
       if (w < 0.003) continue
       const source = colorizedRef.current[layer.key]
