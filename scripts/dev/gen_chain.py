@@ -85,6 +85,22 @@ FINE_A = 1.7                # amplitude de la modulation log-normale
 FINE_FLOOR = 0.12           # fond diffus, en fraction de la moyenne
 FINE_GAMMA = 0.45           # compression du ton (sinon 4,3 % de blanc pur)
 FINE_LAM_HI_PX = 40.0       # bande du champ fin : 40 px -> Nyquist
+HOMOGENEITY_MPC = 300.0
+# Borne PHYSIQUE de la plus grande structure representable (B8 : le passage a
+# l'homogeneite se situe entre 100 et 300 Mpc). Ajoutee le 02/08 sur constat de
+# Marc : « sur le layer O je vois encore beaucoup de structures de grande
+# echelle ».
+#
+# Le champ fin etait defini en PIXELS : ses 40 px valaient 3 642 Mpc a la ligne
+# O, soit douze fois l'echelle d'homogeneite. On fabriquait des structures qui
+# n'existent pas.
+#
+# La bande est desormais bornee par la physique. Propriete utile : l'heritage
+# suffit ensuite a propager la loi. La ligne O porte [300 Mpc, sa resolution] ;
+# l'enfant herite de cette bande AGRANDIE de x2,520 et n'ajoute que sous sa
+# propre limite -- il porte donc lui aussi [300 Mpc, sa resolution]. Chaque
+# ligne montre exactement les echelles ou l'univers a des structures, et rien
+# au-dela.
 FINE_LAM_LO_PX = 2.2
 FINE_NORM = 0.0             # calibre au premier appel pour var(champ complet)=1
 
@@ -453,7 +469,7 @@ def bake_layer(code, half, margin, seed, parent=None):
     _calib_fine_norm()
     L.fine = fine_for(code, seed + 4242,
                       None if parent is None else getattr(parent, "fine", None),
-                      None if parent is None else parent.half / half)
+                      None if parent is None else parent.half / half, half=half)
     L.delta, L.delta_lo, L.psi_lo, L.k_cut = delta, delta_lo, psi_lo, k_cut
     L.psi_rms = float(np.sqrt(ss / nQ))
     L.std_delta = float(delta.std())
@@ -596,7 +612,13 @@ def fine_weights(ratio):
     return np.sqrt(vh / t), np.sqrt(vf / t)
 
 
-def fine_for(code, seed, fine_parent=None, ratio=None):
+def fine_lam_hi(half):
+    """Plus grande longueur d'onde du champ fin, en pixels, bornee par B8."""
+    px = 2.0 * half / OUT_N
+    return float(min(FINE_LAM_HI_PX, max(HOMOGENEITY_MPC / px, 2.6)))
+
+
+def fine_for(code, seed, fine_parent=None, ratio=None, half=None):
     """Champ fin d'une ligne : part heritee + bande fraiche a SA resolution.
 
     Le parent resout jusqu'a FINE_LAM_LO_PX de SA grille ; agrandi d'un facteur
@@ -605,7 +627,16 @@ def fine_for(code, seed, fine_parent=None, ratio=None):
     Aucun double comptage, et la bande commune est heritee a l'identique.
     """
     if fine_parent is None:
-        return fine_fresh(seed, FINE_LAM_HI_PX, FINE_LAM_LO_PX)
+        # La bande de la ligne racine est bornee par l'homogeneite, donc plus
+        # etroite que la bande nominale : sans compensation elle porte moins de
+        # variance et la ligne parait fade (std 7,1 contre 21,3 mesures le
+        # 02/08). On renormalise par le rapport des variances THEORIQUES des deux
+        # bandes -- grandeur analytique, aucune statistique mesuree.
+        lam = fine_lam_hi(half)
+        f = fine_fresh(seed, lam, FINE_LAM_LO_PX)
+        k = np.sqrt(_fine_band_var(FINE_LAM_HI_PX, FINE_LAM_LO_PX)
+                    / max(_fine_band_var(lam, FINE_LAM_LO_PX), 1e-12))
+        return (f * np.float32(k)).astype(np.float32)
     wh, wf = fine_weights(ratio)
     fresh = fine_fresh(seed, ratio * FINE_LAM_LO_PX, FINE_LAM_LO_PX)
     fresh = fresh / np.sqrt(_fine_band_var(ratio * FINE_LAM_LO_PX, FINE_LAM_LO_PX)
