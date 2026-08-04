@@ -46,6 +46,15 @@ import mcpm_web as M
 import norm_abs as NA
 import slab_test as ST
 
+# ---------------------------------------------------------------------------
+# LES PARAMETRES CI-DESSOUS SONT LUS DEPUIS LA SOURCE DE VERITE.
+#
+# `app/public/data/spacetime_matrix.json`, bloc `generation`, est la reference :
+# editer ici ne sert a rien, le chargement ci-dessous ecrase les valeurs. Les
+# constantes restent ecrites en clair pour que le module soit lisible seul et
+# qu'un defaut de chargement ne passe pas inapercu -- elles doivent rester
+# identiques au JSON, ce que INV-G2 verifie.
+# ---------------------------------------------------------------------------
 OUT_N = 320
 TARGET_MEAN = 68.0
 SLAB_FRAC = 0.06
@@ -228,6 +237,50 @@ def anchor_psi(code, shape, box, cell):
     rho = np.zeros(shape, np.float32)
     np.add.at(rho, (ix[keep], iy[keep], iz[keep]), (w[keep] * ANCHOR_GAIN).astype(np.float32))
     return psi_band(rho, box, 0.0, 2 * np.pi / (2 * cell)) * np.float32(w0), int(keep.sum())
+
+
+# ------------------------------------------------- chargement des parametres
+MATRIX_PATH = os.path.normpath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "app", "public", "data", "spacetime_matrix.json"))
+
+
+def load_params(path=None):
+    """Charge le bloc `generation` de la matrice dans les globales du module.
+
+    Appele a l'import. Sans cela le JSON serait de la documentation morte : le
+    code garderait ses propres valeurs et la source de verite mentirait.
+    """
+    g = globals()
+    try:
+        with open(path or MATRIX_PATH) as fh:
+            gen = json.load(fh)["generation"]
+    except (OSError, KeyError):
+        return False
+    r, ra, cf = gen["render"], gen["raccord"], gen["champ_fin"]
+    g.update(
+        OUT_N=r["out_n"], TARGET_MEAN=r["target_mean_255"],
+        SLAB_FRAC=r["slab_frac"], PSF_PX=r["psf_px"], JITTER=r["jitter"],
+        TARGET_PROJ=r["target_proj"],
+        K_CUT_SAFETY=ra["k_cut_safety"], SUB_Z=ra["sub_z"],
+        FRESH_PSI_GAIN=ra["fresh_psi_gain"], CHUNK=ra["chunk"],
+        FINE_A=cf["a"], FINE_FLOOR=cf["floor"], FINE_GAMMA=cf["gamma"],
+        FINE_LAM_HI_PX=cf["lam_hi_px"], FINE_LAM_LO_PX=cf["lam_lo_px"],
+        HOMOGENEITY_MPC=cf["homogeneity_mpc"], FINE_STRENGTH=cf["strength"],
+        HALO_FRAC=gen["halos"]["frac"], PROFILE_Q=gen["halos"]["profile_q"],
+        R_HALO_MPC=gen["halos"]["r_mpc"], SUB_LEVELS=gen["halos"]["sub_levels"],
+        SUB_FRAC=gen["halos"]["sub_frac"],
+        ANCHOR_GAIN=gen["ancrage"]["gain"], R_REF_MPC=gen["ancrage"]["r_ref_mpc"],
+        ANCHOR_STRENGTH=gen["ancrage"]["strength"],
+    )
+    rows = json.load(open(path or MATRIX_PATH))["zoom_axis"]["rows"]
+    seeds = gen["seeds"]
+    g["CHAIN"] = [(c, rows[c]["halfwidth_mpc"], rows[c]["margin_factor"], seeds[c])
+                  for c in sorted(seeds, reverse=True) if c in rows]
+    return True
+
+
+PARAMS_LOADED = load_params()
 
 
 # ---------------------------------------------------------------- geometrie

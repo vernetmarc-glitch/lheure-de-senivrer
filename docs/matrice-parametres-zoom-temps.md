@@ -153,7 +153,78 @@ aucune cellule n'était modifiable isolément.
 communes**, jamais un axe du temps privé. Une ligne dont l'amplitude est quasi
 nulle à la colonne 2 rend un champ *uniforme mais grainé* (C8) — pas un aplat.
 
-## 7. Valeurs restant à calibrer
+## 7. Chaîne de génération — FIGÉE le 02/08/2026
+
+**Reproductibilité.** Tous les paramètres vivent dans le bloc `generation` de
+`spacetime_matrix.json`, et le générateur les **lit** au chargement. Éditer les
+constantes du code ne sert à rien : elles sont écrasées. `INV-G2` vérifie que le
+chargement a lieu et que code et JSON coïncident — une source de vérité que le
+code n'ouvre pas est de la documentation morte.
+
+Vérifié : deux cuissons successives et l'actif de référence donnent le même
+SHA-256. La cuisson est reproductible **bit à bit**.
+
+### Ordre des opérations, par ligne
+
+1. **Géométrie** — dalle anisotrope, cellule = pixel de sortie, épaisseur
+   `slab_frac` + marge de déplacement propre à la boîte.
+2. **Champ** — `δ` frais à normalisation absolue σ₈ ; la part sous `k_cut` de la
+   mère est **interpolée**, jamais recalculée par FFT.
+3. **Déplacement** — `Ψ = i k δ / k²` sur la seule bande fraîche, plus `Ψ` de la
+   mère interpolé. Chaque boîte ne subit de FFT que là où elle est périodique.
+4. **Ancrage** (D6) — déplacement attractif vers les positions du catalogue,
+   ajouté à `Ψ`, jamais à `δ`.
+5. **Transmission** — la ligne transmet le **déplacement réellement appliqué**,
+   filtré à `k_cut`. Jamais un `Ψ` recalculé depuis `δ`.
+6. **Particules** — verre lagrangien raffiné `sub_z` fois en z, advecté.
+7. **Halos** — 25 % des particules redistribuées, appariées sur le réseau de base
+   aux **positions lagrangiennes**.
+8. **Projection** — dépôt des positions continues, PSF, réplications.
+9. **Champ fin** — modulation log-normale **après** le dépôt, donc non déplacée
+   et non délavée. Hérité par recadrage-agrandissement de la mère.
+10. **Ton** — `solve_alpha` vers 68/255, gamma 0,45.
+
+### Les trois règles qui rendent la chaîne reproductible
+
+- **Aucune grandeur ne vient d'une statistique mesurée.** Amplitudes, poids et
+  normalisations sont des constantes ou des intégrales analytiques du spectre.
+  C'est INV-B1, et c'est ce qui garantit qu'ajouter un objet n'en déplace aucun
+  autre.
+- **Les germes sont dérivés du germe de ligne** : verre `+7`, champ fin `+4242`,
+  rendu `+991`. Une ligne se recuit seule, sans rejouer la chaîne.
+- **Toute grandeur spatiale est en Mpc**, jamais en pixels — sauf les grandeurs
+  dont le pixel est l'unité native, listées dans `generation.render`.
+
+### Bornes physiques
+
+| Grandeur | Valeur | Origine |
+|---|---|---|
+| Bande du champ fin | `min(40 px, 300 Mpc / pixel)` | B8 — passage à l'homogénéité |
+| Rayon de halo | 2,2 Mpc | rayon viriel d'un amas |
+| Ancrage | `H` 1,00 · `I` 0,45 · `J` 0,12 · nul au-delà | D4 |
+| Sprites | 9 galaxies × 14 frames, `f00` formée → `f13` dissoute | C1, C5 |
+| Fond ambiant | `E` 0,75 → `A` 0,06 | à 0,035 Mpc on est *dans* une galaxie |
+
+### Lois temporelles
+
+Toute composante décroît avec l'amplitude de structure de la colonne, afin que
+la dissolution soit possible partout :
+
+| Composante | Loi | Exigence |
+|---|---|---|
+| Sprite N-corps | frame `round((1−amp^0,5) × 13)` | C1, C5 |
+| Rayon procédural | `amp^−0,35` | C1, C2 |
+| Éclat procédural | `amp^1,2` | C2, C5 |
+| Champ fin | `amp^0,6` avec plancher | C8 sans violer C4 |
+
+Le plancher du champ fin est ce qui donne **C8** — grain jusqu'au bout, jamais un
+aplat — sans violer **C4** : l'amplitude décroît toujours, elle ne fait que ne
+pas s'annuler. Une amplitude constante ferait croître sa part relative pendant la
+dissolution et les petites structures coloniseraient l'image.
+
+---
+
+## 8. Valeurs restant à calibrer
 
 Explicitement marquées `À CALIBRER` dans le JSON. Elles ne doivent pas être
 inventées : chacune sort d'une mesure headless.

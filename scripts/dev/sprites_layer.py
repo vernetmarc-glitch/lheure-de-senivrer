@@ -40,7 +40,20 @@ SPRITE_DIR = os.path.normpath(os.path.join(DATA, "dissolution_sprites"))
 SPRITE_HIRES = os.path.normpath(os.path.join(DATA, "dissolution_sprites_hires"))
 CATALOG = os.path.normpath(os.path.join(DATA, "local_group_catalog.json"))
 
-N_FRAMES = 14
+# Parametres lus depuis la source de verite, bloc `generation.sprites`.
+def _load():
+    import json
+    try:
+        with open(G.MATRIX_PATH) as fh:
+            sp = json.load(fh)["generation"]["sprites"]
+    except (OSError, KeyError):
+        return {}
+    return sp
+
+
+_SP = _load()
+
+N_FRAMES = _SP.get("n_frames", 14)
 # f00 = galaxie formee (rayon median 12 px), f13 = dissoute (92 px).
 # Mesure du 02/08 : l'ecart-type passe de 12,1 a 3,0 pendant que le rayon
 # septuple -- la galaxie s'etale ET palit, C1 et C2 sont donc portees par les
@@ -48,7 +61,7 @@ N_FRAMES = 14
 
 # Rayons physiques, en Mpc. Valeurs ABSOLUES (INV-B1) : aucune ne depend du
 # catalogue ni de l'image courante.
-MW_RADIUS_MPC = 0.016
+MW_RADIUS_MPC = _SP.get("mw_radius_mpc", 0.016)
 
 # Etendue effective des vignettes, mesuree le 02/08 sur les frames f00 : rayon
 # contenant 90 % du flux, en fraction du demi-cote.
@@ -60,8 +73,8 @@ MW_RADIUS_MPC = 0.016
 #
 # Le facteur est fige sur f00 et NE VARIE PAS avec la frame : c'est ainsi que
 # l'etalement du sprite pendant la dissolution reste visible (C1).
-SPRITE_EXTENT = {"normal": 0.094, "hires": 0.344}
-PARTICLE_REACH = 1.37     # etendue des particules, en unites de rayon galactique
+SPRITE_EXTENT = _SP.get("extent_r90", {"normal": 0.094, "hires": 0.344})
+PARTICLE_REACH = _SP.get("particle_reach", 1.37)  # etendue des particules, en unites de rayon galactique
                           # (mesure : max|x| = 71 235 ly pour mwRadius = 52 000)
 
 # Attenuation du fond ambiant sur les lignes basses. Arbitrage de Marc du 02/08 :
@@ -69,8 +82,11 @@ PARTICLE_REACH = 1.37     # etendue des particules, en unites de rayon galactiqu
 # pas a distinguer les galaxies du Groupe Local ». En descendant vers A, la toile
 # cosmique n'a plus de sens physique -- a 0,035 Mpc on est DANS une galaxie. Le
 # fond s'efface donc au profit des objets, ce qui sert aussi A8.
-AMBIENT_STRENGTH = {"G": 1.0, "F": 1.0, "E": 0.75, "D": 0.45,
-                    "C": 0.25, "B": 0.12, "A": 0.06}
+AMBIENT_STRENGTH = _SP.get("ambient_strength", {"G": 1.0, "F": 1.0, "E": 0.75,
+                                                "D": 0.45, "C": 0.25, "B": 0.12,
+                                                "A": 0.06})
+SPRITE_GAIN = _SP.get("gain", 30.0)
+HIRES_BELOW = _SP.get("hires_below_half_mpc", 0.15)
 SPRITE_FILE = {
     "Voie lactée": "milkyway", "Andromède (M31)": "andromede",
     "Triangulum (M33)": "triangulum", "Grand Nuage de Magellan": "lmc",
@@ -152,7 +168,7 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
         key = SPRITE_FILE.get(g["name"])
         if key:
             # Sprite N-corps : il porte deja sa propre dissolution.
-            hires = (key == "milkyway" and half < 0.15)
+            hires = (key == "milkyway" and half < HIRES_BELOW)
             sp = load_sprite(key, amp, hires=hires)
             if sp is not None:
                 frac = SPRITE_EXTENT["hires" if hires else "normal"]
@@ -164,7 +180,7 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
                 # sur PARTICLE_REACH rayons galactiques -- independant de la
                 # famille de sprite, donc taille coherente d'une ligne a l'autre.
                 d_px = 2.0 * (PARTICLE_REACH * g["radiusMpc"] / px) / frac
-                if _paste(img, sp, cx, cy, d_px, mean0 * 30.0 * g["brightness"]):
+                if _paste(img, sp, cx, cy, d_px, mean0 * SPRITE_GAIN * g["brightness"]):
                     n_real += 1
                     continue
         # Galaxie procedurale : elle s'etale et palit avec l'amplitude, comme

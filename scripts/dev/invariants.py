@@ -650,6 +650,47 @@ def F5_halo_coherence(tol_px=1.5):
                  "coherence des halos entre lignes voisines (a cuire)", "")
 
 
+def G2_code_reads_matrix():
+    """Le generateur LIT la matrice au lieu de porter ses propres valeurs.
+
+    Origine : 02/08/2026, exigence de reproductibilite posee par Marc -- « il
+    faut que tu sois capable de refaire a l'identique l'ensemble de ces layers a
+    l'avenir ». Une source de verite que le code n'ouvre pas est de la
+    documentation morte : elle derive en silence.
+
+    Ce controle verifie que le chargement a lieu ET que les constantes ecrites en
+    clair dans le module coincident avec le JSON. Si l'un des deux bouge sans
+    l'autre, la cuisson cesse d'etre reproductible.
+    """
+    import sys
+    sys.path.insert(0, os.path.join(REPO, "scripts", "dev"))
+    try:
+        import gen_chain as GC
+    except Exception as e:
+        return check(False, "INV-G2", "le generateur lit la matrice", str(e)[:60])
+    if not getattr(GC, "PARAMS_LOADED", False):
+        return check(False, "INV-G2", "le generateur lit la matrice",
+                     "chargement echoue")
+    gen = _matrix().get("generation")
+    if not gen:
+        return check(False, "INV-G2", "le generateur lit la matrice",
+                     "bloc generation absent du JSON")
+    bad = []
+    for attr, val in (("OUT_N", gen["render"]["out_n"]),
+                      ("TARGET_MEAN", gen["render"]["target_mean_255"]),
+                      ("SLAB_FRAC", gen["render"]["slab_frac"]),
+                      ("K_CUT_SAFETY", gen["raccord"]["k_cut_safety"]),
+                      ("SUB_Z", gen["raccord"]["sub_z"]),
+                      ("FINE_A", gen["champ_fin"]["a"]),
+                      ("HOMOGENEITY_MPC", gen["champ_fin"]["homogeneity_mpc"]),
+                      ("HALO_FRAC", gen["halos"]["frac"])):
+        if abs(float(getattr(GC, attr)) - float(val)) > 1e-9:
+            bad.append(f"{attr}={getattr(GC, attr)} vs {val}")
+    return check(not bad, "INV-G2",
+                 "le generateur lit la matrice et lui est conforme",
+                 " | ".join(bad))
+
+
 # ===========================================================================
 def report():
     print(f"\n{'='*72}\n{len(PASSED)} passes, {len(FAILED)} echecs")
@@ -677,6 +718,7 @@ if __name__ == "__main__":
     if "--grid" in args or not args:
         print("— grille de la matrice —")
         H1_ladder_geometric(); H2_band_never_empty(); H3_no_pixel_units_in_matrix()
+        G2_code_reads_matrix()
         F5_halo_coherence()
         H7_particles_in_zoom_window()
     if "--assets" in args:

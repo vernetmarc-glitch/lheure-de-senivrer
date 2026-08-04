@@ -677,5 +677,145 @@
   "adaptive_canvas": "300 px pendant la manipulation des curseurs, raffinement à 640 px au repos (la pixelisation de la Voie lactée hires venait du canvas 300, pas des sprites 2048).",
   "minification": "Moyenne de zone (mip par blocs) quand la fenêtre minifie une texture — sans elle les petits filaments de K/L/M sont avalés par l'échantillonnage ponctuel (M paraissait uniforme/noir).",
   "ui_nomenclature": "Affichage permanent du code de cellule actif : 'H · 22,6 Mpc · colonne 7' — les codes A..O sont la langue commune des retours."
+ },
+ "generation": {
+  "version": "1.0 — 02/08/2026",
+  "status": "FIGÉ. Toute cuisson doit reproduire ces valeurs à l'identique.",
+  "engine": "scripts/dev/gen_chain.py + scripts/dev/sprites_layer.py",
+  "principle": "Chaîne emboîtée du plus grand au plus petit (§4.4). Chaque ligne hérite du champ passe-bas et du DÉPLACEMENT RÉELLEMENT APPLIQUÉ de sa mère, puis ajoute la bande qu'elle est seule à résoudre. Aucun paramètre ne dépend d'une statistique mesurée sur une image (INV-B1).",
+  "render": {
+   "out_n": 320,
+   "target_mean_255": 68.0,
+   "slab_frac": 0.06,
+   "psf_px": 0.45,
+   "jitter": 0.5,
+   "target_proj": 1600000,
+   "slab_note": "0,06 : porter à 0,15 fait saturer le pic du spectre puis régresser, et multiplie par 2,5 le volume de grille. Voir approches-ecartees."
+  },
+  "raccord": {
+   "k_cut_safety": 1.2,
+   "k_cut": "pi / (k_cut_safety * cellule_parent)",
+   "calibration": {
+    "1.2": "rho 0,960 — retenu",
+    "2.0": "rho 0,919",
+    "1.0": "rho 0,958"
+   },
+   "psi_transmis": "le DÉPLACEMENT APPLIQUÉ (Psi frais + Psi hérité interpolé), filtré à k_cut — jamais un Psi recalculé depuis delta. Corrigé le 02/08 : le recalcul faisait diverger position transmise et position réelle.",
+   "sub_z": 2,
+   "fresh_psi_gain": 1.0,
+   "chunk": 4000000
+  },
+  "champ_fin": {
+   "role": "Module la densité APRÈS le dépôt, donc n'est pas déplacé et ne subit pas le délavage de Zel'dovich. C'est lui qui porte le détail fin (B4).",
+   "a": 1.7,
+   "floor": 0.12,
+   "gamma": 0.45,
+   "lam_hi_px": 40.0,
+   "lam_lo_px": 2.2,
+   "homogeneity_mpc": 300.0,
+   "lam_hi_rule": "min(lam_hi_px, homogeneity_mpc / taille_pixel)",
+   "norm": 33749.463690811,
+   "norm_rule": "constante ABSOLUE, calibrée une fois — jamais f/f.std()",
+   "spectral_slope": -2.2,
+   "modulation": "log-normale : img * exp(A*fine - A^2/2), puis + floor*mean",
+   "inheritance": "recadrage central + agrandissement du champ fin mère, pondéré par la racine des variances THÉORIQUES des deux bandes",
+   "strength": {
+    "A": 1.0,
+    "B": 1.0,
+    "C": 1.0,
+    "D": 1.0,
+    "E": 1.0,
+    "F": 1.0,
+    "G": 1.0,
+    "H": 1.0,
+    "I": 1.0,
+    "J": 1.0,
+    "K": 0.85,
+    "L": 0.75,
+    "M": 0.65,
+    "N": 0.55,
+    "O": 0.45
+   }
+  },
+  "halos": {
+   "frac": 0.25,
+   "profile_q": 0.6,
+   "r_mpc": 2.2,
+   "sub_levels": 2,
+   "sub_frac": 0.3
+  },
+  "ancrage": {
+   "gain": 2235.0,
+   "r_ref_mpc": 0.01,
+   "strength": {
+    "H": 1.0,
+    "I": 0.45,
+    "J": 0.12
+   },
+   "space": "Psi, jamais delta (D6)",
+   "weight": "(radiusMpc / r_ref_mpc)^3 — ABSOLU"
+  },
+  "sprites": {
+   "dir": "app/public/data/dissolution_sprites",
+   "hires_dir": "app/public/data/dissolution_sprites_hires",
+   "hires_below_half_mpc": 0.15,
+   "n_frames": 14,
+   "frame_rule": "round((1 - amp^0.5) * (n_frames - 1)) — f00 formée, f13 dissoute",
+   "extent_r90": {
+    "normal": 0.094,
+    "hires": 0.344
+   },
+   "particle_reach": 1.37,
+   "diam_rule": "2 * (particle_reach * radiusMpc / px) / extent_r90[famille]",
+   "gain": 30.0,
+   "mw_radius_mpc": 0.016,
+   "mw_note": "la Voie lactée est ABSENTE du catalogue : ajoutée en tête",
+   "files": {
+    "Voie lactée": "milkyway",
+    "Andromède (M31)": "andromede",
+    "Triangulum (M33)": "triangulum",
+    "Grand Nuage de Magellan": "lmc",
+    "Petit Nuage de Magellan": "smc",
+    "Naine du Sagittaire": "sagittaire",
+    "NGC 6822": "ngc6822",
+    "IC 10": "ic10",
+    "Leo I": "leo1"
+   },
+   "ambient_strength": {
+    "G": 1.0,
+    "F": 1.0,
+    "E": 0.75,
+    "D": 0.45,
+    "C": 0.25,
+    "B": 0.12,
+    "A": 0.06
+   },
+   "procedural": {
+    "spread": "amp^-0.35",
+    "brightness": "amp^1.2",
+    "profile": "exp(-r^1.4)",
+    "gain": 3.5
+   }
+  },
+  "seeds": {
+   "O": 23,
+   "N": 19,
+   "M": 17,
+   "L": 13,
+   "K": 11,
+   "J": 7,
+   "I": 5,
+   "H": 3
+  },
+  "seeds_sprites": {
+   "G": 101,
+   "F": 103,
+   "E": 107,
+   "D": 109,
+   "C": 113,
+   "B": 127,
+   "A": 131
+  },
+  "seed_rule": "verre = seed+7, champ fin = seed+4242, rendu = seed+991, halos = seed+7. Reproductibilité bit-à-bit."
  }
 }
