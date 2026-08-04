@@ -92,9 +92,20 @@ FINE_NORM = 0.0             # calibre au premier appel pour var(champ complet)=1
 # fin est defini en PIXELS : a la ligne O, 40 px valent 3 642 Mpc, l'appliquer y
 # fabriquerait des structures inexistantes. Son amplitude suit donc la fenetre
 # de validite de B4.
+# Revise le 02/08 sur arbitrage de Marc : « les layers L M N et O sont tres
+# fades [...] on perd completement les points lumineux au noeud de la toile ».
+# Mesure a l'appui : a la ligne O l'ecart-type valait 1,9/255, l'image allait de
+# 58 a 78 -- il n'y avait aucun pic a preserver.
+#
+# TENSION ASSUMEE avec B8, qui declare L->O homogenes. Le champ fin est defini en
+# pixels : a la ligne O, 40 px valent 3 642 Mpc, echelle a laquelle l'univers est
+# reellement homogene. Ce grain n'est donc PAS de la structure cosmologique -- il
+# rend lisible un fond de carte qui, sinon, ne montre rien. L'intention de
+# l'oeuvre prime ici : les trois spheres sont le sujet, le fond les sert.
+# L'amplitude reste decroissante vers le haut, ce qui preserve B3.
 FINE_STRENGTH = {"A":1.0,"B":1.0,"C":1.0,"D":1.0,"E":1.0,"F":1.0,"G":1.0,
-                 "H":1.0,"I":1.0,"J":1.0,"K":0.45,"L":0.15,
-                 "M":0.0,"N":0.0,"O":0.0}
+                 "H":1.0,"I":1.0,"J":1.0,"K":0.85,"L":0.75,
+                 "M":0.65,"N":0.55,"O":0.45}
 
 FRESH_PSI_GAIN = 1.0
 # Troncature du deplacement frais (02/08). Mesure : le deplacement engendre par
