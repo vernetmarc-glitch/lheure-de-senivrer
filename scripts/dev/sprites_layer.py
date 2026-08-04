@@ -199,5 +199,9 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
         img[y0:y1, x0:x1] += (np.exp(-rr ** 1.4) * mean0 * 3.5 * amp_g).astype(np.float32)
         n_proc += 1
 
-    a = M.solve_alpha(img, G.TARGET_MEAN, gamma=gm)
+    # Ton cale sur la fenetre visible (cf. gen_chain.render_full).
+    v = int(round(n / 1.5))
+    c0 = (n - v) // 2
+    a = M.solve_alpha(img[c0:c0 + v, c0:c0 + v] if c0 > 0 else img,
+                      G.TARGET_MEAN, gamma=gm)
     return M.tone(img, a, gamma=gm), n_real, n_proc

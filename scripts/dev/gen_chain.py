@@ -778,7 +778,13 @@ def render_full(L, seed, margin=1.5):
     if fine is not None and fine.shape[0] != n:
         fine = ndimage.zoom(fine, n / fine.shape[0], order=1)
     img, gm = apply_fine(img, L.code, fine)
-    a = M.solve_alpha(img, TARGET_MEAN, gamma=gm)
+    # Le ton se cale sur la FENETRE VISIBLE, pas sur la texture entiere : la
+    # marge n'est jamais montree telle quelle, et sur les lignes ou le centre est
+    # plus dense que les bords (une galaxie au milieu) viser la moyenne globale
+    # rendait la zone vue trop claire -- ligne A mesuree a 81,9/255 pour une
+    # cible de 68 (03/08).
+    c = (n - OUT_N) // 2
+    a = M.solve_alpha(img[c:c + OUT_N, c:c + OUT_N], TARGET_MEAN, gamma=gm)
     return M.tone(img, a, gamma=gm)
 
 
