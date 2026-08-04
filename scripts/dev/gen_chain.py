@@ -96,6 +96,16 @@ FINE_STRENGTH = {"A":1.0,"B":1.0,"C":1.0,"D":1.0,"E":1.0,"F":1.0,"G":1.0,
                  "H":1.0,"I":1.0,"J":1.0,"K":0.45,"L":0.15,
                  "M":0.0,"N":0.0,"O":0.0}
 
+FRESH_PSI_GAIN = 1.0
+# Troncature du deplacement frais (02/08). Mesure : le deplacement engendre par
+# la bande fraiche vaut 24 % de sa longueur d'onde a la ligne K et 33 % a J,
+# alors que le croisement de nappes commence vers 16 %. Cette bande ne
+# s'effondre donc pas : elle BRASSE la matiere heritee au lieu de la structurer,
+# ce qui decorrele l'enfant du parent aux petites echelles (F2 = 0,64 a 0,7 px
+# de lissage contre 0,92 a 24 px).
+# Le contenu fin n'est pas perdu pour autant : il est porte par le champ fin,
+# qui n'est pas deplace.
+
 SUB_Z = 2                   # raffinement du reseau lagrangien selon z.
 # Calibre le 30/07 : rho_auto du rendu ne depend QUE du nombre de particules par
 # pixel, n/(n+6,8), quel que soit l'axe raffine -- verifie sur (1,1), (2,1),
@@ -340,7 +350,7 @@ def bake_layer(code, half, margin, seed, parent=None):
         kc = parent.k_cut
         # --- (3) part fraiche de l'enfant, au-dessus de la coupure
         d_hi = _bandpass(d_fresh, box, kc, k_max)
-        psi_hi = psi_band(d_hi, box, kc, k_max)
+        psi_hi = psi_band(d_hi, box, kc, k_max) * np.float32(FRESH_PSI_GAIN)
         # --- (2) part heritee : INTERPOLATION, aucune FFT en aval
         d_lo = sample_parent_grid(parent.delta_lo, shape, box_xy, Lz,
                                   parent.box_xy, parent.Lz)
@@ -362,7 +372,26 @@ def bake_layer(code, half, margin, seed, parent=None):
     # ce que CETTE ligne transmettra : sa coupure vaut la moitie de sa Nyquist
     k_cut = np.pi / (K_CUT_SAFETY * cell)
     delta_lo = _bandpass(delta, box, 0.0, k_cut)
-    psi_lo = psi_band(delta, box, 0.0, k_cut)
+
+    # Psi transmis = le deplacement REELLEMENT APPLIQUE a cette ligne, filtre --
+    # et non un Psi recalcule depuis delta. Corrige le 02/08.
+    #
+    # Le code recalculait psi_band(delta, 0, k_cut). Or delta = d_lo + d_hi ou
+    # d_lo est le champ du parent INTERPOLE : recalculer Psi dessus ne redonne
+    # pas le psi_lo que le parent avait transmis, a cause de l'interpolation et
+    # des bords. La ligne etait donc deplacee par une quantite et en transmettait
+    # une autre -- d'ou une matiere heritee decalee de plusieurs pixels, sans que
+    # ni les halos, ni l'ancrage, ni la densite de particules, ni le deplacement
+    # frais en soient responsables (les quatre ont ete testes et disculpes).
+    PSI_full = PSI.copy()
+    if parent is not None:
+        for a in range(3):
+            PSI_full[..., a] += sample_parent_grid(parent.psi_lo[..., a], shape,
+                                                   box_xy, Lz, parent.box_xy, parent.Lz)
+    psi_lo = np.empty_like(PSI_full)
+    for a in range(3):
+        psi_lo[..., a] = _bandpass(PSI_full[..., a], box, 0.0, k_cut)
+    del PSI_full
 
     # --------------------------------------------------- positions lagrangiennes
     rng = np.random.default_rng(seed + 7)
@@ -532,6 +561,30 @@ def fine_inherit(fine_parent, ratio, n=None):
                                    order=3, mode="nearest").astype(np.float32)
 
 
+def _fine_band_var(lam_hi, lam_lo):
+    """Variance THEORIQUE d'une bande du champ fin, par integration du spectre.
+
+    Pour P(k) ~ k^-2.2 en 2D, var ~ integrale de P(k) k dk ~ [k^-0.2]/(-0.2).
+    Grandeur ANALYTIQUE : elle ne depend d'aucune image, donc elle ne peut pas
+    faire dependre une ligne du contenu d'une autre (INV-B1).
+    """
+    k1, k2 = OUT_N / lam_hi, OUT_N / lam_lo
+    return (k1 ** -0.2 - k2 ** -0.2) / 0.2
+
+
+def fine_weights(ratio):
+    """Poids de l'heritage et de la bande fraiche, pour variance totale = 1.
+
+    Sans cela le champ fin ACCUMULE sa variance a chaque cran d'heritage et son
+    amplitude effective croit en descendant l'echelle -- mesure le 02/08 :
+    saturation claire 1,1-1,4 %, creux bimodal 6,8, isotropie 0,75.
+    """
+    vh = _fine_band_var(FINE_LAM_HI_PX, ratio * FINE_LAM_LO_PX)
+    vf = _fine_band_var(ratio * FINE_LAM_LO_PX, FINE_LAM_LO_PX)
+    t = vh + vf
+    return np.sqrt(vh / t), np.sqrt(vf / t)
+
+
 def fine_for(code, seed, fine_parent=None, ratio=None):
     """Champ fin d'une ligne : part heritee + bande fraiche a SA resolution.
 
@@ -542,8 +595,11 @@ def fine_for(code, seed, fine_parent=None, ratio=None):
     """
     if fine_parent is None:
         return fine_fresh(seed, FINE_LAM_HI_PX, FINE_LAM_LO_PX)
-    return (fine_inherit(fine_parent, ratio)
-            + fine_fresh(seed, ratio * FINE_LAM_LO_PX, FINE_LAM_LO_PX))
+    wh, wf = fine_weights(ratio)
+    fresh = fine_fresh(seed, ratio * FINE_LAM_LO_PX, FINE_LAM_LO_PX)
+    fresh = fresh / np.sqrt(_fine_band_var(ratio * FINE_LAM_LO_PX, FINE_LAM_LO_PX)
+                            / _fine_band_var(FINE_LAM_HI_PX, FINE_LAM_LO_PX))
+    return (wh * fine_inherit(fine_parent, ratio) + wf * fresh).astype(np.float32)
 
 
 def fine_field(seed, n=None):
@@ -647,7 +703,10 @@ def bake_one(code, out_dir=None):
     _, half, margin, seed = CHAIN[idx]
     parent = None
     if idx > 0:
-        parent = load_payload(os.path.join(out_dir, CHAIN[idx - 1][0] + ".npz"))
+        pp = os.path.join(out_dir, CHAIN[idx - 1][0] + ".npz")
+        if not os.path.exists(pp):
+            pp = os.path.join(CACHE, CHAIN[idx - 1][0] + ".npz")
+        parent = load_payload(pp)
     L = bake_layer(code, half, margin, seed, parent)
     del parent
     save_payload(L, os.path.join(out_dir, code + ".npz"))
