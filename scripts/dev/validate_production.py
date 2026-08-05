@@ -95,9 +95,21 @@ def main(d):
     print("\n-- aspect (A1..A7, E1..E6) --")
     bad = [c for c in ORDER if vis[c].std() * 255 < 1.0]
     check(not bad, "C8", "detail conserve : aucun aplat", " ".join(bad))
+    # Sous G, arbitrage de Marc du 03/08 : des que les 92 galaxies du catalogue
+    # sont visibles, la priorite passe aux galaxies. Le fond devient diffus et sa
+    # moyenne baisse volontairement -- la cible de 68/255 ne s'y applique plus.
+    # Ce qui reste exige : une decroissance MONOTONE, sans saut (D2).
     bad = ["%s %.1f" % (c, vis[c].mean() * 255) for c in ORDER
-           if not 60 <= vis[c].mean() * 255 <= 76]
-    check(not bad, "A7", "ton moyen dans [60, 76]/255", " ".join(bad))
+           if c not in SPRITE_ROWS and not 60 <= vis[c].mean() * 255 <= 76]
+    check(not bad, "A7", "ton moyen dans [60, 76]/255 hors lignes a sprites",
+          " ".join(bad))
+    sp = [c for c in ORDER if c in SPRITE_ROWS]
+    means = [vis[c].mean() * 255 for c in sp]
+    jumps = ["%s->%s %.0f" % (sp[i], sp[i + 1], means[i] - means[i + 1])
+             for i in range(len(means) - 1)
+             if means[i + 1] > means[i] + 1 or means[i] - means[i + 1] > 12]
+    check(not jumps, "A7b", "ton des lignes a sprites : decroissant, sans saut",
+          " ".join(jumps))
     bad = ["%s %.1f%%" % (c, 100 * (vis[c] >= 254 / 255).mean()) for c in ORDER
            if (vis[c] >= 254 / 255).mean() > 0.01]
     check(not bad, "E4a", "saturation claire < 1 %", " ".join(bad))
@@ -123,11 +135,17 @@ def main(d):
           " ".join(bad))
     # A3 : les zones brillantes sont quasi ponctuelles -> le 99e centile est
     # nettement au-dessus de la mediane.
-    bad = ["%s %.1f" % (c, np.percentile(vis[c], 99) / max(np.median(vis[c]), 1e-6))
-           for c in ORDER
-           if np.percentile(vis[c], 99) / max(np.median(vis[c]), 1e-6) < 1.8]
-    check(not bad, "A3/A4", "zones brillantes ponctuelles (p99/median > 1,8)",
-          " ".join(bad))
+    # Sur les lignes a sprites, le critere porte sur le PIC et non sur le 99e
+    # centile : quelques galaxies couvrent moins de 1 % des pixels, le centile ne
+    # les voit pas. Sur C notamment, notre voisinage est physiquement vide entre
+    # les satellites (0,06 Mpc) et Andromede (0,78) -- il n'y a que quatre objets.
+    bad = []
+    for c in ORDER:
+        med = max(np.median(vis[c]), 1e-6)
+        r = (vis[c].max() if c in SPRITE_ROWS else np.percentile(vis[c], 99)) / med
+        if r < (2.5 if c in SPRITE_ROWS else 1.8):
+            bad.append("%s %.1f" % (c, r))
+    check(not bad, "A3/A4", "zones brillantes ponctuelles", " ".join(bad))
 
     # ---- B : axe du zoom ---------------------------------------------------
     print("\n-- axe du zoom (B1..B8) --")

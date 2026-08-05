@@ -766,9 +766,9 @@
     "hires": 0.344
    },
    "particle_reach": 1.37,
-   "diam_rule": "2 * (particle_reach * radiusMpc / px) / extent_r90[famille]",
+   "diam_rule": "2 * sprite_margin * radiusMpc / px  — valeur historique (RealGalaxiesLayer.tsx, generate_simulated_textures.mjs)",
    "gain": 30.0,
-   "mw_radius_mpc": 0.016,
+   "mw_radius_mpc": 0.01594329,
    "mw_note": "la Voie lactée est ABSENTE du catalogue : ajoutée en tête",
    "files": {
     "Voie lactée": "milkyway",
@@ -782,12 +782,12 @@
     "Leo I": "leo1"
    },
    "ambient_strength": {
-    "G": 1.0,
-    "F": 1.0,
-    "E": 0.75,
-    "D": 0.45,
-    "C": 0.25,
-    "B": 0.12,
+    "G": 0.55,
+    "F": 0.42,
+    "E": 0.32,
+    "D": 0.22,
+    "C": 0.14,
+    "B": 0.09,
     "A": 0.06
    },
    "procedural": {
@@ -795,7 +795,20 @@
     "brightness": "amp^1.2",
     "profile": "exp(-r^1.4)",
     "gain": 3.5
-   }
+   },
+   "sprite_margin": 2.8,
+   "zoom_order": 3,
+   "zoom_note": "spline cubique : c'est ce qui rend le piqué des sprites historiques rendus par drawImage",
+   "target_mean_row": {
+    "G": 60.0,
+    "F": 52.0,
+    "E": 44.0,
+    "D": 36.0,
+    "C": 30.0,
+    "B": 28.0,
+    "A": 28.0
+   },
+   "policy_below_g": "Arbitrage de Marc, 03/08 : des que les 92 galaxies du catalogue sont visibles, la priorite passe aux galaxies. Le fond devient diffus, sa moyenne baisse, et il ne subsiste que de legers filaments convergeant vers les galaxies. Les criteres de fond (ton a 68/255, brillances ponctuelles) ne s'appliquent donc plus tels quels sous G."
   },
   "seeds": {
    "O": 23,
