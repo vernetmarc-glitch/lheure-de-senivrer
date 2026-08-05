@@ -79,6 +79,7 @@ SPRITE_EXTENT = _SP.get("extent_r90", {"normal": 0.094, "hires": 0.344})
 # est marquee « GARDER SYNCHRONISE ». Ma reconstruction par le rayon a 90 % du
 # flux donnait 1,37, soit des sprites 1,4 fois trop grands et plus mous.
 SPRITE_MARGIN = _SP.get("sprite_margin", 2.8)
+HIRES_REACH = _SP.get("hires_reach", 1.37)
 PARTICLE_REACH = _SP.get("particle_reach", 1.37)  # etendue des particules, en unites de rayon galactique
                           # (mesure : max|x| = 71 235 ly pour mwRadius = 52 000)
 
@@ -194,7 +195,22 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
                 # Diametre de la vignette tel que le rayon a 90 % du flux tombe
                 # sur PARTICLE_REACH rayons galactiques -- independant de la
                 # famille de sprite, donc taille coherente d'une ligne a l'autre.
-                d_px = 2.0 * SPRITE_MARGIN * g["radiusMpc"] / px
+                # SPRITE_MARGIN vaut pour les vignettes 512. La Voie lactee en
+                # 2048 n'a PAS la meme echelle interne : son rayon a 90 % du flux
+                # occupe 0,344 du demi-cote contre 0,094. Sans ce rapport, elle
+                # apparait 3,7 fois trop grande des qu'on bascule sur le hires --
+                # la rupture de taille entre C et B signalee par Marc le 03/08.
+                # Chaque famille est calee sur SON etendue reelle :
+                #  - vignettes 512 : SPRITE_MARGIN = 2,8 rayons, valeur
+                #    historique de generate_simulated_textures.mjs ;
+                #  - Voie lactee 2048 : 1,37 rayon, etendue MESUREE des
+                #    particules (max|x| = 71 235 ly pour mwRadius = 52 000).
+                # Appliquer 2,8 aux deux rendait la galaxie 3,7 fois trop grande
+                # des le basculement sur le hires (rupture C -> B, 03/08) ;
+                # appliquer le rapport des r90 la rendait au contraire trop
+                # petite pour remplir le cadre de A.
+                reach = HIRES_REACH if hires else SPRITE_MARGIN
+                d_px = 2.0 * reach * g["radiusMpc"] / px
                 if _paste(img, sp, cx, cy, d_px, mean0 * SPRITE_GAIN * g["brightness"]):
                     n_real += 1
                     continue
