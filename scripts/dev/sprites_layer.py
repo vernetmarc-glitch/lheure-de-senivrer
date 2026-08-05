@@ -61,7 +61,7 @@ N_FRAMES = _SP.get("n_frames", 14)
 
 # Rayons physiques, en Mpc. Valeurs ABSOLUES (INV-B1) : aucune ne depend du
 # catalogue ni de l'image courante.
-MW_RADIUS_MPC = _SP.get("mw_radius_mpc", 0.016)
+MW_RADIUS_MPC = _SP.get("mw_radius_mpc", 0.01594329)
 
 # Etendue effective des vignettes, mesuree le 02/08 sur les frames f00 : rayon
 # contenant 90 % du flux, en fraction du demi-cote.
@@ -74,6 +74,12 @@ MW_RADIUS_MPC = _SP.get("mw_radius_mpc", 0.016)
 # Le facteur est fige sur f00 et NE VARIE PAS avec la frame : c'est ainsi que
 # l'etalement du sprite pendant la dissolution reste visible (C1).
 SPRITE_EXTENT = _SP.get("extent_r90", {"normal": 0.094, "hires": 0.344})
+# SPRITE_MARGIN historique : la vignette couvre 2,8 rayons galactiques. Valeur
+# reprise de RealGalaxiesLayer.tsx et de generate_simulated_textures.mjs, ou elle
+# est marquee « GARDER SYNCHRONISE ». Ma reconstruction par le rayon a 90 % du
+# flux donnait 1,37, soit des sprites 1,4 fois trop grands et plus mous.
+SPRITE_MARGIN = _SP.get("sprite_margin", 2.8)
+HIRES_REACH = _SP.get("hires_reach", 1.37)
 PARTICLE_REACH = _SP.get("particle_reach", 1.37)  # etendue des particules, en unites de rayon galactique
                           # (mesure : max|x| = 71 235 ly pour mwRadius = 52 000)
 
@@ -82,8 +88,15 @@ PARTICLE_REACH = _SP.get("particle_reach", 1.37)  # etendue des particules, en u
 # pas a distinguer les galaxies du Groupe Local ». En descendant vers A, la toile
 # cosmique n'a plus de sens physique -- a 0,035 Mpc on est DANS une galaxie. Le
 # fond s'efface donc au profit des objets, ce qui sert aussi A8.
-AMBIENT_STRENGTH = _SP.get("ambient_strength", {"G": 1.0, "F": 1.0, "E": 0.75,
-                                                "D": 0.45, "C": 0.25, "B": 0.12,
+# Cible de ton propre aux lignes a sprites. Arbitrage de Marc du 03/08 : des que
+# les galaxies du catalogue sont visibles, le fond doit s'effacer -- moyenne plus
+# basse, filaments legers convergeant vers les galaxies. Les critères de fond
+# (A7 a 68/255) ne s'appliquent plus tels quels sous G.
+TARGET_MEAN_ROW = _SP.get("target_mean_row", {"G": 60.0, "F": 52.0, "E": 44.0,
+                                              "D": 36.0, "C": 30.0, "B": 28.0,
+                                              "A": 28.0})
+AMBIENT_STRENGTH = _SP.get("ambient_strength", {"G": 0.55, "F": 0.42, "E": 0.32,
+                                                "D": 0.22, "C": 0.14, "B": 0.09,
                                                 "A": 0.06})
 SPRITE_GAIN = _SP.get("gain", 30.0)
 HIRES_BELOW = _SP.get("hires_below_half_mpc", 0.15)
@@ -122,7 +135,10 @@ def _paste(img, sp, cx, cy, diam_px, gain):
     d = max(int(round(diam_px)), 2)
     if d > 4 * n:
         return 0
-    z = ndimage.zoom(sp, d / sp.shape[0], order=1)
+    # Spline cubique, et non bilineaire : c'est ce qui rend le PIQUE des sprites
+    # historiques, rendus par drawImage. Le bilineaire les rendait mous.
+    z = ndimage.zoom(sp, d / sp.shape[0], order=3)
+    np.clip(z, 0.0, None, out=z)
     h = z.shape[0]
     x0, y0 = int(round(cx - h / 2)), int(round(cy - h / 2))
     sx0, sy0 = max(0, -x0), max(0, -y0)
@@ -179,7 +195,22 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
                 # Diametre de la vignette tel que le rayon a 90 % du flux tombe
                 # sur PARTICLE_REACH rayons galactiques -- independant de la
                 # famille de sprite, donc taille coherente d'une ligne a l'autre.
-                d_px = 2.0 * (PARTICLE_REACH * g["radiusMpc"] / px) / frac
+                # SPRITE_MARGIN vaut pour les vignettes 512. La Voie lactee en
+                # 2048 n'a PAS la meme echelle interne : son rayon a 90 % du flux
+                # occupe 0,344 du demi-cote contre 0,094. Sans ce rapport, elle
+                # apparait 3,7 fois trop grande des qu'on bascule sur le hires --
+                # la rupture de taille entre C et B signalee par Marc le 03/08.
+                # Chaque famille est calee sur SON etendue reelle :
+                #  - vignettes 512 : SPRITE_MARGIN = 2,8 rayons, valeur
+                #    historique de generate_simulated_textures.mjs ;
+                #  - Voie lactee 2048 : 1,37 rayon, etendue MESUREE des
+                #    particules (max|x| = 71 235 ly pour mwRadius = 52 000).
+                # Appliquer 2,8 aux deux rendait la galaxie 3,7 fois trop grande
+                # des le basculement sur le hires (rupture C -> B, 03/08) ;
+                # appliquer le rapport des r90 la rendait au contraire trop
+                # petite pour remplir le cadre de A.
+                reach = HIRES_REACH if hires else SPRITE_MARGIN
+                d_px = 2.0 * reach * g["radiusMpc"] / px
                 if _paste(img, sp, cx, cy, d_px, mean0 * SPRITE_GAIN * g["brightness"]):
                     n_real += 1
                     continue
@@ -199,5 +230,9 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
         img[y0:y1, x0:x1] += (np.exp(-rr ** 1.4) * mean0 * 3.5 * amp_g).astype(np.float32)
         n_proc += 1
 
-    a = M.solve_alpha(img, G.TARGET_MEAN, gamma=gm)
+    # Ton cale sur la fenetre visible (cf. gen_chain.render_full).
+    v = int(round(n / 1.5))
+    c0 = (n - v) // 2
+    a = M.solve_alpha(img[c0:c0 + v, c0:c0 + v] if c0 > 0 else img,
+                      TARGET_MEAN_ROW.get(code, G.TARGET_MEAN), gamma=gm)
     return M.tone(img, a, gamma=gm), n_real, n_proc
