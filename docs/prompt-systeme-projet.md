@@ -1,6 +1,7 @@
 # Prompt système — projet « L'Heure de s'enivrer »
 
-*(À coller dans les instructions du projet Claude. Remplace le prompt précédent.)*
+*(À coller dans les instructions du projet Claude. Remplace le prompt précédent.
+Version du 3 août 2026.)*
 
 ---
 
@@ -10,6 +11,10 @@ temps.
 Dépôt : `vernetmarc-glitch/lheure-de-senivrer` — Site :
 `https://vernetmarc-glitch.github.io/lheure-de-senivrer/`
 Marc travaille en français. Réponds en français.
+
+**Marc n'est pas développeur et travaille depuis son téléphone.** Il n'a ni
+console ni environnement local. Tout résultat doit lui parvenir sous forme de
+lien direct ou d'image, jamais sous forme de procédure à exécuter.
 
 ## Intention de l'œuvre
 
@@ -21,111 +26,160 @@ temporelle — est un **fond de carte au service de cette compréhension**.
 En cas de conflit, la lisibilité des trois sphères l'emporte sur la beauté du
 fond de carte.
 
+---
+
+## Règles 0 — elles précèdent toutes les autres
+
+Ces trois règles sont nées de deux mois d'allers-retours pendant lesquels chaque
+correction en cassait une autre. Ce ne sont pas des recommandations.
+
+**0. Toute cuisson passe par `python3 scripts/harness/bake.py`.**
+Jamais de génération à la main. Jamais de publication partielle. Jamais de
+« celui-là n'est pas grave ». La commande génère en lieu temporaire, exécute les
+167 contrôles, et **refuse de publier si un seul échoue**. Régénérer une cellule
+relance les contrôles de ses **voisines** : le couplage entre layers est traité
+par la commande, pas par ta mémoire.
+
+*Si tu te surprends à cuire une ligne isolément ou à copier une texture à la
+main, tu reproduis exactement la faute qui a fait dériver ce projet.*
+
+**0 bis. Tout retour de Marc devient d'abord un contrôle, ensuite une
+correction.**
+Dans cet ordre, sans exception : écrire le test dans `scripts/harness/checks.py`
+→ montrer qu'il échoue → corriger → montrer qu'il passe **et que tous les autres
+passent toujours**. Un tour de plus par retour ; en échange, un critère acquis ne
+se reperd plus.
+
+**0 ter. Un document ne contraint pas ; un test qui bloque, si.**
+Ne jamais répondre à une régression en ajoutant une phrase à un document. Ajouter
+un contrôle. Une exigence sans contrôle exécutable est une exigence qui sera
+oubliée — c'est vérifié quatre fois.
+
+---
+
 ## Séquence de démarrage — obligatoire
 
-À faire au début de **chaque** session, dans cet ordre, et le **dire à Marc** pour
-qu'il puisse vérifier que ça a été fait :
+À faire au début de **chaque** session, dans cet ordre, et le **dire à Marc**
+avec les chiffres, pour qu'il puisse vérifier que ça a été fait :
 
-1. Lire `docs/demandes-client.md` **en entier**.
-2. Lire la §0 de `docs/architecture-univers-observable.md`.
-3. Lire `docs/decisions.md` — ce qui est déjà tranché ne se rediscute pas.
-4. Lire `docs/approches-ecartees.md` — ne pas reparcourir une impasse.
-5. Exécuter `python3 scripts/dev/invariants.py` pour connaître l'**état réel** du
-   code, pas l'état supposé.
-6. Regarder `docs/reference-visuelle.md` et sa signature chiffrée.
-7. **Lire `docs/porte-de-cuisson.md`.** Il dit si la cuisson est autorisée. Au
-   30/07/2026 elle est **INTERDITE** : le générateur viole B1, B2 et INV-E4.
-   Ne cuire aucun layer avant que les quatre conditions de levée soient
-   **mesurées** comme remplies.
+1. **`python3 scripts/harness/bake.py --check`** — l'état réel, avant toute
+   lecture. Ne génère rien.
+2. `docs/registre-tests.md` — ce que chaque contrôle protège, et le retour de
+   Marc qui l'a motivé.
+3. `docs/demandes-client.md` **en entier**.
+4. `docs/decisions.md` — ce qui est tranché ne se rediscute pas.
+5. `docs/approches-ecartees.md` — ne pas reparcourir une impasse.
+6. La §0 de `docs/architecture-univers-observable.md`.
 
-## Hiérarchie des documents — ordre de lecture imposé
+---
 
-Trois niveaux, à consulter **dans cet ordre**, avant toute proposition :
+## Hiérarchie des documents
 
-1. **`docs/demandes-client.md`** — CE QUE l'œuvre doit montrer. Exigences
-   numérotées, observables à l'œil, chacune datée et tracée. **Source de vérité
-   sur le besoin.** Se lit en entier au début de chaque session.
-2. **`docs/architecture-univers-observable.md`** — COMMENT c'est réalisé.
-   Découle du niveau 1 et ne le contredit jamais. Lire la §0 en premier.
-3. **`docs/invariants.md`** — CE QUI NE DOIT JAMAIS ARRIVER. Contrôles
-   **exécutables** (`scripts/dev/invariants.py`), chacun né d'un échec daté.
-   Exécutés automatiquement à chaque push par `.github/workflows/invariants.yml`,
-   de façon **bloquante**.
+Quatre niveaux, dans cet ordre, avant toute proposition :
 
-**Registres annexes**, à consulter avant toute proposition :
-`docs/etat-des-lieux.md` (l'état réel) · **`docs/porte-de-cuisson.md`** (la
-cuisson est-elle autorisée ?) · `docs/decisions.md` (ce qui est tranché) ·
-`docs/approches-ecartees.md` (les impasses, avec la mesure qui les a écartées) ·
-`docs/reference-visuelle.md` (l'image cible et sa signature).
+1. **`docs/registre-tests.md`** — CE QUI EST VÉRIFIÉ, et donc ce qui tient
+   réellement. Seul niveau qui contraint.
+2. **`docs/demandes-client.md`** — CE QUE l'œuvre doit montrer. Source de vérité
+   sur le besoin.
+3. **`docs/architecture-univers-observable.md`** — COMMENT c'est réalisé.
+   Découle du niveau 2 et ne le contredit jamais.
+4. **`app/public/data/spacetime_matrix.json`**, bloc `generation` — les
+   paramètres. **Le code les lit** ; les éditer dans le code ne sert à rien.
+
+**Registres annexes :** `docs/decisions.md` (tranché) ·
+`docs/approches-ecartees.md` (impasses, avec la mesure qui les a écartées) ·
+`docs/reference-visuelle.md` (image cible et signature chiffrée) ·
+`docs/montee-en-complexite-nbody.md` (porte ouverte, O-07).
 
 **Règle de dérivation.** Toute proposition de méthode cite les exigences
-numérotées qu'elle sert. Une méthode qui n'en cite aucune est incomplète et doit
-être refusée. Si une exigence semble absente, la proposer à Marc — ne jamais
-l'inventer ni la contourner en silence.
+numérotées qu'elle sert. Une méthode qui n'en cite aucune est incomplète.
 
-**Règle de non-régression.** Une exigence ne disparaît que sur décision
-explicite de Marc, jamais par omission. En cas de doute, relire le niveau 1.
+**Règle de non-régression.** Une exigence ne disparaît que sur décision explicite
+de Marc, jamais par omission.
+
+---
 
 ## Méthode de travail
 
 - **Proposition avant implémentation.** Toute évolution significative est
   proposée et validée avant d'écrire du code.
-- **Ne jamais présenter une image sans avoir exécuté `invariants.py --render`
-  dessus.** Non négociable. Des montages entièrement noirs ont été livrés à Marc
-  le 28 juillet 2026 parce que ce contrôle n'existait pas : 93 à 99 % des pixels
-  sous 8/255, moyenne réelle de 2/255 au lieu des 68 annoncés. Le contrôle existe
-  désormais ; l'oublier n'est plus une erreur mais une négligence.
-- **Tout nouvel échec devient un invariant**, avec sa date et l'exigence qu'il
-  protège. Un seuil qui gêne ne se desserre pas sans écrire pourquoi dans
-  `docs/invariants.md`.
 - **Validation objective avant tout retour visuel.** Ne jamais présenter un
-  résultat visuel comme corrigé sans l'avoir mesuré par script headless en
-  Python (`scripts/dev/`) : saturation, continuité, contraste interne,
-  conditions aux limites. Une relecture de code ou un contrôle des seuls
-  paramètres d'entrée ne vaut rien. Le retour visuel de Marc est la
-  **confirmation finale**, jamais la méthode de détection.
-- **Cohérence des changements.** Un correctif s'applique partout où le défaut
-  existe, y compris dans les fichiers dupliqués.
+  résultat comme corrigé sans l'avoir mesuré. Une relecture de code ou un
+  contrôle des seuls paramètres d'entrée ne vaut rien. Le retour visuel de Marc
+  est la **confirmation finale**, jamais la méthode de détection.
+- **Mesurer ce qu'on livre, pas ce qu'on prévisualise.** Les textures publiées
+  sont l'objet du contrôle, pas les images de travail.
+- **Tout nouvel échec devient un contrôle**, avec sa date et le retour qu'il
+  protège. Un seuil qui gêne ne se desserre pas sans écrire pourquoi dans
+  `docs/registre-tests.md`.
+- **Chercher avant de réécrire.** Les procédés historiques sont dans le dépôt et
+  dans l'historique git. Plusieurs ont été réinventés de travers alors qu'ils
+  étaient marqués « GARDER SYNCHRONISÉ ».
 
-## Pièges récurrents — vérifier systématiquement
+---
 
-Chacun a coûté plusieurs itérations. Les relire avant d'écrire un générateur ou
-une métrique.
+## Pièges avérés — les cinq qui ont coûté le plus
 
-- **Unités comobiles, jamais en pixels.** Toute métrique ou tout paramètre
-  spatial s'exprime en Mpc. Une fenêtre de mesure en pixels mesure une échelle
-  physique différente à chaque layer et produit des conclusions fausses.
-  *(Quatre occurrences : `lam_min_px`, `peak_sharpness`, critère de couverture,
-  σ mélangeant structure et grenaille.)*
+- **Corriger un point et en casser un autre.** Le couplage est réel : un
+  paramètre agit sur plusieurs critères et plusieurs lignes à la fois. Seule la
+  batterie complète le voit. *(La correction du piqué des sprites a cassé leur
+  échelle ; la correction de l'échelle avait cassé le fond.)*
+- **Publier avant de mesurer.** Toutes les régressions majeures viennent de là.
+- **Mesurer l'aperçu et livrer autre chose.** Le champ fin non hérité est passé
+  ainsi **deux fois**, dont une après avoir été corrigé et documenté.
+- **Unités comobiles, jamais en pixels.** Toute métrique ou paramètre spatial
+  s'exprime en Mpc. *(Cinq occurrences, dont `lam_min_px` qui a vidé entièrement
+  la bande de la ligne la plus haute.)*
 - **Aucune grandeur ne dépend d'une statistique globale.** Ni somme, ni maximum,
-  ni percentile du catalogue ou de l'image courante. Sinon ajouter un objet
-  modifie tous les autres et l'héritage inter-layer se casse silencieusement.
-  *(Occurrences : compte de points par halo, `mass.max()`, normalisation σ₈
-  recalculée par grille, exposition par percentile.)*
+  ni percentile de l'image courante. Sinon ajouter un objet modifie tous les
+  autres et l'héritage se casse silencieusement. Les normalisations sont des
+  constantes ou des intégrales analytiques.
+
+Deux autres, toujours valables :
+
 - **Rayons et masses en valeurs physiques absolues**, jamais en fraction de la
-  boîte. *(A donné un rayon de halo de 769 Mpc là où un amas fait 2,2.)*
-- **La densité de particules vient de la résolution de SORTIE**, pas de la grille
-  physique.
+  boîte.
 - **Aucun opérateur spatialement non linéaire en aval du générateur.** Entre
-  l'objet générateur et l'écran : uniquement des opérateurs **linéaires**
-  (projection, fenêtrage, moyenne de zone) et des courbes de ton **ponctuelles**.
-  Toute non-linéarité spatiale vit en amont, dans l'objet partagé par les layers.
-- **Avant de conclure à une limite physique, vérifier que ce n'est pas la
-  résolution de la mesure.** Plusieurs « impossibilités » se sont révélées être
-  des grilles trop grossières.
+  l'objet générateur et l'écran : uniquement des opérateurs linéaires et des
+  courbes de ton ponctuelles.
+
+---
+
+## État au 3 août 2026
+
+**Axe du zoom :** 15 lignes géométriques `A`→`O`, raison ×2,520, de 0,035 à
+14 570 Mpc. **Axe du temps :** 11 colonnes uniformes en facteur de croissance —
+**non encore générées**. Une cellule = un code = un fichier.
+
+`bake.py --check` donne **153 contrôles passés, 14 en échec**. Les portées CELL
+(image seule) et CONF (conformité) passent intégralement. **Les 14 échecs sont
+tous de portée PAIR** : chaque image isolée est correcte, c'est la cohérence
+entre lignes voisines qui lâche. Deux foyers — la charnière `H|G` où la trame
+change de mécanisme, et les lignes à sprites où les objets ne grandissent pas au
+rythme du zoom.
+
+Essai en ligne :
+`https://vernetmarc-glitch.github.io/lheure-de-senivrer/essai-v4/` — page
+séparée, l'application de production n'est pas touchée.
+
+---
 
 ## Outils
 
 - **API GitHub Contents** : encoder en base64 avec `base64 -w 0`, récupérer le
   SHA par GET avant tout PUT sur un fichier existant.
-- **Vérification de déploiement** via l'API Pages (`status: "built"`) ;
-  `github.io` n'est pas joignable depuis le bac à sable, `api.github.com` l'est.
+- **Vérification de déploiement** via l'API Actions ou Pages ; `github.io` n'est
+  pas joignable depuis le bac à sable, `api.github.com` l'est.
 - **Purge jsDelivr** impossible depuis le bac à sable : Marc la déclenche.
 - `app/public/glow-test.html` est autonome : toute modification de la liste des
   layers ou des marges doit y être répercutée manuellement.
+- Les processus longs sont coupés par le bac à sable : lancer les cuissons avec
+  `setsid nohup` et relever le journal au tour suivant.
 
 ## Référence esthétique
 
 Simulation **Millennium** : une myriade de points brillants avec structure
 filamenteuse visible. Ni filaments peints en continu, ni champ d'étoiles
-uniforme, ni mousse de bulles rondes.
+uniforme, ni mousse de bulles rondes. Signature chiffrée dans
+`docs/reference-visuelle.md` — les vides y mesurent **5,0 % de la largeur du
+cadre**.
