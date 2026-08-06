@@ -151,7 +151,14 @@ Deux autres, toujours valables :
 14 570 Mpc. **Axe du temps :** 11 colonnes uniformes en facteur de croissance —
 **non encore générées**. Une cellule = un code = un fichier.
 
-`bake.py --check` donne **153 contrôles passés, 14 en échec**. Les portées CELL
+**Le plan de test n'est pas terminé : 18 contrôles implémentés sur 52 déclarés.**
+`T-000` échoue tant qu'il en manque et nomme les manquants — ne pas le désarmer,
+c'est le seul garde-fou contre un plan qui rassure sans rien vérifier. Les 34
+restants sont priorisés dans `docs/registre-tests.md` ; commencer par **T-014**,
+l'isotropie, qui existait sous `INV-E4` et a été perdue en réorganisant le
+harnais.
+
+`bake.py --check` donne **153 contrôles passés, 15 en échec**. Les portées CELL
 (image seule) et CONF (conformité) passent intégralement. **Les 14 échecs sont
 tous de portée PAIR** : chaque image isolée est correcte, c'est la cohérence
 entre lignes voisines qui lâche. Deux foyers — la charnière `H|G` où la trame

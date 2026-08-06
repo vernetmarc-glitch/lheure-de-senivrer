@@ -9,6 +9,22 @@ Supprimer un contrôle exige une décision explicite de Marc.
 
 Implémentation : `scripts/harness/checks.py`. Exécution : `scripts/harness/bake.py`.
 
+## T-000 — le plan de test est-il complet ?
+
+**Contrôle de portée CONF, exécuté en premier.** Il compare les identifiants
+déclarés dans ce document à ceux réellement implémentés dans `checks.py`, et
+**échoue tant qu'il en manque**, en les nommant.
+
+Il existe parce que la question s'est posée le 03/08 et que la réponse était
+mauvaise : 18 contrôles sur 52 étaient écrits, et rien ne le signalait. Une
+session suivante aurait lu « 153 passés, 14 en échec » et conclu que le plan
+tenait. **Un plan qui n'est pas exécuté n'est pas un plan** — et un plan
+incomplet dont l'incomplétude est invisible est pire, parce qu'il rassure.
+
+État au 03/08 : **18 implémentés sur 52, 34 à écrire.**
+
+---
+
 ## Portée CELL — une image seule
 
 | ID | Contrôle | Exigence | Origine |

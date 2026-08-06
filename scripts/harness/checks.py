@@ -241,8 +241,39 @@ def time_checks(code, col_hi, col_lo, img_hi, img_lo):
 # ===========================================================================
 # PORTEE CONF
 # ===========================================================================
+def plan_completeness():
+    """Le plan de test est-il entierement implemente ?
+
+    Origine : 03/08/2026, question de Marc -- « est-ce que l'ensemble des tests
+    est bien implemente et leur execution forcee ? ». Elle etait fondee : 18
+    controles sur 52 declares etaient ecrits, et RIEN ne le signalait. Une
+    session suivante aurait lu « 153 passes, 14 en echec » et conclu que le plan
+    tenait.
+
+    Ce controle compare les identifiants declares dans docs/registre-tests.md a
+    ceux reellement implementes ici. Il ECHOUE tant qu'il en manque, et nomme les
+    manquants. C'est ce qui empeche le plan de test de deriver comme le reste a
+    derive : un plan qui n'est pas execute n'est pas un plan.
+    """
+    import re
+    reg = os.path.join(ROOT, "docs", "registre-tests.md")
+    if not os.path.exists(reg):
+        return Result("T-000", "CONF", "plan de test complet", False,
+                      "registre introuvable")
+    declared = set(re.findall(r"T-\d{3}", open(reg).read()))
+    declared.discard("T-000")
+    impl = set(re.findall(r'"(T-\d{3})"', open(__file__).read()))
+    missing = sorted(declared - impl)
+    return Result("T-000", "CONF",
+                  "plan de test complet (%d/%d)" % (len(declared) - len(missing),
+                                                    len(declared)),
+                  not missing,
+                  "%d a ecrire : %s" % (len(missing), " ".join(missing[:8])
+                                        + ("…" if len(missing) > 8 else "")))
+
+
 def conf_checks(d, m):
-    out = []
+    out = [plan_completeness()]
     missing = [c for c in ORDER
                if not os.path.exists(os.path.join(d, "density_%s.png" % c))]
     out.append(Result("T-030", "CONF", "les 15 lignes existent (B6)",
