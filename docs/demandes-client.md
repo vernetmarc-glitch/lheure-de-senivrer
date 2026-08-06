@@ -4,7 +4,7 @@
 paramètre, aucune implémentation. Chaque exigence est formulée de façon
 **observable à l'œil** et doit pouvoir être jugée sans connaître le code.
 
-**Statut.** Version 1.5, arrêtée le 3 août 2026. Reconstitution à partir du document
+**Statut.** Version 1.6, arrêtée le 3 août 2026. Reconstitution à partir du document
 d'architecture, de l'historique du projet et des échanges de session. **À
 relire ligne à ligne par Marc** — l'objet même de ce document étant ce qui a été
 oublié, son exhaustivité ne peut pas être garantie par celui qui a oublié.
@@ -171,6 +171,33 @@ n'est pas retirée : elle est située.)*
 **B5. Taille des structures fidèle à l'échelle.** Une structure d'une taille
 physique donnée doit occuper la place qui lui revient à chaque échelle
 d'observation.
+
+**B9. L'approche de l'homogénéité est graduelle.** Il n'y a **pas de coupure** :
+en montant en échelle, des structures de plus en plus grandes existent, mais
+elles représentent des fluctuations de plus en plus **faibles**. L'amplitude
+relative doit donc décroître continûment, jamais s'arrêter net à une échelle
+seuil.
+*(Littérature : au-delà de 300 h⁻¹ Mpc l'homogénéité prévaut ; Yadav 2010 donne
+~370 Mpc comme limite au-delà de laquelle une distribution ne se distingue plus
+d'une distribution homogène.)*
+
+**B10. Aucun point lumineux au-delà de l'homogénéité.** Aux plus grandes
+échelles, les fluctuations de densité sont de l'ordre de **10⁻⁴** — celles du
+fond diffus valent 2×10⁻⁵. **Rien ne doit s'y détacher** : ni pic, ni amas, ni
+point brillant. L'image doit être quasi uniforme, portant seulement un grain.
+*(Origine : 03/08 — « il reste des points lumineux à très grande échelle, cela ne
+correspond pas à une réalité physique ». Mesuré à l'époque : 382 pics et un
+rapport pic/médiane de 3,28 à la ligne `O`.)*
+
+**B11. Aléatoire, jamais régulier.** La structure doit être celle d'un champ
+**aléatoire amassé** — distribution de type Poisson aux grandes échelles, puis de
+plus en plus groupée en descendant. Jamais un motif régulier ou quasi-périodique.
+*(Origine : 03/08 — « dans les premières itérations on avait un zoom out sur une
+structure relativement aléatoire, dans les dernières les structures semblent très
+régulières ». Cause : une **bande spectrale trop étroite** engendre mécaniquement
+une quasi-périodicité. Mesuré : dispersion des distances au plus proche voisin de
+0,40 à la ligne `O`, contre 0,52 pour une distribution purement aléatoire et 1,83
+à la ligne `J`.)*
 
 **B6. Aucune zone vide.** Sur toute la grille zoom × temps, aucune partie du
 cadre affiché ne doit être noire, neutre ou par défaut.
@@ -565,6 +592,17 @@ Toute exigence ajoutée porte sa **date** et son **origine**. Une exigence n'est
 retirée que sur décision explicite de Marc, jamais par omission.
 
 ### Historique
+
+**v1.6 — 03/08/2026.** Trois exigences sur le rendu aux très grandes échelles,
+appuyées sur la littérature :
+
+- **B9** l'approche de l'homogénéité est graduelle, sans coupure
+- **B10** aucun point lumineux au-delà de l'homogénéité
+- **B11** aléatoire, jamais régulier
+
+*Elles corrigent un défaut introduit par la borne à 300 Mpc du 02/08 : en
+restreignant la bande spectrale, elle a rendu les lignes hautes quasi-périodiques
+et y a laissé des pics qui n'ont aucune réalité physique.*
 
 **v1.5 — 03/08/2026.** Cinq exigences ajoutées, toutes transcrites de travaux
 réussis de juillet qui n'avaient jamais été écrits comme exigences — donc non

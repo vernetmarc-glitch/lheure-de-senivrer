@@ -102,6 +102,28 @@ gravitationnelle les fait augmenter, parce que la galaxie se fragmente.
 *Ces contrôles ne portent pas sur les textures publiées mais sur les **sprites
 sources**. Ils doivent donc s'exécuter même quand aucune cuisson n'a lieu.*
 
+### Priorité 2 ter — rendu aux très grandes échelles
+
+Valeurs mesurées le 03/08 sur l'état publié, qui **échoue** les quatre.
+
+| ID | Contrôle | Seuil | Mesuré | Exigence |
+|---|---|---|---|---|
+| T-049 | contraste relatif décroissant vers les grandes échelles | monotone | 0,626 → 0,318 **OK** | B9 |
+| T-050 | contraste faible au-delà de l'homogénéité | `O` ≤ 0,08 | **0,318** | B9, B10 |
+| T-051 | aucun pic détaché aux grandes échelles | pic/médiane `O` ≤ 1,8 | **3,28** | **B10** |
+| T-052 | distribution aléatoire, non régulière | dispersion ≥ 0,50 | **0,40** sur `O` | **B11** |
+| T-053 | largeur de bande spectrale ≥ 2 octaves | — | 0,6 octave sur `O` | B11 |
+
+**T-052 et T-053 vont ensemble.** Une bande spectrale étroite produit
+mécaniquement un motif quasi-périodique : c'est du traitement du signal, pas un
+réglage. La borne à 300 Mpc introduite le 02/08 a réduit la bande de `O` à
+0,6 octave — d'où la régularité mesurée à 0,40, en dessous des 0,52 d'une
+distribution purement aléatoire.
+
+**Correction à concevoir** : plutôt que de couper la bande à 300 Mpc, laisser
+l'amplitude **décroître continûment** au-delà, comme le fait le spectre réel.
+C'est B9, et c'est ce qui satisfait les quatre contrôles à la fois.
+
 ### Priorité 4 — dissolubilité, à vérifier **avant** de générer les colonnes
 
 | ID | Contrôle | Exigence | Ce qu'il garantit |
