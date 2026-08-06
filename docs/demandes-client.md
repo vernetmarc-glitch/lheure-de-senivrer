@@ -490,6 +490,22 @@ demandes. Ils relèvent du document d'architecture.
 
 ---
 
+## Comment ce document est appliqué
+
+**Ce document ne suffit pas.** L'expérience de juillet-août 2026 est nette : une
+exigence écrite ici mais non couverte par un contrôle exécutable dérive en
+silence, et se reperd au premier correctif apporté ailleurs. Quatre régressions
+majeures sont passées ainsi.
+
+Chaque exigence mesurable a donc un contrôle correspondant dans
+`docs/registre-tests.md`, exécuté à **chaque** cuisson par
+`scripts/harness/bake.py`, qui refuse de publier si un seul échoue.
+
+Une exigence sans contrôle est une exigence qui sera oubliée. Quand une nouvelle
+exigence apparaît, elle est **d'abord** traduite en contrôle.
+
+---
+
 ## Traçabilité
 
 Toute exigence ajoutée porte sa **date** et son **origine**. Une exigence n'est

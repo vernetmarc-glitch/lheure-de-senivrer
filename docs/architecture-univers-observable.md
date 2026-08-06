@@ -96,6 +96,17 @@ raisonnement ni les chiffres. Question **O-07**, à trancher après retour visue
 
 ### Méthode — non négociable
 
+**0. TOUTE cuisson passe par `scripts/harness/bake.py`.** Jamais de génération à
+la main, jamais de publication partielle. La commande génère en lieu temporaire,
+lance les 167 contrôles, et **refuse de publier si un seul échoue**. Régénérer
+une cellule relance les contrôles de ses voisines : le couplage est traité par la
+commande, pas par la mémoire de qui la lance.
+
+**0 bis. Tout retour de Marc devient d'abord un contrôle, ensuite une
+correction.** Écrire le test, montrer qu'il échoue, corriger, montrer qu'il passe
+*et que les autres passent toujours*. Un tour de plus par retour ; en échange un
+critère acquis ne se reperd plus. Registre : `docs/registre-tests.md`.
+
 1. **Lire les quatre registres avant toute proposition** : `demandes-client.md`
    en entier, cette §0, `decisions.md`, `approches-ecartees.md`.
 2. **Proposition avant implémentation.**
