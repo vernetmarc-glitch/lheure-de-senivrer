@@ -4,7 +4,7 @@
 paramètre, aucune implémentation. Chaque exigence est formulée de façon
 **observable à l'œil** et doit pouvoir être jugée sans connaître le code.
 
-**Statut.** Version 1.3, arrêtée le 31 juillet 2026. Reconstitution à partir du document
+**Statut.** Version 1.4, arrêtée le 3 août 2026. Reconstitution à partir du document
 d'architecture, de l'historique du projet et des échanges de session. **À
 relire ligne à ligne par Marc** — l'objet même de ce document étant ce qui a été
 oublié, son exhaustivité ne peut pas être garantie par celui qui a oublié.
@@ -313,10 +313,47 @@ désignait déjà** avant qu'elle ne soit visible. C'est ce qui rend **D1** vrai
 l'œil, et pas seulement en moyenne.
 *(Origine : 31/07, formulée par Marc.)*
 
+**D7. Positions et tailles relatives justes.** Le diamètre apparent des galaxies
+et leurs distances mutuelles doivent être **cohérents avec le catalogue**. Deux
+galaxies voisines doivent apparaître à la bonne distance l'une de l'autre, et
+leur rapport de taille doit être celui de leurs rayons réels.
+*(Origine : 06/07 — « je n'ai pas l'impression que le diamètre apparent des
+galaxies et leur distance soit cohérent ».)*
+
+**D8. Aucune galaxie ne disparaît entre deux paliers.** Une galaxie visible à un
+niveau de zoom doit rester visible au palier suivant tant qu'elle est dans le
+cadre. En particulier, la Voie lactée ne doit pas s'effacer dès qu'on sort de son
+propre palier.
+*(Origine : 06/07 — « la Voie lactée disparaît complètement et il n'y a plus de
+points lumineux au centre quand on voit les galaxies périphériques ».)*
+
 **D5. Morphologies variées.** Les galaxies doivent présenter des formes
 **variées**. Le réalisme n'est pas l'objectif — à ces échelles on ne les voit
 quasiment pas — mais leur **dissolution** doit être juste (cf. C1 à C3).
 *(Origine : 28/07.)*
+
+---
+
+**C13. Tout est dissoluble par construction.** Chaque composante visible doit
+être produite par une fonction **paramétrée par l'amplitude de structure** de la
+colonne. Aucune structure ne peut être posée « en dur » : ce qui n'a pas de loi
+temporelle ne pourra pas se dissoudre, et bloquera la colonne entière.
+*(Origine : 03/08, rappel de Marc. C'est la condition pour que les onze colonnes
+soient seulement du calcul et non une reprise de conception.)*
+
+**C14. Conservation de la matière pendant la dissolution.** Ce qui se défait doit
+**rendre sa matière** au champ dont il provient, et non s'ajouter par-dessus.
+Sinon la dissolution ne se termine jamais : il reste un résidu qui ne peut pas
+disparaître.
+*(Origine : 30/07 — les halos doivent soustraire au réseau, pas y ajouter. σ de
+structure mesuré 13,96 sans conservation, 2,38 avec, pour 0,65 en verre pur.)*
+
+**C15. L'état d'amplitude nulle est atteignable.** À la colonne 0, toute
+composante doit avoir atteint son état dissous — aucune ne doit conserver une
+amplitude résiduelle qui la rendrait encore visible comme structure. Le grain
+subsiste (C8), les structures non.
+*(Origine : 03/08. C'est ce qui rend C4 vérifiable de bout en bout plutôt que
+paire par paire.)*
 
 ---
 
@@ -512,6 +549,23 @@ Toute exigence ajoutée porte sa **date** et son **origine**. Une exigence n'est
 retirée que sur décision explicite de Marc, jamais par omission.
 
 ### Historique
+
+**v1.4 — 03/08/2026.** Huit exigences ajoutées, aucune retirée. Six sont des
+**transcriptions de retours anciens** de Marc, jusque-là appliqués sans être
+écrits — donc non protégés par un contrôle, donc reperdus :
+
+- **A9** uniformité de rendu entre objets de même nature *(06/07)*
+- **A10** halo de raccord, et la Voie lactée dessinée dessous *(06/07)*
+- **A11** piqué à tout niveau de zoom *(06/07)*
+- **D7** positions et tailles relatives justes *(06/07)*
+- **D8** aucune galaxie ne disparaît entre deux paliers *(06/07)*
+- **C14** conservation de la matière pendant la dissolution *(30/07)*
+
+Deux sont nouvelles, et garantissent que la ligne d'aujourd'hui pourra être
+dissoute proprement :
+
+- **C13** tout est dissoluble par construction
+- **C15** l'état d'amplitude nulle est atteignable
 
 **v1.3 — 31/07/2026.** **D6** ajoutée : les galaxies du catalogue sont des
 centres de gravité pour les filaments, et non des taches brillantes posées à

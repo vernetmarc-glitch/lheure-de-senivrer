@@ -40,6 +40,59 @@ coûteuse du projet — celle qui casse en corrigeant autre chose.
 centile, ce qui ne capte que le cœur des objets diffus. Le seuil sera resserré
 une fois la mesure fiabilisée.*
 
+## À écrire — plan de test issu du point du 03/08
+
+Croisement complet des 66 exigences avec les contrôles : **13 couvertes**. Les
+contrôles ci-dessous sont identifiés, priorisés, non encore implémentés.
+
+### Priorité 1 — perte sèche
+
+| ID | Contrôle | Exigence | Pourquoi d'abord |
+|---|---|---|---|
+| T-014 | isotropie axes/diagonales ∈ [0,85 ; 1,2] | B3 | **existait sous `INV-E4`, perdu en réorganisant le harnais**. Échouait sur cinq lignes ; l'échec est devenu invisible |
+
+### Priorité 2 — galaxies, transcrites de retours anciens
+
+| ID | Contrôle | Exigence | Origine du retour |
+|---|---|---|---|
+| T-015 | positions et distances mutuelles conformes au catalogue | D7 | 06/07 |
+| T-016 | rapport de taille entre galaxies = rapport de leurs rayons réels | D7, A9 | 06/07 |
+| T-017 | aucune galaxie visible ne disparaît au palier suivant | D8 | 06/07 |
+| T-018 | halo présent, croissant avec la distance | A10 | 06/07 |
+| T-019 | la Voie lactée ne recouvre aucune galaxie plus proche | A10 | 06/07 |
+| T-023 | densité aux positions du catalogue > médiane de la ligne | D6 | 31/07 |
+| T-024 | dispersion des morphologies | D5 | 28/07 |
+
+### Priorité 3 — piqué et grandes échelles
+
+| ID | Contrôle | Exigence | Origine |
+|---|---|---|---|
+| T-025 | agrandissement d'une texture ≤ facteur admis à chaque palier | A11 | 06/07 — recadrage de 8,5 px natifs agrandi ×35 |
+| T-026 | traitement à la résolution native, jamais sous-échantillonné | A11 | 06/07 — pipeline en 512 sur des textures 1024 |
+| T-027 | signature de référence sur les lignes `K`→`H` | A1 | signature chiffrée, 10 grandeurs |
+| T-028 | toile et non mousse : élongation des structures | A2 | 28/07 — « mousse de bulles rondes » |
+| T-029 | points répartis le long des filaments | A5 | 28/07 |
+| T-033 | continuité points brillants ↔ fond | A6 | histogramme sans rupture |
+| T-034 | fond filamentaire présent sur les lignes à sprites | A8 | 29/07 |
+| T-035 | fluidité à l'arête `G|H` : même ton, même densité apparente | D1 | la charnière la plus fragile |
+
+### Priorité 4 — dissolubilité, à vérifier **avant** de générer les colonnes
+
+| ID | Contrôle | Exigence | Ce qu'il garantit |
+|---|---|---|---|
+| T-036 | chaque composante a une loi temporelle déclarée | **C13** | rien n'est posé « en dur » |
+| T-037 | à amplitude nulle, aucune composante ne subsiste comme structure | **C15** | la dissolution se termine |
+| T-038 | la matière dissoute retourne au champ, pas en surcouche | **C14** | pas de résidu indissoluble |
+| T-039 | effet fractal dans la fenêtre `D`→`J` | B4 | contenu neuf par cran |
+
+**T-036 à T-038 sont les plus importants du lot.** Ils se vérifient sur la ligne
+d'aujourd'hui, avant toute cuisson de colonne, et ils décident si les onze
+colonnes seront du calcul ou une reprise de conception. Une composante sans loi
+temporelle bloque la colonne entière — et on ne s'en apercevrait qu'après avoir
+tout cuit.
+
+---
+
 ## Portée TIME — deux colonnes voisines. Actif dès que les colonnes existent.
 
 | ID | Contrôle | Exigence | Origine |
