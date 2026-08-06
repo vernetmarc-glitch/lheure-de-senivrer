@@ -4,7 +4,7 @@
 paramètre, aucune implémentation. Chaque exigence est formulée de façon
 **observable à l'œil** et doit pouvoir être jugée sans connaître le code.
 
-**Statut.** Version 1.4, arrêtée le 3 août 2026. Reconstitution à partir du document
+**Statut.** Version 1.5, arrêtée le 3 août 2026. Reconstitution à partir du document
 d'architecture, de l'historique du projet et des échanges de session. **À
 relire ligne à ligne par Marc** — l'objet même de ce document étant ce qui a été
 oublié, son exhaustivité ne peut pas être garantie par celui qui a oublié.
@@ -334,6 +334,22 @@ quasiment pas — mais leur **dissolution** doit être juste (cf. C1 à C3).
 
 ---
 
+**C16. Les galaxies se dissolvent par simulation, pas par effet.** La dissolution
+des neuf sprites est produite par le **même moteur N-corps**, intégré vers
+l'avant en temps de simulation — ce qui représente le temps qui remonte côté
+application. La gravité mutuelle reste **active pendant la dispersion** : c'est
+elle qui produit des amas irréguliers persistants plutôt qu'une explosion
+uniforme. Aucun flou, aucun fondu vers une couleur, aucun bruit ajouté.
+*(Origine : 08/07. Signature attendue : les pics locaux **augmentent** pendant la
+dissolution — la galaxie se fragmente. S'ils diminuent, c'est qu'on lisse.)*
+
+**C17. Conservation du flux pendant la dissolution.** Une galaxie qui se dissout
+**s'étale et pâlit à flux quasi constant**. Son pic doit s'effondrer pendant que
+son rayon croît, sans que la lumière totale explose.
+*(Origine : 30/07 — `HALO_GROWTH = 8,5` violait l'architecture documentée depuis
+le 10/07 ; corrigé à 1,2 avec `fluxNorm = 1/widen²`. Rapport de flux : ×77 avant,
+×2,18 après. Pic : constant à 1,000 avant, 0,067 à la dissolution après.)*
+
 **C13. Tout est dissoluble par construction.** Chaque composante visible doit
 être produite par une fonction **paramétrée par l'amplitude de structure** de la
 colonne. Aucune structure ne peut être posée « en dur » : ce qui n'a pas de loi
@@ -549,6 +565,21 @@ Toute exigence ajoutée porte sa **date** et son **origine**. Une exigence n'est
 retirée que sur décision explicite de Marc, jamais par omission.
 
 ### Historique
+
+**v1.5 — 03/08/2026.** Cinq exigences ajoutées, toutes transcrites de travaux
+réussis de juillet qui n'avaient jamais été écrits comme exigences — donc non
+protégés, donc dégradés depuis :
+
+- **A12** les galaxies sont simulées par N-corps, jamais dessinées *(08/07)*
+- **A13** structure interne riche *(13/07)*
+- **A14** halo elliptique suivant l'aplatissement du disque *(13/07)*
+- **C16** dissolution par le même moteur, gravité active *(08/07)*
+- **C17** conservation du flux pendant la dissolution *(30/07)*
+
+*Ces cinq exigences sont la raison pour laquelle les sprites du 6 juillet étaient
+« plus jolis, avec un meilleur piqué ». Le procédé était un vrai moteur physique ;
+il a été remplacé par des gaussiennes dessinées à la main faute d'être écrit
+quelque part.*
 
 **v1.4 — 03/08/2026.** Huit exigences ajoutées, aucune retirée. Six sont des
 **transcriptions de retours anciens** de Marc, jusque-là appliqués sans être

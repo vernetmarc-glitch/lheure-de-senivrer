@@ -76,6 +76,32 @@ contrôles ci-dessous sont identifiés, priorisés, non encore implémentés.
 | T-034 | fond filamentaire présent sur les lignes à sprites | A8 | 29/07 |
 | T-035 | fluidité à l'arête `G|H` : même ton, même densité apparente | D1 | la charnière la plus fragile |
 
+### Priorité 2 bis — qualité des galaxies, à figer contre toute dégradation
+
+Valeurs de référence **mesurées le 03/08** sur les sprites cuits. Elles figent le
+procédé N-corps ; toute dérive vers un dessin analytique les fait échouer.
+
+| ID | Contrôle | Seuil | Exigence |
+|---|---|---|---|
+| T-040 | pic de la frame formée | = 1,000 | A12 |
+| T-041 | pic à la dissolution | ≤ 0,12 *(mesuré 0,067–0,082)* | C17 |
+| T-042 | rapport de flux f13/f00 | ∈ [1,5 ; 3,0] *(mesuré 2,18–2,24)* | **C17** |
+| T-043 | étalement r50 f13/f00 | ≥ 5 *(mesuré ×7)* | C1, C16 |
+| T-044 | pics locaux : f13 > f00 | *(mesuré 63 → 446)* | **C16** |
+| T-045 | monotonie : pic décroissant, rayon croissant sur les 14 frames | — | C1, C2 |
+| T-046 | structure interne d'une galaxie nommée à sa taille propre | ≥ 50 pics locaux | A13 |
+| T-047 | halo elliptique, aplatissement conforme au disque | — | A14 |
+| T-048 | les sprites proviennent du moteur N-corps | présence des 126 frames et du modèle source | A12 |
+
+**T-042 et T-044 sont les deux verrous.** Le premier attrape le retour de
+`HALO_GROWTH` — un flux ×77 au lieu de ×2,18 signifie que la galaxie grossit en
+luminosité au lieu de s'étaler. Le second attrape le remplacement du moteur par
+un flou : un lissage fait **diminuer** les pics locaux, une vraie dissolution
+gravitationnelle les fait augmenter, parce que la galaxie se fragmente.
+
+*Ces contrôles ne portent pas sur les textures publiées mais sur les **sprites
+sources**. Ils doivent donc s'exécuter même quand aucune cuisson n'a lieu.*
+
 ### Priorité 4 — dissolubilité, à vérifier **avant** de générer les colonnes
 
 | ID | Contrôle | Exigence | Ce qu'il garantit |
