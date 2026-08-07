@@ -48,6 +48,24 @@ cuit avant que la porte de `docs/porte-de-cuisson.md` ne soit levée.
 
 Détail complet : `docs/matrice-parametres-zoom-temps.md`.
 
+### Corrigé le 07/08/2026 — la règle 0 est devenue exécutable
+
+Jusqu'à cette date `bake.py --row` et `--all` échouaient sur
+`ModuleNotFoundError: No module named 'bake_impl'`. **La commande qui interdit de
+cuire à la main ne savait pas cuire** : le seul moyen de produire une texture
+était exactement la faute que la règle proscrit, et rien ne le signalait puisque
+`--check` fonctionnait.
+
+Le code n'était pas perdu, il était dispersé : `render_full()` et la correction
+du champ fin (`FINE_N = 480`) vivaient sur la branche `essai-echelle-15-layers`
+et non sur `main` — au point que `sprites_layer.py` appelait en commentaire une
+fonction absente de son propre dépôt. L'orchestrateur, lui, n'avait jamais été un
+fichier : écrit en lieu temporaire, exécuté, effacé dans la même commande.
+
+`scripts/harness/bake_impl.py` reconstitue et fige l'ensemble. Reproduction
+vérifiée : les lignes générées `O`→`H` retombent à **±1 à 7 niveaux sur 255** des
+textures en ligne, et la batterie y donne les mêmes échecs aux mêmes valeurs.
+
 ### Ce qui n'est pas fait
 
 | Chantier | État |

@@ -21,7 +21,9 @@ session suivante aurait lu « 153 passés, 14 en échec » et conclu que le plan
 tenait. **Un plan qui n'est pas exécuté n'est pas un plan** — et un plan
 incomplet dont l'incomplétude est invisible est pire, parce qu'il rassure.
 
-État au 03/08 : **18 implémentés sur 52, 34 à écrire.**
+État au 03/08 : 18 implémentés sur 52, 34 à écrire.
+**État au 07/08 : 25 implémentés sur 53, 28 à écrire.** Rapatriés ce jour :
+T-014, T-049 à T-053, et T-054 (neuf).
 
 ---
 
@@ -47,6 +49,13 @@ incomplet dont l'incomplétude est invisible est pire, parce qu'il rassure.
 | **T-012** | **taille apparente des objets cohérente** | B2, D1 | **03/08 — « la taille de la Voie lactée sur D a l'air très différente de celle sur C »** |
 | T-013 | ton sans saut | D2 | continuité du fondu |
 
+*Note du 07/08 sur T-012.* Les échecs `C→B` et `B→A` de l'état publié **ne
+mesuraient pas un défaut de rendu** : les textures `A` et `B` avaient été cuites
+avec la correction d'échelle de la Voie lactée (`c9bc464`), `C` à `G` sans elle
+(`db11e1e`). Le contrôle enjambait une frontière de version de code. Recuites
+d'un seul tenant, ces deux paires **passent**, et les échecs se déplacent sur
+`H→G`, `F→E`, `E→D`, `D→C` — qui sont, eux, de vraies mesures. Voir T-054.
+
 **T-012 est le contrôle qui manquait.** Aucun contrôle ne comparait la taille
 d'un même objet d'une ligne à l'autre : la Voie lactée a pu passer de 13 % à
 47 % du cadre sans que rien ne le signale. C'est la classe d'erreurs la plus
@@ -61,11 +70,17 @@ une fois la mesure fiabilisée.*
 Croisement complet des 66 exigences avec les contrôles : **13 couvertes**. Les
 contrôles ci-dessous sont identifiés, priorisés, non encore implémentés.
 
-### Priorité 1 — perte sèche
+### Priorité 1 — perte sèche — ✅ **RAPATRIÉ le 07/08/2026**
 
 | ID | Contrôle | Exigence | Pourquoi d'abord |
 |---|---|---|---|
-| T-014 | isotropie axes/diagonales ∈ [0,85 ; 1,2] | B3 | **existait sous `INV-E4`, perdu en réorganisant le harnais**. Échouait sur cinq lignes ; l'échec est devenu invisible |
+| T-014 | isotropie axes/diagonales ∈ [0,85 ; 1,2] | B3 | existait sous `INV-E4`, perdu en réorganisant le harnais. Échouait sur cinq lignes ; l'échec était devenu invisible |
+
+**Repris mot pour mot de `invariants.py:E4_isotropy`, non réécrit.** Une
+réécriture aurait produit un troisième seuil et un troisième chiffre,
+incomparables aux deux précédents. Non appliqué aux lignes à sprites : **A14**
+impose des halos elliptiques, donc une anisotropie voulue.
+**Mesure au 07/08 : une seule ligne en échec, `L` à 1,27.**
 
 ### Priorité 2 — galaxies, transcrites de retours anciens
 
@@ -128,7 +143,31 @@ Valeurs mesurées le 03/08 sur l'état publié, qui **échoue** les quatre.
 | T-050 | contraste faible au-delà de l'homogénéité | `O` ≤ 0,08 | **0,318** | B9, B10 |
 | T-051 | aucun pic détaché aux grandes échelles | pic/médiane `O` ≤ 1,8 | **3,28** | **B10** |
 | T-052 | distribution aléatoire, non régulière | dispersion ≥ 0,50 | **0,40** sur `O` | **B11** |
-| T-053 | largeur de bande spectrale ≥ 2 octaves | — | 0,6 octave sur `O` | B11 |
+| T-053 | largeur de bande spectrale ≥ 2 octaves | ≥ 2 | 0,6 octave sur `O` | B11 |
+
+✅ **Les cinq sont implémentés depuis le 07/08/2026.** Les définitions ont été
+**calibrées sur les chiffres déjà consignés**, pas choisies : `size=7` et centile
+99,5 redonnent exactement les 382 pics et la dispersion de 0,40 de la ligne `O` ;
+`std/moyenne` redonne 0,626 à `J` et 0,318 à `O`. Une réimplémentation qui ne
+retrouve pas la mesure d'hier est une réimplémentation fausse.
+
+**Portée étendue à `L`, `M`, `N`, `O`** — les quatre lignes déclarées
+`homogene` dans la matrice. B10 vise « au-delà de l'homogénéité », pas la seule
+ligne `O`. Mesures du 07/08 :
+
+| | `O` | `N` | `M` | `L` |
+|---|---|---|---|---|
+| T-050 contraste *(≤ 0,08)* | 0,318 | 0,358 | 0,418 | 0,478 |
+| T-051 pic/médiane *(≤ 1,8)* | 3,28 | 3,76 | 4,16 | 4,31 |
+| T-052 dispersion *(≥ 0,50)* | 0,40 | 0,41 | 0,47 | ✅ |
+| T-053 octaves *(≥ 2)* | 0,6 | 1,4 | ✅ | ✅ |
+
+La dégradation est **monotone et ordonnée** : plus on monte en échelle, plus
+l'écart à l'exigence se creuse. C'est la signature d'une cause unique — la bande
+spectrale bornée à 300 Mpc le 02/08 — et non de quatre défauts distincts.
+
+**T-049 passe presque** : le contraste décroît bien de `H` 0,608 à `O` 0,318, avec
+**une seule rupture, à la ligne `J`**.
 
 **T-052 et T-053 vont ensemble.** Une bande spectrale étroite produit
 mécaniquement un motif quasi-périodique : c'est du traitement du signal, pas un
@@ -169,9 +208,30 @@ tout cuit.
 
 | ID | Contrôle | Origine |
 |---|---|---|
+| **T-054** | **provenance homogène des 15 lignes** | **07/08 — les textures en ligne venaient de trois cuissons différentes** |
 | T-030 | les 15 lignes existent | B6 |
 | T-031 | paramètres figés dans la matrice | 02/08 — reproductibilité |
 | T-032 | le code lit la matrice | 02/08 — une source de vérité que le code n'ouvre pas dérive en silence |
+
+### T-054 — pourquoi il est neuf et pourquoi il compte
+
+La règle 0 dit « jamais de publication partielle ». Rien ne la faisait respecter.
+Les quinze textures en ligne provenaient de **trois cuissons** :
+
+| Lignes | Commit | Date |
+|---|---|---|
+| `A`, `B` | `c9bc464` | 05/08 — avec la correction d'échelle de la Voie lactée |
+| `C` → `G` | `db11e1e` | 05/08 — **sans** cette correction |
+| `H` → `O` | `adc3dba` | 04/08 |
+
+Ce mélange est invisible à l'œil **et à la mesure image par image** : chaque
+texture est correcte, c'est leur origine qui diffère. Il fausse toute la portée
+PAIR, qui compare des lignes produites par des codes différents.
+
+`bake_impl.py` écrit désormais un `provenance.json` à chaque ligne cuite —
+identifiant de cuisson, commit, horodatage. T-054 échoue si les quinze ne
+partagent pas le même identifiant. **Sur l'état publié il échoue avec
+« provenance.json absent : origine inconnue »**, ce qui est la vérité.
 
 ---
 

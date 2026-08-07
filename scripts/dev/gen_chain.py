@@ -142,6 +142,15 @@ FRESH_PSI_GAIN = 1.0
 # Le contenu fin n'est pas perdu pour autant : il est porte par le champ fin,
 # qui n'est pas deplace.
 
+RENDER_MARGIN = 1.5
+FINE_N = 480                # = OUT_N * RENDER_MARGIN
+# Le champ fin est calcule sur la BOITE COMPLETE, marge comprise, et non sur la
+# seule fenetre visible. Motif (02/08) : la texture de production couvre
+# +/- half*marge ; regenerer le champ fin a ce moment-la le privait de son
+# heritage et cassait la coherence entre lignes -- defaut constate par Marc sur
+# le portage. Un seul champ fin, herite une fois, sert les deux rendus.
+# L'echelle Mpc/px est identique (2*half*marge/FINE_N = 2*half/OUT_N).
+
 SUB_Z = 2                   # raffinement du reseau lagrangien selon z.
 # Calibre le 30/07 : rho_auto du rendu ne depend QUE du nombre de particules par
 # pixel, n/(n+6,8), quel que soit l'axe raffine -- verifie sur (1,1), (2,1),
@@ -616,7 +625,7 @@ def fine_fresh(seed, lam_hi, lam_lo, n=None):
     `normalize_variance` de la premiere iteration, que Marc avait vu comme des
     « deplacements de matiere ».
     """
-    n = n or OUT_N
+    n = n or FINE_N
     rng = np.random.default_rng(seed)
     kx = np.fft.fftfreq(n)[:, None] * n
     ky = np.fft.rfftfreq(n)[None, :] * n
@@ -632,7 +641,7 @@ def fine_inherit(fine_parent, ratio, n=None):
     C'est le mecanisme `crop_and_upsample` de la premiere iteration (e0d5336),
     applique au CHAMP FIN et non au champ de densite. Purement lineaire.
     """
-    n = n or OUT_N
+    n = n or FINE_N
     w = n / ratio
     c = (n - w) / 2.0
     yy, xx = np.mgrid[0:n, 0:n].astype(np.float64)
@@ -667,7 +676,7 @@ def fine_weights(ratio):
 
 def fine_lam_hi(half):
     """Plus grande longueur d'onde du champ fin, en pixels, bornee par B8."""
-    px = 2.0 * half / OUT_N
+    px = 2.0 * half / OUT_N          # half = fenetre VISIBLE, hors marge
     return float(min(FINE_LAM_HI_PX, max(HOMOGENEITY_MPC / px, 2.6)))
 
 
@@ -704,7 +713,7 @@ def fine_field(seed, n=None):
     aucune puissance aux petites echelles, c'est precisement pourquoi le contenu
     fin restait invisible.
     """
-    n = n or OUT_N
+    n = n or FINE_N
     rng = np.random.default_rng(seed)
     kx = np.fft.fftfreq(n)[:, None] * n
     ky = np.fft.rfftfreq(n)[None, :] * n
@@ -736,6 +745,49 @@ def _calib_fine_norm():
     FINE_NORM = 1.0 / float(f.std())
 
 
+def render_full(L, seed, margin=1.5):
+    """Texture de PRODUCTION : couvre +/- half*margin, pas seulement +/- half.
+
+    L'application recadre rectangulairement pour remplir l'ecran sans
+    deformation (DensityLayer.tsx, MARGIN_FACTOR) : une texture limitee au champ
+    nominal produirait des bandes noires sur les ecrans allonges.
+
+    La taille de sortie suit la marge, `OUT_N * margin`, de sorte que l'echelle
+    Mpc/pixel soit INCHANGEE. C'est ce qui permet de reutiliser tel quel le champ
+    fin, dont les longueurs d'onde sont en pixels : elles gardent exactement la
+    meme signification physique.
+    """
+    n = int(round(OUT_N * margin))
+    ext = L.half * margin
+    slab = SLAB_FRAC * 2 * L.half
+    rng = np.random.default_rng(seed + 991)
+    img = np.zeros((n, n), np.float32)
+    web = L.web
+    base = ((np.abs(web[:, 2]) < slab / 2).mean() * 1.0) or 1.0
+    rep = int(np.clip(round(TARGET_PROJ * margin ** 2 / max(len(web) * base * 0.9, 1)), 1, 20))
+    for k in range(rep):
+        p = web if k == 0 else web + (rng.random(web.shape).astype(np.float32) - 0.5) * L.cell
+        m = ((np.abs(p[:, 2]) < slab / 2) & (np.abs(p[:, 0]) < ext) & (np.abs(p[:, 1]) < ext))
+        q = p[m]
+        ix = np.clip(((q[:, 0] + ext) / (2 * ext) * n).astype(np.int32), 0, n - 1)
+        iy = np.clip(((q[:, 1] + ext) / (2 * ext) * n).astype(np.int32), 0, n - 1)
+        np.add.at(img, (ix, iy), np.float32(1.0))
+        del p, q
+    img = ndimage.gaussian_filter(img, PSF_PX)
+    fine = getattr(L, "fine", None)
+    if fine is not None and fine.shape[0] != n:
+        fine = ndimage.zoom(fine, n / fine.shape[0], order=1)
+    img, gm = apply_fine(img, L.code, fine)
+    # Le ton se cale sur la FENETRE VISIBLE, pas sur la texture entiere : la
+    # marge n'est jamais montree telle quelle, et sur les lignes ou le centre est
+    # plus dense que les bords (une galaxie au milieu) viser la moyenne globale
+    # rendait la zone vue trop claire -- ligne A mesuree a 81,9/255 pour une
+    # cible de 68 (03/08).
+    c = (n - OUT_N) // 2
+    a = M.solve_alpha(img[c:c + OUT_N, c:c + OUT_N], TARGET_MEAN, gamma=gm)
+    return M.tone(img, a, gamma=gm)
+
+
 def render(L, seed):
     slab = SLAB_FRAC * 2 * L.half
     rng = np.random.default_rng(seed + 991)
@@ -753,7 +805,11 @@ def render(L, seed):
         np.add.at(img, (ix, iy), np.float32(1.0))
         del p, q
     img = ndimage.gaussian_filter(img, PSF_PX)
-    img, gm = apply_fine(img, L.code, getattr(L, "fine", None))
+    f = getattr(L, "fine", None)
+    if f is not None and f.shape[0] != OUT_N:
+        c = (f.shape[0] - OUT_N) // 2          # fenetre visible = centre
+        f = f[c:c + OUT_N, c:c + OUT_N]
+    img, gm = apply_fine(img, L.code, f)
     a = M.solve_alpha(img, TARGET_MEAN, gamma=gm)
     return M.tone(img, a, gamma=gm)
 

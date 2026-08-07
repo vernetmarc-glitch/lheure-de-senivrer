@@ -89,6 +89,71 @@ def _corr(a, b):
     return float((a * b).mean() / d) if d > 0 else float("nan")
 
 
+def _isotropy(t):
+    """Rapport de puissance axes / diagonales. Cible [0,85 ; 1,20].
+
+    REPRISE MOT POUR MOT de `invariants.py:E4_isotropy` (INV-E4). Ce controle
+    existait, echouait sur cinq lignes, et a disparu en reorganisant le harnais :
+    son echec est alors devenu invisible. Il n'est pas reecrit ici, il est
+    RAPATRIE -- une reecriture aurait produit un troisieme seuil et un troisieme
+    chiffre incomparables aux deux precedents.
+    """
+    m = min(t.shape)
+    u = t[:m, :m]
+    a = (u - u.mean()) * np.hanning(m)[:, None] * np.hanning(m)[None, :]
+    F = np.abs(np.fft.fftshift(np.fft.fft2(a))) ** 2
+    c = m // 2
+    y, x = np.indices(F.shape)
+    dy, dx = y - c, x - c
+    r = np.hypot(dy, dx)
+    A = np.abs(np.degrees(np.arctan2(dy, dx)))
+    ang = np.minimum(A, 180 - A)
+    b = (r > 3) & (r < m * 0.45)
+    return float(F[b & ((ang < 12) | (ang > 78))].mean()
+                 / F[b & (np.abs(ang - 45) < 20)].mean())
+
+
+def _peaks(v):
+    """Pics locaux. Detecteur CALIBRE, pas choisi.
+
+    `size=7`, centile 99,5 : ce couple redonne exactement les 382 pics et la
+    dispersion de 0,40 mesures a la ligne `O` le 03/08 et consignes au registre.
+    Toute autre fenetre donne un autre chiffre (924 pics a size=5) et rendrait
+    les mesures d'aujourd'hui incomparables a celles d'hier.
+    """
+    mx = ndimage.maximum_filter(v, size=7)
+    return np.argwhere((v == mx) & (v > np.percentile(v, 99.5)))
+
+
+def _contrast(v):
+    """Contraste relatif : ecart-type sur moyenne. Redonne 0,626 a `J` et
+    0,318 a `O`, les deux valeurs bornant la plage consignee au registre."""
+    return float(v.std() / max(v.mean(), 1e-9))
+
+
+def _octaves(v):
+    """Largeur de la bande spectrale, en octaves.
+
+    Meme ponderation que T-008 (k^2 P(k), seuil a 20 % du maximum) : les deux
+    controles doivent lire le meme spectre, sinon ils peuvent se contredire.
+    """
+    n = v.shape[0]
+    a2 = v - v.mean()
+    P = np.abs(np.fft.rfft2(a2)) ** 2
+    ky = np.fft.fftfreq(n)[:, None] * n
+    kx = np.fft.rfftfreq(n)[None, :] * n
+    k = np.sqrt(ky ** 2 + kx ** 2).ravel()
+    idx = np.digitize(k, np.arange(1, n // 2))
+    Pk = np.array([P.ravel()[idx == i].mean() if (idx == i).any() else 0.0
+                   for i in range(1, n // 2 - 1)])
+    kb = np.arange(1, n // 2 - 1)
+    w = kb ** 2 * Pk
+    band = kb[w > 0.2 * w.max()]
+    if len(band) < 2:
+        return 0.0
+    return float(np.log2(band.max() / band.min()))
+
+
 def _bright_extent(a, q=99.5):
     """Etendue des zones brillantes, en fraction de la largeur.
 
@@ -168,6 +233,41 @@ def cell_checks(code, img, m):
     big = n / kb[int(np.argmax(w > 0.2 * w.max()))] * (2 * r["halfwidth_mpc"] / n)
     out.append(Result("T-008", "CELL", "rien au-dela de l'homogeneite (B5)",
                       big <= homog * 1.6, "%s %.0f Mpc" % (code, big)))
+
+    # T-014 — PERTE SECHE, rapatrie le 07/08/2026. Existait sous INV-E4,
+    # echouait sur cinq lignes, et a disparu en reorganisant le harnais.
+    # Non applique aux lignes a sprites : A14 impose des halos ELLIPTIQUES
+    # suivant l'aplatissement du disque, donc une anisotropie voulue.
+    if not sp:
+        iso = _isotropy(v)
+        out.append(Result("T-014", "CELL", "isotropie axes/diagonales (B3)",
+                          0.85 <= iso <= 1.20, "%s %.2f" % (code, iso)))
+
+    # T-050 a T-053 — rendu au-dela de l'homogeneite (B9, B10, B11).
+    # Origine 03/08 : « il reste des points lumineux a tres grande echelle, cela
+    # ne correspond pas a une realite physique ». Les quatre ECHOUENT sur l'etat
+    # publie, et c'est le but : ils rendent visible un defaut jusqu'ici porte par
+    # une phrase de document, donc non contraignant.
+    if r.get("homogene"):
+        ct = _contrast(v)
+        out.append(Result("T-050", "CELL", "contraste faible au-dela de l'homogeneite (B9)",
+                          ct <= 0.08, "%s %.3f" % (code, ct)))
+        pm = float(v.max() / max(np.median(v), 1e-9))
+        out.append(Result("T-051", "CELL", "aucun pic detache aux grandes echelles (B10)",
+                          pm <= 1.8, "%s pic/mediane %.2f" % (code, pm)))
+        pk = _peaks(v)
+        if len(pk) >= 4:
+            from scipy.spatial import cKDTree
+            dd, _ = cKDTree(pk).query(pk, k=2)
+            disp = float(dd[:, 1].std() / max(dd[:, 1].mean(), 1e-9))
+        else:
+            disp = float("nan")
+        out.append(Result("T-052", "CELL", "distribution aleatoire, non reguliere (B11)",
+                          disp >= 0.50, "%s dispersion %.2f sur %d pics"
+                          % (code, disp, len(pk))))
+        oc = _octaves(v)
+        out.append(Result("T-053", "CELL", "bande spectrale >= 2 octaves (B11)",
+                          oc >= 2.0, "%s %.1f octave(s)" % (code, oc)))
     return out
 
 
@@ -272,12 +372,50 @@ def plan_completeness():
                                         + ("…" if len(missing) > 8 else "")))
 
 
+def global_checks(img, m):
+    """Controles qui portent sur TOUTE l'echelle, pas sur une image ni sur une
+    paire. Une seule entree pour l'instant : la decroissance du contraste."""
+    rows = [c for c in ORDER if c in img and c not in SPRITE_ROWS]
+    if len(rows) < 3:
+        return []
+    # ORDER va du plus grand demi-champ au plus petit : en le remontant, on va
+    # vers les GRANDES echelles, ou le contraste doit decroitre (B9). Sans
+    # coupure : c'est une decroissance continue qui est exigee, pas un seuil.
+    ct = [_contrast(visible(img[c])) for c in rows]
+    # `rows[0]` est la PLUS GRANDE echelle. En allant vers les grandes echelles
+    # -- donc en remontant l'indice vers 0 -- le contraste doit DECROITRE (B9).
+    # Une rupture est donc un contraste qui remonte quand l'echelle grandit.
+    bad = [rows[i] for i in range(len(ct) - 1) if ct[i] > ct[i + 1] + 0.02]
+    return [Result("T-049", "CONF", "contraste decroissant vers les grandes echelles (B9)",
+                   not bad, "%s %.3f -> %s %.3f%s"
+                   % (rows[-1], ct[-1], rows[0], ct[0],
+                      "  rupture : " + " ".join(bad) if bad else ""))]
+
+
 def conf_checks(d, m):
     out = [plan_completeness()]
     missing = [c for c in ORDER
                if not os.path.exists(os.path.join(d, "density_%s.png" % c))]
     out.append(Result("T-030", "CONF", "les 15 lignes existent (B6)",
                       not missing, " ".join(missing)))
+    # T-054 — PUBLICATION PARTIELLE. Ajoute le 07/08 apres avoir constate que
+    # les 15 textures en ligne provenaient de TROIS cuissons. La regle 0 dit
+    # « jamais de publication partielle » ; jusqu'ici rien ne la faisait
+    # respecter, et le melange etait indetectable a l'oeil comme a la mesure.
+    prov = os.path.join(d, "provenance.json")
+    if not os.path.exists(prov):
+        out.append(Result("T-054", "CONF", "provenance homogene des 15 lignes",
+                          False, "provenance.json absent : origine inconnue"))
+    else:
+        with open(prov) as fh:
+            pv = json.load(fh)
+        runs = set(v.get("run") for v in pv.values())
+        manque = [c for c in ORDER if c not in pv]
+        out.append(Result("T-054", "CONF", "provenance homogene des 15 lignes",
+                          len(runs) == 1 and not manque,
+                          "%d cuisson(s)%s" % (len(runs),
+                                               "  sans trace : " + " ".join(manque)
+                                               if manque else "")))
     out.append(Result("T-031", "CONF", "parametres figes dans la matrice",
                       bool(m.get("generation")), ""))
     import sys
@@ -308,6 +446,7 @@ def run_all(d, cells=True, pairs=True, conf=True):
     res = []
     if conf:
         res += conf_checks(d, m)
+        res += global_checks(img, m)
     if cells:
         for c in ORDER:
             if c in img:
