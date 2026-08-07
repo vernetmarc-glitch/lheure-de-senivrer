@@ -81,7 +81,7 @@ def report(res):
     by = {}
     for r in res:
         by.setdefault(r.scope, []).append(r)
-    for scope in ("CONF", "CELL", "PAIR", "TIME"):
+    for scope in ("CONF", "SRC", "CELL", "PAIR", "TIME"):
         if scope not in by:
             continue
         bad = [r for r in by[scope] if not r.ok]

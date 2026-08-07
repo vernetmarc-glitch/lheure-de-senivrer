@@ -362,7 +362,13 @@ def plan_completeness():
                       "registre introuvable")
     declared = set(re.findall(r"T-\d{3}", open(reg).read()))
     declared.discard("T-000")
-    impl = set(re.findall(r'"(T-\d{3})"', open(__file__).read()))
+    # Balaye TOUT le harnais, pas le seul fichier courant : la batterie est
+    # repartie sur plusieurs modules depuis le 07/08, et ne regarder qu'ici
+    # ferait croire a un plan incomplet alors qu'il ne l'est pas.
+    impl = set()
+    for f in sorted(os.listdir(HERE)):
+        if f.endswith(".py"):
+            impl |= set(re.findall(r'"(T-\d{3})"', open(os.path.join(HERE, f)).read()))
     missing = sorted(declared - impl)
     return Result("T-000", "CONF",
                   "plan de test complet (%d/%d)" % (len(declared) - len(missing),
@@ -447,13 +453,28 @@ def run_all(d, cells=True, pairs=True, conf=True):
     if conf:
         res += conf_checks(d, m)
         res += global_checks(img, m)
+    if conf:
+        try:
+            import checks_dissolution as CD
+            res += CD.dissolution_checks()
+            res += CD.resolution_checks(d)
+        except Exception as e:
+            res.append(Result("T-036", "CONF", "dissolubilite", False, str(e)[:60]))
+        try:
+            import checks_src as CS
+            res += CS.src_checks()
+        except Exception as e:
+            res.append(Result("T-048", "SRC", "sprites sources", False, str(e)[:60]))
+    import checks_image as CI
     if cells:
         for c in ORDER:
             if c in img:
                 res += cell_checks(c, img[c], m)
+                res += CI.image_cell_checks(c, img[c], m)
     if pairs:
         for i in range(len(ORDER) - 1):
             p, c = ORDER[i], ORDER[i + 1]
             if p in img and c in img:
                 res += pair_checks(p, c, img[p], img[c], m)
+                res += CI.image_pair_checks(p, c, img[p], img[c], m)
     return res

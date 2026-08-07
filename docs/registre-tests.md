@@ -22,8 +22,12 @@ tenait. **Un plan qui n'est pas exécuté n'est pas un plan** — et un plan
 incomplet dont l'incomplétude est invisible est pire, parce qu'il rassure.
 
 État au 03/08 : 18 implémentés sur 52, 34 à écrire.
-**État au 07/08 : 25 implémentés sur 53, 28 à écrire.** Rapatriés ce jour :
-T-014, T-049 à T-053, et T-054 (neuf).
+**État au 07/08 : 53 sur 53. T-000 passe — le plan de test n'a plus de trou.**
+
+C'est la première fois depuis le début du projet que toute exigence mesurable
+déclarée dispose d'un contrôle qui s'exécute. La batterie compte **345
+contrôles** répartis sur cinq portées, dont **48 en échec** — et ce chiffre est
+la vraie mesure de l'état du projet, pas une dégradation.
 
 ---
 
@@ -100,6 +104,10 @@ impose des halos elliptiques, donc une anisotropie voulue.
 |---|---|---|---|
 | T-025 | agrandissement d'une texture ≤ facteur admis à chaque palier | A11 | 06/07 — recadrage de 8,5 px natifs agrandi ×35 |
 | T-026 | traitement à la résolution native, jamais sous-échantillonné | A11 | 06/07 — pipeline en 512 sur des textures 1024 |
+
+✅ **Les deux passent au 07/08.** T-025 : pire agrandissement ×1,70 (Andromède
+sur `A`) pour ×4 admis, calcul purement géométrique n'exigeant aucune cuisson.
+T-026 : textures 480, champ fin 480, attendu 480.
 | T-027 | signature de référence sur les lignes `K`→`H` | A1 | signature chiffrée, 10 grandeurs |
 | T-028 | toile et non mousse : élongation des structures | A2 | 28/07 — « mousse de bulles rondes » |
 | T-029 | points répartis le long des filaments | A5 | 28/07 |
@@ -190,11 +198,54 @@ C'est B9, et c'est ce qui satisfait les quatre contrôles à la fois.
 
 **T-036 à T-038 sont les plus importants du lot.** Ils se vérifient sur la ligne
 d'aujourd'hui, avant toute cuisson de colonne, et ils décident si les onze
-colonnes seront du calcul ou une reprise de conception. Une composante sans loi
-temporelle bloque la colonne entière — et on ne s'en apercevrait qu'après avoir
-tout cuit.
+colonnes seront du calcul ou une reprise de conception.
+
+### ⛔ Résultat du 07/08 — ils tranchent, et la réponse est « reprise de conception »
+
+`checks_dissolution.py` construit la ligne `E` à amplitude 1 puis à amplitude 0,
+sur un fond volontairement plat, et mesure ce qui reste.
+
+| | Mesure |
+|---|---|
+| **T-036** | **échec** — aucune composante ne déclare de loi temporelle : `champ_fin`, `halos`, `ancrage`, `sprites`, `raccord` |
+| **T-037** | **échec** — structure 2,38 → 2,35 /255 : **99 % subsistent** à amplitude nulle |
+| T-038 | **passe** — luminosité moyenne ×1,000, la matière est conservée |
+
+**Le diagnostic est net : seuls 1,0 % des pixels changent entre amplitude 1 et
+amplitude 0.** Ce 1 %, ce sont les galaxies, qui portent leur dissolution dans
+leurs propres frames. Tout le reste — champ fin, fond ambiant, toile — **ignore
+l'amplitude**.
+
+Conséquence, à acter : **les onze colonnes ne peuvent pas être cuites en l'état.**
+Ce n'est pas un réglage, c'est C13 non satisfaite. Il faut donner une loi
+temporelle au champ fin et au fond ambiant avant toute cuisson de colonne. Ce
+contrôle a coûté trois secondes ; le découvrir après avoir cuit 165 cellules
+aurait coûté la série entière.
 
 ---
+
+## Portée SRC — les sprites sources. **Indépendante de toute cuisson.**
+
+T-040 à T-048 et T-024 portent sur les 126 frames de dissolution, pas sur les
+textures. Ils s'exécutent même quand rien n'est cuit : une dégradation des
+sources resterait sinon invisible jusqu'à la cuisson suivante — ce qui est
+exactement ce qui s'est produit entre le 8 juillet et le 3 août, quand le moteur
+N-corps a été remplacé par des gaussiennes dessinées à la main pendant cinq
+mois.
+
+Implémentation : `scripts/harness/checks_src.py`.
+
+**Trois échecs au 07/08, tous neufs :**
+
+| Contrôle | Constat |
+|---|---|
+| **T-024** | `ic10` et `leo1` sont **le même fichier, octet pour octet**. Deux galaxies nommées partagent une morphologie — D5 exige des formes variées, et rien ne le voyait |
+| T-047 | `smc` : écart d'axe halo/disque de 21° pour 20° admis. Les huit autres passent |
+| T-045 | `triangulum` : une remontée de pic sur les 14 frames |
+
+Les six autres — pic formé, pic dissous, flux ×1,67 à ×2,71, étalement ×5,3 à
+×7,1, pics locaux 137→90 521, structure interne 137 à 284 pics — passent sur les
+neuf sprites, aux valeurs exactes consignées le 03/08.
 
 ## Portée TIME — deux colonnes voisines. Actif dès que les colonnes existent.
 
@@ -235,6 +286,19 @@ partagent pas le même identifiant. **Sur l'état publié il échoue avec
 
 ---
 
+## Contrôles corrigés en spécification le 07/08 — à ne pas confondre avec un desserrage
+
+Quatre contrôles écrits ce jour testaient autre chose que l'exigence citée. Ils
+ont été **réécrits**, pas assouplis. La distinction est celle qui compte : un
+seuil se desserre en écrivant pourquoi, une spécification fausse se remplace.
+
+| Contrôle | Ce qu'il testait à tort | Ce que l'exigence dit vraiment |
+|---|---|---|
+| **T-047** | halo et disque de même aplatissement — échouait sur les 9 sprites | A14 demande un halo **elliptique** dont le **grand axe** suit le disque. Cœur 0,79–0,93 et halo 0,30–0,65, c'est le comportement attendu : bulbe rond, disque aplati |
+| **T-019** | la Voie lactée ne chevauche personne — signalait « voisine à 0,4 px » | A10 dit « la Voie lactée dessinée **dessous** ». Ses satellites sont physiquement dans son halo ; l'exigence est qu'ils restent **visibles par-dessus** |
+| **T-028**, **T-029** | toile et filaments exigés jusqu'à `O` | B8 déclare `L`→`O` homogènes : y exiger une toile reviendrait à représenter un univers qui n'existe pas. Même raisonnement que pour T-012 |
+| **T-015**, **T-016**, **T-018** | mesuraient des objets sous-pixellaires, collés, ou débordant du cadre | une mesure qui ne peut pas être faite ne doit pas rendre un chiffre. Les objets non résolus sont retirés de la mesure, pas le seuil abaissé |
+
 ## État au 03/08/2026 — 153 passés, 14 en échec
 
 | Contrôle | Paires en échec |
@@ -250,3 +314,33 @@ c'est leur cohérence mutuelle qui lâche.
 
 Deux foyers : la charnière `H|G` où la trame change de mécanisme, et les lignes
 à sprites où les objets ne grandissent pas au rythme du zoom.
+
+
+---
+
+## État au 07/08/2026 — 345 contrôles, 297 passés, 48 en échec
+
+`T-000` **passe pour la première fois : 53 déclarés, 53 implémentés.**
+
+| Portée | Contrôles | Échecs |
+|---|---|---|
+| CONF | 11 | 4 |
+| SRC | 74 | 3 |
+| CELL | 192 | 24 |
+| PAIR | 68 | 17 |
+| TIME | — | inactif, les colonnes n'existent pas |
+
+### Les échecs, regroupés par cause — il y en a cinq, pas quarante-huit
+
+1. **Aucune loi temporelle** *(T-036, T-037)* — 99 % de la structure subsiste à
+   amplitude nulle. **Bloque les onze colonnes.**
+2. **Bande spectrale bornée à 300 Mpc le 02/08** *(T-050 à T-053, 11 échecs)* —
+   dégradation monotone de `L` à `O`, signature d'une cause unique.
+3. **Zel'dovich ne fabrique pas la structure fine** *(T-010, T-011, T-039,
+   T-014 sur `L`)* — déjà mesuré le 31/07, c'est **O-07**.
+4. **Provenance mélangée** *(T-054, et les T-012 sur `C→B`/`B→A`)* — trois
+   cuissons différentes publiées ensemble.
+5. **Galaxies** *(T-015 à T-019, T-023, T-024, T-017)* — sprites dupliqués,
+   ancrage D6 à 53 %, trois galaxies perdues entre `F` et `E`.
+
+Une correction par cause, et non quarante-huit correctifs.
