@@ -69,6 +69,7 @@ refusée, pas l'entrée qui se discute.
 | **D-24** | **Une cellule = un code = un fichier** : `st_<code>.png`, de `st_A0.png` à `st_O10.png`. La clé interne (`l1b`, `l2b`…) devient un détail d'implémentation et disparaît des noms d'actifs | 30/07/2026 |
 | **D-25** | Le plafond dur de **150 Mpc** sur la bande de déplacement (« décision c » du 14/07) est **remplacé** par une loi de contraste décroissant avec l'échelle. Motif : combiné à un plancher exprimé en pixels, il vidait entièrement la bande de la ligne la plus haute | 30/07/2026 |
 | **D-26** | Toute grandeur spatiale du paramétrage s'exprime en **Mpc comobiles**. `lam_min_px` est supprimé | 30/07/2026 |
+| **D-27** | **E2 ne reçoit aucune dérogation.** Sous `G`, le fond ne s'efface pas *vers un uniforme* : il s'atténue **relativement aux galaxies** en conservant des nuages filamentaires. C'est donc le mécanisme d'effacement qui est en cause, pas l'interdit. Ferme **O-08**, ouverte le matin même | 07/08/2026 |
 
 ---
 
@@ -85,5 +86,4 @@ proposer est légitime ; les traiter comme acquis ne l'est pas.
 | **O-04** | Provenance et attribution de l'image de référence visuelle | 29/07/2026 |
 | **O-05** | Les 90 galaxies procédurales du catalogue (lignes `F` et `G`) : sprites dédiés, ou points du champ généré ancrés sur leur position réelle ? *(= G2 du document client)* | 30/07/2026 |
 | **O-07** | **Monter vers un moteur N-corps** (particule-maille) sur les lignes `E`→`K`, pour approcher le visuel Millennium ? Zel'dovich ne peut structurellement pas produire le resserrement des filaments après croisement de nappes, les profils de halo ni la sous-structure. À trancher **après retour visuel de Marc** sur le moteur actuel. Dossier complet : `docs/montee-en-complexite-nbody.md` | 30/07/2026 |
-| **O-08** | **E2 et l'effacement du fond sous `G`.** `sprites_layer` fait `img = mean0*(1-w) *0,25 + img*w` : techniquement un fondu vers un uniforme, ce qu'E2 interdit. C'est pourtant l'effacement du fond arbitré par Marc le 03/08. Soit E2 reçoit une dérogation explicite, comme D-14 pour E3 ; soit l'effacement passe par un autre mécanisme. Détecté par T-065 le 07/08 | 07/08/2026 |
 | **O-06** | Faut-il une seizième ligne ? À 15 lignes, `C` et `D` n'apportent aucune galaxie nouvelle — c'est un fait physique de notre voisinage, pas un défaut de l'échelle. À revoir si le rendu de ces deux lignes déçoit | 30/07/2026 |

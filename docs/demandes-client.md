@@ -4,7 +4,7 @@
 paramètre, aucune implémentation. Chaque exigence est formulée de façon
 **observable à l'œil** et doit pouvoir être jugée sans connaître le code.
 
-**Statut.** Version 1.7, arrêtée le 7 août 2026. Reconstitution à partir du document
+**Statut.** Version 1.8, arrêtée le 7 août 2026. Reconstitution à partir du document
 d'architecture, de l'historique du projet et des échanges de session. **À
 relire ligne à ligne par Marc** — l'objet même de ce document étant ce qui a été
 oublié, son exhaustivité ne peut pas être garantie par celui qui a oublié.
@@ -131,10 +131,27 @@ blancs et les nuages ».)*
 
 **A7.** La palette est celle du projet (« Astro », du noir au blanc chaud par le
 rouge sombre et l'orange). Le rendu ne doit jamais être en noir et blanc pur.
-**A8.** Les layers bas montrant des galaxies doivent porter, eux aussi, un
-**fond généré de matière filamentaire subtil**, afin de rester visuellement
-cohérents avec les layers supérieurs. Une galaxie ne flotte pas sur du vide.
-*(Origine : 29/07.)*
+**A8. Sous `G`, le fond s'atténue sans disparaître.** Les layers montrant des
+galaxies doivent porter, eux aussi, un **fond généré de matière filamentaire**,
+afin de rester visuellement cohérents avec les layers supérieurs. Une galaxie ne
+flotte pas sur du vide.
+
+L'atténuation attendue est précisée ainsi *(Marc, 07/08)* :
+
+- le fond devient **très peu perceptible par rapport aux galaxies** — il
+  s'efface au regard, il ne s'efface pas de l'image ;
+- il subsiste **quelques nuages filamentaires diffus** ; ce n'est **pas** un
+  fond uniforme, et ce n'est pas non plus un grain sans forme ;
+- **aucune zone de haute luminosité autre que les galaxies elles-mêmes** : rien
+  dans le fond ne doit rivaliser en éclat avec un objet du catalogue.
+
+Les trois clauses sont distinctes et doivent être satisfaites ensemble : un fond
+lissé jusqu'à l'uniforme échoue la deuxième, et un fond conservé tel quel échoue
+la troisième.
+*(Origine : 29/07. Précisée le 07/08 après mesure : le fond mesurait un pic de
+220/255 sur `G` contre 245 pour les galaxies — presque leur égal — et 118 contre
+108 sur `E`, donc **plus brillant qu'elles** ; à l'autre bout, `C` et `B`
+tombaient à 2,0 et 2,5 d'écart-type, soit quasiment uniformes.)*
 
 **A9. Uniformité de rendu entre objets de même nature.** Deux objets du même type
 — deux galaxies, deux amas — doivent être rendus par le **même procédé** et à la
@@ -630,6 +647,13 @@ Toute exigence ajoutée porte sa **date** et son **origine**. Une exigence n'est
 retirée que sur décision explicite de Marc, jamais par omission.
 
 ### Historique
+
+**v1.8 — 07/08/2026.** **A8 précisée**, sur retour de Marc. L'exigence n'est ni
+ajoutée ni retirée : elle est rendue **vérifiable**. « Le fond s'efface » était
+lu comme un fondu vers l'uniforme ; l'intention est une atténuation *relative aux
+galaxies*, avec des nuages filamentaires qui subsistent. Trois clauses
+mesurables remplacent une phrase d'intention. Ferme **O-08** : E2 n'a pas besoin
+de dérogation, c'est le mécanisme d'effacement qui était en cause.
 
 **v1.7 — 07/08/2026.** Aucune exigence ajoutée ni retirée : **A9 à A14 sont
 rédigées** dans la section A. Elles avaient été introduites les 03/08 (v1.4 et

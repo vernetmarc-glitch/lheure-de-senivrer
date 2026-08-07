@@ -462,3 +462,64 @@ pas leur justesse. La relecture reste nécessaire ; le contrôle la rend rare.
 
 Toute exigence client mesurable est désormais protégée par au moins un contrôle
 exécutable, et les deux méta-contrôles empêchent que cela se reperde.
+
+
+---
+
+## A8 précisée le 07/08 — retour de Marc, transformé en mesure avant correction
+
+**Le retour :** « sous `G|H` l'idée n'est pas que le fond s'efface complètement
+mais qu'il devienne très peu perceptible par rapport aux galaxies ; on veut
+quelques nuages filamentaires diffus, sans autre zone de haute luminosité que les
+galaxies elles-mêmes, pas un fond complètement uniforme. »
+
+Trois clauses distinctes, donc **deux contrôles** :
+
+| ID | Clause | Seuil |
+|---|---|---|
+| **T-034** *(réécrit)* | des nuages filamentaires subsistent | écart-type du fond ≥ 1,5/255 **et** élongation ≥ 1,45 |
+| **T-077** *(neuf)* | rien d'aussi brillant que les galaxies | pic du fond ≤ **0,60 ×** pic des galaxies |
+
+Le fond est mesuré **hors du voisinage des galaxies** (10 px), sinon on mesure
+les galaxies elles-mêmes.
+
+### État mesuré — l'écart existe aux DEUX bouts
+
+| Ligne | fond σ | élongation | pic fond / pic galaxies | |
+|---|---|---|---|---|
+| `G` | 19,0 | 1,65 | **0,90** | ❌ trop brillant |
+| `F` | 17,9 | 1,54 | **0,79** | ❌ trop brillant |
+| `E` | 10,4 | 1,56 | **1,09** | ❌ **plus brillant que les galaxies** |
+| `D` | 7,5 | 1,53 | 0,38 | ✅ la seule conforme |
+| `C` | **2,0** | **1,41** | 0,19 | ❌ quasiment uniforme |
+| `B` | **1,9** | **1,44** | 0,34 | ❌ quasiment uniforme |
+| `A` | 8,9 | 1,67 | **0,80** | ❌ trop brillant |
+
+**Six lignes sur sept échouent, et pas de la même façon.** C'était invisible :
+l'ancien T-034 ne testait que la présence d'un fond, seuil que `C` et `B`
+franchissaient de justesse, et rien ne regardait la luminosité relative.
+
+### Pourquoi le mécanisme actuel ne peut pas y arriver
+
+`sprites_layer` applique `img = mean0 × (1 − w) × 0,25 + img × w`, avec
+`AMBIENT_STRENGTH` décroissant de 0,55 sur `G` à 0,06 sur `A`.
+
+C'est **un fondu linéaire vers une constante** : un seul bouton qui baisse à la
+fois le contraste et l'éclat, dans la même proportion, partout. Il ne peut donc
+pas faire les deux choses que A8 demande — écraser les hautes lumières du fond
+*et* préserver les nuages. Aux fortes valeurs de `w` le fond reste brillant
+(`G`, `F`, `E`), aux faibles il devient uniforme (`C`, `B`). Les deux échecs ont
+la même cause.
+
+*(`A` échoue pour une raison distincte : à 0,035 Mpc la Voie lactée déborde du
+masque de 10 px, et une partie d'elle-même est comptée comme fond.)*
+
+### Correction proposée — à valider avant écriture
+
+Remplacer le fondu linéaire par une **courbe de ton ponctuelle** appliquée au
+seul fond : compression douce du haut de la dynamique, mi-tons préservés. Les
+pics du fond s'écrasent, les nuages filamentaires restent. L'opérateur demeure
+ponctuel, donc conforme à l'interdit « aucun opérateur spatialement non linéaire
+en aval du générateur », et **E2 n'a plus besoin de dérogation** — voir **D-27**.
+
+Rien n'est écrit tant que Marc n'a pas validé la direction.

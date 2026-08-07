@@ -195,10 +195,33 @@ def image_cell_checks(code, img, m):
             yy, xx = np.ogrid[0:n, 0:n]
             mask &= np.hypot(yy - (cy - off), xx - (cx - off)) > 10
         if mask.sum() > 100:
+            # A8 precisee le 07/08 par Marc. « Le fond s'efface » etait lu comme
+            # un fondu vers l'uniforme ; l'intention est une attenuation
+            # RELATIVE AUX GALAXIES, avec des nuages filamentaires qui
+            # subsistent. Trois clauses distinctes, a satisfaire ENSEMBLE : un
+            # fond lisse jusqu'a l'uniforme echoue la deuxieme, un fond conserve
+            # tel quel echoue la troisieme.
             fond = float(ndimage.gaussian_filter(v, 2.0)[mask].std() * 255)
-            out.append(Result("T-034", "CELL", "fond filamentaire sous G (A8)",
-                              fond >= 1.5, "%s %.2f /255 hors galaxies"
-                              % (code, fond)))
+            # Clause 2 — des nuages FILAMENTAIRES, ni uniforme ni grain sans
+            # forme. On mesure l'elongation du fond seul, les galaxies remplacees
+            # par la mediane du fond pour ne pas peser dans le calcul.
+            u = np.where(mask, v, float(np.median(v[mask])))
+            el = _elongation(u)
+            out.append(Result("T-034", "CELL", "nuages filamentaires subsistants (A8)",
+                              fond >= 1.5 and el >= 1.45,
+                              "%s %.2f /255, elongation %.2f" % (code, fond, el)))
+            # Clause 3 — AUCUNE zone de haute luminosite hors galaxies. Le pic du
+            # fond doit rester nettement sous celui des objets du catalogue.
+            # Mesure du 07/08 : 220 contre 245 sur `G`, et 118 contre 108 sur
+            # `E` -- le fond y etait PLUS BRILLANT que les galaxies.
+            if (~mask).any():
+                pic_gal = float(v[~mask].max())
+                pic_fond = float(np.percentile(v[mask], 99.9))
+                r = pic_fond / max(pic_gal, 1e-9)
+                out.append(Result("T-077", "CELL",
+                                  "rien d'aussi brillant que les galaxies (A8)",
+                                  r <= 0.60, "%s pic fond %.0f / pic galaxies %.0f"
+                                  " = %.2f" % (code, pic_fond * 255, pic_gal * 255, r)))
 
     # ---- T-027 : signature de reference sur les lignes K -> H.
     if code in ("K", "J", "I", "H"):
