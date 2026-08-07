@@ -588,3 +588,90 @@ mesurés depuis le 31/07 et le 02/08.
 total. Trois échecs étaient donc invisibles à l'écran tout en bloquant la
 publication — exactement le type d'écart que le harnais existe pour empêcher.
 Corrigé le jour même.
+
+
+---
+
+## 07/08, soir — B10 corrigée, et le contrôle qui manquait depuis le début
+
+### Le retour de Marc
+
+« Il doit y avoir une uniformité géométrique spatiale mais pas une uniformité de
+couleur. Comme sur Millennium on doit toujours voir aux nœuds de la toile des
+points plus lumineux que le reste. Ce que tu as fait, c'est de garder une toile
+fade et de rajouter des points très lumineux posés aléatoirement par-dessus. »
+
+### La mesure qui confirme le diagnostic, exactement
+
+Ligne `O` cuite deux fois, avec et sans champ fin :
+
+| | moyenne | contraste | pic/médiane |
+|---|---|---|---|
+| rendu complet | 68,0 | 0,315 | 3,25 |
+| **toile seule** | 68,0 | **0,028** | **1,15** |
+
+> **405 pics. 10 % tombent sur les 10 % les plus denses de la toile.**
+> Hasard pur : 10 %. Si c'étaient les nœuds : proche de 100 %.
+
+Les points brillants de `O` étaient **statistiquement indépendants** de la toile.
+Et les deux rendus donnent 68,0 exactement : le ton est asservi à une cible fixe,
+ce qui écrase la dynamique au lieu de la laisser respirer.
+
+### Contrôles corrigés — les critères étaient faux, pas les seuils
+
+| | avant *(matin du 07/08)* | après |
+|---|---|---|
+| **T-050** | contraste ≤ 0,08 | **contraste ≥ 0,10** — la toile garde de la dynamique |
+| **T-051** | pic/médiane ≤ 1,8 | **pic/médiane ≥ 1,5** — des nœuds subsistent |
+
+Les deux sont **inversés**. Ils mesuraient la platitude photométrique, c'est-à-dire
+exactement ce que B10 ne demande pas. C'est la deuxième fois dans la journée qu'un
+contrôle que j'écris teste autre chose que l'exigence citée ; les deux fois, seule
+la relecture de Marc l'a vu.
+
+### T-078 — le contrôle qui manquait, et sa limite
+
+**Les pics doivent coïncider avec les nœuds de la toile.** C'est le seul critère
+qui distingue Millennium d'un ciel étoilé, et rien ne le mesurait.
+
+Mais il ne peut **pas** s'appliquer à l'image livrée aux plus grandes échelles :
+à `O`, 1 px vaut 91 Mpc, et la toile comme le champ fin vivent tous deux entre 2
+et 3 px. **Aucun lissage ne les sépare dans le PNG.** Le contrôle doit se faire à
+la cuisson, quand la toile est encore isolable — la version actuelle, qui lit
+l'image livrée, mesure « les pics sont sur des zones localement claires » et rend
+62 % là où la mesure honnête donne 10 %.
+
+*À déplacer en diagnostic de cuisson : `bake_impl` écrit le taux, T-078 le lit.
+Noté, non fait.*
+
+### Cause trouvée : l'épaisseur de tranche est une fraction de boîte
+
+`SLAB_FRAC = 0,06` fixe l'épaisseur projetée à **6 % de la largeur de la boîte**.
+C'est le piège documenté — « jamais en fraction de la boîte » — **sixième
+occurrence**. À `O` elle empilait **1 748 Mpc** de profondeur, soit une
+demi-douzaine de structures décorrélées moyennées entre elles.
+
+| tranche | structure de la toile à `O` |
+|---|---|
+| 1 748 Mpc | 0,0013 |
+| **300 Mpc** | **0,0075** — ×5,8 |
+
+**Corrigé** : `SLAB_MAX_MPC = 300`, plafond physique déclaré dans la matrice. Une
+tranche plus épaisse que l'échelle d'homogénéité ne peut rien ajouter — au-delà,
+les structures sont décorrélées et leur superposition ne fait que diluer.
+
+### Ce qui reste, mesuré et non résolu
+
+Tranche plafonnée **et** gain ponctuel ×3 sur la toile, à `O` : contraste **0,382**,
+pic/médiane **2,94** — la dynamique revient sans aucun champ fin. Mais le taux de
+coïncidence ne monte qu'à **35 %**.
+
+**Les pics restants sont du bruit de comptage, pas des nœuds.** À `O`, la
+projection dépose 1,6 M de points sur 480² pixels dans une tranche désormais six
+fois plus mince : le bruit de Poisson domine la structure. Augmenter le gain
+amplifie le bruit autant que la toile — ×6 monte le contraste à 0,819 mais la
+coïncidence à 48 % seulement.
+
+**Le levier restant est le nombre de traceurs**, plafonné à 20 répétitions dans
+`render_full`. C'est la prochaine mesure à faire, et elle décide si `O` et `N`
+peuvent montrer de vrais nœuds ou seulement un grain honnête.

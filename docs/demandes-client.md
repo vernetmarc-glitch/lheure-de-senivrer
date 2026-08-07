@@ -4,7 +4,7 @@
 paramètre, aucune implémentation. Chaque exigence est formulée de façon
 **observable à l'œil** et doit pouvoir être jugée sans connaître le code.
 
-**Statut.** Version 1.8, arrêtée le 7 août 2026. Reconstitution à partir du document
+**Statut.** Version 1.9, arrêtée le 7 août 2026. Reconstitution à partir du document
 d'architecture, de l'historique du projet et des échanges de session. **À
 relire ligne à ligne par Marc** — l'objet même de ce document étant ce qui a été
 oublié, son exhaustivité ne peut pas être garantie par celui qui a oublié.
@@ -236,13 +236,45 @@ seuil.
 ~370 Mpc comme limite au-delà de laquelle une distribution ne se distingue plus
 d'une distribution homogène.)*
 
-**B10. Aucun point lumineux au-delà de l'homogénéité.** Aux plus grandes
-échelles, les fluctuations de densité sont de l'ordre de **10⁻⁴** — celles du
-fond diffus valent 2×10⁻⁵. **Rien ne doit s'y détacher** : ni pic, ni amas, ni
-point brillant. L'image doit être quasi uniforme, portant seulement un grain.
+**B10. Au-delà de l'homogénéité, l'uniformité est GÉOMÉTRIQUE, jamais
+photométrique.** Aux plus grandes échelles, la carte ne doit privilégier **aucun
+lieu** : pas de région plus structurée qu'une autre, pas de direction privilégiée,
+pas de centre. C'est cela, l'homogénéité — une propriété **statistique et
+spatiale**.
+
+Ce n'est **pas** une platitude de couleur. **Comme sur Millennium, on doit
+toujours voir aux nœuds de la toile des points plus lumineux que le reste**, à
+tout niveau de zoom, y compris le plus élevé. Une toile uniformément fade ne
+satisfait pas B10 : elle le rate.
+
+Deux fautes distinctes sont proscrites, et elles se ressemblent à l'œil :
+
+- **la toile fade** — les structures sont là mais sans dynamique, l'image ne
+  montre plus rien ;
+- **les points posés par-dessus** — une toile fade complétée de points brillants
+  **indépendants d'elle**. Ce n'est ni Millennium, ni physique : à ces échelles
+  rien ne justifie un point lumineux qui ne soit pas un nœud.
+
+Le critère qui les sépare est mesurable : **les pics doivent coïncider avec les
+nœuds de la toile**.
+
 *(Origine : 03/08 — « il reste des points lumineux à très grande échelle, cela ne
-correspond pas à une réalité physique ». Mesuré à l'époque : 382 pics et un
-rapport pic/médiane de 3,28 à la ligne `O`.)*
+correspond pas à une réalité physique ». **Corrigée le 07/08** : la première
+rédaction demandait une image « quasi uniforme », lue comme une platitude
+photométrique. Mesure qui a tranché : à la ligne `O`, 405 pics dont **10 %
+seulement** tombaient sur les 10 % les plus denses de la toile — soit exactement
+le hasard. Les points étaient statistiquement indépendants de la structure.)*
+
+**B10 bis. Aux très grandes échelles, la luminosité moyenne peut dériver.**
+Maintenir une moyenne identique sur toutes les lignes écrase la dynamique du flux
+là où les contrastes physiques sont les plus faibles, et fait **disparaître les
+structures**. Une **légère dérive de la luminosité moyenne vers le haut est
+acceptée** aux grandes échelles, en échange de nœuds qui restent visibles comme
+aux niveaux de zoom inférieurs.
+
+Ce qui est ancré, c'est le **fond** — il ne doit jamais noircir (B6) ; ce qui est
+libre, c'est ce que les nœuds ajoutent au-dessus.
+*(Origine : 07/08, arbitrage de Marc.)*
 
 **B11. Aléatoire, jamais régulier.** La structure doit être celle d'un champ
 **aléatoire amassé** — distribution de type Poisson aux grandes échelles, puis de
@@ -648,6 +680,14 @@ retirée que sur décision explicite de Marc, jamais par omission.
 
 ### Historique
 
+**v1.9 — 07/08/2026.** **B10 corrigée, B10 bis ajoutée.** La rédaction du 03/08
+demandait une image « quasi uniforme » au-delà de l'homogénéité ; elle a été lue
+comme une platitude photométrique, et les contrôles écrits le matin même
+mesuraient cette platitude. L'intention est une uniformité **géométrique** : les
+nœuds de la toile restent plus lumineux, comme sur Millennium. B10 bis autorise
+la dérive de la luminosité moyenne qui rend cela possible. Mesure qui a tranché :
+à la ligne `O`, 10 % des pics seulement tombaient sur la toile — le hasard pur.
+
 **v1.8 — 07/08/2026.** **A8 précisée**, sur retour de Marc. L'exigence n'est ni
 ajoutée ni retirée : elle est rendue **vérifiable**. « Le fond s'efface » était
 lu comme un fondu vers l'uniforme ; l'intention est une atténuation *relative aux
@@ -666,7 +706,8 @@ pas lue.
 appuyées sur la littérature :
 
 - **B9** l'approche de l'homogénéité est graduelle, sans coupure
-- **B10** aucun point lumineux au-delà de l'homogénéité
+- **B10** au-delà de l'homogénéité, l'uniformité est géométrique, jamais photométrique
+- **B10 bis** aux très grandes échelles, la luminosité moyenne peut dériver
 - **B11** aléatoire, jamais régulier
 
 *Elles corrigent un défaut introduit par la borne à 300 Mpc du 02/08 : en

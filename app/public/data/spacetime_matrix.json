@@ -690,7 +690,9 @@
    "psf_px": 0.45,
    "jitter": 0.5,
    "target_proj": 1600000,
-   "slab_note": "0,06 : porter à 0,15 fait saturer le pic du spectre puis régresser, et multiplie par 2,5 le volume de grille. Voir approches-ecartees."
+   "slab_note": "0,06 : porter à 0,15 fait saturer le pic du spectre puis régresser, et multiplie par 2,5 le volume de grille. Voir approches-ecartees.",
+   "slab_max_mpc": 300.0,
+   "slab_rule": "min(slab_frac * 2 * demi-champ, slab_max_mpc) — PLAFOND PHYSIQUE. Une tranche plus épaisse que l'échelle d'homogénéité superpose des structures décorrélées et ne fait que diluer. 07/08 : à O, 1748 Mpc donnaient une structure de 0,0013 ; plafonnée à 300 Mpc, 0,0075 (x5,8)."
   },
   "raccord": {
    "k_cut_safety": 1.2,

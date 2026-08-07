@@ -57,6 +57,19 @@ import slab_test as ST
 # ---------------------------------------------------------------------------
 OUT_N = 320
 TARGET_MEAN = 68.0
+SLAB_MAX_MPC = 300.0
+# Plafond PHYSIQUE de l'epaisseur de tranche, ajoute le 07/08/2026.
+#
+# `SLAB_FRAC` est une FRACTION DE BOITE -- exactement le piege documente
+# (« rayons et masses en valeurs physiques absolues, jamais en fraction de la
+# boite »), sixieme occurrence. A la ligne O elle empilait 1 748 Mpc de
+# profondeur, soit une demi-douzaine de structures independantes moyennees les
+# unes sur les autres : le contraste de la toile y tombait a 0,0013.
+#
+# Une tranche plus epaisse que l'echelle d'homogeneite ne peut RIEN ajouter --
+# au-dela, les structures sont decorrelees et leur superposition ne fait que
+# diluer. Mesure du 07/08 a la ligne O : plafonner a 300 Mpc porte la structure
+# de 0,0013 a 0,0075, soit x5,8.
 SLAB_FRAC = 0.06
 # Essai du 31/07, REVENU EN ARRIERE. Porter la dalle de 0,06 a 0,15 fait passer
 # le pic du spectre de 20,5 a 47,8 Mpc a la ligne J, puis il SATURE : a 0,30,
@@ -301,7 +314,7 @@ def grid_for(half, margin):
     nxy = int(round(box_xy / cell))
     npsi = min(96, max(nxy, 32))
     psi = NA.psi_rms((npsi,) * 3, (box_xy,) * 3, 2 * box_xy / npsi)
-    T = SLAB_FRAC * 2 * half
+    T = min(SLAB_FRAC * 2 * half, SLAB_MAX_MPC)
     # seule la composante z fait entrer/sortir de la dalle : rms = psi/sqrt(3)
     Lz = T + 4.0 * psi / np.sqrt(3.0)
     nz = max(int(round(Lz / cell)), 8)
@@ -759,7 +772,7 @@ def render_full(L, seed, margin=1.5):
     """
     n = int(round(OUT_N * margin))
     ext = L.half * margin
-    slab = SLAB_FRAC * 2 * L.half
+    slab = min(SLAB_FRAC * 2 * L.half, SLAB_MAX_MPC)
     rng = np.random.default_rng(seed + 991)
     img = np.zeros((n, n), np.float32)
     web = L.web
@@ -789,7 +802,7 @@ def render_full(L, seed, margin=1.5):
 
 
 def render(L, seed):
-    slab = SLAB_FRAC * 2 * L.half
+    slab = min(SLAB_FRAC * 2 * L.half, SLAB_MAX_MPC)
     rng = np.random.default_rng(seed + 991)
     img = np.zeros((OUT_N, OUT_N), np.float32)
     web = L.web

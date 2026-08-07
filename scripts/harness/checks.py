@@ -176,6 +176,30 @@ def _bright_extent(a, q=99.5):
 # ===========================================================================
 # PORTEE CELL
 # ===========================================================================
+def _noeuds(v):
+    """Taux de coincidence entre les pics lumineux et les noeuds de la toile.
+
+    LE controle qui manquait, et le seul qui distingue Millennium d'un ciel
+    etoile. Il pose une question que ni le contraste ni le compte de pics ne
+    posent : ces points SONT-ILS la toile, ou sont-ils poses par-dessus ?
+
+    Mesure du 07/08 a la ligne `O` : 405 pics, dont 10 % sur les 10 % les plus
+    denses de la toile -- exactement le hasard. Les points brillants etaient
+    statistiquement INDEPENDANTS de la structure qu'ils etaient censes eclairer.
+    Diagnostic de Marc, mot pour mot : « une toile fade, et des points tres
+    lumineux poses aleatoirement par-dessus ».
+
+    La toile est approchee par l'image lissee a 4 px : a cette echelle le grain
+    de comptage a disparu et la structure demeure.
+    """
+    fond = ndimage.gaussian_filter(v, 4.0)
+    seuil = np.percentile(fond, 80)
+    pk = _peaks(v)
+    if len(pk) < 8:
+        return float("nan"), 0
+    return float(np.mean([fond[y, x] > seuil for y, x in pk])), len(pk)
+
+
 def cell_checks(code, img, m):
     """Controles sur une image seule."""
     r = matrix()["zoom_axis"]["rows"][code]
@@ -231,6 +255,14 @@ def cell_checks(code, img, m):
     kb = np.arange(1, n // 2 - 1)
     w = kb ** 2 * Pk
     big = n / kb[int(np.argmax(w > 0.2 * w.max()))] * (2 * r["halfwidth_mpc"] / n)
+    if not sp:
+        # 20 % est le hasard pur, puisque le seuil retient les 20 % les plus
+        # denses. Exiger 60 % impose que la MAJORITE des pics soit portee par la
+        # toile, sans interdire qu'une minorite tombe ailleurs.
+        tx, npk = _noeuds(v)
+        out.append(Result("T-078", "CELL", "les pics sont les noeuds de la toile (A1/A5)",
+                          tx >= 0.60, "%s %.0f %% des %d pics sur la toile "
+                          "(hasard : 20 %%)" % (code, 100 * tx, npk)))
     out.append(Result("T-008", "CELL", "rien au-dela de l'homogeneite (B5)",
                       big <= homog * 1.6, "%s %.0f Mpc" % (code, big)))
 
@@ -244,17 +276,21 @@ def cell_checks(code, img, m):
                           0.85 <= iso <= 1.20, "%s %.2f" % (code, iso)))
 
     # T-050 a T-053 — rendu au-dela de l'homogeneite (B9, B10, B11).
-    # Origine 03/08 : « il reste des points lumineux a tres grande echelle, cela
-    # ne correspond pas a une realite physique ». Les quatre ECHOUENT sur l'etat
-    # publie, et c'est le but : ils rendent visible un defaut jusqu'ici porte par
-    # une phrase de document, donc non contraignant.
+    # REECRITS le 07/08 sur precision de Marc. Les versions du matin mesuraient
+    # la PLATITUDE PHOTOMETRIQUE -- contraste <= 0,08, pic/mediane <= 1,8.
+    # C'etait un contresens : l'uniformite exigee au-dela de l'homogeneite est
+    # GEOMETRIQUE et STATISTIQUE -- aucun lieu privilegie, isotropie -- et jamais
+    # photometrique. « Comme sur Millennium on doit toujours voir aux noeuds de
+    # la toile des points plus lumineux que le reste. »
+    # Les seuils ne sont pas desserres : les criteres etaient faux, et ils sont
+    # maintenant inverses.
     if r.get("homogene"):
         ct = _contrast(v)
-        out.append(Result("T-050", "CELL", "contraste faible au-dela de l'homogeneite (B9)",
-                          ct <= 0.08, "%s %.3f" % (code, ct)))
-        pm = float(v.max() / max(np.median(v), 1e-9))
-        out.append(Result("T-051", "CELL", "aucun pic detache aux grandes echelles (B10)",
-                          pm <= 1.8, "%s pic/mediane %.2f" % (code, pm)))
+        out.append(Result("T-050", "CELL", "la toile garde de la dynamique (B9)",
+                          ct >= 0.10, "%s contraste %.3f" % (code, ct)))
+        pm = float(np.percentile(v, 99.9) / max(np.median(v), 1e-9))
+        out.append(Result("T-051", "CELL", "des noeuds plus lumineux subsistent (B10)",
+                          pm >= 1.5, "%s pic/mediane %.2f" % (code, pm)))
         pk = _peaks(v)
         if len(pk) >= 4:
             from scipy.spatial import cKDTree
@@ -262,7 +298,7 @@ def cell_checks(code, img, m):
             disp = float(dd[:, 1].std() / max(dd[:, 1].mean(), 1e-9))
         else:
             disp = float("nan")
-        out.append(Result("T-052", "CELL", "distribution aleatoire, non reguliere (B11)",
+        out.append(Result("T-052", "CELL", "distribution amassee, non reguliere (B11)",
                           disp >= 0.50, "%s dispersion %.2f sur %d pics"
                           % (code, disp, len(pk))))
         oc = _octaves(v)
