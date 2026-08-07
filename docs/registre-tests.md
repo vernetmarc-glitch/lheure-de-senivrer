@@ -9,6 +9,28 @@ Supprimer un contrôle exige une décision explicite de Marc.
 
 Implémentation : `scripts/harness/checks.py`. Exécution : `scripts/harness/bake.py`.
 
+## T-055 — chaque exigence client a-t-elle un contrôle ?
+
+**Contrôle de portée CONF.** T-000 vérifie que le plan de test est entièrement
+implémenté. Il ne dit rien d'un tout autre trou : **une exigence que le plan n'a
+jamais prévue**. Les deux sont nécessaires — un plan complet peut rester aveugle.
+
+T-055 lit les identifiants d'exigence rédigés dans `docs/demandes-client.md` et
+les compare à ceux cités par les contrôles du harnais. Il échoue tant qu'une
+exigence n'est couverte par aucun test, et les nomme.
+
+*Origine : 07/08/2026, demande de Marc — « confirme que l'ensemble de ces
+demandes ont bien chacune un ou plusieurs tests ». Une confirmation faite à la
+main est vraie le jour où on la fait ; un contrôle la refait à chaque cuisson.*
+
+**Premier passage : 42 exigences couvertes sur 64. Vingt-deux sans aucun test**,
+dont **les huit de la section H — le sujet même de l'œuvre**. État après
+écriture : **64/64**.
+
+Les sections J, K et L (parcours guidés, fluidité, dispositif) portent sur
+l'application et non sur les textures : hors périmètre du harnais, elles sont
+listées à part plutôt que comptées comme des trous.
+
 ## T-000 — le plan de test est-il complet ?
 
 **Contrôle de portée CONF, exécuté en premier.** Il compare les identifiants
@@ -344,3 +366,99 @@ Deux foyers : la charnière `H|G` où la trame change de mécanisme, et les lign
    ancrage D6 à 53 %, trois galaxies perdues entre `F` et `E`.
 
 Une correction par cause, et non quarante-huit correctifs.
+
+
+---
+
+## 07/08/2026, seconde passe — la couverture des exigences
+
+### Portée OEUVRE — les trois horizons
+
+Créée après le constat de T-055 : **les huit exigences de la section H
+n'étaient protégées par aucun test**, alors que ce sont elles qui définissent
+l'œuvre. Deux mois de travail et 345 contrôles portaient intégralement sur le
+fond de carte, et zéro sur le sujet.
+
+| ID | Contrôle | Exigence | Résultat au 07/08 |
+|---|---|---|---|
+| T-056 | les trois rayons à aujourd'hui | H1, H2, H3 | ✅ 14 101 · 4 470 · 5 151 Mpc |
+| T-057 | Hubble < événements < observable | H2, H3 | ✅ l'ordre qui fait le sujet |
+| T-058 | v = c à la sphère de Hubble | H4 | ✅ 4 470 pour c/H0 = 4 448 |
+| T-059 | les trois rayons évoluent différemment | H5 | ✅ ×4,3 / ×2,9 / ×3,1 |
+| **T-060** | **les trois sphères sont tracées** | **H6** | ❌ **1 sur 3** |
+| **T-061** | compréhension par la manipulation | **H7** | ❌ 2 curseurs, 2 étiquettes |
+| **T-062** | la vitesse de la lumière représentée | **H8** | ❌ absente |
+
+**La cosmologie est juste ; c'est le rendu qui manque.** Les trois rayons sont
+calculés correctement et évoluent bien dans le temps — seul l'horizon des
+particules est dessiné. Le sujet de l'œuvre est réalisé au tiers, et c'est
+désormais mesuré à chaque cuisson.
+
+### Chronologie et construction
+
+| ID | Contrôle | Exigence | Résultat |
+|---|---|---|---|
+| T-063 | les grandes échelles précèdent les petites | B7 | ✅ chaîne `O`→`H` |
+| T-064 | aucun flou comme mécanisme | E1 | ✅ 0 hors PSF de rendu |
+| **T-065** | aucun mélange vers une couleur unie | **E2** | ❌ voir ci-dessous |
+| T-066 | bruit lisse en modulation seulement | E3 | ✅ champ fin multiplicatif |
+| T-067 | les galaxies ne marquent pas les grandes échelles | D4 | ✅ `H`=1,00 `I`=0,45 `J`=0,12 |
+| T-073 | aujourd'hui est exact | C9 | ✅ colonne 10, a=1, amp=1 |
+| T-074 | datation juste de la dissolution | C11 | ✅ 11 colonnes conformes à la table |
+| T-075 | une seule cosmologie pour tout | C10 | ✅ |
+| T-076 | grille rigide, cohérence croisée | D3 | ✅ 11 colonnes communes |
+
+### ⚠ T-065 — une dérogation à arbitrer, pas un défaut à corriger
+
+Le contrôle signale une ligne, et une seule :
+
+```
+sprites_layer : img = mean0 * (1.0 - w_amb) * 0.25 + img * w_amb
+```
+
+C'est **l'effacement du fond ambiant sous `G`**, arbitré par Marc le 03/08 :
+« dès que les galaxies du catalogue sont visibles, le fond doit s'effacer ».
+Techniquement, c'est un fondu vers un uniforme — ce qu'E2 interdit.
+
+**Je ne tranche pas.** Soit E2 se voit adjoindre une dérogation explicite,
+comme D-14 l'a fait pour E3 ; soit l'effacement passe par un autre mécanisme.
+Les deux se valent au regard du document ; le choix appartient à Marc.
+*(Question ouverte à enregistrer.)*
+
+### Portée TIME complétée — inactive tant que les colonnes n'existent pas
+
+| ID | Contrôle | Exigence |
+|---|---|---|
+| T-068 | dissolution le long des filaments | C3 |
+| T-069 | les grandes structures se défont d'abord | C5 |
+| T-070 | luminosité moyenne constante | C6 |
+| T-071 | embrasement à la colonne 0 | C7 |
+| T-072 | contraction aux grandes échelles | C12 |
+
+Ces cinq-là sont **écrits mais non exécutés** : ils s'activeront à la première
+colonne cuite. C'est délibéré — les écrire maintenant garantit qu'ils ne seront
+pas oubliés au moment où ils deviendront exécutables, et T-055 les compte comme
+couverts parce que le code existe.
+
+### Un défaut d'étiquetage trouvé en chemin
+
+T-003 et T-004 mesuraient la saturation en citant **E1** — « aucun flou
+géométrique ». Ils protégeaient en réalité **E4**, « aucune saturation
+généralisée », et E1 n'était protégée par rien. Corrigé : T-003 et T-004 citent
+E4, T-064 couvre E1.
+
+Une exigence peut donc être *apparemment* couverte par un contrôle qui mesure
+autre chose. C'est le trou que T-055 seul ne voit pas — il compte les citations,
+pas leur justesse. La relecture reste nécessaire ; le contrôle la rend rare.
+
+---
+
+## État au 07/08/2026, fin de session — 364 contrôles, 312 passés, 52 en échec
+
+| | |
+|---|---|
+| **T-000** plan de test complet | ✅ **53/53** |
+| **T-055** couverture des exigences | ✅ **64/64** |
+
+Toute exigence client mesurable est désormais protégée par au moins un contrôle
+exécutable, et les deux méta-contrôles empêchent que cela se reperde.

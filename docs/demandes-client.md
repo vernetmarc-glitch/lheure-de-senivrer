@@ -4,7 +4,7 @@
 paramètre, aucune implémentation. Chaque exigence est formulée de façon
 **observable à l'œil** et doit pouvoir être jugée sans connaître le code.
 
-**Statut.** Version 1.6, arrêtée le 3 août 2026. Reconstitution à partir du document
+**Statut.** Version 1.7, arrêtée le 7 août 2026. Reconstitution à partir du document
 d'architecture, de l'historique du projet et des échanges de session. **À
 relire ligne à ligne par Marc** — l'objet même de ce document étant ce qui a été
 oublié, son exhaustivité ne peut pas être garantie par celui qui a oublié.
@@ -135,6 +135,44 @@ rouge sombre et l'orange). Le rendu ne doit jamais être en noir et blanc pur.
 **fond généré de matière filamentaire subtil**, afin de rester visuellement
 cohérents avec les layers supérieurs. Une galaxie ne flotte pas sur du vide.
 *(Origine : 29/07.)*
+
+**A9. Uniformité de rendu entre objets de même nature.** Deux objets du même type
+— deux galaxies, deux amas — doivent être rendus par le **même procédé** et à la
+**même échelle apparente** pour une taille physique donnée. Aucune famille
+d'objets ne doit se distinguer par son traitement plutôt que par sa nature.
+*(Origine : 06/07. Rédigée en exigence le 07/08 — elle n'existait jusque-là que
+dans l'historique du document.)*
+
+**A10. Halo de raccord, et la Voie lactée dessinée dessous.** Chaque galaxie
+porte un **halo** qui la raccorde au fond : la lumière ne s'arrête pas net au
+bord de l'objet. La Voie lactée, qui occupe le centre, est dessinée **sous** les
+autres : une galaxie située dans son disque apparent doit rester **visible
+par-dessus** elle, et non noyée.
+*(Origine : 06/07. Rédigée en exigence le 07/08.)*
+
+**A11. Piqué à tout niveau de zoom.** Aucune image affichée ne doit être un
+agrandissement excessif d'une source de résolution insuffisante, et le traitement
+se fait à la **résolution native** de la source, jamais sur une version
+sous-échantillonnée.
+*(Origine : 06/07 — un recadrage de 8,5 pixels natifs agrandi ×35, et un pipeline
+travaillant en 512 sur des textures 1024. Rédigée en exigence le 07/08.)*
+
+**A12. Les galaxies sont simulées, jamais dessinées.** Les vignettes de galaxies
+proviennent d'une **simulation N-corps** — gravité mutuelle, intégration
+temporelle — et non d'une forme analytique tracée à la main.
+*(Origine : 08/07. Rédigée en exigence le 07/08. C'est la régression qui a duré
+cinq mois : le moteur physique avait été remplacé par des gaussiennes, faute
+d'être écrit quelque part.)*
+
+**A13. Structure interne riche.** Une galaxie observée à sa taille propre doit
+montrer une **structure interne** — grumeaux, bras, irrégularités — et non un
+dégradé lisse.
+*(Origine : 13/07. Rédigée en exigence le 07/08.)*
+
+**A14. Halo elliptique suivant l'aplatissement du disque.** Le halo d'une galaxie
+est **elliptique**, et son grand axe est **orienté comme le disque**. Un halo
+circulaire posé sur un disque incliné trahit un objet dessiné plutôt que simulé.
+*(Origine : 13/07. Rédigée en exigence le 07/08.)*
 
 
 ---
@@ -592,6 +630,13 @@ Toute exigence ajoutée porte sa **date** et son **origine**. Une exigence n'est
 retirée que sur décision explicite de Marc, jamais par omission.
 
 ### Historique
+
+**v1.7 — 07/08/2026.** Aucune exigence ajoutée ni retirée : **A9 à A14 sont
+rédigées** dans la section A. Elles avaient été introduites les 03/08 (v1.4 et
+v1.5) sous forme d'une ligne de résumé dans cet historique, et jamais promues en
+exigence. Sept contrôles s'y référaient pourtant. C'est exactement le défaut
+qu'elles documentaient elles-mêmes : une exigence qui n'est pas à sa place n'est
+pas lue.
 
 **v1.6 — 03/08/2026.** Trois exigences sur le rendu aux très grandes échelles,
 appuyées sur la littérature :

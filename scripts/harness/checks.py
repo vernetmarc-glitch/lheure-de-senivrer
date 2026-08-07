@@ -189,10 +189,10 @@ def cell_checks(code, img, m):
     out.append(Result("T-002", "CELL", "ton conforme a la cible de la ligne (A7)",
                       abs(v.mean() * 255 - tgt) <= 6,
                       "%s %.1f vs %.0f" % (code, v.mean() * 255, tgt)))
-    out.append(Result("T-003", "CELL", "saturation claire < 1 % (E1)",
+    out.append(Result("T-003", "CELL", "saturation claire < 1 % (E4)",
                       (v >= 254 / 255).mean() <= 0.01,
                       "%s %.2f %%" % (code, 100 * (v >= 254 / 255).mean())))
-    out.append(Result("T-004", "CELL", "saturation noire < 10 % (E1)",
+    out.append(Result("T-004", "CELL", "saturation noire < 10 % (E4)",
                       (v <= 8 / 255).mean() <= 0.10,
                       "%s %.1f %%" % (code, 100 * (v <= 8 / 255).mean())))
 
@@ -333,6 +333,48 @@ def time_checks(code, col_hi, col_lo, img_hi, img_lo):
     eh, el = _bright_extent(vh), _bright_extent(vl)
     out.append(Result("T-021", "TIME", "les objets s'etalent (C1)",
                       el >= eh * 0.95, "%s %.3f -> %.3f" % (code, eh, el)))
+    # C3 — les points ne palissent pas sur place : ils s'ETIRENT le long des
+    # filaments. Mesure : l'elongation des structures brillantes augmente
+    # pendant la dissolution, au lieu de rester ronde.
+    import checks_image as _CI
+    e_hi, e_lo = _CI._elongation(img_hi), _CI._elongation(img_lo)
+    out.append(Result("T-068", "TIME", "dissolution le long des filaments (C3)",
+                      e_lo >= e_hi * 0.9, "%s %.2f -> %.2f" % (code, e_hi, e_lo)))
+    # C5 — hierarchie : les GRANDES structures se defont en premier. Mesure :
+    # l'energie basse frequence chute plus vite que la haute frequence.
+    def _bande(u, bas):
+        a = u - u.mean()
+        P = np.abs(np.fft.rfft2(a)) ** 2
+        n = a.shape[0]
+        ky = np.fft.fftfreq(n)[:, None] * n
+        kx = np.fft.rfftfreq(n)[None, :] * n
+        k = np.sqrt(ky ** 2 + kx ** 2)
+        m_ = (k > 0) & ((k < n / 16.0) if bas else (k > n / 8.0))
+        return float(P[m_].sum())
+    rb = _bande(img_lo, True) / max(_bande(img_hi, True), 1e-12)
+    rh = _bande(img_lo, False) / max(_bande(img_hi, False), 1e-12)
+    out.append(Result("T-069", "TIME", "les grandes structures se defont d'abord (C5)",
+                      rb <= rh, "%s basses x%.2f, hautes x%.2f" % (code, rb, rh)))
+    # C6 — jamais de fond noir, luminosite moyenne CONSTANTE jusqu'a
+    # l'embrasement. La colonne 0 porte seule la montee (C7).
+    dm = abs(img_hi.mean() - img_lo.mean()) * 255
+    out.append(Result("T-070", "TIME", "luminosite moyenne constante (C6)",
+                      dm <= 6.0 or col_lo == 0, "%s %.1f /255" % (code, dm)))
+    # C7 — l'embrasement final : la colonne 0, et elle seule, monte vers le
+    # blanc. C'est le seul moment ou la luminosite moyenne augmente.
+    if col_lo == 0:
+        out.append(Result("T-071", "TIME", "embrasement a la colonne 0 (C7)",
+                          img_lo.mean() > img_hi.mean(),
+                          "%s %.1f -> %.1f /255" % (code, img_hi.mean() * 255,
+                                                    img_lo.mean() * 255)))
+    # C12 — aux plus grandes echelles, remonter le temps CONTRACTE les
+    # structures : l'image se densifie vers la haute frequence. C'est le pendant
+    # temporel de B3.
+    if code in ("O", "N", "M"):
+        out.append(Result("T-072", "TIME", "contraction aux grandes echelles (C12)",
+                          _bande(img_lo, False) / max(_bande(img_lo, True), 1e-12)
+                          >= _bande(img_hi, False) / max(_bande(img_hi, True), 1e-12),
+                          "%s" % code))
     out.append(Result("T-022", "TIME", "grain conserve, jamais d'aplat (C8)",
                       vl.std() * 255 >= 1.0, "%s std %.2f" % (code, vl.std() * 255)))
     return out
@@ -398,8 +440,115 @@ def global_checks(img, m):
                       "  rupture : " + " ".join(bad) if bad else ""))]
 
 
+def requirement_coverage():
+    """T-055 — CHAQUE EXIGENCE CLIENT a-t-elle un controle ?
+
+    T-000 verifie que le plan de test est entierement implemente. Il ne dit rien
+    d'un tout autre trou : une exigence que le plan n'a jamais prevue. Les deux
+    sont necessaires -- un plan complet peut rester aveugle.
+
+    Ce controle lit les identifiants d'exigence rediges dans
+    `docs/demandes-client.md` et les compare a ceux cites par les controles du
+    harnais. Il ECHOUE tant qu'une exigence n'est couverte par aucun test, et les
+    nomme.
+
+    Origine : 07/08/2026, demande de Marc -- « confirme que l'ensemble de ces
+    demandes ont bien chacune un ou plusieurs tests ». Une confirmation faite a
+    la main est vraie le jour ou on la fait ; un controle la refait a chaque
+    cuisson.
+
+    Les sections J, K et L (parcours guides, fluidite, dispositif) portent sur
+    l'APPLICATION et non sur les textures : elles sont hors du perimetre du
+    harnais et listees a part plutot que comptees comme des trous.
+    """
+    import re
+    doc = os.path.join(ROOT, "docs", "demandes-client.md")
+    if not os.path.exists(doc):
+        return Result("T-055", "CONF", "couverture des exigences", False,
+                      "demandes-client.md introuvable")
+    redigees = set(re.findall(r"^\*\*([A-EH]\d{1,2})\.", open(doc).read(), re.M))
+    citees = set()
+    for f in sorted(os.listdir(HERE)):
+        if f.endswith(".py"):
+            txt = open(os.path.join(HERE, f)).read()
+            for m_ in re.findall(r'Result\(\s*"T-\d{3}"\s*,\s*"[A-Z]+"\s*,\s*"([^"]*)"', txt):
+                citees |= set(re.findall(r"\b([A-EH]\d{1,2})\b", m_))
+    nues = sorted(redigees - citees,
+                  key=lambda x: (x[0], int(x[1:])))
+    return Result("T-055", "CONF",
+                  "toute exigence a un controle (%d/%d)"
+                  % (len(redigees) - len(nues), len(redigees)),
+                  not nues,
+                  "%d sans controle : %s" % (len(nues), " ".join(nues)) if nues
+                  else "%d exigences couvertes" % len(redigees))
+
+
+def chronologie_checks(m):
+    """C9, C10, C11, D3 — la grille du temps est-elle une vraie chronologie ?
+
+    Ces quatre-la se verifient AVANT les colonnes, sur la matrice : si l'axe du
+    temps est mal date, cuire 165 cellules ne le corrigera pas.
+    """
+    out = []
+    cols = m["time_axis"]["colonnes"] if "colonnes" in m["time_axis"] \
+        else m["time_axis"]["columns"]
+    # C9 — aujourd'hui est EXACT : la derniere colonne porte a = 1 et
+    # l'amplitude pleine, sans transition ni saut.
+    der = cols[-1]
+    out.append(Result("T-073", "CONF", "aujourd'hui est exact (C9)",
+                      abs(der["a"] - 1.0) <= 1e-6 and abs(der["amp"] - 1.0) <= 1e-6,
+                      "colonne %d : a=%.6f amp=%.6f" % (der["col"], der["a"], der["amp"])))
+    # C11 — datation juste : chaque colonne doit retomber sur la table
+    # cosmologique, a 2 % pres. Le curseur doit se lire comme une vraie
+    # chronologie, pas comme un reglage esthetique.
+    import json as _j
+    tb = os.path.join(DATA, "cosmology_table.json")
+    if os.path.exists(tb):
+        rows = _j.load(open(tb))["rows"]
+        aa = np.array([r["a"] for r in rows])
+        tt = np.array([r["t_Gyr"] for r in rows])
+        bad = []
+        for c in cols:
+            att = float(np.interp(c["a"], aa, tt))
+            if abs(att - c["t_gyr"]) > max(0.02 * att, 0.01):
+                bad.append("c%d %.3f vs %.3f Ga" % (c["col"], c["t_gyr"], att))
+        out.append(Result("T-074", "CONF", "datation juste de la dissolution (C11)",
+                          not bad, " ".join(bad[:3]) if bad
+                          else "%d colonnes conformes a la table" % len(cols)))
+        # C10 — l'expansion suit la meme cosmologie que les trois spheres. Deux
+        # cosmologies differentes dans la meme oeuvre rendraient les horizons
+        # faux par rapport au fond de carte.
+        decl = m["time_axis"].get("cosmology", {})
+        meta = _j.load(open(tb))["meta"]
+        ecarts = [k for k in ("H0_km_s_Mpc", "omega_m", "omega_lambda")
+                  if k in decl and abs(float(decl[k]) - float(meta[k])) > 1e-6]
+        out.append(Result("T-075", "CONF", "une seule cosmologie pour tout (C10)",
+                          bool(decl) and not ecarts,
+                          "ecarts : %s" % " ".join(ecarts) if ecarts
+                          else ("declaree" if decl else "AUCUNE cosmologie declaree "
+                                "dans time_axis")))
+    # D3 — coherence croisee : la grille doit etre RIGIDE. Toutes les lignes
+    # portent les memes colonnes ; un axe du temps prive par ligne casse la
+    # comparaison entre epoques (matrice v3, ecartee le 30/07).
+    rows_ = m["zoom_axis"]["rows"]
+    prives = [c for c, r in rows_.items()
+              if "keyframes_a" in r or "dissolution_window_a" in r]
+    out.append(Result("T-076", "CONF", "grille rigide, coherence croisee (D3)",
+                      not prives and len(cols) == 11,
+                      "%d colonnes communes%s" % (len(cols),
+                      "  axes prives : " + " ".join(prives) if prives else "")))
+    return out
+
+
 def conf_checks(d, m):
-    out = [plan_completeness()]
+    out = [plan_completeness(), requirement_coverage()]
+    out += chronologie_checks(m)
+    try:
+        import checks_oeuvre as CO
+        out += CO.oeuvre_checks()
+        out += CO.construction_checks()
+    except Exception as e:
+        out.append(Result("T-060", "OEUVRE", "les trois spheres", False, str(e)[:60]))
     missing = [c for c in ORDER
                if not os.path.exists(os.path.join(d, "density_%s.png" % c))]
     out.append(Result("T-030", "CONF", "les 15 lignes existent (B6)",
