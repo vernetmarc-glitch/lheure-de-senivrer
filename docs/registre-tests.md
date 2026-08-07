@@ -523,3 +523,68 @@ ponctuel, donc conforme à l'interdit « aucun opérateur spatialement non liné
 en aval du générateur », et **E2 n'a plus besoin de dérogation** — voir **D-27**.
 
 Rien n'est écrit tant que Marc n'a pas validé la direction.
+
+
+---
+
+## 07/08/2026 — première cuisson complète par le harnais
+
+`python3 scripts/harness/bake.py --all` a été lancée. **Elle est allée au bout**,
+a produit les quinze lignes **d'un seul tenant** — `provenance.json` : 15 lignes,
+1 cuisson, commit `cfdabd1` — puis a **refusé de publier**.
+
+```
+322 contrôles passés, 49 en échec
+PUBLICATION ANNULÉE. L'état publié n'a pas été touché.
+```
+
+C'est la règle 0 qui fonctionne pour la première fois de bout en bout : la
+commande génère en lieu temporaire, mesure, et refuse. Ce qui est en ligne n'a
+pas bougé.
+
+### Ce que la cuisson a corrigé à elle seule
+
+| Contrôle | Avant | Après |
+|---|---|---|
+| **T-054** provenance | 3 cuissons | ✅ **1 seule** |
+| **T-012** `C→B`, `B→A` | échec | ✅ — c'était la frontière de version |
+| **T-034** nuages filamentaires | `C` et `B` en échec | ✅ sur les sept lignes |
+| **T-017** aucune galaxie ne disparaît | `F→E` perdait trois galaxies | ✅ |
+| **T-039** effet fractal | `H→G`, `G→F` en échec | ✅ |
+| **T-028**, **T-029**, **T-018** | en échec | ✅ |
+
+Neuf échecs disparaissent sans qu'aucun paramètre n'ait changé : ils venaient du
+**mélange de provenances**, pas du générateur.
+
+### Les 49 restants — quatre familles, aucune que la cuisson puisse résoudre
+
+**1. Conception de l'axe du temps — 2 échecs.** T-036 et T-037 : aucune
+composante ne déclare de loi temporelle, 99 % de la structure subsiste à
+amplitude nulle. Cuire mille fois n'y changera rien.
+
+**2. Le sujet de l'œuvre — 3 échecs.** T-060, T-061, T-062 : une sphère tracée
+sur trois, pas de représentation de la vitesse de la lumière. C'est du code
+d'application, pas une texture.
+
+**3. Sources et mécanismes — 4 échecs.** T-024 (`ic10` = `leo1`), T-047, T-045,
+T-065 (le fondu vers l'uniforme d'A8).
+
+**4. Le générateur lui-même — 40 échecs, mais deux causes.**
+
+| Cause | Contrôles | Nombre |
+|---|---|---|
+| Bande spectrale bornée à 300 Mpc *(02/08)* | T-050 à T-053, T-049, T-014 sur `L` | 15 |
+| Zel'dovich ne fabrique pas la structure fine — **O-07** | T-010, T-011, T-012, T-027 | 15 |
+| Galaxies : ancrage D6, tailles apparentes | T-015, T-016, T-019, T-023 | 6 |
+| A8 : luminosité relative du fond | T-077 | 5 |
+
+**Aucune de ces causes n'est un réglage de cuisson.** Ce sont quatre chantiers de
+conception, dont deux — la bande spectrale et O-07 — sont déjà documentés et
+mesurés depuis le 31/07 et le 02/08.
+
+### Défaut corrigé en chemin
+
+`report()` n'affichait pas la portée OEUVRE, alors qu'elle comptait dans le
+total. Trois échecs étaient donc invisibles à l'écran tout en bloquant la
+publication — exactement le type d'écart que le harnais existe pour empêcher.
+Corrigé le jour même.
