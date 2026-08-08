@@ -171,12 +171,88 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
       ctx.fillText(formatDistance(rMpc), cx + 4 * DPR, cy - rPx - 4 * DPR)
     }
 
+    // ---- LES TROIS LIMITES — le sujet de l'œuvre (H1, H2, H3, H6) ---------
+    // Jusqu'au 07/08/2026 une seule des trois était tracée, alors que
+    // `cosmology` porte les trois rayons depuis le début. Les deux autres sont
+    // ajoutées ici, avec des styles distincts pour rester lisibles superposées
+    // (H6 : « lisibles et distinctes à toute position des deux curseurs »).
+    //
+    // L'ordre de tracé va du plus GRAND au plus PETIT : les petits cercles
+    // passent ainsi par-dessus et ne sont jamais masqués.
+    const spheres = [
+      {
+        r: cosmology.chiParticleComovingMpc,
+        color: '#5aa9e6',
+        dash: [] as number[],
+        label: 'Horizon des particules',
+        principal: true,
+      },
+      {
+        r: cosmology.chiEventComovingMpc,
+        color: '#e6a15a',
+        dash: [10 * DPR, 6 * DPR],
+        label: 'Horizon des événements',
+        principal: false,
+      },
+      {
+        r: cosmology.rHubbleComovingMpc,
+        color: '#7ed6a5',
+        dash: [3 * DPR, 5 * DPR],
+        label: 'Sphère de Hubble  (v = c)',
+        principal: false,
+      },
+    ]
+
     const horizonRPx = cosmology.chiParticleComovingMpc * pxPerMpc
+    for (const s of spheres) {
+      const rPx = s.r * pxPerMpc
+      ctx.strokeStyle = s.color
+      ctx.lineWidth = (s.principal ? 2 : 1.5) * DPR
+      ctx.setLineDash(s.dash)
+      ctx.beginPath()
+      ctx.arc(cx, cy, rPx, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.setLineDash([])
+      // Les deux limites secondaires portent leur étiquette sur le FLANC
+      // DROIT du cercle, pas au sommet : au sommet, les trois se
+      // chevaucheraient dès que les rayons se rapprochent.
+      if (!s.principal && rPx < Math.max(W, H) * 0.9 && rPx > 24 * DPR) {
+        ctx.fillStyle = s.color
+        ctx.font = `${10 * DPR}px monospace`
+        ctx.textAlign = 'left'
+        ctx.fillText(`${s.label} — ${formatDistance(s.r)}`, cx + 6 * DPR, cy - rPx - 5 * DPR)
+      }
+    }
+
+    // ---- H8 : la vitesse de la lumière, l'étalon qui rend le reste lisible -
+    // Sans elle, « la sphère de Hubble » n'est qu'un cercle de plus. On donne
+    // la distance que la lumière parcourt en un milliard d'années, à l'échelle
+    // courante — donc une règle qui rétrécit quand on dézoome.
+    {
+      const MPC_PAR_MILLIARD_ANNEES = 306.6 // 1 Gyr-lumière en Mpc comobiles
+      const lenPx = MPC_PAR_MILLIARD_ANNEES * pxPerMpc
+      if (lenPx > 12 * DPR && lenPx < W * 0.45) {
+        const bx = 18 * DPR
+        const by = H - 26 * DPR
+        ctx.strokeStyle = '#ffffff'
+        ctx.lineWidth = 2 * DPR
+        ctx.beginPath()
+        ctx.moveTo(bx, by)
+        ctx.lineTo(bx + lenPx, by)
+        ctx.moveTo(bx, by - 4 * DPR)
+        ctx.lineTo(bx, by + 4 * DPR)
+        ctx.moveTo(bx + lenPx, by - 4 * DPR)
+        ctx.lineTo(bx + lenPx, by + 4 * DPR)
+        ctx.stroke()
+        ctx.fillStyle = '#ffffff'
+        ctx.font = `${10 * DPR}px monospace`
+        ctx.textAlign = 'left'
+        ctx.fillText('vitesse de la lumière : 1 milliard d\u2019années', bx, by - 8 * DPR)
+      }
+    }
+
     ctx.strokeStyle = '#5aa9e6'
     ctx.lineWidth = 2 * DPR
-    ctx.beginPath()
-    ctx.arc(cx, cy, horizonRPx, 0, Math.PI * 2)
-    ctx.stroke()
     if (horizonRPx < Math.max(W, H) * 0.9) {
       ctx.fillStyle = '#5aa9e6'
       ctx.font = `bold ${11 * DPR}px monospace`

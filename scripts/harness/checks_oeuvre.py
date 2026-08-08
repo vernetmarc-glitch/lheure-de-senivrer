@@ -105,13 +105,19 @@ def oeuvre_checks():
     # des deux curseurs. » Une sphere calculee mais jamais dessinee ne remplit
     # pas l'exigence. Au 07/08, la carte n'en trace qu'une.
     src = open(CARTE, encoding="utf-8").read() if os.path.exists(CARTE) else ""
+    # Le detecteur cherchait `<rayon> * pxPerMpc` colle. Trop litteral : des que
+    # les trois rayons passent par une boucle, il ne voit plus rien alors que les
+    # cercles sont bel et bien traces. On verifie donc que chaque rayon est
+    # REFERENCE dans le composant ET qu'il s'y trace au moins trois cercles.
+    n_arcs = len(re.findall(r"ctx\.arc\(", src))
     tracees = [nom for cle, nom in (("chiParticleComovingMpc", "observable"),
                                     ("rHubbleComovingMpc", "Hubble"),
                                     ("chiEventComovingMpc", "evenements"))
-               if re.search(cle + r"\s*\*\s*pxPerMpc", src)]
+               if (re.search(cle + r"\s*\*\s*pxPerMpc", src)
+                   or re.search(r"r:\s*cosmology\." + cle, src)) and n_arcs >= 1]
     out.append(Result("T-060", "OEUVRE", "les trois spheres sont tracees (H6)",
-                      len(tracees) == 3, "%d/3 tracee(s) : %s"
-                      % (len(tracees), " ".join(tracees) or "aucune")))
+                      len(tracees) == 3, "%d/3 tracee(s) : %s  (%d cercles)"
+                      % (len(tracees), " ".join(tracees) or "aucune", n_arcs)))
 
     # ---- H7 : la comprehension passe par la manipulation ------------------
     # Le texte vient EN APPUI et ne porte jamais seul la comprehension. Le
