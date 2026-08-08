@@ -214,5 +214,5 @@ K », trois lignes plus haut. Cette mesure tranche **O-07** — voir
 | `peak_sharpness` à fenêtre de 11 px fixes | mesure une taille physique différente à chaque layer ; a fait diagnostiquer un « creux » inexistant |
 | σ brut comme indicateur de structure | mélange structure et bruit de grenaille ; stagnait à 41/255 même dissous |
 | `frac>0` de la trace | la diffusion la porte à 1,0 partout, sans information |
-| Élongation globale des nuages | ne discrimine pas mousse et toile (1,87 contre 1,78 pour la référence) |
+| Élongation globale des nuages | ne discrimine pas mousse et toile (1,87 contre 1,78 pour la référence). **07/08 : T-028 a été écrit sur cette métrique malgré cette ligne, et rend 4,26 à `O` là où Marc voit de la mousse. Conservé comme garde-fou, retiré du rôle de preuve.** |
 | Pic spectral à la fréquence de maille | mauvaise signature ; l'artefact de grille est une **anisotropie directionnelle**, pas une périodicité |

@@ -675,3 +675,76 @@ coïncidence à 48 % seulement.
 **Le levier restant est le nombre de traceurs**, plafonné à 20 répétitions dans
 `render_full`. C'est la prochaine mesure à faire, et elle décide si `O` et `N`
 peuvent montrer de vrais nœuds ou seulement un grain honnête.
+
+
+---
+
+## 07/08, tard — « ça ressemble à de la mousse » : les contrôles étaient éteints
+
+**Le retour de Marc :** « Pas de différence visible entre avant et après. La
+structure ressemble plus à de la mousse avec des blobs de haute luminosité posés
+les uns à côté des autres de manière assez régulière, alors qu'on voudrait de la
+matière répartie selon des filaments. C'est une demande client qui existe déjà,
+des tests devraient pouvoir détecter que le rendu n'est pas OK. »
+
+Il a raison sur les deux points. Les tests existaient. Ils ne détectaient rien.
+
+### Cause 1 — j'avais éteint les contrôles exactement là où le défaut se trouve
+
+Le matin du 07/08, T-028 (toile et non mousse, A2) et T-029 (points le long des
+filaments, A5) ont été **exclus des lignes `L` à `O`**, au motif que B8 les
+déclare homogènes. Cette exclusion reposait sur l'ancienne lecture de B10 —
+« rien ne doit s'y détacher » — **corrigée le soir même**. La matière reste
+répartie en filaments à toutes les échelles ; seuls les contrastes faiblissent.
+
+Réarmés, ils parlent immédiatement :
+
+| ligne `O` | mesure |
+|---|---|
+| **T-029** points le long des filaments | **0 %** sur structures allongées |
+| **T-052** distribution non régulière | 0,40 pour 0,50 exigé |
+| **T-053** bande spectrale | 0,6 octave pour 2 exigées |
+| **T-078** les pics sont les nœuds | 47 % |
+
+**Une exclusion de portée est aussi dangereuse qu'un seuil desserré, et plus
+discrète : rien ne s'affiche en rouge.** À inscrire parmi les pièges avérés.
+
+### Cause 2 — T-028 est bâti sur une métrique déjà écartée
+
+`docs/approches-ecartees.md`, tableau des **métriques écartées**, depuis le
+28/07 :
+
+> Élongation globale des nuages — *ne discrimine pas mousse et toile (1,87 contre
+> 1,78 pour la référence)*
+
+T-028 a été écrit le 07/08 sur exactement cette métrique. Il mesure **4,26** à la
+ligne `O` — un score élevé — là où Marc voit de la mousse. **Le contrôle est
+d'accord avec le défaut.**
+
+Il est conservé comme garde-fou minimal — une valeur basse disqualifie à coup
+sûr — mais renommé « ne prouve rien » et retiré du rôle de preuve. Ce sont
+T-029, T-052 et T-078 qui portent le critère.
+
+### Cause 3 — j'ai qualifié les bons signaux de « marginaux »
+
+T-052 et T-053 échouaient déjà, et T-052 encode littéralement le mot employé par
+Marc : *régulier*. Je les ai listés comme « un échec chacun, tous marginaux ».
+Ils n'étaient pas marginaux : ils décrivaient le défaut principal.
+
+Le harnais avait raison avant moi. La faute n'est pas dans la mesure, elle est
+dans sa lecture.
+
+### La cause physique, et pourquoi le gain ×3 n'a rien donné
+
+À la ligne `O`, la projection dépose ses points dans une tranche de 300 Mpc :
+le **bruit de Poisson** domine la structure. Lissé par la PSF, un semis de
+Poisson donne exactement des blobs ronds de taille comparable et d'espacement
+quasi régulier — la description de Marc, mot pour mot.
+
+Un gain ponctuel amplifie ce bruit **dans la même proportion** que la structure.
+C'est pourquoi le contraste n'a bougé que de 0,318 à 0,353 et pourquoi rien
+n'est visible. La correction validée n'était pas la bonne, et seul l'œil de Marc
+pouvait le dire — les métriques que j'avais choisies étaient d'accord avec elle.
+
+**Le levier reste le nombre de traceurs et la largeur de bande, pas
+l'amplitude.** Il est identifié, non traité.

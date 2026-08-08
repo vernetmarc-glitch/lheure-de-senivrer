@@ -143,14 +143,38 @@ def image_cell_checks(code, img, m):
     med = float(np.median(v))
 
     # ---- T-028 : toile, pas mousse. Origine 28/07, « impression de mousse ».
-    homog = bool(matrix()["zoom_axis"]["rows"][code].get("homogene"))
-    # A2 (« toile, pas mousse ») et A5 (« points le long des filaments ») ne
-    # peuvent pas s'appliquer aux lignes declarees homogenes : B8 y interdit
-    # justement toute structure visible. Meme raisonnement que pour T-012.
-    if not sp and not homog:
+    # REARME sur les lignes homogenes le 07/08/2026, au soir.
+    #
+    # Le matin, T-028 et T-029 avaient ete EXCLUS des lignes `L` a `O` au motif
+    # que B8 les declare homogenes. Cette exclusion reposait sur l'ancienne
+    # lecture de B10 -- « rien ne doit s'y detacher » -- qui a ete corrigee
+    # depuis : l'uniformite exigee aux grandes echelles est GEOMETRIQUE, pas
+    # photometrique. La matiere y reste repartie en FILAMENTS, seulement avec des
+    # contrastes plus faibles.
+    #
+    # Consequence de l'exclusion : le seul defaut que Marc voyait a l'oeil --
+    # « ca ressemble plus a de la mousse avec des blobs de haute luminosite poses
+    # les uns a cote des autres de maniere assez reguliere » -- etait porte par
+    # une exigence ecrite (A2, A5), couvert par deux controles existants, et
+    # pourtant indetectable, parce que ces deux controles etaient eteints
+    # exactement la ou le defaut se trouvait.
+    #
+    # Une exclusion de portee est aussi dangereuse qu'un seuil desserre, et elle
+    # est plus discrete : rien ne s'affiche en rouge.
+    if not sp:
+        # ATTENTION — T-028 NE DISCRIMINE PAS mousse et toile.
+        # `docs/approches-ecartees.md` le dit noir sur blanc depuis le 28/07 :
+        # « Elongation globale des nuages : ne discrimine pas mousse et toile
+        # (1,87 contre 1,78 pour la reference) ». La metrique y figure parmi les
+        # METRIQUES ECARTEES, et T-028 a pourtant ete construit dessus le 07/08.
+        # Il mesure 4,26 a la ligne `O` alors que Marc y voit « de la mousse avec
+        # des blobs poses les uns a cote des autres ».
+        # Il est GARDE comme garde-fou minimal -- une valeur basse disqualifie a
+        # coup sur -- mais il ne vaut pas preuve. Ce sont T-029, T-052 et T-078
+        # qui portent le critere.
         el = _elongation(v)
-        out.append(Result("T-028", "CELL", "toile et non mousse : elongation (A2)",
-                          el >= 1.45, "%s %.2f" % (code, el)))
+        out.append(Result("T-028", "CELL", "elongation minimale, NE PROUVE RIEN (A2)",
+                          el >= 1.45, "%s %.2f  (indicatif seulement)" % (code, el)))
 
         # ---- T-029 : les points sont SUR les filaments, pas au hasard.
         # Mesure : la fraction des pixels les plus brillants qui appartiennent a
