@@ -191,9 +191,21 @@ def image_cell_checks(code, img, m):
         mask = np.ones(v.shape, bool)
         n = v.shape[0]
         off = (img.shape[0] - n) // 2
+        rows_m = matrix()["zoom_axis"]["rows"]
+        px_m = 2.0 * rows_m[code]["halfwidth_mpc"] * MARGIN / img.shape[0]
+        # Rayon d'exclusion PROPORTIONNEL a la taille apparente de chaque
+        # galaxie, jamais un nombre de pixels fixe.
+        #
+        # La premiere ecriture masquait 10 px autour de chaque objet. A la ligne
+        # `A`, la Voie lactee fait 72 px de rayon : on mesurait donc la GALAXIE
+        # en croyant mesurer le fond, et T-077 y rendait 0,78 pour un plafond a
+        # 0,60. Un rayon en pixels represente une distance physique differente a
+        # chaque ligne -- c'est le piege documente « unites comobiles, jamais en
+        # pixels », septieme occurrence, et cette fois dans le harnais lui-meme.
         for g, cx, cy in _positions(code, img):
+            r_px = max(3.0, 2.5 * g["radiusMpc"] / px_m)
             yy, xx = np.ogrid[0:n, 0:n]
-            mask &= np.hypot(yy - (cy - off), xx - (cx - off)) > 10
+            mask &= np.hypot(yy - (cy - off), xx - (cx - off)) > r_px
         if mask.sum() > 100:
             # A8 precisee le 07/08 par Marc. « Le fond s'efface » etait lu comme
             # un fondu vers l'uniforme ; l'intention est une attenuation

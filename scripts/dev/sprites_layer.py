@@ -95,6 +95,14 @@ PARTICLE_REACH = _SP.get("particle_reach", 1.37)  # etendue des particules, en u
 TARGET_MEAN_ROW = _SP.get("target_mean_row", {"G": 60.0, "F": 52.0, "E": 44.0,
                                               "D": 36.0, "C": 30.0, "B": 28.0,
                                               "A": 28.0})
+AMBIENT_CEIL = _SP.get("ambient_ceil", {"G": 1.35, "F": 1.30, "E": 1.25,
+                                        "D": 1.20, "C": 1.15, "B": 1.12,
+                                        "A": 1.10})
+# Plafond du compresseur de fond, en multiples de la moyenne du fond. Il fixe
+# DIRECTEMENT la clause 3 d'A8 -- « aucune zone de haute luminosite autre que les
+# galaxies » -- puisque le pic du fond ne peut plus depasser ce plafond. Il
+# descend de G vers A : plus on approche du Groupe Local, plus les galaxies
+# doivent dominer.
 AMBIENT_STRENGTH = _SP.get("ambient_strength", {"G": 0.55, "F": 0.42, "E": 0.32,
                                                 "D": 0.22, "C": 0.14, "B": 0.09,
                                                 "A": 0.06})
@@ -163,10 +171,30 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
     img, gm = G.apply_fine(np.maximum(base_img, 1e-6), code, fine)
     mean0 = float(img.mean())
     if w_amb < 1.0:
-        # Le fond s'efface vers un plancher uniforme ; seules subsistent ses
-        # zones les plus denses, qui entourent les galaxies. Operateur
-        # PONCTUEL (aucun filtre spatial en aval du generateur).
-        img = mean0 * (1.0 - w_amb) * 0.25 + img * w_amb
+        # COURBE DE TON A GENOU DOUX — remplace le fondu lineaire vers un
+        # plancher uniforme, le 07/08/2026.
+        #
+        # Ce que l'ancien mecanisme ne pouvait pas faire
+        # ---------------------------------------------
+        # `mean0 * (1 - w) * 0,25 + img * w` est un fondu LINEAIRE vers une
+        # constante : un seul bouton qui baisse contraste et eclat dans la meme
+        # proportion, partout. Or A8 demande deux choses opposees -- ECRASER les
+        # hautes lumieres du fond, PRESERVER ses nuages filamentaires. Un fondu
+        # lineaire ne sait faire ni l'un ni l'autre selectivement : aux fortes
+        # valeurs de w le fond restait brillant (pic a 0,90 du pic des galaxies
+        # sur G, et 1,09 sur E, donc PLUS BRILLANT qu'elles), aux faibles il
+        # devenait uniforme (ecart-type 2,0 sur C, 1,9 sur B). Les deux echecs
+        # avaient la meme cause.
+        #
+        # Le compresseur ci-dessous est lineaire pour x << k et asymptotique a k :
+        # les mi-tons -- les nuages -- passent presque intacts, les pics
+        # s'ecrasent. C'est exactement la separation qu'A8 exige, et cela ferme
+        # O-08 sans deroger a E2 (voir D-27) : on ne fond vers rien d'uniforme.
+        #
+        # Operateur PONCTUEL, donc conforme a l'interdit sur les operateurs
+        # spatialement non lineaires en aval du generateur.
+        k = mean0 * AMBIENT_CEIL.get(code, 2.0)
+        img = (k * (1.0 - np.exp(-img / k))).astype(np.float32)
 
     with open(CATALOG) as fh:
         gals = json.load(fh)

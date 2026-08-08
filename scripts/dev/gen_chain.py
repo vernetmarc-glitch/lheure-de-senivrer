@@ -142,8 +142,35 @@ FINE_NORM = 0.0             # calibre au premier appel pour var(champ complet)=1
 # l'oeuvre prime ici : les trois spheres sont le sujet, le fond les sert.
 # L'amplitude reste decroissante vers le haut, ce qui preserve B3.
 FINE_STRENGTH = {"A":1.0,"B":1.0,"C":1.0,"D":1.0,"E":1.0,"F":1.0,"G":1.0,
-                 "H":1.0,"I":1.0,"J":1.0,"K":0.85,"L":0.75,
-                 "M":0.65,"N":0.55,"O":0.45}
+                 "H":1.0,"I":1.0,"J":1.0,"K":0.85,"L":0.34,
+                 "M":0.24,"N":0.14,"O":0.08}
+
+WEB_GAIN = {"A":1.0,"B":1.0,"C":1.0,"D":1.0,"E":1.0,"F":1.0,"G":1.0,
+            "H":1.0,"I":1.0,"J":1.0,"K":1.0,"L":1.7,
+            "M":2.2,"N":2.7,"O":3.0}
+# GAIN PONCTUEL SUR LA TOILE, valide par Marc le 07/08/2026 sur planche visuelle.
+#
+# Le probleme qu'il resout, et pourquoi le champ fin baisse en meme temps
+# ----------------------------------------------------------------------
+# Aux lignes L a O, la dynamique visible venait presque entierement du CHAMP FIN,
+# statistiquement INDEPENDANT de la toile : mesure a la ligne O, 405 pics dont
+# 10 % seulement sur les 10 % les plus denses de la toile -- exactement le
+# hasard. Diagnostic de Marc : « une toile fade, et des points tres lumineux
+# poses aleatoirement par-dessus ». Ce n'est ni Millennium ni physique.
+#
+# La correction fait DEUX choses ensemble, et les deux sont necessaires :
+#   - un gain ponctuel rend sa dynamique a la toile elle-meme, de sorte que les
+#     points brillants SOIENT ses noeuds (B10) ;
+#   - le champ fin redescend au rang de grain (C8) et cesse de la dominer.
+# Baisser le champ fin seul rendrait les lignes fades -- ce que Marc avait deja
+# refuse le 02/08. Monter le gain seul laisserait les faux points en place.
+#
+# La progression est GRADUEE de K a O, jamais brutale : une marche a la charniere
+# K|L casserait l'heritage (B1, T-010). Le gain reste un operateur PONCTUEL,
+# donc conforme a l'interdit sur les operateurs spatialement non lineaires.
+#
+# Mesure du 07/08 a la ligne O, toile seule : contraste 0,107 sans gain, 0,315
+# avec gain x3 -- soit la dynamique de l'etat actuel, mais portee par la toile.
 
 FRESH_PSI_GAIN = 1.0
 # Troncature du deplacement frais (02/08). Mesure : le deplacement engendre par
@@ -739,7 +766,15 @@ def fine_field(seed, n=None):
 
 
 def apply_fine(img, code, fine):
-    """Module la densite deposee par le champ fin, puis ajoute le fond diffus."""
+    """Module la densite deposee par le champ fin, puis ajoute le fond diffus.
+
+    Le gain de toile s'applique AVANT le champ fin : il agit sur la densite
+    projetee, donc sur la structure, et non sur le grain qui la module.
+    """
+    g = WEB_GAIN.get(code, 1.0)
+    if g != 1.0:
+        mu = float(img.mean()) or 1.0
+        img = mu * (img / mu) ** g
     w = FINE_STRENGTH.get(code, 0.0)
     if w <= 0.0 or fine is None:
         return img, 1.0
