@@ -1,3 +1,9 @@
+> ⚠️ **Ce registre est CHRONOLOGIQUE et contient des seuils périmés.**
+> Lire d'abord **`docs/etat-des-lieux.md`**, qui tranche les contradictions.
+> T-050, T-051, T-047, T-019 et T-028 ont été **inversés ou requalifiés** le
+> 07/08 : les sections antérieures les décrivent encore dans leur ancienne
+> version.
+
 # Registre des contrôles
 
 Chaque contrôle porte son identifiant, sa portée, sa date et **le retour qui l'a
