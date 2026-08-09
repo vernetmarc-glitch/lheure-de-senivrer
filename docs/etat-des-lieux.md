@@ -299,3 +299,32 @@ Mesuré après cuisson : `O` 502 Mpc pour un plafond à 480 (dépassement de 4 %
    été à la fenêtre `D`→`J` ;*
 3. *accepter que `O` soit la ligne où l'univers est montré homogène — ce que B8
    affirme déjà — et n'y garder que les trois sphères, qui sont le sujet.*
+
+### T-023 : l'ancrage marche, c'est le champ fin qui l'efface
+
+Mesure du 08/08, sur **la sortie de `render_full`** et non sur la texture finale :
+**65 %** des positions du catalogue sont au-dessus de la médiane, pour un seuil
+à 70 %. Sur la texture **publiée** : **23 %**.
+
+**Ce qui détruit le signal est donc en aval du rendu.** `apply_fine` module
+l'image par un champ log-normal qui n'a aucune corrélation avec la toile, et à
+la ligne `H` son amplitude domine la convergence des filaments.
+
+Deux hypothèses écartées par la mesure, dans l'ordre où elles se présentaient :
+
+- **le signe de l'ancrage** — `+1` donne 65 %, `−1` donne 64 %. Il n'est pas en
+  cause ;
+- **le gain d'ancrage** — il produit pourtant un déplacement de **12,65 Mpc rms
+  à `H`, soit 90 pixels**, pour ancrer un Groupe Local étalé sur 18 Mpc. Le
+  ramener à 265 (≈1,5 Mpc) améliore bien T-011 — `I→H` de 9,0 à 7,5 px — mais
+  **dégrade** T-023 de 36 % à 23 % et fait échouer T-027 sur `H`. Huit bloquants
+  contre sept.
+
+*Le gain est donc remis à 2235, et il ne doit pas être retouché avant que la
+modulation aval soit traitée : tant que le champ fin écrase la convergence,
+régler l'ancrage revient à ajuster un signal qu'on efface ensuite.*
+
+**Conséquence probable au-delà de T-023.** T-010 et T-011 échouent sur
+exactement les lignes ancrées, avec des ampleurs qui suivent `ANCHOR_STRENGTH`
+(`J` 0,12 → 4,5 px · `I` 0,45 → 7,5 px · `H` 1,00). Le chantier O-07 n'est
+peut-être pas une question de recherche ouverte, mais ce même défaut.

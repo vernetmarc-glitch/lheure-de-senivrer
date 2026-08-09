@@ -772,7 +772,9 @@
     "J": 0.12
    },
    "space": "Psi, jamais delta (D6)",
-   "weight": "(radiusMpc / r_ref_mpc)^3 — ABSOLU"
+   "weight": "(radiusMpc / r_ref_mpc)^3 — ABSOLU",
+   "calibration_08_08_2026": "Gain REMIS a 2235 apres mesure. L'essai a 265 -- motive par un deplacement d'ancrage de 12,65 Mpc rms a la ligne H, soit 90 PIXELS pour un Groupe Local etale sur 18 Mpc -- ameliorait bien T-011 (I->H 9,0 -> 7,5 px) mais degradait T-023 (36 % -> 23 %) et faisait echouer T-027 sur H. Huit bloquants contre sept. Ne pas retoucher ce gain avant d'avoir traite la cause reelle, ci-dessous.",
+   "cause_reelle_a_traiter": "L'ancrage FONCTIONNE dans le rendu : mesure du 08/08 sur la sortie de render_full, 65 % des positions du catalogue au-dessus de la mediane, pour un seuil a 70 %. Mais la texture PUBLIEE n'en garde que 23 %. Ce qui detruit le signal est donc EN AVAL du rendu : apply_fine module l'image par un champ log-normal sans aucune correlation avec la toile, et a la ligne H son amplitude domine la convergence des filaments. Le signe de l'ancrage n'est pas en cause : +1 donne 65 %, -1 donne 64 %."
   },
   "sprites": {
    "dir": "app/public/data/dissolution_sprites",
