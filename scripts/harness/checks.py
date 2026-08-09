@@ -332,17 +332,30 @@ def pair_checks(pc, cc, pimg, cimg, m):
     out.append(Result("T-011", "PAIR", "deplacement median <= 3 px (B2/D2)",
                       dm <= 3.0, "%s->%s %.1f px" % (pc, cc, dm)))
 
-    # T-012 : LE CONTROLE QUI MANQUAIT. Un meme objet doit garder une taille
-    # apparente coherente d'une ligne a l'autre. Sans lui, la Voie lactee est
-    # passee de 13 % a 47 % du cadre sans que rien ne le signale (03/08).
-    ep, ec = _bright_extent(visible(pimg)), _bright_extent(visible(cimg))
-    if ep > 0 and ec > 0:
-        # l'enfant zoome d'un facteur `ratio` : l'objet doit grandir d'autant,
-        # a 60 % pres pour tolerer l'arrivee de nouveaux objets plus fins.
-        att = ep * ratio
-        rr = ec / att if att > 0 else 0
-        out.append(Result("T-012", "PAIR", "taille apparente des objets coherente",
-                          0.4 <= rr <= 2.5, "%s->%s x%.2f" % (pc, cc, rr)))
+    # T-012 A ETE RETIRE D'ICI le 08/08/2026 et REECRIT PAR OBJET dans
+    # `checks_image.image_pair_checks`. Il n'a pas disparu : sa portee a change.
+    #
+    # Pourquoi. La version globale mesurait `_bright_extent`, soit le rayon
+    # median des composantes au-dessus du 99,5e centile. Mise au banc de
+    # falsification (`scripts/dev/diag_t012.py`, 08/08), elle a rendu 0,04 a
+    # 0,59 sur un enfant fabrique comme le parent zoome x2,520 EXACTEMENT —
+    # c'est-a-dire sur une croissance parfaite, ou la reponse juste est 1,00.
+    # DOUZE paires sur quatorze : aveugle. Les huit echecs qu'elle produisait ne
+    # prouvaient donc rien.
+    #
+    # La cause : sur `N`->`G` les composantes retenues ont un rayon median de
+    # 1,1 a 1,5 pixel. C'est le GRAIN, dont la taille est fixee par la PSF en
+    # pixels et non par le megaparsec — le piege des unites, cinquieme
+    # occurrence. Sur `E`,`D`,`C`,`B` la mediane porte sur 2 a 4 composantes.
+    #
+    # Et le remplacement n'est pas une autre statistique globale : barycentre
+    # spectral et autocorrelation ont ete mis au meme banc et laissent passer un
+    # enfant qui n'a PAS DU TOUT grandi dans 7 a 12 cas sur 14. La raison est de
+    # fond : sur `O`->`H` il n'y a pas d'objets, il y a un champ continu, et
+    # « la taille apparente des objets » n'y a pas de referent mesurable. Ce qui
+    # y est exigible est deja tenu par T-010 (heritage) et T-011 (deplacement).
+    # T-012 ne vit donc que la ou des objets existent : les lignes a sprites,
+    # mesures un par un contre le catalogue.
 
     tp, tc = visible(pimg).mean() * 255, visible(cimg).mean() * 255
     out.append(Result("T-013", "PAIR", "ton sans saut (D2)",
@@ -651,6 +664,15 @@ def run_all(d, cells=True, pairs=True, conf=True):
         except Exception as e:
             res.append(Result("T-048", "SRC", "sprites sources", False, str(e)[:60]))
     import checks_image as CI
+    if conf:
+        # Le banc de falsification tourne AVANT les portees CELL et PAIR : si un
+        # controle de paire ne repond pas juste a une verite connue, ses chiffres
+        # ci-dessous ne veulent rien dire, et il vaut mieux le savoir en haut du
+        # rapport qu'en bas.
+        try:
+            res += CI.falsification_checks(d)
+        except Exception as e:
+            res.append(Result("T-079", "CONF", "banc de falsification", False, str(e)[:60]))
     if cells:
         for c in ORDER:
             if c in img:

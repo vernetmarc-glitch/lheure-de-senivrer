@@ -754,3 +754,68 @@ pouvait le dire — les métriques que j'avais choisies étaient d'accord avec e
 
 **Le levier reste le nombre de traceurs et la largeur de bande, pas
 l'amplitude.** Il est identifié, non traité.
+
+---
+
+## 08/08/2026 — T-012 mis au banc, et le banc devient un contrôle
+
+### Le verdict porté sur T-012
+
+**Retour de Marc protégé :** 03/08 — « la Voie lactée passe de 13 % à 47 % du
+cadre entre deux lignes ». L'exigence est juste ; c'est la mesure qui ne l'était
+pas.
+
+L'ancien T-012 comparait `_bright_extent`, le rayon médian des composantes
+connexes au-dessus du 99,5ᵉ centile. Mis au banc (`scripts/dev/diag_t012.py`) :
+on lui présente un enfant **synthétique**, égal au parent recadré ×2,520 et
+agrandi — donc une croissance apparente **exacte** de ×2,520, sans aucun objet
+nouveau. La réponse juste est **1,00**.
+
+| paires | réponse | verdict |
+|---|---|---|
+| `O`→`N` | nan | aveugle |
+| `N`→`M` … `H`→`G` | 0,43 – 0,59 | aveugle |
+| `G`→`F`, `F`→`E` | 0,89 · 0,99 | ok |
+| `E`→`D` … `B`→`A` | 0,04 – 0,39 | aveugle |
+
+**Douze paires sur quatorze.** Cause : sur `N`→`G` les composantes retenues ont
+un rayon médian de **1,1 à 1,5 pixel** — c'est le grain, dont la taille suit la
+PSF **en pixels** et non le mégaparsec (piège des unités, cinquième occurrence).
+Sur `E`, `D`, `C`, `B`, la médiane portait sur **2 à 4 composantes**.
+
+**Ses huit échecs bloquants ne prouvaient rien.**
+
+Deux remplaçants globaux ont été mis au même banc — barycentre spectral et
+autocorrélation à mi-hauteur, après mise en fenêtre commune. Tous deux laissent
+passer un enfant qui **n'a pas du tout grandi**, dans 7 à 12 cas sur 14. La
+raison est de fond : sur `O`→`H` il n'y a pas d'objets, il y a un champ continu,
+et « la taille apparente des objets » n'y a **pas de référent mesurable**. Ce
+qui y est exigible est déjà tenu par T-010 (héritage) et T-011 (déplacement).
+
+**Décision (Marc, 08/08) :** T-012 quitte la portée PAIR globale et renaît sur
+les lignes à sprites, **mesuré objet par objet contre le catalogue** — la même
+galaxie, retrouvée par son nom dans les deux lignes, doit voir son étendue
+apparente multipliée par le rapport des demi-champs. La fenêtre de mesure suit
+l'objet ; un rayon fixe en pixels écrêterait l'enfant et fabriquerait lui-même
+l'échec qu'il prétend détecter.
+
+### T-079 — un contrôle répond-il juste à une vérité connue ?
+
+**Ce qu'il protège :** la leçon du §7 de l'état des lieux — « le harnais
+garantit qu'un critère est **exécuté** ; il ne garantit ni qu'il est **juste**,
+ni qu'il est appliqué là où il faut ». Quatre contrôles faux le 07/08, un
+cinquième le 08/08 : cinq fois, c'est la relecture de Marc qui a vu, jamais le
+harnais.
+
+Le banc fabrique deux paires dont la réponse est **connue d'avance** :
+
+- **témoin positif** — enfant = parent zoomé ×(rapport des demi-champs). Tous
+  les objets ont grandi au rythme exact du zoom. T-012 **doit passer**.
+- **témoin négatif** — enfant = parent inchangé. Aucun objet n'a grandi.
+  T-012 **doit échouer**.
+
+Un contrôle qui rate l'un des deux ne mesure pas ce qu'il annonce, et ses échecs
+comme ses succès sont sans valeur. Le banc tourne **avant** les portées CELL et
+PAIR, pour que l'avertissement soit en haut du rapport et non en bas.
+
+*Il ne cuit rien et ne lit que les textures publiées.*

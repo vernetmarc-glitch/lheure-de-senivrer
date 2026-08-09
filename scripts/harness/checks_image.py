@@ -446,4 +446,166 @@ def image_pair_checks(pc, cc, pimg, cimg, m):
         out.append(Result("T-017", "PAIR", "aucune galaxie ne disparait (D8)",
                           not perdues, "%s->%s %s" % (pc, cc,
                           " ".join(perdues[:3]) if perdues else "aucune perdue")))
+
+        # ---- T-012 : UN OBJET NOMME grandit au rythme du zoom (D7/A9) -----
+        # Reecriture du 08/08/2026. L'ancienne version mesurait une statistique
+        # globale de l'image et etait AVEUGLE a une croissance parfaite de
+        # x2,520 sur douze paires sur quatorze (banc de falsification T-079).
+        #
+        # Ce qu'on mesure ici : la MEME galaxie du catalogue, retrouvee dans les
+        # deux lignes par son nom, doit voir son etendue apparente multipliee
+        # par le rapport des demi-champs. C'est ce que protegeait l'exigence
+        # d'origine — la Voie lactee passee de 13 % a 47 % du cadre (03/08) —
+        # et c'est mesurable parce que l'objet, lui, a une identite.
+        #
+        # La fenetre de mesure suit l'objet : `rad` proportionnel a la taille
+        # attendue, jamais 12 px fixes, sinon la fenetre ecrete l'enfant et
+        # fabrique elle-meme l'echec qu'elle pretend detecter.
+        pparents = _positions(pc, pimg)
+        pg = {_cle(g): (g, cx, cy) for g, cx, cy in pparents}
+        cg = {_cle(g): (g, cx, cy) for g, cx, cy in _positions(cc, cimg)}
+        pxp = 2.0 * rows[pc]["halfwidth_mpc"] * MARGIN / pimg.shape[0]
+        pxc = 2.0 * rows[cc]["halfwidth_mpc"] * MARGIN / cimg.shape[0]
+        rr = []
+        for nom in set(pg) & set(cg):
+            g, cxp, cyp = pg[nom]
+            _, cxc, cyc = cg[nom]
+            if g["radiusMpc"] <= 0:
+                continue
+            # Un objet sous-pixellaire chez le PARENT n'a pas d'etendue
+            # mesurable : son absence de croissance ne dit rien. On le retire de
+            # la mesure plutot que de desserrer le seuil.
+            if g["radiusMpc"] / pxp < 0.5:
+                continue
+            # La fenetre enfant est celle du parent MULTIPLIEE PAR LE RAPPORT,
+            # jamais recalculee avec son propre plancher. Le banc T-079 a montre
+            # le 08/08 que `max(12, 3*r/px)` des deux cotes donne la MEME fenetre
+            # de 12 px quand l'objet est petit dans les deux lignes : la mesure
+            # est alors ecretee a l'identique et ne peut plus voir aucune
+            # croissance. Reponse au temoin positif : 0,64 au lieu de 1,00.
+            radp = max(10, int(3.0 * g["radiusMpc"] / pxp))
+            radc = int(round(radp * ratio))
+            # Voisin proche : on mesurerait deux objets pour un. Le rayon de
+            # garde suit la FENETRE DE MESURE, jamais 24 px fixes -- un seuil en
+            # pixels sur une echelle geometrique ecarte tout sur une ligne et
+            # rien sur la suivante (piege des unites).
+            if any(np.hypot(cyp - y2, cxp - x2) < radp
+                   for h, x2, y2 in pparents if h is not g):
+                continue
+            ep = _local_extent(pimg, cyp, cxp, rad=radp)
+            ec = _local_extent(cimg, cyc, cxc, rad=radc)
+            if ep > 0 and ec > 0:
+                rr.append((nom, ec / (ep * ratio)))
+        if len(rr) >= 2:
+            med = float(np.median([v for _, v in rr]))
+            hors = [n for n, v in rr if not (0.70 <= v <= 1.45)]
+            out.append(Result("T-012", "PAIR",
+                              "un objet grandit au rythme du zoom (D7/A9)",
+                              not hors, "%s->%s mediane x%.2f sur %d objet(s)%s"
+                              % (pc, cc, med, len(rr),
+                                 "  hors : " + " ".join(hors[:3]) if hors else "")))
     return out
+
+
+# ===========================================================================
+# T-079 — LE BANC DE FALSIFICATION
+# ===========================================================================
+def _zoom_center(a, r):
+    """Recadrage central x`r` + agrandissement. Purement lineaire.
+
+    Applique a la texture d'une ligne avec `r` = rapport des demi-champs, cela
+    fabrique EXACTEMENT ce qu'une ligne fille devrait etre si tous ses objets
+    grandissaient au rythme du zoom et qu'aucun objet nouveau n'apparaissait.
+    """
+    n = a.shape[0]
+    w = n / r
+    c0 = (n - w) / 2.0
+    yy, xx = np.mgrid[0:n, 0:n].astype(np.float64)
+    return ndimage.map_coordinates(a, np.stack([c0 + yy * w / n, c0 + xx * w / n]),
+                                   order=3, mode="nearest")
+
+
+def _synth_row(code, n, sigma_code=None):
+    """Image d'essai : une gaussienne par galaxie du catalogue, rien d'autre.
+
+    `code` fixe la FENETRE (donc les positions) ; `sigma_code` fixe la TAILLE
+    des objets. Les separer est tout l'interet du banc : en donnant a l'enfant
+    la fenetre de sa ligne mais la taille d'objet de sa mere, on fabrique une
+    image ou les objets N'ONT PAS GRANDI, sans rien changer d'autre.
+    """
+    rows = matrix()["zoom_axis"]["rows"]
+    ext = rows[code]["halfwidth_mpc"] * MARGIN
+    px_pos = 2.0 * ext / n
+    px_sig = 2.0 * rows[sigma_code or code]["halfwidth_mpc"] * MARGIN / n
+    img = np.full((n, n), 0.20, np.float64)
+    yy, xx = np.mgrid[0:n, 0:n].astype(np.float64)
+    for g in _catalog():
+        if g["radiusMpc"] <= 0:
+            continue
+        th = np.radians(g["angleDeg"])
+        X, Y = g["distanceMpc"] * np.cos(th), g["distanceMpc"] * np.sin(th)
+        cx = (X / ext * 0.5 + 0.5) * n
+        cy = (0.5 - Y / ext * 0.5) * n
+        if not (0 <= cx < n and 0 <= cy < n):
+            continue
+        s = g["radiusMpc"] / px_sig
+        if s < 0.6 or s > n / 4:
+            continue
+        y0, y1 = int(max(0, cy - 5 * s)), int(min(n, cy + 5 * s + 1))
+        x0, x1 = int(max(0, cx - 5 * s)), int(min(n, cx + 5 * s + 1))
+        if y1 <= y0 or x1 <= x0:
+            continue
+        r2 = ((xx[y0:y1, x0:x1] - cx) ** 2 + (yy[y0:y1, x0:x1] - cy) ** 2) / (s * s)
+        img[y0:y1, x0:x1] += 0.6 * np.exp(-0.5 * r2)
+    return np.clip(img, 0, 1)
+
+
+def falsification_checks(d):
+    """T-079 — un controle de paire repond-il juste a une verite CONNUE ?
+
+    Origine : 08/08/2026, apres le verdict porte sur T-012. Le 07/08 avait deja
+    montre que quatre controles testaient autre chose que l'exigence citee, et
+    que la relecture de Marc — pas le harnais — les avait vus. La lecon est au
+    §7 de l'etat des lieux : « le harnais garantit qu'un critere est EXECUTE ;
+    il ne garantit ni qu'il est JUSTE, ni qu'il est applique la ou il faut ».
+    Ce controle est la reponse executable a cette lecon.
+
+    Le banc n'utilise AUCUNE texture publiee : il fabrique trois images d'essai
+    ne portant que des gaussiennes aux positions du catalogue. C'est ce qui
+    permet de faire varier UNE SEULE chose a la fois.
+
+      TEMOIN POSITIF  enfant = fenetre de l'enfant, objets a la taille de
+                      l'enfant. Tout a grandi au rythme du zoom.
+                      T-012 DOIT passer.
+
+      TEMOIN NEGATIF  enfant = fenetre de l'enfant, objets restes a la taille
+                      DU PARENT. Les positions sont justes, les tailles non.
+                      T-012 DOIT echouer.
+
+    Le second point est ce qui a valu deux corrections au banc lui-meme le
+    08/08 : un temoin negatif fabrique en laissant le parent tel quel melangeait
+    deux defauts — mauvaises positions ET absence de croissance — et T-012 le
+    laissait passer pour une raison qui n'avait rien a voir avec ce qu'on
+    voulait eprouver. Un banc qui fait varier deux choses ne prouve rien.
+    """
+    m = matrix()
+    n = 480
+    for pc, cc in (("E", "D"), ("F", "E"), ("C", "B"), ("B", "A")):
+        par = _synth_row(pc, n)
+        bon = _synth_row(cc, n)
+        faux = _synth_row(cc, n, sigma_code=pc)
+        pos = [r for r in image_pair_checks(pc, cc, par, bon, m) if r.tid == "T-012"]
+        neg = [r for r in image_pair_checks(pc, cc, par, faux, m) if r.tid == "T-012"]
+        if not pos or not neg:
+            continue
+        ok = pos[0].ok and not neg[0].ok
+        return [Result("T-079", "CONF",
+                       "T-012 repond juste a une verite connue (banc)", ok,
+                       "%s->%s  positif %s (%s) · negatif %s (%s)"
+                       % (pc, cc,
+                          "passe" if pos[0].ok else "RATE",
+                          pos[0].detail.split("  ")[0].split("s ")[-1],
+                          "echoue" if not neg[0].ok else "RATE",
+                          neg[0].detail.split("  ")[0].split("s ")[-1]))]
+    return [Result("T-079", "CONF", "T-012 repond juste a une verite connue (banc)",
+                   False, "aucune paire d'essai exploitable")]
