@@ -71,6 +71,33 @@ SLAB_MAX_MPC = 300.0
 # diluer. Mesure du 07/08 a la ligne O : plafonner a 300 Mpc porte la structure
 # de 0,0013 a 0,0075, soit x5,8.
 SLAB_FRAC = 0.06
+# PLANCHER DE TRACEURS PAR PIXEL — 08/08/2026.
+#
+# Le bruit de tirage d'un depot vaut 1/sqrt(N) par pixel. Il doit rester petit
+# devant le SIGNAL, c'est-a-dire devant l'ecart-type du contraste projete du
+# champ. Mesure du 08/08 (`scripts/dev/diag_champ_vs_traceurs.py`) :
+#
+#   ligne      O       N       M       L       K
+#   signal   0,55    1,02    4,61    9,58   18,83
+#   grenaille 0,35    0,37    0,35    0,36    0,36
+#   S/B      1,58    2,75   13,16   26,75   52,44
+#
+# A `O` le rapport signal/bruit valait 1,58 : la structure EXISTE, elle etait
+# noyee. C'est cela, la « mousse » -- pas une absence de toile, mais une toile
+# sous 35 % de grenaille. Les lignes M a H, elles, sont a 13 et au-dela : leur
+# rendu n'a jamais eu ce probleme, et ce plancher ne les touche pas (elles sont
+# deja a 38,7 traceurs par pixel).
+#
+# Le nombre requis se lit directement : pour S/B = 3 a `O`, (3/0,55)^2 = 30
+# traceurs par pixel. On prend 36, avec de la marge.
+#
+# Ce n'est PAS une densite pilotee par la resolution de sortie : le nombre de
+# traceurs par pixel est la grandeur qui fixe le bruit de mesure, et c'est elle
+# qui doit etre garantie. Les repetitions gigues echantillonnent l'interieur de
+# la cellule lagrangienne -- chaque traceur represente un element de masse qui
+# la remplit -- donc elles ajoutent bien de l'information, elles ne recopient
+# pas le meme point.
+MIN_PTS_PX2 = 36.0
 # Essai du 31/07, REVENU EN ARRIERE. Porter la dalle de 0,06 a 0,15 fait passer
 # le pic du spectre de 20,5 a 47,8 Mpc a la ligne J, puis il SATURE : a 0,30,
 # 0,60 et 1,00 il revient a 20,5. La dalle n'est donc pas le levier de B8.
@@ -824,7 +851,8 @@ def render_full(L, seed, margin=1.5):
     img = np.zeros((n, n), np.float32)
     web = L.web
     base = ((np.abs(web[:, 2]) < slab / 2).mean() * 1.0) or 1.0
-    rep = int(np.clip(round(TARGET_PROJ * margin ** 2 / max(len(web) * base * 0.9, 1)), 1, 20))
+    besoin = max(TARGET_PROJ * margin ** 2, MIN_PTS_PX2 * n * n)
+    rep = int(np.clip(round(besoin / max(len(web) * base * 0.9, 1)), 1, 40))
     for k in range(rep):
         p = web if k == 0 else web + (rng.random(web.shape).astype(np.float32) - 0.5) * L.cell
         m = ((np.abs(p[:, 2]) < slab / 2) & (np.abs(p[:, 0]) < ext) & (np.abs(p[:, 1]) < ext))
@@ -854,7 +882,8 @@ def render(L, seed):
     img = np.zeros((OUT_N, OUT_N), np.float32)
     web = L.web
     base = ((np.abs(web[:, 2]) < slab / 2).mean() * 1.0) or 1.0
-    rep = int(np.clip(round(TARGET_PROJ / max(len(web) * base * 0.9, 1)), 1, 20))
+    besoin = max(TARGET_PROJ, MIN_PTS_PX2 * OUT_N * OUT_N)
+    rep = int(np.clip(round(besoin / max(len(web) * base * 0.9, 1)), 1, 40))
     for k in range(rep):
         p = web if k == 0 else web + (rng.random(web.shape).astype(np.float32) - 0.5) * L.cell
         m = ((np.abs(p[:, 2]) < slab / 2) & (np.abs(p[:, 0]) < L.half)

@@ -215,3 +215,43 @@ cohérence inter-lignes est préservée — et la structure cesse de dépendre d
 l'amplitude du déplacement. Ne pas confondre avec le dépôt CIC, écarté le 29/07
 pour une autre raison (il détruisait la cohérence inter-lignes, mesurée à
 0,08–0,43).
+
+### Plancher de traceurs posé — et ce qu'il a montré
+
+`MIN_PTS_PX2 = 36` garantit désormais que le bruit de tirage reste petit devant
+le signal. À `O` le rapport signal/bruit passe de **1,58 à ~3,8**, et l'héritage
+`O→N` de 0,620 à 0,661.
+
+**Mais T-052, T-053 et T-029 n'ont pas bougé.** La grenaille n'était donc pas
+leur cause, et le plancher — bien que justifié — ne les concernait pas.
+
+### La vraie cause de T-052 et T-053 : la bande disponible à `O` fait 0,58 octave
+
+| ligne | Mpc/px | bande du champ fin | octaves |
+|---|---|---|---|
+| `O` | 91,06 | **200 → 300 Mpc** | **0,58** |
+| `N` | 36,14 | 80 → 300 Mpc | 1,92 |
+| `M` | 14,34 | 32 → 300 Mpc | 3,25 |
+
+La borne haute est l'échelle d'homogénéité, 300 Mpc ; la borne basse est
+Nyquist, 2,2 px. À `O`, un pixel vaut 91 Mpc : il ne reste **que 0,58 octave**
+entre les deux. Un champ à bande quasi monochromatique produit un motif
+quasi périodique — d'où la dispersion des pics mesurée à 0,39 par T-052, plus
+**régulière** qu'un tirage au hasard (0,52).
+
+**Les deux contrôles ont la même cause, et elle n'est pas corrigeable par
+réglage.** Élargir la bande demanderait `lam_hi ≥ 800 Mpc`, c'est-à-dire
+peindre des structures au-delà de l'échelle d'homogénéité : inventer un univers
+qui n'existe pas.
+
+**Ce que dit la physique.** À 14 570 Mpc de demi-champ, l'univers observable
+*est* homogène. Les plus grandes structures réelles — vides, superamas, pic
+acoustique — plafonnent vers 200–300 Mpc, soit 2 à 3 pixels. La ligne `O` ne
+peut pas montrer de toile filamenteuse, et c'est exactement ce que B8 affirme
+déjà en déclarant `L`→`O` homogènes.
+
+*B11 (« distribution amassée », « ≥ 2 octaves ») et A5 (« points le long des
+filaments ») sont donc appliqués hors de leur domaine de validité sur `O`, comme
+B4 l'était avant que T-039 ne soit borné à la fenêtre `D`→`J`. Le parallèle est
+exact. Décision à prendre par Marc : borner la portée de ces trois contrôles aux
+lignes où l'échelle d'homogénéité dépasse quelques pixels.*
