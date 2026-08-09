@@ -182,6 +182,7 @@ FRESH_PSI_GAIN = 1.0
 # Le contenu fin n'est pas perdu pour autant : il est porte par le champ fin,
 # qui n'est pas deplace.
 
+KEEP_LAGRANGIAN = False     # recherche seulement : conserve q sur la couche
 RENDER_MARGIN = 1.5
 FINE_N = 480                # = OUT_N * RENDER_MARGIN
 # Le champ fin est calcule sur la BOITE COMPLETE, marge comprise, et non sur la
@@ -457,7 +458,9 @@ class Layer:
     """
     __slots__ = ("code", "half", "cell", "box_xy", "Lz", "shape",
                  "delta", "delta_lo", "psi_lo", "k_cut", "psi_rms", "web", "n_halo",
-                 "std_delta", "n_anchor", "fine")
+                 "std_delta", "n_anchor", "fine",
+                 # recherche seulement, rempli si KEEP_LAGRANGIAN (axe du temps)
+                 "q0")
 
     def drop_heavy(self):
         """Libere ce dont l'enfant n'a pas besoin."""
@@ -540,6 +543,7 @@ def bake_layer(code, half, margin, seed, parent=None):
     # suffisait a faire tuer le processus. On n'en conserve que la trace utile --
     # la somme des carres, et le sous-reseau de base pour les halos.
     nQ = Q.shape[0]
+    Q0 = Q.copy() if KEEP_LAGRANGIAN else None
     nb = (nQ + SUB_Z - 1) // SUB_Z
     disp_b = np.empty((nb, 3), np.float32)
     ss, nb_done = 0.0, 0
@@ -630,6 +634,14 @@ def bake_layer(code, half, margin, seed, parent=None):
             del tree, Qb
     del Q
     L.web = web
+    if KEEP_LAGRANGIAN:
+        # Recherche seulement (planches de comparaison de l'axe du temps).
+        # Zel'dovich est LINEAIRE en facteur de croissance : x(D) = q + D*Psi.
+        # Conserver q permet de rejouer n'importe quelle epoque sans recuire,
+        # par x(amp) = q + amp*(x(1) - q). Desactive par defaut : le tableau
+        # double l'empreinte memoire du nuage, ce qui a deja fait tuer la
+        # chaine a la ligne H (voir le commentaire du deplacement par blocs).
+        L.q0 = Q0
     return L
 
 
