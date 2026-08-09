@@ -255,3 +255,47 @@ filaments ») sont donc appliqués hors de leur domaine de validité sur `O`, co
 B4 l'était avant que T-039 ne soit borné à la fenêtre `D`→`J`. Le parallèle est
 exact. Décision à prendre par Marc : borner la portée de ces trois contrôles aux
 lignes où l'échelle d'homogénéité dépasse quelques pixels.*
+
+### L'amortissement continu est posé — et il révèle une contradiction entre B5 et B11
+
+`_fine_spectrum` ne coupe plus net à l'échelle d'homogénéité : au-delà, le
+spectre se prolonge avec la pente primordiale `P(k) ~ k^+1`, l'amplitude
+décroissant vers les grandes échelles au lieu de s'annuler d'un coup. C'est ce
+que **B9** demandait depuis le début — *« il n'y a pas de coupure »* — et la
+coupure franche la violait.
+
+**Gains :** T-053 passe à `N`, T-029 à plusieurs lignes, T-014 (isotropie `L`),
+T-052 à `M`, T-010 et T-011 sur `O→N`. **12 → 11 bloquants.**
+
+Un essai intermédiaire a été écarté par la mesure : placer le genou au maximum
+réel du spectre de puissance (~600 Mpc, échelle d'égalité) donnait bien 2,25
+octaves à `O`, mais faisait apparaître des structures de **720 à 971 Mpc sur
+cinq lignes**, et T-008 les a vues immédiatement. L'œuvre montre les structures
+**formées**, pas le spectre : B5 et B8 fixent le genou à 300 Mpc et ils priment.
+
+### La contradiction, en arithmétique
+
+À `O`, un pixel vaut 91,06 Mpc.
+
+| | |
+|---|---|
+| borne basse | Nyquist, **2,2 px** |
+| borne haute | plafond de T-008 (B5), 300 × 1,6 = 480 Mpc = **5,27 px** |
+| **bande maximale possible** | **1,26 octave** |
+| **bande exigée par B11** | **2,00 octaves** |
+
+**Aucune image ne peut satisfaire les deux à la fois à la ligne `O`.** Ce n'est
+pas un défaut de réglage ni un générateur à améliorer : c'est une impossibilité
+arithmétique, et elle est confinée à cette seule ligne — `N` autorise 2,59
+octaves et `M` 3,93, donc les deux exigences y coexistent sans peine.
+
+Mesuré après cuisson : `O` 502 Mpc pour un plafond à 480 (dépassement de 4 %),
+`N` 482, `M` 510. Et T-053 reste à 1,4 octave à `O`, T-052 à 0,41, T-029 à 0 %.
+
+*Trois issues possibles, toutes du ressort de Marc :*
+1. *desserrer le facteur 1,6 de T-008 — il était déjà une tolérance pour ce même
+   effet, et un spectre amorti étale un peu plus loin qu'un spectre tronqué ;*
+2. *borner B11 aux lignes où la bande est physiquement disponible, comme B4 l'a
+   été à la fenêtre `D`→`J` ;*
+3. *accepter que `O` soit la ligne où l'univers est montré homogène — ce que B8
+   affirme déjà — et n'y garder que les trois sphères, qui sont le sujet.*

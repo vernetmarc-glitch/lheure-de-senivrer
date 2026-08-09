@@ -135,6 +135,25 @@ FINE_FLOOR = 0.12           # fond diffus, en fraction de la moyenne
 FINE_GAMMA = 0.45           # compression du ton (sinon 4,3 % de blanc pur)
 FINE_LAM_HI_PX = 40.0       # bande du champ fin : 40 px -> Nyquist
 HOMOGENEITY_MPC = 300.0
+# GENOU DU SPECTRE — a ne pas confondre avec l'echelle d'homogeneite.
+#
+# 300 Mpc est l'echelle au-dela de laquelle il n'y a plus de STRUCTURE FORMEE :
+# le plus grand vide, le plus grand superamas. Mais le SPECTRE DE PUISSANCE, lui,
+# continue de croitre au-dela : son maximum est au rayon de Hubble a l'egalite
+# matiere-rayonnement, k_eq ~ 0,01 h/Mpc, soit une longueur d'onde d'environ
+# 600 Mpc comobiles. Entre 300 et 600 Mpc il y a donc de la puissance reelle,
+# faible mais non nulle -- exactement ce que B9 decrit.
+#
+# ESSAYE PUIS ECARTE le 08/08/2026. Placer le genou du champ fin a 600 Mpc
+# elargissait bien la bande -- 2,25 octaves a `O` contre 0,58 -- mais faisait
+# apparaitre des structures de 720 a 971 Mpc sur CINQ lignes, et T-008 (« rien
+# au-dela de l'homogeneite », B5) les a vues immediatement. Physiquement le
+# maximum du spectre est bien vers 600 Mpc, mais l'oeuvre montre les STRUCTURES
+# FORMEES, pas le spectre : B5 et B8 fixent le genou a 300 Mpc et ils priment.
+#
+# La largeur de bande ne vient donc pas du deplacement du genou, mais du seul
+# AMORTISSEMENT continu au-dela -- ce que B9 demandait depuis le debut.
+TURNOVER_MPC = HOMOGENEITY_MPC
 # Borne PHYSIQUE de la plus grande structure representable (B8 : le passage a
 # l'homogeneite se situe entre 100 et 300 Mpc). Ajoutee le 02/08 sur constat de
 # Marc : « sur le layer O je vois encore beaucoup de structures de grande
@@ -690,12 +709,53 @@ def field_projection(L, delta):
                                    order=1, mode="nearest")
 
 
-def _fine_spectrum(k, n, lam_hi, lam_lo):
-    return np.where((k >= n / lam_hi) & (k <= n / lam_lo),
-                    np.maximum(k, 1e-9) ** -2.2, 0.0)
+# Pente du spectre PRIMORDIAL, au-dela de l'echelle d'homogeneite. La valeur
+# mesuree par Planck est n_s = 0,96 ; on prend 1,0 (Harrison-Zel'dovich), la
+# difference etant indiscernable a l'ecran.
+PRIMORDIAL_SLOPE = 1.0
 
 
-def fine_fresh(seed, lam_hi, lam_lo, n=None):
+def _fine_spectrum(k, n, lam_hi, lam_lo, damp=False):
+    """Spectre du champ fin. `damp` remplace la coupure haute par un raccord.
+
+    LA COUPURE FRANCHE EST INTERDITE PAR B9 — 08/08/2026.
+
+    B9 dit : « l'approche de l'homogeneite est GRADUELLE, il n'y a pas de
+    coupure ; des structures de plus en plus grandes existent, mais avec une
+    amplitude de plus en plus faible ». Or `lam_hi` etait une coupure NETTE a
+    l'echelle d'homogeneite : au-dela, zero. C'etait exactement ce que B9
+    proscrit, et cela avait une consequence mesurable a la ligne `O`.
+
+    A `O` un pixel vaut 91 Mpc et l'homogeneite 300 Mpc : la bande ne faisait
+    que 200 a 300 Mpc, soit **0,58 octave**. Un champ a bande quasi
+    monochromatique produit un motif quasi PERIODIQUE -- c'est le mecanisme que
+    B11 nomme explicitement, et la mesure le confirmait : dispersion des
+    distances au plus proche voisin de 0,39 a `O`, contre 0,52 pour un tirage
+    purement aleatoire. L'image etait plus REGULIERE que le hasard.
+
+    Le raccord ci-dessous prolonge le spectre au-dela de l'homogeneite avec la
+    pente du spectre PRIMORDIAL, P(k) ~ k^+1 : l'amplitude y decroit vers les
+    grandes echelles au lieu de s'annuler d'un coup. Rien n'est invente -- ces
+    structures existent reellement, simplement de plus en plus faibles. B8
+    (« echelle des structures conforme au reel ») et B9 sont alors satisfaites
+    ENSEMBLE au lieu de se contredire.
+
+    Le raccord est continu en k_hi par construction : les deux branches y valent
+    k_hi^-2.2.
+    """
+    kk = np.maximum(k, 1e-9)
+    k_hi, k_lo = n / lam_hi, n / lam_lo
+    P = kk ** -2.2
+    if damp:
+        # Sous k_hi : k^-2,2 x (k/k_hi)^3,2 = k^+1 / k_hi^3,2. Pente primordiale.
+        e = 2.2 + PRIMORDIAL_SLOPE
+        P = np.where(kk < k_hi, kk ** -2.2 * (kk / k_hi) ** e, P)
+    else:
+        P = np.where(kk >= k_hi, P, 0.0)
+    return np.where(kk <= k_lo, P, 0.0)
+
+
+def fine_fresh(seed, lam_hi, lam_lo, n=None, damp=False):
     """Bande fraiche du champ fin, amplitude ABSOLUE (jamais f/f.std()).
 
     La normalisation par l'ecart-type mesure est une statistique globale : elle
@@ -709,7 +769,7 @@ def fine_fresh(seed, lam_hi, lam_lo, n=None):
     kx = np.fft.fftfreq(n)[:, None] * n
     ky = np.fft.rfftfreq(n)[None, :] * n
     k = np.sqrt(kx ** 2 + ky ** 2)
-    P = _fine_spectrum(k, n, lam_hi, lam_lo)
+    P = _fine_spectrum(k, n, lam_hi, lam_lo, damp=damp)
     z = (rng.normal(size=k.shape) + 1j * rng.normal(size=k.shape)) * np.sqrt(P / 2)
     return (np.fft.irfft2(z, s=(n, n)) * FINE_NORM).astype(np.float32)
 
@@ -729,7 +789,7 @@ def fine_inherit(fine_parent, ratio, n=None):
                                    order=3, mode="nearest").astype(np.float32)
 
 
-def _fine_band_var(lam_hi, lam_lo):
+def _fine_band_var(lam_hi, lam_lo, damp=False):
     """Variance THEORIQUE d'une bande du champ fin, par integration du spectre.
 
     Pour P(k) ~ k^-2.2 en 2D, var ~ integrale de P(k) k dk ~ [k^-0.2]/(-0.2).
@@ -737,7 +797,12 @@ def _fine_band_var(lam_hi, lam_lo):
     faire dependre une ligne du contenu d'une autre (INV-B1).
     """
     k1, k2 = OUT_N / lam_hi, OUT_N / lam_lo
-    return (k1 ** -0.2 - k2 ** -0.2) / 0.2
+    v = (k1 ** -0.2 - k2 ** -0.2) / 0.2
+    if damp:
+        # Queue amortie sous k1, integree analytiquement elle aussi :
+        # int_0^k1 (k^+1 / k1^3,2) k dk = k1^3 / (3 k1^3,2) = k1^-0,2 / 3.
+        v += k1 ** -0.2 / 3.0
+    return v
 
 
 def fine_weights(ratio):
@@ -756,7 +821,9 @@ def fine_weights(ratio):
 def fine_lam_hi(half):
     """Plus grande longueur d'onde du champ fin, en pixels, bornee par B8."""
     px = 2.0 * half / OUT_N          # half = fenetre VISIBLE, hors marge
-    return float(min(FINE_LAM_HI_PX, max(HOMOGENEITY_MPC / px, 2.6)))
+    # Le genou est au maximum du spectre, pas a l'echelle d'homogeneite : c'est
+    # au-dela de ce genou que l'amortissement primordial prend le relais.
+    return float(min(FINE_LAM_HI_PX, max(TURNOVER_MPC / px, 2.6)))
 
 
 def fine_for(code, seed, fine_parent=None, ratio=None, half=None):
@@ -773,10 +840,14 @@ def fine_for(code, seed, fine_parent=None, ratio=None, half=None):
         # variance et la ligne parait fade (std 7,1 contre 21,3 mesures le
         # 02/08). On renormalise par le rapport des variances THEORIQUES des deux
         # bandes -- grandeur analytique, aucune statistique mesuree.
+        # `damp=True` UNIQUEMENT ici : c'est la seule borne PHYSIQUE de la
+        # chaine. Les autres bornes -- FINE_LAM_HI_PX, ratio x FINE_LAM_LO_PX --
+        # sont des partages de bande entre lignes, pas des echelles reelles :
+        # les amortir melangerait les bandes et casserait le non-double-comptage.
         lam = fine_lam_hi(half)
-        f = fine_fresh(seed, lam, FINE_LAM_LO_PX)
+        f = fine_fresh(seed, lam, FINE_LAM_LO_PX, damp=True)
         k = np.sqrt(_fine_band_var(FINE_LAM_HI_PX, FINE_LAM_LO_PX)
-                    / max(_fine_band_var(lam, FINE_LAM_LO_PX), 1e-12))
+                    / max(_fine_band_var(lam, FINE_LAM_LO_PX, damp=True), 1e-12))
         return (f * np.float32(k)).astype(np.float32)
     wh, wf = fine_weights(ratio)
     fresh = fine_fresh(seed, ratio * FINE_LAM_LO_PX, FINE_LAM_LO_PX)
