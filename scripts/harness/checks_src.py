@@ -197,3 +197,64 @@ def src_checks():
                       "dispersion %.3f%s" % (disp, "  DOUBLONS : "
                       + " / ".join("=".join(p) for p in paires) if paires else "")))
     return out
+
+
+def paste_flux_checks():
+    """T-081 — reduire un sprite conserve-t-il son flux ? (A12/C17/D8)
+
+    Origine : 08/08/2026. T-015, T-016, T-017, T-012 et T-019 echouaient
+    ENSEMBLE sur les lignes a sprites, et le diagnostic
+    `scripts/dev/diag_paste.py` leur a trouve une cause unique.
+
+    `sprites_layer._paste` reduisait la vignette de 512 px par
+    `ndimage.zoom(order=3)`. Une spline INTERPOLE : elle echantillonne la
+    source, elle ne l'integre pas. En reduction forte, tout ce qui tombe entre
+    deux points d'echantillonnage est simplement perdu -- et une galaxie est
+    surtout du vide avec un noyau brillant, donc c'est le noyau qu'on rate.
+
+    Mesure du 08/08, sur les cinq vignettes, flux conserve par rapport a une
+    moyenne d'aire :
+
+        diametre    4 px    6 px   10 px   20 px   60 px
+        conserve      0 %     0 %     0 %  15-80 %  78-110 %
+
+    **En dessous de vingt pixels, la galaxie n'etait pas dessinee du tout.**
+    C'est pourquoi la Voie lactee etait introuvable sur `F` et `E` (0,7 et
+    1,8 px de rayon) mais retrouvee sur `D` (4,6 px), et pourquoi le Grand
+    Nuage disparaissait sous le disque au lieu d'y etre noye.
+
+    Le controle mesure l'operateur LIVRE, pas le principe : il appelle `_paste`
+    sur une vignette reelle a plusieurs diametres et compare le flux depose a
+    l'integrale exacte de la source. Une tolerance de 15 % couvre l'erreur de
+    quadrature aux tres petits diametres.
+    """
+    import sys
+    sys.path.insert(0, os.path.join(ROOT, "scripts", "dev"))
+    import sprites_layer as S
+
+    out = []
+    pires = []
+    for key in ("milkyway", "andromede", "triangulum", "lmc", "sagittaire"):
+        sp = S.load_sprite(key, 1.0)
+        if sp is None:
+            continue
+        f_src = float(np.asarray(sp, np.float64).mean())
+        for d in (4, 6, 10, 20, 60):
+            img = np.zeros((4 * d + 8, 4 * d + 8), np.float32)
+            c = img.shape[0] / 2.0
+            S._paste(img, sp, c, c, d, 1.0)
+            # Flux depose rapporte a l'aire cible : c'est la moyenne de la
+            # source si et seulement si l'operateur integre.
+            f_out = float(img.sum()) / (d * d)
+            pires.append((f_out / max(f_src, 1e-12), key, d))
+    if not pires:
+        return [Result("T-081", "SRC", "la reduction des sprites conserve le flux (A12)",
+                       False, "aucune vignette lisible")]
+    pires.sort()
+    r, key, d = pires[0]
+    out.append(Result("T-081", "SRC",
+                      "la reduction des sprites conserve le flux (A12/D8)",
+                      r >= 0.85,
+                      "pire cas %.0f %% du flux (%s a %d px) sur %d mesures"
+                      % (100 * r, key, d, len(pires))))
+    return out

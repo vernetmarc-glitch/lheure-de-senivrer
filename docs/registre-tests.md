@@ -858,3 +858,51 @@ littéralement un aplat une fois écrite en 8 bits. La loi retenue mesure 1,74 �
 la ligne `H`. *La marge est mince et c'est voulu : si elle se perd, il faut
 augmenter le nombre de traceurs projetés, jamais remettre un plancher sur le
 champ fin.*
+
+---
+
+## 08/08/2026 — le flux perdu à la réduction des sprites
+
+### T-081 — la réduction d'un sprite conserve son flux (A12/D8)
+
+**Cinq contrôles échouaient ensemble sur les lignes à sprites** — T-015, T-016,
+T-017, T-012, T-019 — et le diagnostic `scripts/dev/diag_paste.py` leur a trouvé
+une cause **unique**.
+
+`_paste` réduisait la vignette de 512 px par `ndimage.zoom(order=3)`. Une spline
+**interpole** : elle échantillonne la source, elle ne l'intègre pas. En réduction
+forte, tout ce qui tombe entre deux points d'échantillonnage est perdu — et une
+galaxie est surtout du vide autour d'un noyau brillant, donc c'est le noyau
+qu'on rate.
+
+| diamètre | 4 px | 6 px | 10 px | 20 px | 60 px |
+|---|---|---|---|---|---|
+| flux conservé | **0 %** | **0 %** | **0 %** | 15–80 % | 78–110 % |
+
+**Sous vingt pixels, la galaxie n'était pas dessinée du tout.** D'où la Voie
+lactée introuvable sur `F` et `E` (0,7 et 1,8 px de rayon) et retrouvée sur `D`
+(4,6 px) — la frontière du défaut, pas une coïncidence.
+
+*Correction : moyenne d'aire en réduction, spline cubique conservée en
+agrandissement — c'est elle qui rend le piqué. Flux : 0 % → 96 %.*
+
+### T-016 — sixième contrôle trouvé faux
+
+Il retenait **toute** position du catalogue où `_local_extent` rendait une valeur
+non nulle. Or sur une texture réelle le fond en rend une partout. Sur `G`, où
+**une seule** galaxie dépasse le demi-pixel, il corrélait donc 25 taches de fond
+contre leurs rayons catalogue. Sa corrélation négative ne parlait pas des
+galaxies.
+
+Mesure du 08/08 : sous ~4 px, `_local_extent` rend systématiquement 8 à 10 px —
+la taille de sa propre fenêtre et du fond qui la remplit.
+
+**Réécrit en bande absolue.** Le rapport étendue apparente / rayon vrai vaut
+**2,34 à 2,68** pour tout objet résolu, et il vaut cela aussi bien pour la Voie
+lactée en vignette 2048 que pour les vignettes 512 — preuve que la compensation
+`SPRITE_MARGIN` / `HIRES_REACH` est juste. Bande retenue : **[1,8 ; 3,4]**,
+constante absolue. Seuil de résolution porté de 0,5 à 3,5 px.
+
+C'est un contrôle plus fort qu'une corrélation de rang : il vaut sur **un seul**
+objet, et il aurait vu instantanément la Voie lactée passer de 13 % à 47 % du
+cadre.

@@ -293,27 +293,65 @@ def image_cell_checks(code, img, m):
         # T-016 — le rapport des tailles apparentes suit celui des rayons
         # reels. Origine 06/07 : « je n'ai pas l'impression que le diametre
         # apparent des galaxies et leur distance soit coherent ».
-        # Mesurer la taille apparente d'une galaxie collee a une autre revient a
-        # mesurer les deux : on ne retient que les objets ISOLES d'au moins
-        # 24 px. Sur les lignes ou il n'en reste pas assez, le controle se tait
-        # plutot que de rendre un chiffre qui ne veut rien dire.
-        iso = []
+        #
+        # REECRIT le 08/08/2026, apres passage au banc. L'ancienne version
+        # retenait TOUTE position du catalogue ou `_local_extent` rendait une
+        # valeur non nulle -- or sur une texture reelle le fond en rend une
+        # partout. Sur `G`, ou UNE SEULE galaxie du catalogue depasse le demi
+        # pixel, le controle correlait donc 25 taches de FOND contre leurs
+        # rayons catalogue. La correlation negative qu'il rapportait ne parlait
+        # pas des galaxies. Sixieme controle trouve faux sur ce projet.
+        #
+        # Trois corrections, toutes de la meme famille -- ne mesurer que ce qui
+        # est mesurable, plutot que desserrer un seuil :
+        #   1. l'objet doit etre RESOLU (rayon >= 0,5 px), comme dans T-015 ;
+        #   2. il doit produire un EXCES LOCAL, sinon il n'est pas dans l'image ;
+        #   3. fenetre de mesure et rayon de garde PROPORTIONNELS a l'objet,
+        #      jamais 12 et 24 px fixes -- un seuil en pixels sur une echelle
+        #      geometrique ecarte tout sur une ligne et rien sur la suivante.
+        # MESURE : le rapport etendue apparente / rayon vrai en pixels. Il doit
+        # etre le MEME pour tous les objets, quelle que soit la ligne -- c'est
+        # exactement ce que « diametre apparent coherent avec la distance »
+        # veut dire. La borne est une CONSTANTE ABSOLUE, jamais une statistique
+        # de l'image courante (INV-B1).
+        #
+        # Calibration du 08/08 sur les quinze textures cuites : le rapport vaut
+        # 2,34 a 2,68 pour tout objet resolu, et il vaut cela AUSSI BIEN pour la
+        # Voie lactee en vignette 2048 que pour les vignettes 512 -- preuve que
+        # la compensation SPRITE_MARGIN / HIRES_REACH est juste. Bande retenue :
+        # [1,8 ; 3,4].
+        #
+        # SEUIL DE RESOLUTION : 3,5 px, et non 0,5. Mesure du 08/08 : sous
+        # ~4 px, `_local_extent` rend systematiquement 8 a 10 px, c'est-a-dire
+        # la taille de sa propre fenetre et du fond qui la remplit -- rapports
+        # apparents de 9, 12, 14. Ce n'etait pas la galaxie qui etait mesuree.
+        # Un controle se tait plutot que de rendre un chiffre qui ne veut rien
+        # dire ; les lignes ou aucun objet n'est resolu restent couvertes par
+        # T-015 (positions) et T-012 (croissance d'un objet nomme).
+        BANDE = (1.8, 3.4)
+        mesures = []
         for g, cx, cy in pos:
             if g["radiusMpc"] <= 0:
                 continue
-            if any(np.hypot(cy - y2, cx - x2) < 24 for h, x2, y2 in pos if h is not g):
+            r_px = g["radiusMpc"] / px
+            if r_px < 3.5:
                 continue
-            e = _local_extent(img, cy, cx)
+            garde = max(12.0, 4.0 * r_px)
+            if any(np.hypot(cy - y2, cx - x2) < garde
+                   for h, x2, y2 in pos if h is not g):
+                continue
+            e = _local_extent(img, cy, cx, rad=max(10, int(3.0 * r_px)))
             if e > 0:
-                iso.append((g["radiusMpc"], e))
-        pr = iso
-        if len(pr) >= 6:
-            a = np.argsort(np.argsort([p[0] for p in pr]))
-            b = np.argsort(np.argsort([p[1] for p in pr]))
-            rho = float(np.corrcoef(a, b)[0, 1])
+                mesures.append((g.get("name") or "proc", e / r_px))
+        if mesures:
+            hors = ["%s %.2f" % (n, k) for n, k in mesures
+                    if not (BANDE[0] <= k <= BANDE[1])]
             out.append(Result("T-016", "CELL", "tailles apparentes ~ rayons reels (D7/A9)",
-                              rho >= 0.55, "%s correlation de rang %.2f sur %d"
-                              % (code, rho, len(pr))))
+                              not hors,
+                              "%s rapport %s sur %d objet(s) resolu(s)%s"
+                              % (code, " ".join("%.2f" % k for _, k in mesures),
+                                 len(mesures),
+                                 "  HORS BANDE : " + " ".join(hors[:3]) if hors else "")))
 
         # T-018 — halo de raccord present autour de chaque galaxie (A10) : la
         # lumiere ne doit pas s'arreter net au bord de la vignette.

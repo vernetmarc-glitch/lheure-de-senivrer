@@ -661,6 +661,7 @@ def run_all(d, cells=True, pairs=True, conf=True):
         try:
             import checks_src as CS
             res += CS.src_checks()
+            res += CS.paste_flux_checks()
         except Exception as e:
             res.append(Result("T-048", "SRC", "sprites sources", False, str(e)[:60]))
     import checks_image as CI

@@ -143,9 +143,30 @@ def _paste(img, sp, cx, cy, diam_px, gain):
     d = max(int(round(diam_px)), 2)
     if d > 4 * n:
         return 0
-    # Spline cubique, et non bilineaire : c'est ce qui rend le PIQUE des sprites
-    # historiques, rendus par drawImage. Le bilineaire les rendait mous.
-    z = ndimage.zoom(sp, d / sp.shape[0], order=3)
+    # RÉDUCTION : moyenne d'aire. AGRANDISSEMENT : spline cubique.
+    #
+    # La spline est ce qui rend le PIQUE des sprites historiques, rendus par
+    # drawImage — le bilineaire les rendait mous. Mais une spline INTERPOLE :
+    # elle echantillonne la source, elle ne l'integre pas. En reduction forte
+    # tout ce qui tombe entre deux points d'echantillonnage est perdu, et une
+    # galaxie est surtout du vide autour d'un noyau brillant : c'est le noyau
+    # qu'on rate. Mesure du 08/08 (`scripts/dev/diag_paste.py`) : en dessous de
+    # VINGT pixels de diametre, le flux depose etait de ZERO. La galaxie
+    # n'etait pas dessinee du tout.
+    #
+    # C'est la cause commune de T-015, T-016, T-017, T-012 et T-019 : toutes
+    # les galaxies sous ~20 px etaient absentes de l'image. La Voie lactee
+    # etait introuvable sur `F` et `E` (0,7 et 1,8 px de rayon) et retrouvee
+    # sur `D` (4,6 px) — la frontiere du defaut, pas une coincidence.
+    #
+    # La moyenne d'aire est l'operateur d'integration exact, et elle reste
+    # purement lineaire. T-081 mesure la conservation sur l'operateur livre.
+    if d < sp.shape[0]:
+        from PIL import Image
+        z = np.array(Image.fromarray(np.asarray(sp, np.float32), "F")
+                     .resize((d, d), Image.BOX), np.float32)
+    else:
+        z = ndimage.zoom(sp, d / sp.shape[0], order=3)
     np.clip(z, 0.0, None, out=z)
     h = z.shape[0]
     x0, y0 = int(round(cx - h / 2)), int(round(cy - h / 2))

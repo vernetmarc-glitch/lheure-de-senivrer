@@ -170,3 +170,48 @@ se trouvait.
 **Ne pas commencer par cuire.** La cause principale est identifiée et aucune
 cuisson ne la corrige : le travail utile est dans `_fine_spectrum` et dans le
 plafond de traceurs de `render_full`.
+
+---
+
+## 08/08/2026 (soir) — la cause de la mousse à `O` n'est aucune des deux supposées
+
+Les deux leviers documentés le 07/08 — le plafond de 20 répétitions dans
+`render_full` et le filtre rectangulaire de `_fine_spectrum` — sont **tous les
+deux hors de cause**. Mesure (`scripts/dev/diag_poisson.py`) :
+
+| ligne | Mpc/px | cellule | **Ψ/cellule** | pts/px² |
+|---|---|---|---|---|
+| `O` | 91,06 | 91,06 | **0,01** | 15,9 |
+| `N` | 36,14 | 36,14 | **0,06** | 15,7 |
+| `M` | 14,34 | 14,34 | 0,28 | 38,7 |
+| `L` | 5,69 | 5,69 | 0,99 | 37,5 |
+| `K` | 2,26 | 2,26 | 2,92 | 38,5 |
+
+Deux faits, et le second explique tout :
+
+1. **L'échantillonnage est suffisant** — 16 à 39 traceurs par pixel, et
+   `rep = 1` partout : le plafond de 20 n'est jamais atteint. Il n'a donc jamais
+   rien limité.
+2. **Le déplacement de Zel'dovich vaut 1 % d'un pixel à `O`.** Les traceurs sont
+   restés là où on les a posés : un point par cellule, uniformément gigué.
+   C'est un **verre** — la distribution la plus régulière qui soit, plus
+   régulière qu'un tirage de Poisson. D'où la dispersion mesurée par T-052 à
+   0,40 quand un hasard pur donnerait 0,52.
+
+**Toute la structure est portée par le déplacement, et le déplacement est
+sous-pixellaire.** L'image ne montre donc pas la toile : elle montre la grille
+d'échantillonnage. Augmenter les répétitions ou élargir la bande du champ fin ne
+peut rien y changer — ni l'un ni l'autre ne touche à ce qui manque.
+
+*Et physiquement, Ψ ≈ 7 Mpc à ces échelles est JUSTE : au-delà de 300 Mpc
+l'univers est presque homogène. Le défaut n'est pas dans la cosmologie, il est
+dans le fait qu'un rendu par advection de traceurs ne sait rien montrer quand
+l'advection est plus petite que le pixel.*
+
+**Piste à arbitrer** (non implémentée) : pondérer chaque traceur par `1 + δ` à sa
+position lagrangienne, au lieu de compter les traceurs. L'opérateur reste
+linéaire, la masse est conservée, `δ` est déjà hérité de la ligne mère donc la
+cohérence inter-lignes est préservée — et la structure cesse de dépendre de
+l'amplitude du déplacement. Ne pas confondre avec le dépôt CIC, écarté le 29/07
+pour une autre raison (il détruisait la cohérence inter-lignes, mesurée à
+0,08–0,43).
