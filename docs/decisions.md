@@ -87,3 +87,34 @@ proposer est légitime ; les traiter comme acquis ne l'est pas.
 | **O-05** | Les 90 galaxies procédurales du catalogue (lignes `F` et `G`) : sprites dédiés, ou points du champ généré ancrés sur leur position réelle ? *(= G2 du document client)* | 30/07/2026 |
 | **O-07** | **Monter vers un moteur N-corps** (particule-maille) sur les lignes `E`→`K`, pour approcher le visuel Millennium ? Zel'dovich ne peut structurellement pas produire le resserrement des filaments après croisement de nappes, les profils de halo ni la sous-structure. À trancher **après retour visuel de Marc** sur le moteur actuel. Dossier complet : `docs/montee-en-complexite-nbody.md` | 30/07/2026 |
 | **O-06** | Faut-il une seizième ligne ? À 15 lignes, `C` et `D` n'apportent aucune galaxie nouvelle — c'est un fait physique de notre voisinage, pas un défaut de l'échelle. À revoir si le rendu de ces deux lignes déçoit | 30/07/2026 |
+
+## D-28 — la loi temporelle du champ fin est linéaire, sans plancher *(08/08/2026)*
+
+**Tranché par Marc**, sur planche de comparaison, après mesure.
+
+Le champ fin suit `A_fine(amp) = FINE_A × strength[ligne] × amp`. Il s'annule
+franchement à la colonne 0. **Le grain que C8 exige revient au bruit de tirage
+des traceurs**, jamais à un plancher sur le champ fin.
+
+Ce qui est écarté : `amp^0,6` avec plancher 0,25 — loi écrite dans la docstring
+de `sprites_layer` et **jamais implémentée**, `apply_fine` ne recevant aucune
+amplitude. C'est la cause unique de T-037.
+
+**Deux raisons, l'une physique, l'autre structurelle.**
+
+Un plancher à 0,25 maintiendrait à la recombinaison un quart du contraste
+d'aujourd'hui sur des longueurs d'onde allant jusqu'à 300 Mpc. Le contraste réel
+à z = 1100 est de 10⁻⁵ à 10⁻³ — c'est le fond diffus cosmologique. La planche le
+montre à l'œil.
+
+Et un exposant propre au champ fin viole D-05 : en **régime linéaire toutes les
+échelles suivent le même D(a)**, sans exception. La formation hiérarchique
+appartient aux **halos**, qui ont un vrai seuil `a_form(ν)`, et à eux seuls.
+
+**Corollaire.** La granulosité de la matière noire froide est réelle : sa coupure
+de libre parcours se situe vers 10⁻⁶ masse solaire, donc **sous le pixel à toutes
+les lignes et à tous les instants**. Un grain à l'échelle du pixel n'est pas un
+artefact toléré, c'est la représentation honnête d'une granulosité qui existe.
+
+*Conséquence : grain et structure sont découplés. C8 et C15 cessent de se
+contredire parce qu'ils ne parlaient pas de la même chose.*

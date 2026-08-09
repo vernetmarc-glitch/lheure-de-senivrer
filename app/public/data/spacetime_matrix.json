@@ -679,7 +679,7 @@
   "ui_nomenclature": "Affichage permanent du code de cellule actif : 'H · 22,6 Mpc · colonne 7' — les codes A..O sont la langue commune des retours."
  },
  "generation": {
-  "version": "1.0 — 02/08/2026",
+  "version": "1.1 — 08/08/2026 : lois temporelles declarees",
   "status": "FIGÉ. Toute cuisson doit reproduire ces valeurs à l'identique.",
   "engine": "scripts/dev/gen_chain.py + scripts/dev/sprites_layer.py",
   "principle": "Chaîne emboîtée du plus grand au plus petit (§4.4). Chaque ligne hérite du champ passe-bas et du DÉPLACEMENT RÉELLEMENT APPLIQUÉ de sa mère, puis ajoute la bande qu'elle est seule à résoudre. Aucun paramètre ne dépend d'une statistique mesurée sur une image (INV-B1).",
@@ -880,6 +880,74 @@
    "operateur": "ponctuel : mu * (img/mu)^g, applique a la densite projetee AVANT le champ fin",
    "raison": "B10 — les points brillants doivent etre les NOEUDS de la toile. A la ligne O, 10 % des pics seulement tombaient sur la toile (hasard pur). Valide visuellement par Marc le 07/08/2026.",
    "gradue": "progression douce de K a O : une marche a la charniere K|L casserait l'heritage (B1, T-010)"
+  },
+  "lois_temporelles": {
+   "statut": "DECLAREE le 08/08/2026, arbitrage de Marc sur planche de comparaison. Voir docs/decisions.md D-28 et docs/registre-tests.md.",
+   "parametre": "amp = amplitude de structure de la colonne = D(a)/D(1), valeurs dans time_axis.columns[].amp. La colonne 0 vaut 0,001153, pas 0 : c'est D(a) a z = 1100.",
+   "principe": "UNE SEULE loi globale, lineaire en amp, suivie par le deplacement et par le champ fin. La hierarchie de formation appartient aux HALOS, qui ont un seuil, et a eux seuls. Aucune bande, aucune echelle, aucune couche n'a d'exposant propre (D-05) : en regime lineaire toutes les echelles suivent le meme facteur de croissance, et un exposant propre au petit le fait coloniser l'image pendant la dissolution.",
+   "raccord": {
+    "loi": "Psi_applique(amp) = amp * Psi(a=1)",
+    "forme": "lineaire, globale, identique sur les quinze lignes",
+    "justification": "Zel'dovich est LINEAIRE en facteur de croissance : x = q + D(a)*Psi. Rejouer une epoque ne demande donc aucune recuisson, seulement une relecture des positions lagrangiennes (gen_chain.KEEP_LAGRANGIAN).",
+    "a_la_colonne_0": "les particules reviennent sur leur verre initial (D-06) : plus aucune structure, seul subsiste le bruit de tirage.",
+    "exigences": [
+     "C13",
+     "C14",
+     "C15",
+     "C4",
+     "D-05"
+    ]
+   },
+   "ancrage": {
+    "loi": "gain_ancrage(amp) = amp * GAIN",
+    "forme": "identique a celle du raccord — l'ancrage est une CONTRIBUTION a Psi, pas un axe temporel independant",
+    "justification": "Lui donner une loi propre reviendrait a faire varier une bande separement, ce que D-05 interdit. Une seule loi, deux composantes qui la suivent.",
+    "exigences": [
+     "C13",
+     "D-06",
+     "D-05"
+    ]
+   },
+   "halos": {
+    "loi": "un halo de hauteur de pic nu existe si amp >= a_form(nu) ; frac_effective = HALO_FRAC * clip((amp - a_form(nu)) / (1 - a_form(nu)), 0, 1)",
+    "forme": "SEUIL par objet, croissant avec la masse",
+    "justification": "C'est ici, et ici seulement, que vit la formation hierarchique. En remontant le temps les plus gros halos se defont EN PREMIER : c'est la signature physique de l'effondrement, et elle est visuellement lisible. La matiere liberee retourne a la toile, elle ne disparait pas.",
+    "a_la_colonne_0": "aucun halo : tous les seuils sont franchis a la baisse.",
+    "exigences": [
+     "C13",
+     "C14",
+     "C15",
+     "D-05",
+     "D-07"
+    ]
+   },
+   "sprites": {
+    "loi": "frame = round((1 - amp^0,5) * (n_frames - 1))",
+    "forme": "quatorze images N-corps deja cuites, f00 formee, f13 dissoute",
+    "statut": "DEJA IMPLEMENTEE — sprites_layer.frame_for. Il ne manquait que la declaration.",
+    "exigences": [
+     "C13",
+     "C16",
+     "C17",
+     "C1",
+     "C2"
+    ]
+   },
+   "champ_fin": {
+    "loi": "A_fine(amp) = FINE_A * strength[ligne] * amp",
+    "forme": "LINEAIRE, SANS PLANCHER — le champ fin s'annule franchement",
+    "remplace": "« amp^0,6, plancher 0,25 », loi ecrite dans la docstring de sprites_layer et JAMAIS implementee : apply_fine ne recevait aucune amplitude. C'est la cause unique de T-037 — 97 % de la structure subsistait a amplitude nulle, et la decomposition du 08/08 l'attribue entierement au champ fin.",
+    "justification": "Un plancher a 0,25 maintiendrait, a la recombinaison, un contraste du quart de celui d'aujourd'hui sur des longueurs d'onde allant jusqu'a 300 Mpc. Le contraste reel a z = 1100 est de 1e-5 a 1e-3 : c'est le fond diffus cosmologique. La planche du 08/08 le montre a l'oeil — l'option a plancher rend un champ de nuages de plusieurs dizaines de Mpc a la colonne 0, exactement ce que Planck exclut.",
+    "qui_porte_le_grain": "le BRUIT DE TIRAGE des traceurs, pas un plancher. La matiere noire froide n'est pas lissee a la recombinaison : sa coupure de libre parcours se situe vers 1e-6 masse solaire, donc SOUS LE PIXEL a toutes les lignes et a tous les instants. Un grain a l'echelle du pixel est la representation honnete, a la resolution disponible, d'une granulosite qui existe reellement.",
+    "consequence": "grain et structure sont DECOUPLES : le grain se regle par le nombre de traceurs projetes, sans toucher a la structure. C8 et C15 cessent de se contredire parce qu'ils ne parlaient pas de la meme chose — C8 demande du grain SOUS la resolution, C15 zero structure AU-DESSUS.",
+    "mesure_08_08": "ligne H, colonne 0 : structure 0,13 et grain 1,74 /255, contre 3,65 et 8,72 pour la variante a plancher. Restant T-037 : 0 % contre 13 %.",
+    "exigences": [
+     "C13",
+     "C15",
+     "C8",
+     "D-05"
+    ]
+   }
   }
  }
 }

@@ -61,6 +61,16 @@ def _structure(a):
     return float(ndimage.gaussian_filter(a, 3.0).std() * 255)
 
 
+def _grain(a):
+    """Ce que `_structure` ne voit pas : l'ecart-type du RESIDU haute frequence.
+
+    C'est la grandeur de C8. La separer de la structure est ce qui a permis de
+    trancher la loi du champ fin le 08/08 : les deux exigences portent sur des
+    echelles differentes et ne se contredisent que si on les mesure ensemble.
+    """
+    return float((a - ndimage.gaussian_filter(a, 3.0)).std() * 255)
+
+
 def dissolution_checks():
     out = []
     with open(MATRIX) as fh:
@@ -89,6 +99,7 @@ def dissolution_checks():
         return out
 
     s1, s0 = _structure(a1), _structure(a0)
+    g1, g0 = _grain(a1), _grain(a0)
     # Diagnostic : QUELLE part de l'image bouge entre les deux amplitudes. Une
     # fraction minuscule signifie que la plupart des composantes ignorent
     # l'amplitude -- c'est-a-dire n'ont pas de loi temporelle.
@@ -97,11 +108,41 @@ def dissolution_checks():
     # structure. Le grain subsiste (C8), les structures non. Le seuil est pris
     # en fraction de l'etat forme : exiger une valeur absolue reintroduirait une
     # dependance a la resolution.
+    #
+    # SEUIL RESSERRE de 0,15 a 0,02 le 08/08/2026, et il faut dire pourquoi
+    # puisque la regle veut qu'un seuil ne bouge pas sans justification ecrite.
+    # La planche `scripts/dev/planche_loi_temporelle.py` a compare les deux lois
+    # candidates pour le champ fin a la colonne 0 : la variante A PASSAIT a 13 %
+    # tout en rendant, a l'oeil, un champ de nuages de plusieurs dizaines de
+    # megaparsecs a la recombinaison -- exactement ce que le fond diffus
+    # cosmologique exclut. Un seuil qui laisse passer un ciel faux ne protege
+    # rien. La loi retenue (D-28, champ fin lineaire sans plancher) mesure 0 %.
     out.append(Result("T-037", "CONF", "l'etat d'amplitude nulle est atteignable (C15)",
-                      s0 <= 0.15 * max(s1, 1e-9),
+                      s0 <= 0.02 * max(s1, 1e-9),
                       "structure %.2f -> %.2f /255 (%.0f %% restants), "
                       "%.1f %% des pixels bougent"
                       % (s1, s0, 100 * s0 / max(s1, 1e-9), 100 * touche)))
+
+    # ---- T-080 : et il reste du GRAIN a la colonne 0 (C8) -----------------
+    # Le pendant indispensable de T-037. Resserrer C15 sans garde-fou pousse a
+    # la solution paresseuse -- annuler la composante -- et donnerait un aplat,
+    # que C8 interdit : « uniforme mais plein de grain, jamais un aplat ».
+    #
+    # Ces deux controles ne se contredisent pas, parce qu'ils ne portent pas sur
+    # la meme echelle : T-037 mesure ce qui survit AU-DESSUS de la resolution,
+    # T-080 ce qui subsiste EN DESSOUS. C'est la separation qui a permis de
+    # trancher D-28 -- le grain revient au bruit de tirage des traceurs, reglable
+    # par leur nombre, sans toucher a la structure.
+    #
+    # Seuil : 1,0 /255, soit un pas de quantification. En dessous, l'image est
+    # litteralement un aplat une fois ecrite en 8 bits. Mesure du 08/08 sur la
+    # loi retenue : 1,74 a la ligne H. La marge est mince et c'est voulu -- si
+    # elle se perd, il faut augmenter le nombre de traceurs projetes, jamais
+    # remettre un plancher sur le champ fin.
+    out.append(Result("T-080", "CONF", "du grain subsiste a la colonne 0 (C8)",
+                      g0 >= 1.0,
+                      "grain %.2f -> %.2f /255 (structure %.2f -> %.2f)"
+                      % (g1, g0, s1, s0)))
 
     # C14 : ce qui se defait REND sa matiere au champ, il ne s'ajoute pas
     # par-dessus. Si la luminosite totale s'effondre, la matiere a disparu ; si

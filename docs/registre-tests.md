@@ -819,3 +819,42 @@ comme ses succès sont sans valeur. Le banc tourne **avant** les portées CELL e
 PAIR, pour que l'avertissement soit en haut du rapport et non en bas.
 
 *Il ne cuit rien et ne lit que les textures publiées.*
+
+---
+
+## 08/08/2026 — la loi temporelle est déclarée, et deux contrôles la gardent
+
+**Arbitrage de Marc**, sur planche de comparaison (`scripts/dev/planche_loi_temporelle.py`) :
+le champ fin suit une loi **linéaire en `amp`, sans plancher**. Décision D-28.
+
+### T-037 — seuil resserré de 15 % à 2 %
+
+Un seuil ne bouge pas sans justification écrite. Celle-ci : la variante à
+plancher **passait** l'ancien seuil à 13 % tout en rendant, à la colonne 0, un
+champ de nuages de plusieurs dizaines de mégaparsecs — c'est-à-dire un ciel de
+recombinaison que le fond diffus cosmologique exclut à cinq décimales près.
+
+**Un seuil qui laisse passer un ciel faux ne protège rien.**
+
+| | structure | grain | restant |
+|---|---|---|---|
+| A — plancher 0,25 | 3,65 | 8,72 | 13 % |
+| **B — linéaire** | **0,13** | 1,74 | **0 %** |
+
+### T-080 — du grain subsiste à la colonne 0 (C8)
+
+Le pendant indispensable du précédent. Resserrer C15 sans garde-fou pousse à la
+solution paresseuse — annuler la composante — et donnerait un aplat, que C8
+interdit.
+
+Les deux contrôles ne se contredisent pas **parce qu'ils ne portent pas sur la
+même échelle** : T-037 mesure ce qui survit **au-dessus** de la résolution,
+T-080 ce qui subsiste **en dessous**. C'est cette séparation qui a permis de
+trancher : le grain revient au bruit de tirage des traceurs, réglable par leur
+nombre, sans toucher à la structure.
+
+**Seuil : 1,0 /255**, soit un pas de quantification — en dessous, l'image est
+littéralement un aplat une fois écrite en 8 bits. La loi retenue mesure 1,74 à
+la ligne `H`. *La marge est mince et c'est voulu : si elle se perd, il faut
+augmenter le nombre de traceurs projetés, jamais remettre un plancher sur le
+champ fin.*
