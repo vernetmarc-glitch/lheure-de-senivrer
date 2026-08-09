@@ -19,6 +19,26 @@ Version 1.1 — Juillet 2026
 > En cas de conflit, la lisibilité des trois sphères l'emporte.
 
 ---
+
+> ## ⚠ D-29 — AVANCER SANS DEMANDER L'ARBITRAGE À CHAQUE ÉTAPE
+>
+> *Consigne explicite de Marc, 08/08/2026. Elle prime sur l'habitude prise
+> pendant les deux mois précédents, et elle s'adresse à toute instance qui
+> reprend ce projet.*
+>
+> **Ne pas interrompre Marc pour choisir entre deux tâches déjà définies.**
+> Choisir soi-même, avancer, enchaîner dans la même séance. Tri : les échecs
+> **bloquants** d'abord, du groupe de cause le plus nombreux au plus isolé ; à
+> nombre égal, ce que Marc **voit** l'emporte.
+>
+> Ne s'arrêter que pour : un arbitrage **esthétique** que la physique ne tranche
+> pas · une exigence à **supprimer ou affaiblir** · un **seuil de contrôle** à
+> desserrer · un **résultat visuel** à confirmer, mesure objective déjà faite.
+>
+> Une question de priorité n'est aucun de ces cas. **Ne pas terminer chaque
+> réponse par une question.** Détail complet en D-29, `docs/decisions.md`.
+
+---
 ## 0. État actuel du projet — résumé pour reprise de contexte
 
 *(Section réécrite le **30 juillet 2026**. Elle est lue en deuxième par la

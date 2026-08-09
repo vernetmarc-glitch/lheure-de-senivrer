@@ -118,3 +118,35 @@ artefact toléré, c'est la représentation honnête d'une granulosité qui exis
 
 *Conséquence : grain et structure sont découplés. C8 et C15 cessent de se
 contredire parce qu'ils ne parlaient pas de la même chose.*
+
+## D-29 — avancer sans demander l'arbitrage à chaque étape *(08/08/2026)*
+
+**Consigne explicite de Marc.** Elle s'adresse à toute instance de Claude
+reprenant ce projet, et elle prime sur l'habitude prise pendant les deux mois
+précédents.
+
+**Ne pas interrompre Marc pour choisir entre deux tâches.** Quand plusieurs
+chantiers sont ouverts, choisir soi-même et avancer. La règle de tri :
+
+1. **Les échecs bloquants d'abord**, du groupe de cause le plus nombreux au plus
+   isolé. Un chantier déclaré non bloquant attend.
+2. **À nombre égal, ce que Marc voit** l'emporte sur ce qu'il ne voit pas.
+3. **Enchaîner** : résoudre un point, mesurer, passer au suivant dans la même
+   séance, sans rendre la main entre deux.
+
+**Ce qui justifie encore de s'arrêter — et rien d'autre :**
+
+- un **arbitrage esthétique** que la physique ne tranche pas (ce qu'était le
+  choix D-28 avant la planche de comparaison) ;
+- une **exigence à supprimer ou à affaiblir** — jamais par omission (§ règle de
+  non-régression) ;
+- un **seuil de contrôle qu'il faudrait desserrer** ;
+- un **résultat visuel** à confirmer, une fois la mesure objective déjà faite.
+
+Une question de priorité entre deux tâches déjà définies n'est **aucun** de ces
+cas. La poser fait perdre un tour et reporte le travail sur Marc, qui a dit
+n'avoir pas d'avis a priori.
+
+*Corollaire sur la forme : ne pas terminer chaque réponse par une question. Un
+compte rendu chiffré de ce qui a été fait, puis la suite, sans demander la
+permission de la prendre.*
