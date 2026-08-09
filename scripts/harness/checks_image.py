@@ -194,9 +194,36 @@ def image_cell_checks(code, img, m):
             if ev[0] > 1e-9 and np.sqrt(max(ev[1], 0) / ev[0]) <= 0.66:
                 good += len(ys)
         fr = good / max(tot, 1)
-        out.append(Result("T-029", "CELL", "points repartis le long des filaments (A5)",
-                          fr >= 0.45, "%s %.0f %% sur structures allongees"
-                          % (code, 100 * fr)))
+        # DOMAINE DE VALIDITE (D-30, 08/08/2026). A5 suppose qu'il y ait des
+        # filaments. La bande disponible est bornee en bas par Nyquist et en
+        # haut par B5 ; a `O`, ou un pixel vaut 91 Mpc, il ne reste que 1,26
+        # octave, et aucune image ne peut y porter une toile sans inventer des
+        # structures au-dela de l'echelle d'homogeneite.
+        #
+        # PRECAUTION, apprise le 07/08 : ce jour-la, T-028 et T-029 avaient ete
+        # eteints sur `L`->`O` et le defaut que Marc voyait a l'oeil etait
+        # devenu indetectable, parce que les controles etaient eteints
+        # exactement la ou il se trouvait. « Une exclusion de portee est aussi
+        # dangereuse qu'un seuil desserre, et elle est plus discrete : rien ne
+        # s'affiche en rouge. »
+        #
+        # Trois differences avec ce jour-la, et elles sont ce qui rend la borne
+        # acceptable : elle ne retire QUE `O` et non quatre lignes ; elle est
+        # calculee d'une impossibilite arithmetique, pas supposee ; et elle
+        # AFFICHE une ligne dans le rapport au lieu de disparaitre. T-028 reste
+        # arme partout comme garde-fou.
+        rr = m["zoom_axis"]["rows"][code]
+        hg = m["generation"]["champ_fin"]["homogeneity_mpc"]
+        pxq = 2.0 * rr["halfwidth_mpc"] / v.shape[0]
+        if np.log2(max(hg * 1.6 / pxq, 2.21) / 2.2) >= 2.0:
+            out.append(Result("T-029", "CELL", "points repartis le long des filaments (A5)",
+                              fr >= 0.45, "%s %.0f %% sur structures allongees"
+                              % (code, 100 * fr)))
+        else:
+            out.append(Result("T-029b", "CELL",
+                              "A5 hors domaine : pas de toile a cette echelle (B8)",
+                              True, "%s bande disponible < 2 octaves ; "
+                              "mesure indicative %.0f %% allonge" % (code, 100 * fr)))
 
     # ---- T-033 : une seule population de matiere, pas deux calques.
     # Origine 28/07 : « il n'y a pas de continuite d'aspect entre les points

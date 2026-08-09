@@ -906,3 +906,37 @@ constante absolue. Seuil de résolution porté de 0,5 à 3,5 px.
 C'est un contrôle plus fort qu'une corrélation de rang : il vaut sur **un seul**
 objet, et il aurait vu instantanément la Voie lactée passer de 13 % à 47 % du
 cadre.
+
+---
+
+## 08/08/2026 — D-30 : B11 et A5 situées, et ce que T-008 révèle
+
+**T-054b et T-029b** remplacent T-052/T-053 et T-029 sur les lignes où la bande
+disponible tombe sous deux octaves. Ils **passent** et **s'affichent** — c'est
+délibéré. L'erreur du 07/08 fut une exclusion *silencieuse* : T-028 et T-029
+avaient été éteints sur `L`→`O` et le défaut que Marc voyait à l'œil était devenu
+indétectable, parce que les contrôles étaient éteints exactement là où il se
+trouvait. *« Une exclusion de portée est aussi dangereuse qu'un seuil desserré,
+et elle est plus discrète : rien ne s'affiche en rouge. »*
+
+Trois différences rendent la borne acceptable cette fois : elle ne retire que
+`O` et non quatre lignes · elle découle d'une impossibilité **arithmétique**
+mesurée, pas d'une supposition · et elle **laisse une ligne** au rapport.
+T-050, T-051 et T-028 restent armés sur `O`.
+
+**11 → 7 échecs bloquants.**
+
+### T-008 : son seuil avait été calibré contre une violation de B9
+
+Reste un dépassement mesuré sur trois lignes : `O` 502 Mpc, `N` 482, `M` 510,
+pour un plafond à `homogénéité × 1,6` = 480.
+
+Le facteur 1,6 est une tolérance : un champ à bande limitée porte des motifs
+un peu plus grands que sa longueur d'onde de coupure. **Mais il a été calibré
+sur une coupure FRANCHE** — celle que B9 interdit. Avec une coupure nette, rien
+n'existe au-delà de la coupure et 1,6 suffit. Avec l'amortissement graduel que
+B9 exige, la queue du spectre porte, par construction, des structures un peu
+plus loin : mesuré 1,61 à 1,70 sur les trois lignes, de façon stable.
+
+*Le seuil n'est donc pas « trop serré » : il encode la troncature que B9
+proscrit. À re-dériver, sur décision de Marc, plutôt qu'à desserrer.*

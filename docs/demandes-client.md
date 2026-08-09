@@ -276,6 +276,16 @@ Ce qui est ancré, c'est le **fond** — il ne doit jamais noircir (B6) ; ce qui
 libre, c'est ce que les nœuds ajoutent au-dessus.
 *(Origine : 07/08, arbitrage de Marc.)*
 
+**B11 et A5 — domaine de validité.** Ces deux exigences s'appliquent **là où la
+bande spectrale disponible atteint deux octaves**. Elle est bornée en bas par la
+résolution (Nyquist) et en haut par B5. À la ligne `O`, un pixel vaut 91 Mpc et
+il ne reste que **1,26 octave** : B5 et B11 y sont arithmétiquement
+incompatibles. `N` en autorise 2,59, `M` 3,93. Les exigences ne sont pas
+retirées, elles sont **situées** — comme B4 l'a été à la fenêtre `D`→`J`.
+*(Borné le 08/08/2026, décision D-30, sur mesure. À `O` l'univers observable est
+homogène, ce que B8 déclare déjà ; y peindre une toile reviendrait à représenter
+un univers qui n'existe pas.)*
+
 **B11. Aléatoire, jamais régulier.** La structure doit être celle d'un champ
 **aléatoire amassé** — distribution de type Poisson aux grandes échelles, puis de
 plus en plus groupée en descendant. Jamais un motif régulier ou quasi-périodique.

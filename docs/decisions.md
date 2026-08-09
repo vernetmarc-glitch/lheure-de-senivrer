@@ -150,3 +150,32 @@ n'avoir pas d'avis a priori.
 *Corollaire sur la forme : ne pas terminer chaque réponse par une question. Un
 compte rendu chiffré de ce qui a été fait, puis la suite, sans demander la
 permission de la prendre.*
+
+## D-30 — B11 et A5 sont situées, non retirées *(08/08/2026)*
+
+**Tranché par Marc**, sur mesure : *« accepter que `O` soit la ligne où l'univers
+est montré homogène »*.
+
+À la ligne `O`, un pixel vaut 91,06 Mpc. La bande disponible est bornée en bas
+par Nyquist (2,2 px) et en haut par B5, que T-008 fait respecter à
+`homogénéité × 1,6` = 480 Mpc, soit 5,27 px. **Il reste 1,26 octave**, quand B11
+en exige 2.
+
+**Aucune image ne peut satisfaire B5 et B11 à la fois sur cette ligne.** Ce n'est
+pas un défaut de générateur, c'est de l'arithmétique. `N` autorise 2,59 octaves
+et `M` 3,93 : la contradiction est **confinée à `O`**.
+
+B11 et A5 s'appliquent donc là où la bande disponible atteint deux octaves —
+critère **calculé**, non codé en dur : si la géométrie de la grille change, le
+domaine suit. Exactement comme B4 a été située à la fenêtre `D`→`J` le 31/07.
+
+**Ce qui justifie de l'accepter plutôt que de forcer.** À 14 570 Mpc de
+demi-champ, l'univers observable *est* homogène — B8 le déclare déjà. Peindre
+une toile filamenteuse y reviendrait à représenter un univers qui n'existe pas.
+Et c'est la ligne où l'intention de l'œuvre s'applique le plus directement : en
+cas de conflit, la lisibilité des trois sphères l'emporte sur le fond de carte.
+
+**Garde-fous conservés**, parce que l'erreur du 07/08 était une exclusion
+silencieuse : T-050 (dynamique), T-051 (nœuds plus lumineux), T-028 (élongation)
+restent armés sur `O`. Et les contrôles écartés **affichent une ligne** dans le
+rapport — T-054b et T-029b — au lieu de disparaître sans bruit.

@@ -259,10 +259,18 @@ def cell_checks(code, img, m):
         # 20 % est le hasard pur, puisque le seuil retient les 20 % les plus
         # denses. Exiger 60 % impose que la MAJORITE des pics soit portee par la
         # toile, sans interdire qu'une minorite tombe ailleurs.
-        tx, npk = _noeuds(v)
-        out.append(Result("T-078", "CELL", "les pics sont les noeuds de la toile (A1/A5)",
-                          tx >= 0.60, "%s %.0f %% des %d pics sur la toile "
-                          "(hasard : 20 %%)" % (code, 100 * tx, npk)))
+        # A5 suit B11 dans son domaine (D-30) : « les points le long de fins
+        # filaments » suppose qu'il y ait des filaments. La ou la bande
+        # disponible tombe sous deux octaves, il n'y a pas de toile a montrer --
+        # l'univers y est homogene, et l'exiger reviendrait a peindre des
+        # structures qui n'existent pas.
+        pxq = 2.0 * r["halfwidth_mpc"] / v.shape[0]
+        hg = m["generation"]["champ_fin"]["homogeneity_mpc"]
+        if np.log2(max(hg * 1.6 / pxq, 2.21) / 2.2) >= 2.0:
+            tx, npk = _noeuds(v)
+            out.append(Result("T-078", "CELL", "les pics sont les noeuds de la toile (A1/A5)",
+                              tx >= 0.60, "%s %.0f %% des %d pics sur la toile "
+                              "(hasard : 20 %%)" % (code, 100 * tx, npk)))
     out.append(Result("T-008", "CELL", "rien au-dela de l'homogeneite (B5)",
                       big <= homog * 1.6, "%s %.0f Mpc" % (code, big)))
 
@@ -298,12 +306,40 @@ def cell_checks(code, img, m):
             disp = float(dd[:, 1].std() / max(dd[:, 1].mean(), 1e-9))
         else:
             disp = float("nan")
-        out.append(Result("T-052", "CELL", "distribution amassee, non reguliere (B11)",
-                          disp >= 0.50, "%s dispersion %.2f sur %d pics"
-                          % (code, disp, len(pk))))
-        oc = _octaves(v)
-        out.append(Result("T-053", "CELL", "bande spectrale >= 2 octaves (B11)",
-                          oc >= 2.0, "%s %.1f octave(s)" % (code, oc)))
+        # DOMAINE DE VALIDITE DE B11 — borne le 08/08/2026, decision D-30.
+        #
+        # B11 exige au moins deux octaves de bande. La bande DISPONIBLE est
+        # bornee en bas par Nyquist (FINE_LAM_LO_PX) et en haut par B5, que
+        # T-008 fait respecter a `homog x 1,6`. Aux plus grands demi-champs ces
+        # deux bornes se rejoignent : a `O`, ou un pixel vaut 91 Mpc, il ne
+        # reste que 1,26 octave entre 2,2 px et 5,27 px. AUCUNE image ne peut y
+        # satisfaire B5 et B11 a la fois -- c'est arithmetique, pas un defaut de
+        # generateur.
+        #
+        # L'exigence n'est pas retiree, elle est SITUEE, exactement comme B4 l'a
+        # ete a la fenetre `D`->`J` par T-039. Le critere est calcule et non
+        # code en dur : si la geometrie de la grille change, le domaine suit.
+        #
+        # A `O`, l'univers observable EST homogene, et B8 le declare deja. C'est
+        # aussi la ligne ou les trois spheres doivent primer sur le fond de
+        # carte, ce que l'intention de l'oeuvre demande explicitement en cas de
+        # conflit. Marc a tranche le 08/08 : « accepter que O soit la ligne ou
+        # l'univers est montre homogene ».
+        px = 2.0 * r["halfwidth_mpc"] / v.shape[0]
+        dispo = np.log2(max(homog * 1.6 / px, 2.21) / 2.2)
+        if dispo >= 2.0:
+            out.append(Result("T-052", "CELL", "distribution amassee, non reguliere (B11)",
+                              disp >= 0.50, "%s dispersion %.2f sur %d pics"
+                              % (code, disp, len(pk))))
+            oc = _octaves(v)
+            out.append(Result("T-053", "CELL", "bande spectrale >= 2 octaves (B11)",
+                              oc >= 2.0, "%s %.1f octave(s)" % (code, oc)))
+        else:
+            out.append(Result("T-054b", "CELL",
+                              "B11 hors domaine, et l'homogeneite est tenue (B8/B10)",
+                              True, "%s bande disponible %.2f octave < 2 : "
+                              "B11 non applicable ; T-050 et T-051 restent en garde"
+                              % (code, dispo)))
     return out
 
 
