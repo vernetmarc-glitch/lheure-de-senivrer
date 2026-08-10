@@ -1,0 +1,34 @@
+{
+ "role": "Empreinte de REPRODUCTIBILITE. Elle repond a une question precise : une autre instance, une autre session, une autre machine, en repartant du seul depot, retrouve-t-elle EXACTEMENT les memes textures ? Si un digest differe alors que les trois fichiers moteur sont identiques, la chaine n'est plus deterministe et il faut le savoir avant de chercher ailleurs.",
+ "date": "2026-08-08",
+ "commit": "54360137c45a27d9b100876fccf07d6ae72c3379",
+ "etat_mesure": {
+  "passes": 378,
+  "echecs": 15,
+  "bloquants": 4,
+  "note": "Mesure sur cuisson FRAICHE, pas sur les textures publiees. Les textures publiees dans app/public/essai-v4/data/v4 sont ANTERIEURES a toutes les corrections du 08/08 : le harnais a refuse quatre publications de suite, comme la regle 0 l'exige. `bake.py --check` sur l'etat publie rapporte donc 27 bloquants, ce qui ne dit RIEN de l'etat du code."
+ },
+ "moteur": {
+  "scripts/dev/gen_chain.py": "6945f3c74105e48b",
+  "scripts/dev/sprites_layer.py": "1140cd9e4559df2d",
+  "app/public/data/spacetime_matrix.json": "9c6f5296c16cca5c"
+ },
+ "textures": {
+  "O": "efdda4fde4e5c137",
+  "N": "6fe0d327e0742e93",
+  "M": "2b5ac121640c61a8",
+  "L": "c2a76297effecac1",
+  "K": "eaa3489e90376dfd",
+  "J": "4cb2b295b3b90418",
+  "I": "33cd99f146d6eee5",
+  "H": "c732c5738a011ccf",
+  "G": "afdd52924d52e2c1",
+  "F": "1c89f355d13e3741",
+  "E": "70d0590331868fc1",
+  "D": "1cfa864dd80264d0",
+  "C": "71792ce7808486da",
+  "B": "a3b2d625188e019f",
+  "A": "a87050fd9f9fffaa"
+ },
+ "comment_regenerer": "python3 scripts/harness/bake.py --all  (environ 11 minutes)"
+}

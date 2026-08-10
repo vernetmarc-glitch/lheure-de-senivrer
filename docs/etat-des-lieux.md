@@ -328,3 +328,54 @@ régler l'ancrage revient à ajuster un signal qu'on efface ensuite.*
 exactement les lignes ancrées, avec des ampleurs qui suivent `ANCHOR_STRENGTH`
 (`J` 0,12 → 4,5 px · `I` 0,45 → 7,5 px · `H` 1,00). Le chantier O-07 n'est
 peut-être pas une question de recherche ouverte, mais ce même défaut.
+
+---
+
+## 08/08/2026 (fin de séance) — état réel, et ce qui survit à la session
+
+**Cuisson fraîche : 378 contrôles passés, 15 en échec, 4 bloquants.**
+Au démarrage de la séance : 339 / 48 / **35**.
+
+**Attention au piège de lecture.** `bake.py --check` mesure les textures
+**publiées**, et celles-ci sont antérieures à toutes les corrections du 08/08 :
+le harnais a refusé **cinq publications de suite**, exactement comme la règle 0
+l'exige. `--check` rapporte donc 27 bloquants, et **ce chiffre ne dit rien de
+l'état du code**. Le seul chiffre valable est celui d'une cuisson fraîche.
+
+*Ne pas « corriger » ce désaccord en publiant : c'est la règle 0 qui fonctionne,
+pas un défaut.*
+
+Les 4 bloquants restants : T-052 (`N`, dispersion 0,43) · T-027 (`I`, creux
+6,60) · T-023 (`H`, densité au catalogue — cause identifiée, le champ fin efface
+l'ancrage) · T-077 (`G`, fond aussi brillant que les galaxies). Plus T-035
+(arête `G|H`) et le chantier O-07 (héritage `I→H`, `H→G`), non bloquants.
+
+### Ce qui survit d'une instance à la suivante
+
+| | où | versionné |
+|---|---|---|
+| algorithmes de génération | `scripts/dev/gen_chain.py`, `sprites_layer.py` | ✅ |
+| **tous** les paramètres | `spacetime_matrix.json`, bloc `generation` | ✅ |
+| graines, règle de dérivation | `generation.seeds`, `seed_rule` | ✅ |
+| 393 contrôles | `scripts/harness/` | ✅ |
+| exigences, décisions, impasses | `docs/` | ✅ |
+| textures publiées | `app/public/essai-v4/data/v4` | ✅ |
+| empreintes de reproductibilité | `docs/baseline-textures.json` | ✅ *(ajouté ce jour)* |
+
+**Ce qui ne survit pas, et n'a pas à survivre :** le cache `scripts/dev/_chaine`
+(1 Go de `.npz` intermédiaires, régénérable) et les cuissons en `/tmp`. La
+chaîne est **déterministe** — `seed_rule` promet la reproductibilité bit à bit —
+donc une cuisson de 11 minutes reconstruit tout.
+
+*C'est cette promesse que `baseline-textures.json` rend vérifiable : si un digest
+diffère alors que les trois fichiers moteur sont identiques, la chaîne a cessé
+d'être déterministe, et il faut le savoir avant de chercher ailleurs. L'empreinte
+manquait — le fichier n'avait jamais été écrit.*
+
+### Un risque structurel à connaître
+
+**Le moteur de production vit dans `scripts/dev/`**, que le workflow CI déclare
+« recherche, non bloquant ». `gen_chain.py` et `sprites_layer.py` sont pourtant
+la chaîne réelle, désignée comme telle par `generation.engine`. Un ajout cassant
+dans ces deux fichiers ne fait pas rougir la CI. *À déplacer vers un chemin
+bloquant, ou à ajouter explicitement au périmètre bloquant du workflow.*
