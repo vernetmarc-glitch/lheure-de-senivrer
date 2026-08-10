@@ -379,3 +379,74 @@ manquait — le fichier n'avait jamais été écrit.*
 la chaîne réelle, désignée comme telle par `generation.engine`. Un ajout cassant
 dans ces deux fichiers ne fait pas rougir la CI. *À déplacer vers un chemin
 bloquant, ou à ajouter explicitement au périmètre bloquant du workflow.*
+
+---
+
+# PASSATION — 08/08/2026, fin de séance
+
+*À lire après `bake.py --check` et avant toute correction. Objectif de la
+prochaine séance : **amener les 4 bloquants à zéro pour publier les 15 lignes
+actuelles**. Ne pas ouvrir le chantier des 165 cellules avant.*
+
+**Rappel du piège :** `--check` mesure les textures **publiées**, qui ont six
+cuissons de retard, et rapporte ~27 bloquants. Le chiffre vrai est **4**, sur
+cuisson fraîche. Lancer le workflow **Cuisson** (onglet Actions) ou
+`bake.py --all` avant de conclure quoi que ce soit.
+
+## Les 4 bloquants, par ordre conseillé
+
+### 1. T-023 — `H`, densité aux positions du catalogue (D6) · **36 %** pour 70 %
+
+**La cause est trouvée et mesurée, il reste à la corriger.** L'ancrage
+fonctionne : sur la sortie de `render_full`, **65 %** des positions du catalogue
+sont au-dessus de la médiane. Sur la texture publiée : **23 à 36 %**. Ce qui
+détruit le signal est **en aval du rendu** — `apply_fine` module l'image par un
+champ log-normal sans aucune corrélation avec la toile, et à la ligne `H` son
+amplitude domine la convergence des filaments.
+
+*Écarté par la mesure, ne pas y revenir :* le **signe** de l'ancrage (+1 → 65 %,
+−1 → 64 %) ; le **gain** (le passer de 2235 à 265 améliore T-011 mais dégrade
+T-023 à 23 % et casse T-027 sur `H` — huit bloquants au lieu de sept).
+
+*Piste :* moduler l'amplitude du champ fin là où l'ancrage est fort, ou appliquer
+le champ fin **avant** l'ancrage. Écrire le contrôle avant la correction.
+
+### 2. T-077 — `G`, rien d'aussi brillant que les galaxies (A8) · **0,70** pour ≤ 0,60
+
+Pic du fond 113/255 contre pic des galaxies 162/255. **Non diagnostiqué.**
+Attention : `ambient_ceil` et `ambient_strength` existent déjà par ligne dans la
+matrice et sont le levier évident — vérifier d'abord qu'ils sont bien lus, la
+courbe à genou doux ayant été posée le 07/08.
+
+### 3. T-052 — `N`, distribution amassée (B11) · **0,43** pour ≥ 0,50
+
+`N` dispose de **2,59 octaves** de bande : contrairement à `O`, l'exigence y est
+tenable et **la borne D-30 ne s'y applique pas**. L'amortissement continu a fait
+passer `M` mais pas `N`. **Non diagnostiqué** — mesurer la bande réellement
+obtenue à `N` après amortissement avant de toucher au générateur.
+
+### 4. T-027 — `I`, signature de référence (A1) · creux **6,596**
+
+Une seule composante de la signature hors cible. **Non diagnostiqué.** Vérifier
+d'abord si c'est un effet de bord du plancher de traceurs `MIN_PTS_PX2`, ajouté
+le même jour et qui a changé la grenaille à toutes les lignes.
+
+## Non bloquants, à ne pas confondre avec les précédents
+
+**T-035** (arête `G|H`, ton 8,0/255) et le **chantier O-07** — héritage `I→H`
+0,719 et `H→G` 0,793. Ces derniers échouent sur **exactement les lignes
+ancrées**, avec des ampleurs suivant `ANCHOR_STRENGTH` (`J` 0,12 → 4,5 px ·
+`I` 0,45 → 7,5 px · `H` 1,00). *O-07 n'est peut-être pas une question de
+recherche ouverte, mais le même défaut que T-023.* Le traiter en 1 pourrait
+fermer les deux.
+
+## Ce qui a été acquis ce jour et ne doit pas se reperdre
+
+- **T-079**, banc de falsification : tout contrôle de paire doit rendre sa valeur
+  cible sur une paire synthétique et échouer sur un témoin négatif. Il a attrapé
+  deux fautes dans la réécriture de T-012 avant toute relecture humaine.
+- **Sept contrôles trouvés faux** au total (T-012, T-016, et les cinq du 07/08).
+  Devant un échec, mettre d'abord le contrôle au banc.
+- **T-081** : la réduction des sprites perdait **100 %** du flux sous 20 px.
+- **D-29** : avancer sans demander l'arbitrage à chaque étape.
+- **D-31 / M1** : plus aucune distance affichée n'est comobile.
