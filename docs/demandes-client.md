@@ -901,21 +901,37 @@ change.
 *Tout l'univers observable tient dans moins d'un pixel à la recombinaison. Ce
 n'est pas un défaut de rendu : c'est le fait, et c'est le propos.*
 
-**M1 ter. Remonter le temps EST un dézoom en comobile.** À cadre propre fixe,
-une époque plus ancienne fait entrer davantage de matière comobile dans l'écran
-— d'un facteur `1/a`. La colonne 0 vaut **7,6 lignes de zoom** (raison 2,52).
+**M1 ter. Chaque cellule est une cuisson à part entière — aucune n'en réutilise
+une autre.** *(Corrigé par Marc le 08/08/2026. Une première rédaction affirmait
+que le contenu d'une cellule ancienne était « celui d'une ligne supérieure, déjà
+cuite ». **C'est faux.**)*
 
-| ligne | col 0 | col 3 | col 6 |
-|---|---|---|---|
-| `A` | contenu de `~I` | `~C` | `~B` |
-| `E` | contenu de `~M` | `~G` | `~F` |
-| `G` | contenu de `~O` | `~I` | `~H` |
-| `H` | *au-delà de l'échelle* | `~J` | `~I` |
-| `O` | *au-delà, +7,6 lignes* | *au-delà* | *au-delà* |
+À cadre propre fixe, une époque plus ancienne fait bien entrer davantage de
+matière comobile — d'un facteur `1/a`, soit 7,6 lignes de zoom à la colonne 0.
+Mais **la fenêtre n'est pas le contenu**. En remontant le temps les structures se
+**dissolvent** : c'est la même matière, elle n'est pas organisée de la même
+manière.
 
-Les deux axes cessent d'être indépendants, et c'est une propriété à exploiter,
-pas un obstacle : pour les lignes `A`→`G`, le contenu d'une cellule ancienne est
-celui d'une ligne supérieure, déjà cuite.
+*L'exemple qui tranche.* La cellule `E`, colonne 0 demande une fenêtre comobile
+de 1 554 Mpc à une amplitude de structure de **0,001153**. La ligne `M` publiée
+offre 2 294 Mpc à une amplitude de **1,0** : une toile pleinement formée là où il
+faut un champ presque lisse. Fenêtre comparable, contenu sans rapport.
+
+**Et la réutilisation n'existe nulle part ailleurs non plus.** Sous cadre propre
+fixe, la fenêtre comobile d'une cellule vaut `R_ref / a`, donc elle dépend de la
+ligne **et** de la colonne. Vérification : les 165 cellules donnent
+**165 fenêtres comobiles distinctes**, de 0,035 Mpc à 1,6 × 10⁷ Mpc. La cellule
+`M`,0 ne peut pas davantage servir à `E`,0 — sa fenêtre vaut 2,5 × 10⁶ Mpc.
+
+**Conséquence assumée : 165 cuissons distinctes**, et non 15 lignes déclinées en
+11 états. *Ce qui reste vrai, et qui reste le levier : Zel'dovich est linéaire en
+facteur de croissance, donc pour une fenêtre comobile donnée, changer d'époque ne
+demande qu'un nouveau rendu, pas une nouvelle simulation. C'est l'étape coûteuse
+— construire le champ et le déplacement — qui n'est pas mutualisable, parce que
+chaque cellule a sa propre fenêtre.*
+
+**22 cellules sur 165** demandent une fenêtre au-delà du sommet de l'échelle :
+c'est là que M5 s'applique.
 
 **M2. Les rayons des trois horizons doivent découler de la cosmologie, jamais
 d'un réglage.** À chaque colonne, les rayons comobiles de l'horizon des

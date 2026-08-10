@@ -1173,3 +1173,37 @@ Le contrôle a d'abord accusé `F2` et `G2`. Ni l'un ni l'autre n'était un déf
 *Un contrôle qui invente des défauts se fait désarmer par celui qui le lit. Les
 deux ont été vus à la première exécution — c'est précisément ce que le banc
 T-079 a installé comme réflexe.*
+
+---
+
+## 08/08/2026 — M1 ter était faux : aucune cellule n'en réutilise une autre
+
+**Correction de Marc.** J'avais écrit que le contenu d'une cellule ancienne
+était « celui d'une ligne supérieure, déjà cuite ». C'est faux, et pour une
+raison qu'il a nommée exactement : **en remontant le temps les structures se
+dissolvent**. Même matière, organisation différente.
+
+*L'exemple qui tranche :* la cellule `E`,0 demande une fenêtre comobile de
+1 554 Mpc à une amplitude de **0,001153**. La ligne `M` publiée offre 2 294 Mpc
+à une amplitude de **1,0** — une toile pleinement formée là où il faut un champ
+presque lisse.
+
+**Et la mesure va plus loin que la correction.** Sous cadre propre fixe, la
+fenêtre comobile vaut `R_ref / a` : elle dépend de la ligne **et** de la
+colonne. Les 165 cellules donnent **165 fenêtres distinctes**, de 0,035 Mpc à
+1,6 × 10⁷ Mpc. `M`,0 ne peut pas davantage servir à `E`,0 — sa fenêtre vaut
+2,5 × 10⁶ Mpc. *Il n'y avait donc de réutilisation possible nulle part, sous
+aucune forme.*
+
+**T-092 réécrit** : il vérifie les 165 fenêtres contre `R_ref / a`, et **refuse
+deux fenêtres identiques** — un doublon signalerait que la loi a été mal
+appliquée quelque part. `ligne_source_comobile`, qui encodait l'idée fausse, est
+supprimée de la matrice.
+
+**22 cellules sur 165** demandent une fenêtre au-delà du sommet de l'échelle :
+c'est le domaine de M5.
+
+*Ce qui reste vrai et reste le levier :* Zel'dovich est linéaire en facteur de
+croissance, donc **pour une fenêtre donnée**, changer d'époque ne demande qu'un
+rendu, pas une simulation. C'est l'étape coûteuse qui n'est pas mutualisable,
+puisque chaque cellule a sa propre fenêtre.

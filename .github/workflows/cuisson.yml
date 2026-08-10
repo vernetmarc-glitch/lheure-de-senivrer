@@ -1,0 +1,133 @@
+name: Cuisson
+
+# Pourquoi ce workflow existe
+# ---------------------------
+# Jusqu'au 08/08/2026, les cuissons tournaient dans le bac a sable d'une session
+# Claude : 1 CPU, 3 Go de RAM, et surtout EPHEMERE. Trois consequences, toutes
+# constatees :
+#
+#   - le cache `scripts/dev/_chaine` (1 Go) etait perdu a chaque session, donc
+#     chaque session repartait d'une cuisson complete de onze minutes ;
+#   - les textures cuites mouraient dans /tmp : cinq cuissons de suite ont ete
+#     mesurees puis perdues, pendant que les textures publiees prenaient du
+#     retard ;
+#   - les processus longs se faisaient couper, d'ou le `setsid nohup` partout.
+#
+# Le runner GitHub d'un depot PUBLIC offre 4 vCPU et 16 Gio, gratuitement et
+# sans limite de minutes. Il est donc quatre fois plus large que l'endroit ou
+# la cuisson tournait reellement -- et il ne faisait, jusqu'ici, que les
+# controles statiques.
+#
+# Ce workflow ne se declenche JAMAIS tout seul. Cuire est une decision.
+
+on:
+  workflow_dispatch:
+    inputs:
+      publier:
+        description: >-
+          Committer les textures si AUCUN controle bloquant n'echoue.
+          La regle 0 reste souveraine : ce drapeau ne force rien, il autorise.
+        type: boolean
+        default: false
+
+jobs:
+  cuisson:
+    name: Cuisson complète et mesure
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Dépendances
+        run: pip install --quiet numpy scipy pillow
+
+      # Le cache de la chaîne pèse ~1 Go, et l'allocation est de 10 Go par
+      # dépôt. La clé porte l'empreinte du moteur ET des paramètres : toute
+      # modification de l'un des trois invalide le cache, ce qui est exactement
+      # le comportement voulu -- un cache qui survit à un changement de moteur
+      # ferait cuire du vieux en croyant cuire du neuf.
+      - name: Cache de la chaîne
+        uses: actions/cache@v4
+        with:
+          path: scripts/dev/_chaine
+          key: chaine-${{ hashFiles('scripts/dev/gen_chain.py', 'scripts/dev/sprites_layer.py', 'app/public/data/spacetime_matrix.json') }}
+
+      - name: Cuisson
+        run: python3 scripts/harness/bake.py --all | tee /tmp/cuisson.log
+
+      # Toujours produire l'artefact, même quand la publication est refusée :
+      # c'est justement dans ce cas qu'on a besoin de regarder les textures.
+      # C'est ce qui manquait le plus — cinq cuissons mesurées, cinq perdues.
+      - name: Journal et textures en artefact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cuisson-${{ github.sha }}
+          path: |
+            /tmp/cuisson.log
+            app/public/essai-v4/data/v4/
+          retention-days: 30
+
+      - name: Empreintes de reproductibilité
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, io, os, subprocess
+          ORDER = list("ONMLKJIHGFEDCBA")
+          D = "app/public/essai-v4/data/v4"
+          def h(p):
+              with open(p, "rb") as f:
+                  return hashlib.sha256(f.read()).hexdigest()[:16]
+          base = json.load(open("docs/baseline-textures.json", encoding="utf-8"))
+          tex = {c: h(os.path.join(D, "density_%s.png" % c)) for c in ORDER
+                 if os.path.exists(os.path.join(D, "density_%s.png" % c))}
+          moteur = {p: h(p) for p in base["moteur"]}
+          # On ne compare que si le MOTEUR est identique : sinon un digest
+          # différent est attendu, et l'alerte serait un faux positif.
+          if moteur == base["moteur"]:
+              diff = [c for c, d in tex.items() if base["textures"].get(c) != d]
+              if diff:
+                  print("::error::Moteur identique mais textures differentes sur "
+                        "%s : la chaine n'est plus deterministe." % " ".join(diff))
+                  raise SystemExit(1)
+              print("Reproductibilite verifiee sur %d textures." % len(tex))
+          else:
+              print("::notice::Moteur modifie — empreintes a rafraichir "
+                    "(bake.py --baseline) une fois l'etat stabilise.")
+          PY
+
+      - name: Publication
+        if: ${{ inputs.publier }}
+        env:
+          GIT_AUTHOR_NAME: github-actions
+          GIT_AUTHOR_EMAIL: actions@github.com
+          GIT_COMMITTER_NAME: github-actions
+          GIT_COMMITTER_EMAIL: actions@github.com
+        run: |
+          # `bake.py --all` a DEJA refuse d'ecrire si un controle bloquant
+          # echoue : s'il n'y a rien a committer, c'est que la regle 0 a joue.
+          # On ne la contourne pas ici, on constate.
+          if git diff --quiet -- app/public/essai-v4/data/v4; then
+            echo "Aucune texture modifiée — publication refusée par le harnais, "
+            echo "ou état déjà à jour. Rien à committer."
+            exit 0
+          fi
+          git add app/public/essai-v4/data/v4
+          git commit -m "Cuisson automatique — $(grep -o '[0-9]* controles passes.*' /tmp/cuisson.log | head -1)"
+          git push
+
+      - name: Récapitulatif
+        if: always()
+        run: |
+          echo "### Cuisson" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -E "controles passes|BLOQUANT|PUBLIE|ANNULEE" /tmp/cuisson.log \
+            >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY

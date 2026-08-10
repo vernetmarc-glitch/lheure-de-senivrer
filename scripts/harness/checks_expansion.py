@@ -334,27 +334,37 @@ def distances_propres_checks(Result):
     # ce qui est hors de l'horizon est inobservable. La matiere doit alors etre
     # ENGENDREE, sous le principe cosmologique, et cela doit etre ECRIT -- une
     # extrapolation qui ne se declare pas devient indiscernable d'une mesure.
-    src = m["zoom_axis"].get("ligne_source_comobile")
-    ext = m["zoom_axis"].get("extension_hors_horizon_lignes")
+    fen = m["zoom_axis"].get("fenetre_comobile_mpc")
+    ext = m["zoom_axis"].get("extension_hors_horizon")
     hyp = m["generation"].get("extension_hors_horizon", {})
     pb = []
-    if not src or not ext:
+    if not fen or not ext:
         pb.append("tables absentes")
     else:
+        vues = {}
         for c in ORDER:
-            if len(src.get(c, [])) != len(cols) or len(ext.get(c, [])) != len(cols):
+            if len(fen.get(c, [])) != len(cols) or len(ext.get(c, [])) != len(cols):
                 pb.append("%s incomplet" % c)
                 continue
-            for j in range(len(cols)):
-                # les deux tables doivent se repondre : source connue <=> pas
-                # de debordement, source inconnue <=> debordement chiffre
-                if (src[c][j] is None) != (ext[c][j] > 0):
-                    pb.append("%s%d incoherent" % (c, j))
+            R = rows[c]["halfwidth_mpc"]
+            for j, col in enumerate(cols):
+                att = R / col["a"]
+                if abs(fen[c][j] - att) > max(1e-6, 1e-4 * att):
+                    pb.append("%s%d fenetre fausse" % (c, j))
+                if ext[c][j] != (1 if att > 14570.0 else 0):
+                    pb.append("%s%d extension incoherente" % (c, j))
+                # AUCUNE cellule ne doit pouvoir en reutiliser une autre : deux
+                # fenetres identiques signaleraient une mutualisation possible,
+                # et surtout que la loi R_ref/a a ete mal appliquee quelque part.
+                cle = round(fen[c][j], 6)
+                if cle in vues:
+                    pb.append("%s%d = %s" % (c, j, vues[cle]))
+                vues[cle] = "%s%d" % (c, j)
     for cle in ("hypothese", "autorise", "interdit", "signalisation"):
         if cle not in hyp:
             pb.append("hypothese sans `%s`" % cle)
     out.append(Result("T-092", "CONF",
-                      "l'extension hors horizon est chiffree et assumee (M1 ter/M5/M6)",
+                      "165 fenetres distinctes, extension assumee (M1 ter/M5/M6)",
                       not pb, "%d probleme(s)%s"
                       % (len(pb), "" if not pb else " : " + " ".join(pb[:4]))))
 
@@ -378,7 +388,7 @@ def distances_propres_checks(Result):
             if "lie" in v and "hubble" in v[v.index("lie"):]:
                 pb.append("%s se delie en avancant" % c)
     out.append(Result("T-090", "CONF",
-                      "le regime d'expansion depend de l'epoque (M5/C10 ter)",
+                      "le regime d'expansion depend de l'epoque (M4/C10 ter)",
                       not pb, "%d probleme(s)%s"
                       % (len(pb), "" if not pb else " : " + " ".join(pb[:4]))))
 
@@ -396,7 +406,7 @@ def distances_propres_checks(Result):
             if abs(hp.get(k, -1) - att) > max(1e-4, 0.01 * att):
                 faux.append("col%d/%s" % (c["col"], k))
     out.append(Result("T-091", "CONF",
-                      "les horizons sont publies en distance PROPRE (M5/M2)",
+                      "les horizons sont publies en distance PROPRE (M2)",
                       not sans and not faux,
                       "%d colonne(s) sans bloc propre, %d valeur(s) fausse(s)%s"
                       % (len(sans), len(faux),
