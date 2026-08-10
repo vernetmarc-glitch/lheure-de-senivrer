@@ -1133,3 +1133,43 @@ l'était.
 
 *État à l'ajout : 106 passés, 4 chantiers connus, **0 bloquant**. La CI part au
 vert, ce qui est la condition pour qu'elle soit crue.*
+
+---
+
+## 08/08/2026 (soir) — M1 bis : le contrôle exigeait exactement l'inverse
+
+**T-089 réécrit à l'envers.** Sa première version vérifiait que le demi-champ
+propre valait `R_ref × a`, donc qu'il **variait avec la colonne**. Marc a
+corrigé : *« la largeur de l'écran fait toujours la même distance réelle »*. Un
+cadre qui suit la matière donne une image où rien ne bouge et où seule
+l'étiquette change — c'est l'expansion rendue invisible.
+
+Le contrôle exige donc l'exact contraire de ce qu'il exigeait la veille : une
+valeur **unique** par ligne. *Une table 15 × 11 est désormais un échec.*
+
+**T-092** — le débordement hors horizon est chiffré et l'hypothèse assumée
+(M1 ter / M5 / M6). À cadre propre fixe, une époque ancienne fait entrer `1/a`
+fois plus de matière comobile ; au-delà du sommet de l'échelle il n'y a **pas de
+donnée**, car ce qui est hors de l'horizon est inobservable. La matière doit
+alors être engendrée sous le principe cosmologique, et **cela doit être écrit** :
+une extrapolation qui ne se déclare pas devient indiscernable d'une mesure.
+
+**T-093** — aucun contrôle ne cite une exigence inexistante. Trouvé le jour
+même : quatre contrôles citaient `M5` alors que la section M s'arrêtait à `M4`.
+T-086 vérifie qu'un identifiant ne désigne pas **deux** choses ; T-093 qu'il en
+désigne au moins **une**. *Une citation fantôme est pire qu'une absence de
+citation : elle donne l'illusion que l'exigence est couverte.*
+
+### Deux faux positifs, corrigés avant de blâmer le document
+
+Le contrôle a d'abord accusé `F2` et `G2`. Ni l'un ni l'autre n'était un défaut :
+
+- **`F2`** est une **métrique** — la corrélation d'héritage de T-010 — et non une
+  exigence. Corrigé en ne lisant que la parenthèse finale du libellé, qui est la
+  convention de citation du projet.
+- **`G2`** est une **vraie exigence**, déclarée en puce (`- **G2.**`) et non en
+  tête de ligne. C'était le *lecteur* qui était trop étroit, pas le document.
+
+*Un contrôle qui invente des défauts se fait désarmer par celui qui le lit. Les
+deux ont été vus à la première exécution — c'est précisément ce que le banc
+T-079 a installé comme réflexe.*

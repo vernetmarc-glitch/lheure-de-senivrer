@@ -208,7 +208,11 @@ def document_checks(Result):
                        "demandes-client.md introuvable")]
     with open(doc, encoding="utf-8", errors="replace") as fh:
         txt = fh.read()
-    ids = re.findall(r"^\*\*([A-Z]{1,2}\d{1,2}(?: bis| ter)?)\.", txt, re.M)
+    # Une exigence peut etre declaree en tete de ligne (`**B11.**`) ou en puce
+    # (`- **G2.**`, section « Ce qui reste a trancher »). Ne reconnaitre que la
+    # premiere forme faisait passer G2 pour une citation fantome dans T-093 :
+    # c'est le LECTEUR qui etait trop etroit, pas le document qui etait faux.
+    ids = re.findall(r"^(?:- )?\*\*([A-Z]{1,2}\d{1,2}(?: bis| ter)?)\.", txt, re.M)
     vus, doubles = set(), []
     for i in ids:
         if i in vus:
@@ -232,6 +236,38 @@ def document_checks(Result):
                 if mot.lower() not in ligne.lower():
                     ecarts.append("%s: matrice %s" % (code, regime))
                 break
+    # ---- T-093 : aucun controle ne cite une exigence qui n'existe pas -----
+    # Trouve le 08/08 : quatre controles citaient « M5 » alors que la section M
+    # s'arretait a M4. T-086 verifie qu'un identifiant ne designe pas DEUX
+    # choses ; celui-ci verifie qu'il en designe au moins UNE. Une citation
+    # fantome est pire qu'une absence de citation : elle donne l'illusion que
+    # l'exigence est couverte.
+    import glob as _glob
+    declares = set(re.findall(r"^(?:- )?\*\*([A-Z]{1,2}\d{1,2}(?: bis| ter)?)\.",
+                              txt, re.M))
+    cites, fantomes = set(), set()
+    for f in _glob.glob(os.path.join(ROOT, "scripts", "harness", "*.py")):
+        with open(f, encoding="utf-8", errors="replace") as fh:
+            code = fh.read()
+        # On ne lit QUE la parenthese finale du libelle : c'est la convention
+        # de citation du projet -- « tailles apparentes ~ rayons reels (D7/A9) ».
+        # Sans cette restriction, le controle prenait `F2` et `G2` pour des
+        # exigences alors que ce sont des METRIQUES (la correlation d'heritage,
+        # le gain de toile). Un controle qui invente des defauts se fait
+        # desarmer par celui qui le lit : ces deux-la ont ete vus des la
+        # premiere execution, ce qui est exactement le role du banc T-079.
+        for bloc in re.findall(r'Result\("T-\d+",\s*"[A-Z]+",\s*"[^"]*\(([^")]*)\)"', code):
+            for ident in re.findall(r"\b([A-Z]{1,2}\d{1,2}(?: bis| ter)?)\b", bloc):
+                cites.add(ident)
+                if ident not in declares and not any(
+                        d.startswith(ident + " ") for d in declares):
+                    fantomes.add(ident)
+    out.append(Result("T-093", "CONF",
+                      "aucun controle ne cite une exigence inexistante",
+                      not fantomes, "%d exigence(s) citee(s)%s"
+                      % (len(cites), "" if not fantomes
+                         else "  FANTOME(S) : " + " ".join(sorted(fantomes)))))
+
     out.append(Result("T-087", "CONF",
                       "document et matrice s'accordent sur les regimes (C10 ter/M4)",
                       not ecarts, "%d ligne(s) declaree(s)%s"
@@ -264,34 +300,63 @@ def distances_propres_checks(Result):
     out = []
 
     tab = m["zoom_axis"].get("demi_champ_propre_mpc")
-    manque = [c for c in ORDER if not tab or c not in tab
-              or len(tab.get(c, [])) != len(cols)]
+    manque = [c for c in ORDER if not tab or c not in tab]
     out.append(Result("T-088", "CONF",
-                      "chaque cellule declare son demi-champ PROPRE (M5)",
-                      not manque, "%d ligne(s) sans table complete%s"
+                      "chaque ligne declare son demi-champ PROPRE (M1)",
+                      not manque, "%d ligne(s) sans valeur%s"
                       % (len(manque), "" if not manque else " : " + " ".join(manque[:5]))))
 
-    # ---- T-089 : la loi est-elle respectee, et vaut-elle R_ref aujourd'hui ?
+    # ---- T-089 : l'echelle NE BOUGE PAS avec le temps (M1 bis) -------------
+    # REECRIT le 08/08 au soir. La premiere version verifiait la loi INVERSE --
+    # un demi-champ propre valant R_ref x a, donc variable avec la colonne. Marc
+    # l'a corrige : « la largeur de l'ecran fait toujours la meme distance
+    # reelle ». Un cadre qui suit la matiere donne une image ou rien ne bouge et
+    # ou seule l'etiquette change ; c'est l'expansion rendue invisible.
+    #
+    # Le controle exige donc l'exact contraire de ce qu'il exigeait : une valeur
+    # UNIQUE par ligne, egale au demi-champ de reference, sans dependance a la
+    # colonne. Une table 15x11 est desormais un ECHEC, pas une reussite.
     ecarts = []
-    if tab:
-        for c in ORDER:
-            if c not in tab or len(tab[c]) != len(cols):
-                continue
-            R = rows[c]["halfwidth_mpc"]
-            af = rows[c].get("a_form")
-            for j, col in enumerate(cols):
-                a = col["a"]
-                att = R * a if af is None else (R if a >= af else R * (a / af))
-                if abs(tab[c][j] - att) > max(1e-6, 0.01 * att):
-                    ecarts.append("%s%d" % (c, j))
-            # A la colonne 10 le propre DOIT valoir la reference : c'est ce qui
-            # rend les deux lectures compatibles au present.
-            if abs(tab[c][-1] - R) > 1e-6:
-                ecarts.append("%s10 != R_ref" % c)
+    for c in ORDER:
+        v = tab.get(c) if tab else None
+        if isinstance(v, list):
+            ecarts.append("%s: table par colonne" % c)
+        elif v is None or abs(float(v) - rows[c]["halfwidth_mpc"]) > 1e-9:
+            ecarts.append("%s: %s != R_ref" % (c, v))
     out.append(Result("T-089", "CONF",
-                      "le demi-champ propre suit la loi et vaut R_ref au present (M5)",
+                      "l'echelle de distance ne depend pas de l'epoque (M1 bis)",
                       not ecarts, "%d ecart(s)%s"
-                      % (len(ecarts), "" if not ecarts else " : " + " ".join(ecarts[:5]))))
+                      % (len(ecarts), "" if not ecarts else " : " + " ".join(ecarts[:4]))))
+
+    # ---- T-092 : le debordement hors horizon est chiffre (M1 ter / M5) -----
+    # A cadre propre fixe, une epoque ancienne fait entrer 1/a fois plus de
+    # matiere comobile. Au-dela du sommet de l'echelle, il n'y a PAS de donnee :
+    # ce qui est hors de l'horizon est inobservable. La matiere doit alors etre
+    # ENGENDREE, sous le principe cosmologique, et cela doit etre ECRIT -- une
+    # extrapolation qui ne se declare pas devient indiscernable d'une mesure.
+    src = m["zoom_axis"].get("ligne_source_comobile")
+    ext = m["zoom_axis"].get("extension_hors_horizon_lignes")
+    hyp = m["generation"].get("extension_hors_horizon", {})
+    pb = []
+    if not src or not ext:
+        pb.append("tables absentes")
+    else:
+        for c in ORDER:
+            if len(src.get(c, [])) != len(cols) or len(ext.get(c, [])) != len(cols):
+                pb.append("%s incomplet" % c)
+                continue
+            for j in range(len(cols)):
+                # les deux tables doivent se repondre : source connue <=> pas
+                # de debordement, source inconnue <=> debordement chiffre
+                if (src[c][j] is None) != (ext[c][j] > 0):
+                    pb.append("%s%d incoherent" % (c, j))
+    for cle in ("hypothese", "autorise", "interdit", "signalisation"):
+        if cle not in hyp:
+            pb.append("hypothese sans `%s`" % cle)
+    out.append(Result("T-092", "CONF",
+                      "l'extension hors horizon est chiffree et assumee (M1 ter/M5/M6)",
+                      not pb, "%d probleme(s)%s"
+                      % (len(pb), "" if not pb else " : " + " ".join(pb[:4]))))
 
     # ---- T-090 : le regime depend de l'EPOQUE, pas seulement de la ligne ----
     # A la recombinaison rien n'est encore effondre. Une table par ligne seule

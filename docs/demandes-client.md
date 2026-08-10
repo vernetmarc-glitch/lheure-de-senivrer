@@ -875,15 +875,47 @@ statique et l'héritage entre lignes n'a de sens que là. Les deux ne s'opposent
 pas — c'est un changement de variable à l'affichage, `propre = comobile × a`.
 Ce qui est interdit, c'est qu'une valeur comobile **apparaisse**.
 
-**M1 bis. Le demi-champ d'une ligne dépend donc de la colonne.** Il vaut
-`R_ref × a(colonne)` tant que l'échelle suit le flot de Hubble, puis se **fige**
-à `R_ref` dès que l'échelle est liée. Continu au passage, et égal à `R_ref` à la
-colonne 10. La table complète est dans `zoom_axis.demi_champ_propre_mpc`.
+**M1 bis. L'échelle de distance NE CHANGE JAMAIS avec le temps.**
+*(Arbitrage de Marc, 08/08/2026. **Corrige une première rédaction qui disait
+l'inverse** et faisait dépendre le demi-champ de la colonne.)*
 
-**M1 ter. Le régime dépend de l'époque, pas seulement de l'échelle.** Une
-échelle est liée quand elle s'est effondrée, ce qui arrive d'autant plus tard
-qu'elle est grande. **À la recombinaison, rien n'est encore effondré : aucune
-ligne n'est liée.** La table par ligne seule ne décrivait que la colonne 10.
+À un niveau de zoom donné, **la largeur de l'écran vaut toujours la même
+distance réelle**, quelle que soit la colonne. Le curseur du temps ne retouche
+aucune graduation.
+
+Ce qu'on voit alors, en remontant le temps, c'est **la matière se contracter
+vers le centre**, parce que l'espace se contracte et que la règle, elle, ne
+bouge pas. C'est la seule lecture où l'expansion **se voit** ; faire suivre le
+cadre à la matière donnerait une image où rien ne bouge et où seule l'étiquette
+change.
+
+*Mesure à la ligne `O`, cadre de 29 140 Mpc propres sur 480 px :*
+
+| colonne | diamètre de la matière observable | à l'écran |
+|---|---|---|
+| 10 | 28 290 Mpc | 466 px — 97 % du cadre |
+| 5 | 11 423 Mpc | 188 px |
+| 1 | 2 229 Mpc | 37 px |
+| 0 | 25,7 Mpc | **0,42 px** |
+
+*Tout l'univers observable tient dans moins d'un pixel à la recombinaison. Ce
+n'est pas un défaut de rendu : c'est le fait, et c'est le propos.*
+
+**M1 ter. Remonter le temps EST un dézoom en comobile.** À cadre propre fixe,
+une époque plus ancienne fait entrer davantage de matière comobile dans l'écran
+— d'un facteur `1/a`. La colonne 0 vaut **7,6 lignes de zoom** (raison 2,52).
+
+| ligne | col 0 | col 3 | col 6 |
+|---|---|---|---|
+| `A` | contenu de `~I` | `~C` | `~B` |
+| `E` | contenu de `~M` | `~G` | `~F` |
+| `G` | contenu de `~O` | `~I` | `~H` |
+| `H` | *au-delà de l'échelle* | `~J` | `~I` |
+| `O` | *au-delà, +7,6 lignes* | *au-delà* | *au-delà* |
+
+Les deux axes cessent d'être indépendants, et c'est une propriété à exploiter,
+pas un obstacle : pour les lignes `A`→`G`, le contenu d'une cellule ancienne est
+celui d'une ligne supérieure, déjà cuite.
 
 **M2. Les rayons des trois horizons doivent découler de la cosmologie, jamais
 d'un réglage.** À chaque colonne, les rayons comobiles de l'horizon des
@@ -934,4 +966,34 @@ en transition.*
 Sur `A`→`E`, la seule évolution temporelle admise est la **dissolution** (C13 à
 C17) : les objets se défont parce qu'ils ne sont pas encore formés, jamais parce
 que l'espace les aurait étirés.
+
+**M5. La matière manquante est ENGENDRÉE au-delà des sphères observables.**
+*(Demande de Marc, 08/08/2026.)*
+
+Aux lignes hautes et aux colonnes anciennes, le cadre déborde de l'univers
+observable : à la ligne `O`, colonne 0, il faudrait 7,6 lignes de plus. Le reste
+du cadre ne doit pas rester vide. **Il est rempli par de la matière engendrée**,
+statistiquement identique à celle que nous observons.
+
+**Hypothèse assumée et documentée :** *l'univers se poursuit au-delà des sphères
+observables avec la même homogénéité statistique.* C'est le **principe
+cosmologique** — l'hypothèse fondatrice de toute la cosmologie moderne, et non
+une commodité de rendu. Elle est indémontrable par construction : ce qui est
+au-delà de l'horizon est par définition inobservable.
+
+Ce que l'hypothèse autorise, et ce qu'elle n'autorise pas :
+
+- **autorisé** — engendrer le champ avec les **mêmes** spectre de puissance,
+  échelle d'homogénéité, loi de croissance et graines dérivées que le champ
+  observé. La matière ajoutée est indiscernable de l'autre, et c'est le but ;
+- **interdit** — y placer des structures nommées, des galaxies du catalogue, ou
+  quoi que ce soit qui prétende être une observation. Rien de ce qui est
+  au-delà de l'horizon n'est connu.
+
+**M6. Ce qui est engendré doit être signalé, jamais dissimulé.** Le spectateur
+doit pouvoir distinguer ce que nous observons de ce que nous supposons. La
+sphère de la matière observable reste tracée : à l'intérieur, l'univers mesuré ;
+à l'extérieur, l'extrapolation. *Une œuvre dont le sujet est la limite de
+l'observable ne peut pas effacer cette limite pour faire joli.*
+
 
