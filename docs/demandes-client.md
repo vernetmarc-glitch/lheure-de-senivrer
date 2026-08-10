@@ -396,6 +396,65 @@ dilatent pas ; aux grandes échelles l'expansion domine intégralement. La
 transition entre les deux régimes doit être juste.
 *(Origine : 29/07.)*
 
+**C10 bis. L'expansion apparente doit suivre l'expansion réelle.** *(Origine :
+08/08/2026. Précise C10, qui posait le principe sans le rendre mesurable.)*
+
+La compression apparente des structures en remontant le temps doit suivre le
+**facteur d'échelle** `a(t)` de la cosmologie, et rien d'autre. Il ne s'agit pas
+d'un effet visuel réglé à l'œil : à la colonne `n`, la matière occupe
+`a(t_n)` fois l'étendue propre qu'elle occupe aujourd'hui.
+
+**Aucune matière ne doit franchir la frontière de la sphère qui la contient.**
+La sphère de matière que nous observons aujourd'hui garde le **même contenu** à
+toutes les époques : ce sont les mêmes atomes, plus serrés. Une structure qui
+sortirait du cercle en remontant le temps signalerait que la compression du fond
+de carte et le rayon tracé ne suivent pas la même loi.
+
+*Distinction indispensable, sans quoi l'exigence est mal posée.* Il y a **deux
+cercles différents**, et un seul est infranchissable :
+
+- **la sphère de la matière observable aujourd'hui** — rayon comobile fixe,
+  14 150 Mpc. Elle contient toujours la même matière ; **rien ne la franchit
+  jamais**. C'est celle que vise cette exigence.
+- **l'horizon des particules à l'époque `t`** — il **rétrécit** en remontant le
+  temps : 14 150 Mpc comobiles aujourd'hui, **279 Mpc à la recombinaison**, un
+  facteur **51**. De la matière en sort donc légitimement quand on remonte, et
+  c'est un fait que l'œuvre doit **montrer**, pas masquer : l'univers observable
+  contenait moins de matière dans le passé, et c'est précisément ce que le mot
+  « observable » veut dire.
+
+**Chiffres de référence** *(Planck 2018, rayonnement inclus)* :
+
+| | rayon comobile | diamètre |
+|---|---|---|
+| horizon des particules, aujourd'hui | 14 150 Mpc | **92,3 Gal** |
+| horizon des particules, recombinaison | **279 Mpc** | 1,82 Gal |
+| sphère de Hubble, aujourd'hui | 4 448 Mpc | 29,0 Gal |
+| horizon des événements, aujourd'hui | 5 114 Mpc | 33,4 Gal |
+
+*Le « ~900 millions d'années-lumière juste après le Big Bang » est le **rayon**
+comobile de l'horizon des particules à la recombinaison — 909 Mal — et non un
+diamètre. Le diamètre vaut 1,82 milliard d'années-lumière.*
+
+**C10 ter. Là où la gravité l'emporte, il n'y a pas de dilatation.** Un système
+lié ne participe pas à l'expansion : ses composantes sont retenues par leur
+propre gravité, et la dilatation de l'espace ne les écarte pas. En remontant le
+temps, **ces échelles ne se compriment pas** — elles se **défont**, ce qui est
+un tout autre mouvement, déjà porté par C16.
+
+La frontière est la **surface de vitesse nulle** du système : ~1,0 à 1,4 Mpc
+pour le Groupe Local, ~7 à 9 Mpc pour un amas riche. Sur l'échelle de zoom, cela
+place la transition **entre `E` (1,41 Mpc) et `F` (3,56 Mpc)** :
+
+- `A` → `E` — systèmes liés. **Aucune compression** avec le temps.
+- `F` → `G` — régime de transition, à traiter explicitement et non par
+  interpolation muette.
+- `H` → `O` — flot de Hubble intégral. Compression en `a(t)`.
+
+*Appliquer `a(t)` uniformément à toutes les lignes ferait rétrécir la Voie
+lactée avec l'univers : c'est faux, et c'est le contresens que cette exigence
+existe pour empêcher.*
+
 **C11. Datation juste de la dissolution.** L'époque à laquelle chaque type de
 structure se défait doit correspondre à l'**état des connaissances
 scientifiques**, et non à un réglage esthétique. Le curseur du temps doit être
@@ -553,9 +612,13 @@ dessus. Trois limites distinctes, souvent confondues, qu'il faut ici distinguer
 nettement et rendre **compréhensibles par le regard**.
 
 **H1. L'univers observable** — horizon des particules. Tout ce dont la lumière a
-pu nous parvenir depuis le Big Bang. Rayon comobile ≈ **14 570 Mpc**, soit
-~46,5 milliards d'années-lumière, ~95 milliards de diamètre. C'est l'étendue du
-layer `M`.
+pu nous parvenir depuis le Big Bang. Rayon comobile ≈ **14 150 Mpc**, soit
+~46,1 milliards d'années-lumière, **~92 milliards de diamètre**. C'est l'étendue
+du layer `M`.
+*(Chiffres recalculés le 08/08/2026 sur Planck 2018 — Ωm 0,315, ΩΛ 0,685,
+H₀ 67,4, rayonnement inclus. Le « ~95 milliards de diamètre » précédent était
+faux : la valeur communément publiée est 93, et l'intégrale du dépôt donne 92,3.
+Les 14 570 Mpc étaient le demi-champ de la ligne `O`, pas l'horizon.)*
 
 **H2. La sphère de Hubble** — la distance à laquelle la vitesse d'éloignement due
 à l'expansion **égale la vitesse de la lumière**. Rayon ≈ **4 450 Mpc**, soit
@@ -790,3 +853,63 @@ structure uniquement, sur décision de Marc :
   de contenu ; dans un document cité par numéro, l'ordre de lecture compte.
 
 **v1.0 — 29/07/2026.** Reconstitution initiale.
+
+---
+
+## E — Expansion : cohérence entre la dilatation réelle et la carte
+
+*Ajouté le 08/08/2026, demande de Marc. Chiffres vérifiés et corrigés contre
+l'état de l'art (Planck 2018 : Ωm = 0,315, ΩΛ = 0,685, Ωr = 9,2·10⁻⁵,
+H₀ = 67,4 km/s/Mpc).*
+
+**E1. La carte est en coordonnées COMOBILES, et cela décide tout le reste.**
+Les quinze lignes sont graduées en Mpc comobiles, de 0,035 à 14 570. En
+comobile, une structure ne se comprime pas avec le temps : elle **reste où elle
+est**. Ce qui change avec l'époque, ce sont les **horizons**, dont le rayon
+comobile varie. Toute la cohérence demandée se ramène donc à deux affirmations
+séparées, et les confondre est la faute à éviter.
+
+**E2. Les rayons des trois horizons doivent découler de la cosmologie, jamais
+d'un réglage.** À chaque colonne, les rayons comobiles de l'horizon des
+particules, de la sphère de Hubble et de l'horizon des événements doivent être
+ceux qu'on recalcule depuis Ωm, ΩΛ, Ωr et H₀. Aucune valeur saisie à la main.
+
+| | rayon comobile | diamètre |
+|---|---|---|
+| aujourd'hui (colonne 10) | 14 144 Mpc | **92,3 milliards d'a.l.** |
+| recombinaison (colonne 0) | 278,6 Mpc | **1,82 milliard d'a.l.** |
+
+*Correction d'un chiffre de l'énoncé : 900 millions d'années-lumière à la
+recombinaison est le **rayon** comobile (0,91 Gal), pas le diamètre. Le
+diamètre vaut le double. Les 90 milliards d'années-lumière d'aujourd'hui sont
+justes — 92,3 exactement.*
+
+**E3. La matière DOIT franchir l'horizon des particules en remontant le temps —
+c'est le sujet, pas un défaut.** Le rayon comobile de l'horizon passe de
+14 144 Mpc à 278,6 Mpc de la colonne 10 à la colonne 0, soit une contraction
+d'un facteur **50,8**, pendant que les structures restent à leur place
+comobile. Elles sortent donc du cercle, et c'est exactement ce que signifie
+« l'univers observable grandit » : de la matière **entre** dans l'horizon au fil
+du temps.
+
+*Vouloir que rien ne franchisse la frontière reviendrait à faire grandir
+l'horizon au même rythme que l'espace, c'est-à-dire à supprimer la notion même
+d'horizon des particules — et donc le sujet de l'œuvre. Aucun contrôle ne doit
+« corriger » ce franchissement.*
+
+**E4. Aux échelles liées, aucune dilatation apparente.** Sous le rayon de
+retournement, la gravité l'emporte sur l'expansion et les structures ne suivent
+pas le flot de Hubble. Ce rayon vaut `(GM/ΩΛH₀²)^(1/3)` : **≈ 1,9 Mpc** pour le
+Groupe Local (5·10¹² M☉) et **≈ 11 Mpc** pour les amas les plus massifs
+(10¹⁵ M☉).
+
+| lignes | demi-champ | régime |
+|---|---|---|
+| `A` → `F` | ≤ 3,56 Mpc | **liées** — aucune dilatation apparente |
+| `G` | 8,96 Mpc | transition |
+| `H` → `O` | ≥ 22,6 Mpc | flot de Hubble |
+
+Sur `A`→`F`, la seule évolution temporelle admise est la **dissolution** (C13 à
+C17) : les objets se défont parce qu'ils ne sont pas encore formés, jamais parce
+que l'espace les aurait étirés.
+

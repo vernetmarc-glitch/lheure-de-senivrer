@@ -319,7 +319,9 @@
   "cosmology": {
    "Omega_m": 0.315,
    "Omega_L": 0.685,
-   "H0_km_s_Mpc": 67.4
+   "H0_km_s_Mpc": 67.4,
+   "Omega_r": 9.2e-05,
+   "source": "Planck 2018. Omega_r AJOUTE le 08/08/2026 : le bloc ne declarait que Omega_m et Omega_L, et sans le rayonnement l'horizon des particules a la recombinaison se recalcule a 477,6 Mpc au lieu des 278,6 declares -- 71 % d'ecart. Les valeurs de la matrice etaient JUSTES ; c'est la cosmologie declaree qui ne permettait pas de les retrouver, donc rien ne garantissait qu'elles le restent. Le rayonnement domine avant l'egalite matiere-rayonnement (z ~ 3400) et c'est precisement l'epoque de la colonne 0. Trouve par T-082 des sa premiere execution."
   },
   "amplitude_rule": "colonne n → amplitude de structure = n/10",
   "column_0": "ancre de recombinaison ; porte seule l'embrasement (C7)",
@@ -334,77 +336,143 @@
     "amp": 0.001153,
     "a": 0.000908,
     "t_gyr": 0.0005,
-    "z": 1100.3216
+    "z": 1100.3216,
+    "horizons": {
+     "particules": 278.578,
+     "hubble": 207.863,
+     "evenements": 18980.143,
+     "unite": "Mpc comobiles"
+    }
    },
    {
     "col": 1,
     "amp": 0.1,
     "a": 0.07879649,
     "t_gyr": 0.3811,
-    "z": 11.6909
+    "z": 11.6909,
+    "horizons": {
+     "particules": 4186.989,
+     "hubble": 2219.371,
+     "evenements": 15071.732,
+     "unite": "Mpc comobiles"
+    }
    },
    {
     "col": 2,
     "amp": 0.2,
     "a": 0.15780674,
     "t_gyr": 1.0787,
-    "z": 5.3369
+    "z": 5.3369,
+    "horizons": {
+     "particules": 6028.322,
+     "hubble": 3132.02,
+     "evenements": 13230.398,
+     "unite": "Mpc comobiles"
+    }
    },
    {
     "col": 3,
     "amp": 0.3,
     "a": 0.2375866,
     "t_gyr": 1.986,
-    "z": 3.209
+    "z": 3.209,
+    "horizons": {
+     "particules": 7444.567,
+     "hubble": 3805.541,
+     "evenements": 11814.154,
+     "unite": "Mpc comobiles"
+    }
    },
    {
     "col": 4,
     "amp": 0.4,
     "a": 0.31909344,
     "t_gyr": 3.0707,
-    "z": 2.1339
+    "z": 2.1339,
+    "horizons": {
+     "particules": 8643.604,
+     "hubble": 4324.695,
+     "evenements": 10615.117,
+     "unite": "Mpc comobiles"
+    }
    },
    {
     "col": 5,
     "amp": 0.5,
     "a": 0.4037627,
     "t_gyr": 4.3219,
-    "z": 1.4767
+    "z": 1.4767,
+    "horizons": {
+     "particules": 9707.763,
+     "hubble": 4708.499,
+     "evenements": 9550.958,
+     "unite": "Mpc comobiles"
+    }
    },
    {
     "col": 6,
     "amp": 0.6,
     "a": 0.49367073,
     "t_gyr": 5.7432,
-    "z": 1.0256
+    "z": 1.0256,
+    "horizons": {
+     "particules": 10681.068,
+     "hubble": 4956.287,
+     "evenements": 8577.652,
+     "unite": "Mpc comobiles"
+    }
    },
    {
     "col": 7,
     "amp": 0.7,
     "a": 0.59185577,
     "t_gyr": 7.3516,
-    "z": 0.6896
+    "z": 0.6896,
+    "horizons": {
+     "particules": 11591.702,
+     "hubble": 5060.92,
+     "evenements": 7667.019,
+     "unite": "Mpc comobiles"
+    }
    },
    {
     "col": 8,
     "amp": 0.8,
     "a": 0.70295106,
     "t_gyr": 9.1818,
-    "z": 0.4226
+    "z": 0.4226,
+    "horizons": {
+     "particules": 12460.546,
+     "hubble": 5014.569,
+     "evenements": 6798.174,
+     "unite": "Mpc comobiles"
+    }
    },
    {
     "col": 9,
     "amp": 0.9,
     "a": 0.83450298,
     "t_gyr": 11.2942,
-    "z": 0.1983
+    "z": 0.1983,
+    "horizons": {
+     "particules": 13305.565,
+     "hubble": 4811.397,
+     "evenements": 5953.156,
+     "unite": "Mpc comobiles"
+    }
    },
    {
     "col": 10,
     "amp": 1.0,
     "a": 1.0,
     "t_gyr": 13.7962,
-    "z": 0.0
+    "z": 0.0,
+    "horizons": {
+     "particules": 14145.122,
+     "hubble": 4447.756,
+     "evenements": 5113.599,
+     "unite": "Mpc comobiles"
+    }
    }
   ]
  },
@@ -949,7 +1017,25 @@
      "C8",
      "D-05"
     ]
-   }
+   },
+   "expansion_par_ligne": {
+    "A": "lie",
+    "B": "lie",
+    "C": "lie",
+    "D": "lie",
+    "E": "lie",
+    "F": "transition",
+    "G": "transition",
+    "H": "hubble",
+    "I": "hubble",
+    "J": "hubble",
+    "K": "hubble",
+    "L": "hubble",
+    "M": "hubble",
+    "N": "hubble",
+    "O": "hubble"
+   },
+   "expansion_note": "C10 ter. `lie` : systeme retenu par sa propre gravite, AUCUNE compression avec le temps -- il se defait (C16), il ne retrecit pas. `hubble` : flot de Hubble integral, l'etendue propre vaut a(t) fois celle d'aujourd'hui. `transition` : les deux regimes coexistent, a traiter explicitement et jamais par interpolation muette. La frontiere est la surface de vitesse nulle, ~1,0 a 1,4 Mpc pour le Groupe Local et ~7 a 9 Mpc pour un amas riche, ce qui place la bascule entre E (1,41 Mpc) et F (3,56 Mpc). Appliquer a(t) uniformement ferait retrecir la Voie lactee avec l'univers."
   }
  }
 }

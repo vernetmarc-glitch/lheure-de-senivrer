@@ -940,3 +940,109 @@ plus loin : mesuré 1,61 à 1,70 sur les trois lignes, de façon stable.
 
 *Le seuil n'est donc pas « trop serré » : il encode la troncature que B9
 proscrit. À re-dériver, sur décision de Marc, plutôt qu'à desserrer.*
+
+---
+
+## 08/08/2026 — l'expansion apparente doit suivre l'expansion réelle
+
+**Demande de Marc.** C10 posait le principe depuis le 29/07 — *« la dilatation
+de l'espace doit être correcte à chaque niveau de zoom et à chaque époque »* —
+mais **aucun contrôle ne le vérifiait**. Cas d'école de la règle 0 ter, resté
+ouvert dix jours. C10 bis et C10 ter précisent l'exigence ; T-082 à T-085 la
+rendent opposable.
+
+Ces quatre contrôles ne lisent aucune texture : ils portent sur la matrice et
+sur la cosmologie, donc ils sont valables **avant** que l'axe du temps soit
+généré. C'est voulu — ils doivent bloquer la première cuisson temporelle, pas la
+constater après coup.
+
+| | ce qu'il protège | état |
+|---|---|---|
+| **T-082** | `z`, `a` et `amp` de chaque colonne sont cosmologiquement liés | **exact à 0,0 %** sur 11 colonnes |
+| **T-083** | les trois horizons sont déclarés à chaque époque (H5) | 11 blocs `horizons` écrits |
+| **T-084** | l'horizon des particules ne peut que croître | 279 → 14 145 Mpc, facteur **51** |
+| **T-085** | chaque ligne déclare son régime d'expansion (C10 ter) | `A`→`E` lié · `F`,`G` transition · `H`→`O` Hubble |
+
+### T-082 a d'abord accusé à tort, et c'est le contrôle qui a été repris
+
+Première version : le rayonnement était inclus dans le facteur de croissance
+comme dans les intégrales d'horizon. T-082 déclarait alors la colonne 0 fausse
+de **36 %**.
+
+C'était **le contrôle** qui était hors de son domaine. La formule intégrale
+`D(a) = E(a) ∫ da'/(a'E)³` n'est exacte que pour matière + Λ : la suppression de
+croissance avant l'égalité — effet Meszaros — n'y est pas décrite. Y glisser
+Ω_r donne un résultat faux, pas plus précis.
+
+*Septième fois qu'un contrôle accuse à tort sur ce projet, et **la première fois
+qu'il est repris avant d'avoir fait corriger quoi que ce soit**. Le réflexe
+acquis le 07/08 a fonctionné.*
+
+### Ce qui existait déjà, et ce qui manquait
+
+**Déjà couvert par les exigences :** C10 (principe), C12 (contraction aux plus
+grandes échelles), H1–H3 (rayons d'aujourd'hui), H5 (évolution des trois rayons),
+L5 (lecture en comobile et en propre). **Aucun de ces cinq n'avait de contrôle
+exécutable portant sur l'expansion.**
+
+**Ce qui manquait dans les exigences elles-mêmes :** le lien quantitatif entre
+le facteur d'échelle et la compression apparente (C10 bis) · la distinction
+entre les deux cercles (C10 bis) · le régime par ligne (C10 ter).
+
+**Correction factuelle apportée à H1 :** le diamètre de l'univers observable y
+était donné à ~95 milliards d'années-lumière. La valeur publiée est 93 et
+l'intégrale du dépôt donne **92,3**. Les 14 570 Mpc cités étaient le demi-champ
+de la ligne `O`, pas l'horizon, qui vaut **14 150 Mpc**.
+
+---
+
+## 08/08/2026 — expansion : quatre contrôles pour les exigences E1 à E4
+
+**Ce qui existait déjà** et couvre une partie du besoin : T-055 à T-062 (portée
+OEUVRE) vérifient que les trois sphères sont présentes, correctement ordonnées
+et à la bonne échelle, mais **à l'instant présent seulement**. Rien ne
+vérifiait leur évolution avec l'époque, ni la cohérence entre l'expansion réelle
+et ce que la carte montre. C'est ce trou que E1–E4 comblent.
+
+### T-082 — les horizons découlent de la cosmologie (E2)
+
+Recalcul **indépendant** des rayons comobiles depuis Ωm, ΩΛ, Ωr et H₀, comparé
+aux 22 valeurs déclarées dans `time_axis`. Tolérance 2 %.
+
+**Il a trouvé son défaut dès sa première exécution.** Le bloc `cosmology` ne
+déclarait que Ωm et ΩΛ. Sans le rayonnement, l'horizon des particules à la
+recombinaison se recalcule à **477,6 Mpc au lieu des 278,6 déclarés — 71 %
+d'écart**. Les valeurs de la matrice étaient justes ; c'est la cosmologie
+déclarée qui ne permettait pas de les retrouver, donc **rien ne garantissait
+qu'elles le restent**. Le rayonnement domine avant l'égalité matière-rayonnement
+(z ≈ 3400), c'est-à-dire exactement à l'époque de la colonne 0.
+
+*Corrigé : `Omega_r = 9,2·10⁻⁵` déclaré. Écart ramené à 0,1 %.*
+
+### T-083 — la grille est comobile et fixe dans le temps (E1)
+
+Interdit qu'un demi-champ dépende de l'époque. Si quelqu'un fait un jour varier
+le demi-champ avec le temps — pour « comprimer les structures comme l'univers se
+comprime » — il aura confondu comobile et propre, et les trois horizons ne
+seraient plus comparables d'une colonne à l'autre.
+
+### T-084 — l'horizon se contracte vers le Big Bang (E3)
+
+**Un contrôle qui protège contre une correction, pas contre un défaut.** Le
+rayon comobile de l'horizon des particules passe de 14 145 à 278,6 Mpc, soit
+**×50,8**, pendant que les structures restent à leur place comobile. Elles
+sortent donc du cercle, et c'est précisément ce que signifie « l'univers
+observable grandit ».
+
+Si ce rapport tombait vers 1, cela voudrait dire que l'horizon a été fabriqué
+pour suivre l'espace — donc que la notion d'horizon des particules a été
+supprimée, et avec elle le sujet de l'œuvre. Le contrôle échoue alors, **même si
+tout paraît plus cohérent**.
+
+### T-085 — aux échelles liées, aucune dilatation apparente (E4)
+
+Sous le rayon de retournement `(GM/ΩΛH₀²)^(1/3)` — 1,9 Mpc pour le Groupe Local,
+11 Mpc pour les amas les plus massifs — la gravité l'emporte. Les six lignes
+`A`→`F` sont dans ce régime. Leur seule évolution admise est la **dissolution**
+(C13–C17) : les objets se défont parce qu'ils ne sont pas encore formés, jamais
+parce que l'espace les aurait étirés.

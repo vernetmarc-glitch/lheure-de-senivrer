@@ -125,6 +125,9 @@ def _peaks(v):
     return np.argwhere((v == mx) & (v > np.percentile(v, 99.5)))
 
 
+SEUIL_B5 = 1.8   # tolerance de T-008 sur B5, re-derivee le 08/08 (voir T-008)
+
+
 def _contrast(v):
     """Contraste relatif : ecart-type sur moyenne. Redonne 0,626 a `J` et
     0,318 a `O`, les deux valeurs bornant la plage consignee au registre."""
@@ -266,13 +269,23 @@ def cell_checks(code, img, m):
         # structures qui n'existent pas.
         pxq = 2.0 * r["halfwidth_mpc"] / v.shape[0]
         hg = m["generation"]["champ_fin"]["homogeneity_mpc"]
-        if np.log2(max(hg * 1.6 / pxq, 2.21) / 2.2) >= 2.0:
+        if np.log2(max(hg * SEUIL_B5 / pxq, 2.21) / 2.2) >= 2.0:
             tx, npk = _noeuds(v)
             out.append(Result("T-078", "CELL", "les pics sont les noeuds de la toile (A1/A5)",
                               tx >= 0.60, "%s %.0f %% des %d pics sur la toile "
                               "(hasard : 20 %%)" % (code, 100 * tx, npk)))
+    # FACTEUR RE-DERIVE de 1,6 a 1,8 le 08/08/2026, sur decision de Marc.
+    # Ce facteur est la tolerance d'un champ a bande limitee : il porte des
+    # motifs un peu plus grands que sa longueur d'onde de coupure. Mais 1,6
+    # avait ete calibre du temps ou le spectre etait tronque NET -- or cette
+    # troncature est exactement ce que B9 interdit (« l'approche de
+    # l'homogeneite est graduelle, il n'y a pas de coupure »). Avec
+    # l'amortissement continu, la queue du spectre porte par construction des
+    # structures un peu plus loin : mesure 1,61 a 1,70 sur O, N et M, de facon
+    # stable. Le seuil n'etait donc pas « trop serre » -- il encodait une
+    # hypothese que B9 proscrit, et il arbitrait en faveur de B5 sans le dire.
     out.append(Result("T-008", "CELL", "rien au-dela de l'homogeneite (B5)",
-                      big <= homog * 1.6, "%s %.0f Mpc" % (code, big)))
+                      big <= homog * SEUIL_B5, "%s %.0f Mpc" % (code, big)))
 
     # T-014 — PERTE SECHE, rapatrie le 07/08/2026. Existait sous INV-E4,
     # echouait sur cinq lignes, et a disparu en reorganisant le harnais.
@@ -326,7 +339,7 @@ def cell_checks(code, img, m):
         # conflit. Marc a tranche le 08/08 : « accepter que O soit la ligne ou
         # l'univers est montre homogene ».
         px = 2.0 * r["halfwidth_mpc"] / v.shape[0]
-        dispo = np.log2(max(homog * 1.6 / px, 2.21) / 2.2)
+        dispo = np.log2(max(homog * SEUIL_B5 / px, 2.21) / 2.2)
         if dispo >= 2.0:
             out.append(Result("T-052", "CELL", "distribution amassee, non reguliere (B11)",
                               disp >= 0.50, "%s dispersion %.2f sur %d pics"
@@ -698,6 +711,9 @@ def run_all(d, cells=True, pairs=True, conf=True):
             import checks_src as CS
             res += CS.src_checks()
             res += CS.paste_flux_checks()
+            res += CS.expansion_checks()
+            import checks_expansion as CE
+            res += CE.expansion_checks(Result)
         except Exception as e:
             res.append(Result("T-048", "SRC", "sprites sources", False, str(e)[:60]))
     import checks_image as CI

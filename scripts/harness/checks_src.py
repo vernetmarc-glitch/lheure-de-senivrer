@@ -258,3 +258,141 @@ def paste_flux_checks():
                       "pire cas %.0f %% du flux (%s a %d px) sur %d mesures"
                       % (100 * r, key, d, len(pires))))
     return out
+
+
+def expansion_checks():
+    """T-082 a T-084 — la carte est-elle coherente avec l'expansion reelle ?
+
+    Exigences E1 a E4, ecrites le 08/08/2026 a la demande de Marc.
+
+    Le point de depart est E1, et il commande le reste : LA CARTE EST EN
+    COORDONNEES COMOBILES. En comobile une structure ne se comprime pas avec le
+    temps, elle reste ou elle est ; ce qui varie avec l'epoque, ce sont les
+    RAYONS DES HORIZONS. Confondre les deux est la faute que ces controles
+    empechent.
+    """
+    import json
+    from scipy.integrate import quad
+
+    out = []
+    m = json.load(open(os.path.join(ROOT, "app", "public", "data", "spacetime_matrix.json")))
+    ta = m["time_axis"]
+    co = ta["cosmology"]
+    Om = co["Omega_m"]
+    Ol = co["Omega_L"]
+    Or = co.get("Omega_r", 0.0)
+    H0 = co["H0_km_s_Mpc"]
+    C = 299792.458
+
+    def E(a):
+        return np.sqrt(Or / a ** 4 + Om / a ** 3 + Ol)
+
+    def particules(a):
+        """Horizon des particules, rayon COMOBILE : c/H0 x int_0^a da/(a^2 E)."""
+        return quad(lambda x: 1.0 / (x * x * E(x)), 1e-10, a, limit=300)[0] * C / H0
+
+    def hubble(a):
+        """Rayon de Hubble comobile : c / (a H(a))."""
+        return C / (H0 * E(a) * a)
+
+    # ---- T-082 : les horizons decoulent de la cosmologie, jamais d'un reglage.
+    #
+    # Recalcul INDEPENDANT depuis Omega_m, Omega_L, Omega_r et H0. Une valeur
+    # saisie a la main, ou un parametre manquant dans le bloc declare, se voit
+    # immediatement. C'est E2, et c'est le sujet meme de l'oeuvre : les trois
+    # limites doivent etre justes, le fond de carte les sert.
+    #
+    # Ce controle a trouve son defaut des sa premiere execution : le bloc
+    # `cosmology` ne declarait que Omega_m et Omega_L. Sans le rayonnement, le
+    # rayon de l'horizon des particules a la recombinaison se recalcule a
+    # 477,6 Mpc au lieu des 278,6 declares -- 71 % d'ecart. Les valeurs de la
+    # matrice etaient JUSTES ; c'est la cosmologie declaree qui ne permettait
+    # pas de les retrouver, donc rien ne garantissait qu'elles le restent.
+    pires = []
+    for col in ta["columns"]:
+        a = col["a"]
+        h = col.get("horizons", {})
+        for nom, calc in (("particules", particules), ("hubble", hubble)):
+            if nom not in h:
+                continue
+            ref = float(h[nom])
+            got = calc(a)
+            pires.append((abs(got - ref) / max(ref, 1e-9), col["col"], nom, ref, got))
+    if not pires:
+        out.append(Result("T-082", "CONF", "les horizons decoulent de la cosmologie (E2)",
+                          False, "aucun horizon declare dans time_axis"))
+    else:
+        pires.sort(reverse=True)
+        e, c0, nom, ref, got = pires[0]
+        out.append(Result("T-082", "CONF", "les horizons decoulent de la cosmologie (E2)",
+                          e <= 0.02,
+                          "pire ecart %.1f %% (colonne %d, %s : %.1f declare, "
+                          "%.1f recalcule) sur %d valeurs"
+                          % (100 * e, c0, nom, ref, got, len(pires))))
+
+    # ---- T-083 : le grille comobile ne se redimensionne PAS avec le temps.
+    #
+    # E1. Une ligne porte un demi-champ en Mpc COMOBILES ; il doit etre le meme
+    # a toutes les colonnes. Si un jour quelqu'un fait varier le demi-champ avec
+    # l'epoque -- pour « comprimer les structures comme l'univers se comprime »
+    # -- il aura confondu comobile et propre, et la carte ne voudra plus rien
+    # dire : les trois horizons ne seraient plus comparables d'une colonne a
+    # l'autre, alors que c'est precisement ce que l'oeuvre montre.
+    rows = m["zoom_axis"]["rows"]
+    mauvais = [k for k, v in rows.items()
+               if any(x in v for x in ("halfwidth_mpc_par_colonne", "scale_by_a",
+                                       "halfwidth_proper_mpc"))]
+    unite = ta["columns"][0].get("horizons", {}).get("unite", "")
+    out.append(Result("T-083", "CONF", "la grille est comobile et fixe dans le temps (E1)",
+                      not mauvais and "comobile" in unite.lower(),
+                      "%d ligne(s) a demi-champ dependant de l'epoque ; unite des "
+                      "horizons : %r" % (len(mauvais), unite)))
+
+    # ---- T-084 : le franchissement de l'horizon est ATTENDU, et chiffre.
+    #
+    # E3, et c'est un controle qui protege contre une CORRECTION, pas contre un
+    # defaut. Le rayon comobile de l'horizon des particules se contracte d'un
+    # facteur ~50 de la colonne 10 a la colonne 0, pendant que les structures
+    # restent a leur place comobile : elles sortent du cercle, et c'est
+    # exactement ce que signifie « l'univers observable grandit ».
+    #
+    # Si ce rapport tombait vers 1, cela voudrait dire que l'horizon a ete fait
+    # pour suivre l'espace -- donc que la notion d'horizon des particules a ete
+    # supprimee, et avec elle le sujet de l'oeuvre. Le controle echoue alors,
+    # meme si tout le reste semble plus « coherent ».
+    cols = {c["col"]: c for c in ta["columns"] if "horizons" in c}
+    if 0 in cols and 10 in cols:
+        r0 = cols[0]["horizons"]["particules"]
+        r10 = cols[10]["horizons"]["particules"]
+        rap = r10 / max(r0, 1e-9)
+        out.append(Result("T-084", "CONF",
+                          "l'horizon des particules se contracte vers le Big Bang (E3)",
+                          rap >= 20.0,
+                          "rayon comobile x%.1f de la colonne 0 a la colonne 10 "
+                          "(%.1f -> %.1f Mpc)" % (rap, r0, r10)))
+
+    # ---- T-085 : les lignes liees sont exemptes de dilatation.
+    #
+    # E4. Sous le rayon de retournement (GM/OmegaL H0^2)^(1/3) -- 1,9 Mpc pour le
+    # Groupe Local, 11 Mpc pour les amas les plus massifs -- la gravite l'emporte
+    # et les structures ne suivent pas le flot de Hubble. Sur ces lignes la seule
+    # evolution admise est la DISSOLUTION : les objets se defont parce qu'ils ne
+    # sont pas encore formes, jamais parce que l'espace les aurait etires.
+    #
+    # Le controle verifie que la loi temporelle declaree pour les sprites est
+    # bien une dissolution, et qu'aucune loi d'etirement spatial n'a ete ajoutee
+    # pour ces lignes.
+    lois = m["generation"].get("lois_temporelles", {})
+    liees = [k for k, v in rows.items() if v["halfwidth_mpc"] <= 3.6]
+    interdits = [k for k in lois
+                 if isinstance(lois[k], dict)
+                 and any(t in json.dumps(lois[k]).lower()
+                         for t in ("facteur d'echelle a(", "etirement spatial",
+                                   "scale_by_a"))]
+    out.append(Result("T-085", "CONF",
+                      "aux echelles liees, aucune dilatation apparente (E4)",
+                      not interdits and "sprites" in lois,
+                      "%d ligne(s) liees (<= 3,6 Mpc) : %s ; %d loi(s) d'etirement "
+                      "spatial declaree(s)" % (len(liees), " ".join(sorted(liees)),
+                                               len(interdits))))
+    return out

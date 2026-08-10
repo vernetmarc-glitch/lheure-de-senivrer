@@ -215,7 +215,7 @@ def image_cell_checks(code, img, m):
         rr = m["zoom_axis"]["rows"][code]
         hg = m["generation"]["champ_fin"]["homogeneity_mpc"]
         pxq = 2.0 * rr["halfwidth_mpc"] / v.shape[0]
-        if np.log2(max(hg * 1.6 / pxq, 2.21) / 2.2) >= 2.0:
+        if np.log2(max(hg * 1.8 / pxq, 2.21) / 2.2) >= 2.0:
             out.append(Result("T-029", "CELL", "points repartis le long des filaments (A5)",
                               fr >= 0.45, "%s %.0f %% sur structures allongees"
                               % (code, 100 * fr)))
