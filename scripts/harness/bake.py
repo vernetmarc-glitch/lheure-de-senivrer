@@ -4,6 +4,7 @@
     python3 bake.py --row J              regenere une ligne et ses voisines
     python3 bake.py --all                regenere les 15 lignes
     python3 bake.py --baseline           fige l'etat courant comme reference
+    python3 bake.py --statique           portees CONF et SRC seules (integration continue)
 
 Pourquoi cette commande existe
 ------------------------------
@@ -154,6 +155,39 @@ def main(argv):
         elif read_baseline():
             print("conforme a la ligne de base")
         return 1 if fails else 0
+
+    if mode == "--statique":
+        # MODE POUR L'INTEGRATION CONTINUE — 08/08/2026.
+        #
+        # Il n'execute QUE les portees qui ne dependent d'aucune texture : la
+        # conformite de la matrice (CONF) et les vignettes sources (SRC). Il ne
+        # cuit rien, ne lit aucun PNG de densite, et tourne en quelques secondes.
+        #
+        # Pourquoi il existe : `gen_chain.py` et `sprites_layer.py` sont la
+        # chaine de production -- `generation.engine` les designe comme telle --
+        # mais ils vivent dans `scripts/dev/`, que le workflow declarait
+        # « recherche, non bloquant ». Un ajout cassant dans ces deux fichiers ne
+        # faisait donc pas rougir l'integration continue. C'est exactement la
+        # situation qui a laisse `HALO_GROWTH = 8.5` survivre trois semaines, et
+        # ce workflow existe pour l'empecher.
+        #
+        # Les portees CELL et PAIR restent hors CI : elles mesurent les textures
+        # PUBLIEES, qui sont anterieures aux corrections en cours. Les inclure
+        # rendrait la CI durablement rouge, et une CI toujours rouge ne protege
+        # plus rien -- on cesse de la lire.
+        # Deux controles de portee CONF mesurent en realite les TEXTURES
+        # publiees, pas le code : T-049 lit le profil de contraste des quinze
+        # images, T-054 leur fichier de provenance. Les inclure rendrait la CI
+        # rouge tant qu'une cuisson n'a pas ete publiee -- c'est-a-dire en
+        # permanence pendant les travaux -- et une CI toujours rouge cesse
+        # d'etre lue. Ils restent evidemment armes dans `--check` et `--all`,
+        # ou ils portent sur ce qu'ils pretendent mesurer.
+        HORS_CI = {"T-049", "T-054"}
+        res = [r for r in CK.run_all(PUBLISHED)
+               if r.scope in ("CONF", "SRC") and r.tid not in HORS_CI]
+        report(res)
+        bloquants = [r for r in res if not r.ok and r.tid not in CHANTIERS]
+        return 1 if bloquants else 0
 
     if mode == "--baseline":
         res = CK.run_all(PUBLISHED)

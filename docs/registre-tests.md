@@ -1093,3 +1093,43 @@ lui-même : *un document ne contraint pas ; un test qui bloque, si.*
 *Deux corrections à l'énoncé de Marc : les « 900 millions d'années-lumière juste
 après le Big Bang » sont le **rayon** comobile (0,91 Gal), pas le diamètre. Et
 les 90 milliards d'aujourd'hui sont justes — 92,3 exactement.*
+
+---
+
+## 08/08/2026 — l'intégration continue couvre enfin le moteur
+
+**Le défaut.** Le workflow ne lançait que `invariants.py`. **Les 393 contrôles du
+harnais ne tournaient jamais en intégration continue.** Et `gen_chain.py` et
+`sprites_layer.py` — que `generation.engine` désigne comme la chaîne de
+production — vivent dans `scripts/dev/`, un chemin qu'on lisait comme
+« recherche, non bloquant ».
+
+*Un ajout cassant dans le moteur ne faisait donc rougir personne : exactement la
+situation qui a laissé `HALO_GROWTH = 8.5` survivre trois semaines, et que ce
+workflow existait pour empêcher.*
+
+**Deux étapes ajoutées, toutes deux bloquantes :**
+
+1. **le moteur est importable** — `import gen_chain, sprites_layer`. Garde-fou
+   minimal mais décisif : une faute de syntaxe se voit au push.
+2. **`bake.py --statique`** — portées **CONF** et **SRC**, 106 contrôles, en
+   quelques secondes. Aucune texture n'est lue, rien n'est cuit. Couvre la
+   cohérence de la matrice, les vignettes sources, le banc de falsification
+   T-079, la conservation du flux T-081, et T-086 à T-091.
+
+**Deux contrôles CONF en sont exclus, et il faut dire pourquoi.** T-049 (profil
+de contraste) et T-054 (provenance) mesurent en réalité les **textures
+publiées**, pas le code. Les inclure rendrait la CI rouge tant qu'une cuisson
+n'est pas publiée — c'est-à-dire en permanence pendant les travaux. *Une CI
+toujours rouge cesse d'être lue, et ne protège alors plus rien.* Ils restent
+armés dans `--check` et `--all`, où ils portent sur ce qu'ils prétendent
+mesurer.
+
+**Pourquoi ce périmètre et pas le déplacement des fichiers.** Déplacer le moteur
+hors de `scripts/dev/` aurait cassé `generation.engine`, les imports de tous les
+validateurs, et l'historique git de deux fichiers de 1 000 lignes — pour un
+bénéfice identique. Le chemin n'était pas le problème : l'absence de contrôle
+l'était.
+
+*État à l'ajout : 106 passés, 4 chantiers connus, **0 bloquant**. La CI part au
+vert, ce qui est la condition pour qu'elle soit crue.*

@@ -9,6 +9,22 @@ name: Invariants
 #
 # Un garde-fou qui depend de la memoire de quelqu'un n'est pas un garde-fou.
 # Celui-ci s'execute a chaque push et FAIT ECHOUER le build s'il est viole.
+#
+# ELARGI le 08/08/2026 au HARNAIS lui-meme.
+# -----------------------------------------
+# Jusqu'ici le workflow ne lancait que `invariants.py`, et les 393 controles du
+# harnais ne tournaient JAMAIS en integration continue. Or `gen_chain.py` et
+# `sprites_layer.py` -- que `generation.engine` designe comme la chaine de
+# production -- vivent dans `scripts/dev/`, un chemin qu'on lisait comme
+# « recherche, non bloquant ». Un ajout cassant dans le moteur ne faisait donc
+# rougir personne : exactement la situation qui a laisse `HALO_GROWTH = 8.5`
+# survivre trois semaines.
+#
+# Le mode `--statique` execute les portees CONF et SRC, qui ne dependent
+# d'aucune texture et tournent en quelques secondes. Les portees CELL et PAIR
+# restent hors CI : elles mesurent les textures PUBLIEES, anterieures aux
+# corrections en cours, et rendraient la CI durablement rouge. Une CI toujours
+# rouge ne protege plus rien -- on cesse de la lire.
 
 on:
   push:
@@ -45,6 +61,16 @@ jobs:
         env:
           REPO_ROOT: ${{ github.workspace }}
         run: python3 scripts/dev/invariants.py --constants
+
+      - name: Le moteur de production est importable
+        # Garde-fou minimal mais decisif : une faute de syntaxe ou un import
+        # casse dans la chaine se voit ici, pas trois semaines plus tard.
+        env:
+          PYTHONPATH: ${{ github.workspace }}/scripts/dev
+        run: python3 -c "import gen_chain, sprites_layer; print('moteur importable')"
+
+      - name: Harnais — portées CONF et SRC (bloquant)
+        run: python3 scripts/harness/bake.py --statique
 
       - name: Récapitulatif
         if: always()
