@@ -238,3 +238,102 @@ def document_checks(Result):
                       % (len(loi), "" if not ecarts
                          else "  DESACCORD : " + " ".join(ecarts[:4]))))
     return out
+
+
+def distances_propres_checks(Result):
+    """T-088 a T-091 — M5/D-31 : rien d'affiche n'est en distance comobile.
+
+    Origine : 08/08/2026, arbitrage de Marc, qui renverse D-26. Le comobile
+    reste la coordonnee NATURELLE du generateur -- le champ y est statique et
+    l'heritage entre lignes n'a de sens que la -- mais plus aucune grandeur
+    MONTREE n'est comobile. Les deux ne s'opposent pas : c'est un changement de
+    variable a l'affichage, `propre = comobile x a(epoque)`.
+
+    Ce que ces quatre controles refusent :
+      T-088  une cellule sans demi-champ propre declare ;
+      T-089  un demi-champ propre qui ne suit pas la loi (flot puis figure) ;
+      T-090  un regime declare par LIGNE seule, alors qu'il depend de l'EPOQUE ;
+      T-091  des horizons publies uniquement en comobile.
+    """
+    import math
+    with open(MATRIX, encoding="utf-8") as fh:
+        m = json.load(fh)
+    rows = m["zoom_axis"]["rows"]
+    cols = m["time_axis"]["columns"]
+    ORDER = list("ABCDEFGHIJKLMNO")
+    out = []
+
+    tab = m["zoom_axis"].get("demi_champ_propre_mpc")
+    manque = [c for c in ORDER if not tab or c not in tab
+              or len(tab.get(c, [])) != len(cols)]
+    out.append(Result("T-088", "CONF",
+                      "chaque cellule declare son demi-champ PROPRE (M5)",
+                      not manque, "%d ligne(s) sans table complete%s"
+                      % (len(manque), "" if not manque else " : " + " ".join(manque[:5]))))
+
+    # ---- T-089 : la loi est-elle respectee, et vaut-elle R_ref aujourd'hui ?
+    ecarts = []
+    if tab:
+        for c in ORDER:
+            if c not in tab or len(tab[c]) != len(cols):
+                continue
+            R = rows[c]["halfwidth_mpc"]
+            af = rows[c].get("a_form")
+            for j, col in enumerate(cols):
+                a = col["a"]
+                att = R * a if af is None else (R if a >= af else R * (a / af))
+                if abs(tab[c][j] - att) > max(1e-6, 0.01 * att):
+                    ecarts.append("%s%d" % (c, j))
+            # A la colonne 10 le propre DOIT valoir la reference : c'est ce qui
+            # rend les deux lectures compatibles au present.
+            if abs(tab[c][-1] - R) > 1e-6:
+                ecarts.append("%s10 != R_ref" % c)
+    out.append(Result("T-089", "CONF",
+                      "le demi-champ propre suit la loi et vaut R_ref au present (M5)",
+                      not ecarts, "%d ecart(s)%s"
+                      % (len(ecarts), "" if not ecarts else " : " + " ".join(ecarts[:5]))))
+
+    # ---- T-090 : le regime depend de l'EPOQUE, pas seulement de la ligne ----
+    # A la recombinaison rien n'est encore effondre. Une table par ligne seule
+    # dirait que la Voie lactee etait deja liee a z = 1100, ce qui est faux et
+    # ferait figer son echelle a une epoque ou elle n'existe pas.
+    reg = m["zoom_axis"].get("regime_expansion_par_cellule")
+    pb = []
+    if not reg:
+        pb.append("table par cellule absente")
+    else:
+        for c in ORDER:
+            v = reg.get(c)
+            if not v or len(v) != len(cols):
+                pb.append("%s incomplet" % c)
+                continue
+            if v[0] != "hubble":
+                pb.append("%s declare %s a la colonne 0" % (c, v[0]))
+            # une ligne liee ne peut pas se delier en avancant dans le temps
+            if "lie" in v and "hubble" in v[v.index("lie"):]:
+                pb.append("%s se delie en avancant" % c)
+    out.append(Result("T-090", "CONF",
+                      "le regime d'expansion depend de l'epoque (M5/C10 ter)",
+                      not pb, "%d probleme(s)%s"
+                      % (len(pb), "" if not pb else " : " + " ".join(pb[:4]))))
+
+    # ---- T-091 : les horizons sont publies en distance PROPRE --------------
+    sans = [c["col"] for c in cols if "horizons_propres_mpc" not in c]
+    faux = []
+    for c in cols:
+        hp = c.get("horizons_propres_mpc")
+        if not hp:
+            continue
+        for k, v in c["horizons"].items():
+            if k == "unite":
+                continue
+            att = v * c["a"]
+            if abs(hp.get(k, -1) - att) > max(1e-4, 0.01 * att):
+                faux.append("col%d/%s" % (c["col"], k))
+    out.append(Result("T-091", "CONF",
+                      "les horizons sont publies en distance PROPRE (M5/M2)",
+                      not sans and not faux,
+                      "%d colonne(s) sans bloc propre, %d valeur(s) fausse(s)%s"
+                      % (len(sans), len(faux),
+                         "" if not faux else " : " + " ".join(faux[:4]))))
+    return out

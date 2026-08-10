@@ -38,7 +38,9 @@
      0.05
     ],
     "structure": "disque galactique",
-    "homogene": false
+    "homogene": false,
+    "a_form": 0.12,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "B": {
     "halfwidth_mpc": 0.0882,
@@ -55,7 +57,9 @@
      0.06
     ],
     "structure": "satellites",
-    "homogene": false
+    "homogene": false,
+    "a_form": 0.1939,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "C": {
     "halfwidth_mpc": 0.2222,
@@ -72,7 +76,9 @@
      0.3
     ],
     "structure": "halo galactique",
-    "homogene": false
+    "homogene": false,
+    "a_form": 0.3143,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "D": {
     "halfwidth_mpc": 0.56,
@@ -89,7 +95,9 @@
      0.8
     ],
     "structure": "abords du Groupe Local",
-    "homogene": false
+    "homogene": false,
+    "a_form": 0.4348,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "E": {
     "halfwidth_mpc": 1.4113,
@@ -110,7 +118,9 @@
     "void_mpc": [
      1.0,
      3.0
-    ]
+    ],
+    "a_form": 0.5552,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "F": {
     "halfwidth_mpc": 3.5563,
@@ -131,7 +141,9 @@
     "void_mpc": [
      2.0,
      5.0
-    ]
+    ],
+    "a_form": 0.6756,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "G": {
     "halfwidth_mpc": 8.9615,
@@ -152,7 +164,9 @@
     "void_mpc": [
      3.0,
      10.0
-    ]
+    ],
+    "a_form": 0.796,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "H": {
     "halfwidth_mpc": 22.5821,
@@ -174,7 +188,9 @@
      10.0,
      30.0
     ],
-    "anchor_strength": 1.0
+    "anchor_strength": 1.0,
+    "a_form": null,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "I": {
     "halfwidth_mpc": 56.9048,
@@ -196,7 +212,9 @@
      20.0,
      50.0
     ],
-    "anchor_strength": 0.45
+    "anchor_strength": 0.45,
+    "a_form": null,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "J": {
     "halfwidth_mpc": 143.395,
@@ -218,7 +236,9 @@
      30.0,
      60.0
     ],
-    "anchor_strength": 0.12
+    "anchor_strength": 0.12,
+    "a_form": null,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "K": {
     "halfwidth_mpc": 361.3426,
@@ -239,7 +259,9 @@
     "void_mpc": [
      30.0,
      60.0
-    ]
+    ],
+    "a_form": null,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "L": {
     "halfwidth_mpc": 910.5509,
@@ -256,7 +278,9 @@
      null
     ],
     "structure": "homogene",
-    "homogene": true
+    "homogene": true,
+    "a_form": null,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "M": {
     "halfwidth_mpc": 2294.5067,
@@ -273,7 +297,9 @@
      null
     ],
     "structure": "homogene",
-    "homogene": true
+    "homogene": true,
+    "a_form": null,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "N": {
     "halfwidth_mpc": 5781.9515,
@@ -290,7 +316,9 @@
      null
     ],
     "structure": "homogene",
-    "homogene": true
+    "homogene": true,
+    "a_form": null,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    },
    "O": {
     "halfwidth_mpc": 14570.0,
@@ -307,12 +335,410 @@
      null
     ],
     "structure": "homogene",
-    "homogene": true
+    "homogene": true,
+    "a_form": null,
+    "halfwidth_mpc_note": "Valeur PROPRE d'AUJOURD'HUI (colonne 10). Aux autres colonnes, lire demi_champ_propre. D-31 : plus aucune grandeur affichee n'est comobile."
    }
   },
   "structure_table_origin": "Table de reference B8 du document client, v1.2 du 31/07. Sourcee sur la litterature. Arbitre l'echelle apparente des structures, controlee par INV-H8.",
   "void_note": "Diametre des vides COURANTS, 30-50 Mpc. A distinguer du reseau superamas-vides (140-200 Mpc), qui est l'espacement des vides les plus rares, traces par les amas riches. La reference visuelle montre des vides a 5,0 % de la largeur du cadre.",
-  "anchor_note": "D6 : ancrage du catalogue dans le champ de deplacement Psi, non dans la densite. Les filaments convergent vers les galaxies au lieu de s'illuminer a leur endroit. Attenuation avec l'echelle (D4) : plein sur H, decroissant sur I et J, nul au-dela. ANCHOR_GAIN calibre pour rms(Psi_ancrage) = 1,0 Mpc a la ligne H contre ~10 Mpc pour le champ. A CONFIRMER VISUELLEMENT."
+  "anchor_note": "D6 : ancrage du catalogue dans le champ de deplacement Psi, non dans la densite. Les filaments convergent vers les galaxies au lieu de s'illuminer a leur endroit. Attenuation avec l'echelle (D4) : plein sur H, decroissant sur I et J, nul au-dela. ANCHOR_GAIN calibre pour rms(Psi_ancrage) = 1,0 Mpc a la ligne H contre ~10 Mpc pour le champ. A CONFIRMER VISUELLEMENT.",
+  "demi_champ_propre_mpc": {
+   "A": [
+    0.000265,
+    0.022982,
+    0.035,
+    0.035,
+    0.035,
+    0.035,
+    0.035,
+    0.035,
+    0.035,
+    0.035,
+    0.035
+   ],
+   "B": [
+    0.000413,
+    0.035833,
+    0.071764,
+    0.0882,
+    0.0882,
+    0.0882,
+    0.0882,
+    0.0882,
+    0.0882,
+    0.0882,
+    0.0882
+   ],
+   "C": [
+    0.000642,
+    0.055701,
+    0.111553,
+    0.167949,
+    0.2222,
+    0.2222,
+    0.2222,
+    0.2222,
+    0.2222,
+    0.2222,
+    0.2222
+   ],
+   "D": [
+    0.00117,
+    0.101494,
+    0.203263,
+    0.306024,
+    0.411009,
+    0.520067,
+    0.56,
+    0.56,
+    0.56,
+    0.56,
+    0.56
+   ],
+   "E": [
+    0.002308,
+    0.2003,
+    0.401143,
+    0.603943,
+    0.811133,
+    1.026361,
+    1.254906,
+    1.4113,
+    1.4113,
+    1.4113,
+    1.4113
+   ],
+   "F": [
+    0.00478,
+    0.414773,
+    0.830671,
+    1.25062,
+    1.679659,
+    2.125345,
+    2.598607,
+    3.115438,
+    3.5563,
+    3.5563,
+    3.5563
+   ],
+   "G": [
+    0.010222,
+    0.887078,
+    1.776563,
+    2.674711,
+    3.592302,
+    4.545495,
+    5.557665,
+    6.663016,
+    7.913709,
+    8.9615,
+    8.9615
+   ],
+   "H": [
+    0.020505,
+    1.77939,
+    3.563608,
+    5.365204,
+    7.2058,
+    9.11781,
+    11.148122,
+    13.365346,
+    15.874111,
+    18.84483,
+    22.5821
+   ],
+   "I": [
+    0.05167,
+    4.483899,
+    8.979961,
+    13.519818,
+    18.157948,
+    22.976036,
+    28.092234,
+    33.679434,
+    40.001289,
+    47.487225,
+    56.9048
+   ],
+   "J": [
+    0.130203,
+    11.299023,
+    22.628697,
+    34.068731,
+    45.756404,
+    57.897552,
+    70.789914,
+    84.869158,
+    100.799667,
+    119.663555,
+    143.395
+   ],
+   "K": [
+    0.328099,
+    28.472529,
+    57.022298,
+    85.85016,
+    115.302053,
+    145.896664,
+    178.384265,
+    213.862703,
+    254.006164,
+    301.541477,
+    361.3426
+   ],
+   "L": [
+    0.82678,
+    71.748215,
+    143.691069,
+    216.334692,
+    290.550819,
+    367.64649,
+    449.512328,
+    538.914804,
+    640.07272,
+    759.857439,
+    910.5509
+   ],
+   "M": [
+    2.083412,
+    180.799074,
+    362.088622,
+    545.144046,
+    732.162036,
+    926.43622,
+    1132.730798,
+    1358.01703,
+    1612.925917,
+    1914.772679,
+    2294.5067
+   ],
+   "N": [
+    5.250012,
+    455.597484,
+    912.430917,
+    1373.714198,
+    1844.982794,
+    2334.536349,
+    2854.380218,
+    3422.081357,
+    4064.428936,
+    4825.055757,
+    5781.9515
+   ],
+   "O": [
+    13.22956,
+    1148.064859,
+    2299.244202,
+    3461.636762,
+    4649.191421,
+    5882.822539,
+    7192.782536,
+    8623.338569,
+    10241.996944,
+    12158.708419,
+    14570.0
+   ]
+  },
+  "demi_champ_propre_regle": "M5/D-31. Demi-champ PROPRE de la cellule (ligne, colonne), en Mpc a l'epoque de la colonne. Loi : R_ref * a(col) tant que l'echelle suit le flot de Hubble ; FIGE a R_ref des que a >= a_form(R), l'echelle etant alors liee et ne participant plus a l'expansion. Continu en a_form, et vaut R_ref a la colonne 10.",
+  "regime_expansion_par_cellule": {
+   "A": [
+    "hubble",
+    "hubble",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie"
+   ],
+   "B": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie"
+   ],
+   "C": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie"
+   ],
+   "D": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "lie",
+    "lie",
+    "lie",
+    "lie",
+    "lie"
+   ],
+   "E": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "lie",
+    "lie",
+    "lie",
+    "lie"
+   ],
+   "F": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "lie",
+    "lie",
+    "lie"
+   ],
+   "G": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "lie",
+    "lie"
+   ],
+   "H": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble"
+   ],
+   "I": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble"
+   ],
+   "J": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble"
+   ],
+   "K": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble"
+   ],
+   "L": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble"
+   ],
+   "M": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble"
+   ],
+   "N": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble"
+   ],
+   "O": [
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble",
+    "hubble"
+   ]
+  },
+  "regime_note": "Le regime depend de la COLONNE autant que de la ligne : a la recombinaison rien n'est encore effondre, donc AUCUNE ligne n'est liee. La table par ligne seule (lois_temporelles.expansion_par_ligne) ne decrivait que la colonne 10."
  },
  "time_axis": {
   "law": "uniforme en facteur de croissance linéaire D(a) (D-22)",
@@ -342,7 +768,14 @@
      "hubble": 207.863,
      "evenements": 18980.143,
      "unite": "Mpc comobiles"
-    }
+    },
+    "horizons_propres_mpc": {
+     "particules": 0.2529,
+     "hubble": 0.1887,
+     "evenements": 17.234,
+     "unite": "Mpc PROPRES a cette epoque (D-31)"
+    },
+    "matiere_observable_rayon_propre_mpc": 12.8438
    },
    {
     "col": 1,
@@ -355,7 +788,14 @@
      "hubble": 2219.371,
      "evenements": 15071.732,
      "unite": "Mpc comobiles"
-    }
+    },
+    "horizons_propres_mpc": {
+     "particules": 329.92,
+     "hubble": 174.8786,
+     "evenements": 1187.5996,
+     "unite": "Mpc PROPRES a cette epoque (D-31)"
+    },
+    "matiere_observable_rayon_propre_mpc": 1114.586
    },
    {
     "col": 2,
@@ -368,7 +808,14 @@
      "hubble": 3132.02,
      "evenements": 13230.398,
      "unite": "Mpc comobiles"
-    }
+    },
+    "horizons_propres_mpc": {
+     "particules": 951.3098,
+     "hubble": 494.2539,
+     "evenements": 2087.846,
+     "unite": "Mpc PROPRES a cette epoque (D-31)"
+    },
+    "matiere_observable_rayon_propre_mpc": 2232.1956
    },
    {
     "col": 3,
@@ -381,7 +828,14 @@
      "hubble": 3805.541,
      "evenements": 11814.154,
      "unite": "Mpc comobiles"
-    }
+    },
+    "horizons_propres_mpc": {
+     "particules": 1768.7294,
+     "hubble": 904.1455,
+     "evenements": 2806.8847,
+     "unite": "Mpc PROPRES a cette epoque (D-31)"
+    },
+    "matiere_observable_rayon_propre_mpc": 3360.6914
    },
    {
     "col": 4,
@@ -394,7 +848,14 @@
      "hubble": 4324.695,
      "evenements": 10615.117,
      "unite": "Mpc comobiles"
-    }
+    },
+    "horizons_propres_mpc": {
+     "particules": 2758.1173,
+     "hubble": 1379.9818,
+     "evenements": 3387.2142,
+     "unite": "Mpc PROPRES a cette epoque (D-31)"
+    },
+    "matiere_observable_rayon_propre_mpc": 4513.6156
    },
    {
     "col": 5,
@@ -407,7 +868,14 @@
      "hubble": 4708.499,
      "evenements": 9550.958,
      "unite": "Mpc comobiles"
-    }
+    },
+    "horizons_propres_mpc": {
+     "particules": 3919.6326,
+     "hubble": 1901.1163,
+     "evenements": 3856.3206,
+     "unite": "Mpc PROPRES a cette epoque (D-31)"
+    },
+    "matiere_observable_rayon_propre_mpc": 5711.2727
    },
    {
     "col": 6,
@@ -420,7 +888,14 @@
      "hubble": 4956.287,
      "evenements": 8577.652,
      "unite": "Mpc comobiles"
-    }
+    },
+    "horizons_propres_mpc": {
+     "particules": 5272.9306,
+     "hubble": 2446.7738,
+     "evenements": 4234.5357,
+     "unite": "Mpc PROPRES a cette epoque (D-31)"
+    },
+    "matiere_observable_rayon_propre_mpc": 6983.0327
    },
    {
     "col": 7,
@@ -433,7 +908,14 @@
      "hubble": 5060.92,
      "evenements": 7667.019,
      "unite": "Mpc comobiles"
-    }
+    },
+    "horizons_propres_mpc": {
+     "particules": 6860.6157,
+     "hubble": 2995.3347,
+     "evenements": 4537.7694,
+     "unite": "Mpc PROPRES a cette epoque (D-31)"
+    },
+    "matiere_observable_rayon_propre_mpc": 8371.8721
    },
    {
     "col": 8,
@@ -446,7 +928,14 @@
      "hubble": 5014.569,
      "evenements": 6798.174,
      "unite": "Mpc comobiles"
-    }
+    },
+    "horizons_propres_mpc": {
+     "particules": 8759.154,
+     "hubble": 3524.9966,
+     "evenements": 4778.7836,
+     "unite": "Mpc PROPRES a cette epoque (D-31)"
+    },
+    "matiere_observable_rayon_propre_mpc": 9943.3285
    },
    {
     "col": 9,
@@ -459,7 +948,14 @@
      "hubble": 4811.397,
      "evenements": 5953.156,
      "unite": "Mpc comobiles"
-    }
+    },
+    "horizons_propres_mpc": {
+     "particules": 11103.5336,
+     "hubble": 4015.1251,
+     "evenements": 4967.9264,
+     "unite": "Mpc PROPRES a cette epoque (D-31)"
+    },
+    "matiere_observable_rayon_propre_mpc": 11804.1465
    },
    {
     "col": 10,
@@ -472,7 +968,14 @@
      "hubble": 4447.756,
      "evenements": 5113.599,
      "unite": "Mpc comobiles"
-    }
+    },
+    "horizons_propres_mpc": {
+     "particules": 14145.122,
+     "hubble": 4447.756,
+     "evenements": 5113.599,
+     "unite": "Mpc PROPRES a cette epoque (D-31)"
+    },
+    "matiere_observable_rayon_propre_mpc": 14145.122
    }
   ]
  },

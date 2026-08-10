@@ -179,3 +179,28 @@ cas de conflit, la lisibilité des trois sphères l'emporte sur le fond de carte
 silencieuse : T-050 (dynamique), T-051 (nœuds plus lumineux), T-028 (élongation)
 restent armés sur `O`. Et les contrôles écartés **affichent une ligne** dans le
 rapport — T-054b et T-029b — au lieu de disparaître sans bruit.
+
+## D-31 — toute distance montrée est réelle, jamais comobile *(08/08/2026)*
+
+**Arbitrage de Marc. Renverse D-26**, qui imposait le Mpc comobile à tout le
+paramétrage depuis le 30/07.
+
+Le comobile reste la coordonnée **interne** du générateur — le champ y est
+statique, et l'héritage entre lignes n'a de sens que là. Ce qui change est
+l'**affichage** : plus aucune valeur comobile n'apparaît. `propre = comobile × a`.
+
+*Ce que D-26 protégeait reste vrai et n'est pas remis en cause : « unités
+comobiles, jamais en pixels » visait le pixel, pas le mégaparsec propre. Un
+paramètre de génération exprimé en pixels reste interdit — cinq occurrences.*
+
+**Ce que la décision entraîne, mesuré :**
+
+- le demi-champ d'une ligne **dépend de la colonne** — table 15 × 11 dans
+  `zoom_axis.demi_champ_propre_mpc` ;
+- le régime d'expansion **dépend de l'époque** — à la recombinaison aucune ligne
+  n'est liée, car rien ne s'est encore effondré ;
+- l'échelle de zoom **n'est plus géométrique à toute époque** : le rapport entre
+  lignes voisines vaut 2,52 à la colonne 10, mais descend à **1,55** à la
+  colonne 0. **D-21 doit être amendée** ;
+- les rayons des trois sphères sont publiés en propre
+  (`horizons_propres_mpc`), en plus du comobile qui reste la source de calcul.

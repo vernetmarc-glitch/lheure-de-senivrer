@@ -862,12 +862,28 @@ structure uniquement, sur décision de Marc :
 l'état de l'art (Planck 2018 : Ωm = 0,315, ΩΛ = 0,685, Ωr = 9,2·10⁻⁵,
 H₀ = 67,4 km/s/Mpc).*
 
-**M1. La carte est en coordonnées COMOBILES, et cela décide tout le reste.**
-Les quinze lignes sont graduées en Mpc comobiles, de 0,035 à 14 570. En
-comobile, une structure ne se comprime pas avec le temps : elle **reste où elle
-est**. Ce qui change avec l'époque, ce sont les **horizons**, dont le rayon
-comobile varie. Toute la cohérence demandée se ramène donc à deux affirmations
-séparées, et les confondre est la faute à éviter.
+**M1. Toute distance montrée est une distance RÉELLE, jamais comobile.**
+*(Arbitrage de Marc, 08/08/2026. **Renverse D-26.** Cette exigence prime sur
+toutes les autres de la section M.)*
+
+Aucune grandeur affichée — graduation des lignes, barre d'échelle, rayon des
+trois sphères, barre de la vitesse de la lumière, libellés — n'est exprimée en
+Mpc comobiles. Tout est en **distance propre à l'époque affichée**.
+
+Le comobile reste la coordonnée **interne** du générateur : le champ y est
+statique et l'héritage entre lignes n'a de sens que là. Les deux ne s'opposent
+pas — c'est un changement de variable à l'affichage, `propre = comobile × a`.
+Ce qui est interdit, c'est qu'une valeur comobile **apparaisse**.
+
+**M1 bis. Le demi-champ d'une ligne dépend donc de la colonne.** Il vaut
+`R_ref × a(colonne)` tant que l'échelle suit le flot de Hubble, puis se **fige**
+à `R_ref` dès que l'échelle est liée. Continu au passage, et égal à `R_ref` à la
+colonne 10. La table complète est dans `zoom_axis.demi_champ_propre_mpc`.
+
+**M1 ter. Le régime dépend de l'époque, pas seulement de l'échelle.** Une
+échelle est liée quand elle s'est effondrée, ce qui arrive d'autant plus tard
+qu'elle est grande. **À la recombinaison, rien n'est encore effondré : aucune
+ligne n'est liée.** La table par ligne seule ne décrivait que la colonne 10.
 
 **M2. Les rayons des trois horizons doivent découler de la cosmologie, jamais
 d'un réglage.** À chaque colonne, les rayons comobiles de l'horizon des
