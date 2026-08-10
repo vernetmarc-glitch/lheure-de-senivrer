@@ -180,3 +180,61 @@ def expansion_checks(Result):
                              "" if not mauvais else " ; valeur inconnue : " + " ".join(mauvais[:3]),
                              "" if not incoherent else " ; INCOHERENT : " + " ".join(incoherent[:3]))))
     return out
+
+
+def document_checks(Result):
+    """T-086 — deux exigences ne portent jamais le meme identifiant.
+
+    Origine : 08/08/2026. Le bloc d'expansion avait ete redige en `E1` a `E4`,
+    alors que la section « E. Interdits » utilisait deja ces quatre numeros
+    depuis le 29/07. Deux exigences differentes sous le meme nom dans le meme
+    document : les controles citent un numero, et un numero qui designe deux
+    choses ne designe plus rien.
+
+    La meme relecture a trouve une seconde contradiction, qu'aucun controle ne
+    voyait : la table des regimes d'expansion classait `F` du cote lie, quand
+    C10 ter et `expansion_par_ligne` la placent en transition. D'ou le second
+    volet ci-dessous, qui confronte le DOCUMENT a la MATRICE au lieu de croire
+    l'un ou l'autre sur parole.
+
+    C'est la regle 0 ter appliquee au document lui-meme : un document ne
+    contraint pas, un test qui bloque, si.
+    """
+    import re
+    out = []
+    doc = os.path.join(ROOT, "docs", "demandes-client.md")
+    if not os.path.exists(doc):
+        return [Result("T-086", "CONF", "identifiants d'exigences uniques", False,
+                       "demandes-client.md introuvable")]
+    with open(doc, encoding="utf-8", errors="replace") as fh:
+        txt = fh.read()
+    ids = re.findall(r"^\*\*([A-Z]{1,2}\d{1,2}(?: bis| ter)?)\.", txt, re.M)
+    vus, doubles = set(), []
+    for i in ids:
+        if i in vus:
+            doubles.append(i)
+        vus.add(i)
+    out.append(Result("T-086", "CONF", "identifiants d'exigences uniques",
+                      not doubles, "%d exigence(s) numerotee(s)%s"
+                      % (len(ids), "" if not doubles
+                         else "  DOUBLON(S) : " + " ".join(sorted(set(doubles))))))
+
+    # ---- T-087 : le document et la matrice disent la meme chose ------------
+    with open(MATRIX, encoding="utf-8") as fh:
+        m = json.load(fh)
+    loi = m["generation"].get("lois_temporelles", {}).get("expansion_par_ligne", {})
+    ecarts = []
+    for code, regime in loi.items():
+        mot = {"lie": "liées", "transition": "transition", "hubble": "Hubble"}[regime]
+        # On cherche la ligne du tableau de M4 qui mentionne ce code.
+        for ligne in txt.splitlines():
+            if ligne.startswith("| `%s`" % code) and "Mpc" in ligne:
+                if mot.lower() not in ligne.lower():
+                    ecarts.append("%s: matrice %s" % (code, regime))
+                break
+    out.append(Result("T-087", "CONF",
+                      "document et matrice s'accordent sur les regimes (C10 ter/M4)",
+                      not ecarts, "%d ligne(s) declaree(s)%s"
+                      % (len(loi), "" if not ecarts
+                         else "  DESACCORD : " + " ".join(ecarts[:4]))))
+    return out

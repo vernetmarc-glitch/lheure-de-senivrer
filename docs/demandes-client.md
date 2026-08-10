@@ -856,20 +856,20 @@ structure uniquement, sur décision de Marc :
 
 ---
 
-## E — Expansion : cohérence entre la dilatation réelle et la carte
+## M — Expansion : cohérence entre la dilatation réelle et la carte
 
 *Ajouté le 08/08/2026, demande de Marc. Chiffres vérifiés et corrigés contre
 l'état de l'art (Planck 2018 : Ωm = 0,315, ΩΛ = 0,685, Ωr = 9,2·10⁻⁵,
 H₀ = 67,4 km/s/Mpc).*
 
-**E1. La carte est en coordonnées COMOBILES, et cela décide tout le reste.**
+**M1. La carte est en coordonnées COMOBILES, et cela décide tout le reste.**
 Les quinze lignes sont graduées en Mpc comobiles, de 0,035 à 14 570. En
 comobile, une structure ne se comprime pas avec le temps : elle **reste où elle
 est**. Ce qui change avec l'époque, ce sont les **horizons**, dont le rayon
 comobile varie. Toute la cohérence demandée se ramène donc à deux affirmations
 séparées, et les confondre est la faute à éviter.
 
-**E2. Les rayons des trois horizons doivent découler de la cosmologie, jamais
+**M2. Les rayons des trois horizons doivent découler de la cosmologie, jamais
 d'un réglage.** À chaque colonne, les rayons comobiles de l'horizon des
 particules, de la sphère de Hubble et de l'horizon des événements doivent être
 ceux qu'on recalcule depuis Ωm, ΩΛ, Ωr et H₀. Aucune valeur saisie à la main.
@@ -884,7 +884,7 @@ recombinaison est le **rayon** comobile (0,91 Gal), pas le diamètre. Le
 diamètre vaut le double. Les 90 milliards d'années-lumière d'aujourd'hui sont
 justes — 92,3 exactement.*
 
-**E3. La matière DOIT franchir l'horizon des particules en remontant le temps —
+**M3. La matière DOIT franchir l'horizon des particules en remontant le temps —
 c'est le sujet, pas un défaut.** Le rayon comobile de l'horizon passe de
 14 144 Mpc à 278,6 Mpc de la colonne 10 à la colonne 0, soit une contraction
 d'un facteur **50,8**, pendant que les structures restent à leur place
@@ -897,7 +897,7 @@ l'horizon au même rythme que l'espace, c'est-à-dire à supprimer la notion mê
 d'horizon des particules — et donc le sujet de l'œuvre. Aucun contrôle ne doit
 « corriger » ce franchissement.*
 
-**E4. Aux échelles liées, aucune dilatation apparente.** Sous le rayon de
+**M4. Aux échelles liées, aucune dilatation apparente.** Sous le rayon de
 retournement, la gravité l'emporte sur l'expansion et les structures ne suivent
 pas le flot de Hubble. Ce rayon vaut `(GM/ΩΛH₀²)^(1/3)` : **≈ 1,9 Mpc** pour le
 Groupe Local (5·10¹² M☉) et **≈ 11 Mpc** pour les amas les plus massifs
@@ -905,11 +905,17 @@ Groupe Local (5·10¹² M☉) et **≈ 11 Mpc** pour les amas les plus massifs
 
 | lignes | demi-champ | régime |
 |---|---|---|
-| `A` → `F` | ≤ 3,56 Mpc | **liées** — aucune dilatation apparente |
-| `G` | 8,96 Mpc | transition |
+| `A` → `E` | ≤ 1,41 Mpc | **liées** — aucune dilatation apparente |
+| `F`, `G` | 3,56 – 8,96 Mpc | transition |
 | `H` → `O` | ≥ 22,6 Mpc | flot de Hubble |
 
-Sur `A`→`F`, la seule évolution temporelle admise est la **dissolution** (C13 à
+*Corrigé le 08/08 : une première rédaction plaçait `F` du côté lié. Elle
+contredisait C10 ter et `generation.lois_temporelles.expansion_par_ligne`, que
+T-085 fait respecter. La surface de vitesse nulle du Groupe Local vaut 1,0 à
+1,4 Mpc : `E` (1,41) est la dernière ligne franchement liée, `F` (3,56) est déjà
+en transition.*
+
+Sur `A`→`E`, la seule évolution temporelle admise est la **dissolution** (C13 à
 C17) : les objets se défont parce qu'ils ne sont pas encore formés, jamais parce
 que l'espace les aurait étirés.
 

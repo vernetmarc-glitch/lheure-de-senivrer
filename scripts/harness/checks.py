@@ -714,6 +714,7 @@ def run_all(d, cells=True, pairs=True, conf=True):
             res += CS.expansion_checks()
             import checks_expansion as CE
             res += CE.expansion_checks(Result)
+            res += CE.document_checks(Result)
         except Exception as e:
             res.append(Result("T-048", "SRC", "sprites sources", False, str(e)[:60]))
     import checks_image as CI

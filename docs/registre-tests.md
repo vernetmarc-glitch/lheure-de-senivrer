@@ -1046,3 +1046,50 @@ Sous le rayon de retournement `(GM/ΩΛH₀²)^(1/3)` — 1,9 Mpc pour le Groupe
 `A`→`F` sont dans ce régime. Leur seule évolution admise est la **dissolution**
 (C13–C17) : les objets se défont parce qu'ils ne sont pas encore formés, jamais
 parce que l'espace les aurait étirés.
+
+---
+
+## 08/08/2026 — l'expansion, et deux fautes trouvées dans le document lui-même
+
+### Ce qui couvrait déjà la demande
+
+**Exigences :** C10 (principe, 29/07) · C10 bis et C10 ter (précisions du 08/08)
+· C12 (contraction aux grandes échelles) · H5 (les trois rayons évoluent).
+**Contrôles :** T-072 (contraction, C12) · T-075 (une seule cosmologie) ·
+T-082 à T-085 (axe du temps cosmologiquement cohérent, horizons déclarés à
+chaque époque, croissance de l'horizon des particules, régime d'expansion par
+ligne). Les quatre passent.
+
+### T-086 — deux exigences ne portent jamais le même identifiant
+
+Le bloc d'expansion avait été rédigé en **E1 à E4**, alors que la section
+« E. Interdits » utilisait déjà ces quatre numéros depuis le 29/07. Deux
+exigences différentes sous le même nom dans le même document : les contrôles
+citent un numéro, et **un numéro qui désigne deux choses ne désigne plus rien**.
+Renuméroté en **M1 à M4**.
+
+*Vérifié par falsification : en remettant `E1`, le contrôle échoue et nomme le
+doublon.*
+
+### T-087 — le document et la matrice disent la même chose
+
+Seconde contradiction, qu'aucun contrôle ne voyait : la table des régimes
+classait `F` du côté **lié**, quand C10 ter et
+`generation.lois_temporelles.expansion_par_ligne` la placent en **transition**.
+La surface de vitesse nulle du Groupe Local vaut 1,0 à 1,4 Mpc : `E` (1,41 Mpc)
+est la dernière ligne franchement liée, `F` (3,56 Mpc) est déjà en transition.
+
+T-087 confronte désormais le **document** à la **matrice** au lieu de croire
+l'un ou l'autre sur parole. C'est la règle 0 ter appliquée au document
+lui-même : *un document ne contraint pas ; un test qui bloque, si.*
+
+### Chiffres retenus, vérifiés contre Planck 2018
+
+| | rayon comobile | diamètre |
+|---|---|---|
+| horizon des particules, aujourd'hui | 14 144 Mpc | **92,3 Gal** |
+| horizon des particules, recombinaison | 278,6 Mpc | 1,82 Gal |
+
+*Deux corrections à l'énoncé de Marc : les « 900 millions d'années-lumière juste
+après le Big Bang » sont le **rayon** comobile (0,91 Gal), pas le diamètre. Et
+les 90 milliards d'aujourd'hui sont justes — 92,3 exactement.*
