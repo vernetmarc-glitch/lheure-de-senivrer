@@ -110,6 +110,20 @@ CHANTIERS = {
     "T-010": "O-07 : Zel'dovich ne fabrique pas la structure fine",
     "T-011": "O-07 : idem",
     "T-027": "O-07 : signature de reference, meme cause",
+    # Rattache le 10/08/2026 par decision de Marc (D-34), apres mesure du
+    # plateau. Le fond de `G` est le recadrage de `H` AGRANDI x2,52 : un
+    # agrandissement ne fabrique pas de structure, et c'est exactement ce que
+    # O-07 nomme. Une cuisson ne peut donc PAS le corriger -- critere
+    # d'admission de cette liste.
+    #
+    # Etat a l'entree : 0,71 pour 0,75 exige. Ce n'est pas l'etat de depart
+    # (0,64) : le gain de toile a `G` a rendu 0,07, et a ferme au passage T-010
+    # et T-011 sur cette meme arete, qui etaient rouges le matin.
+    #
+    # CE QUI LE FERME : que le fond de `G` soit ENGENDRE au lieu d'etre
+    # reechantillonne depuis `H`. Tant que ce n'est pas fait, ce controle
+    # affiche sa mesure a chaque cuisson et ne doit pas etre desarme.
+    "T-094": "O-07 : le fond de `G` est le recadrage de `H` agrandi, pas engendre",
 }
 
 

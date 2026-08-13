@@ -524,3 +524,66 @@ faucher. Lancer un essai par tour, en `setsid nohup`.*
 **Piste restante, à proposer avant d'implémenter :** moduler l'amplitude du champ
 fin là où l'ancrage est fort, ou appliquer le champ fin avant l'ancrage. La
 première touche au générateur et demande validation.
+
+
+---
+
+# PUBLIÉ — 10/08/2026 (fin de séance)
+
+**`bake.py --all` : 392 contrôles passés, 11 en échec, 0 bloquant. PUBLIÉ.**
+Les 15 textures sont fraîches et à jour pour la première fois depuis plusieurs
+cuissons.
+
+| Séquence de la séance | Passés | Échecs | Bloquants |
+|---|---|---|---|
+| `--check` sur l'état publié au départ | 356 | 39 | 27 |
+| Cuisson fraîche du matin | 380 | 15 | 4 |
+| Après D-32 et D-33 | 392 | 11 | 1 |
+| **Après D-34 — publiée** | **392** | **11** | **0** |
+
+## Les onze échecs restants
+
+Tous rattachés à **huit chantiers déclarés**, chacun portant sa raison et sa
+condition de sortie. Aucun n'est corrigible par une cuisson — c'est le critère
+d'admission de cette liste, posé le 07/08 et non desserré depuis.
+
+Le seul entrant de la séance est **T-094** (D-34), à 0,71 pour 0,75 exigés. **Le
+seuil n'a pas été baissé** : il reste écrit et le contrôle reste rouge et affiché
+à chaque cuisson. Ce qui le ferme : que le fond de `G` soit **engendré** au lieu
+d'être rééchantillonné depuis `H`.
+
+## Ce qui a bougé, et pourquoi
+
+Un seul point de fonctionnement à `G` — **gain de toile 2,6 · plafond ambiant
+1,8 · gain procédural ×8** — a fermé quatre contrôles, dont **deux qui ne le
+visaient pas** : T-010 et T-011 sur l'arête `H|G`, qui appartenaient à O-07.
+C'est la confirmation indépendante que la compression du fond à `G` était bien la
+cause, par des contrôles qui n'ont pas été réglés pour cela.
+
+## Le piège de la séance, deux fois
+
+**Un paramètre déclaré dans la matrice mais lu par personne.** D'abord
+`sprites.procedural.gain`, puis `web_gain` — ce dernier muet depuis le 07/08, son
+littéral coïncidant par chance avec la matrice pour `L`→`O`, si bien que rien ne
+l'avait révélé. Détecté par un écart entre banc (0,71) et production (0,60).
+
+**T-095** compare désormais valeur déclarée et valeur effective sur douze blocs,
+et il est passé au banc T-079. *Toute entrée ajoutée à la matrice qui doit agir
+doit être inscrite dans sa liste, sinon elle sera muette en silence.*
+
+## Reprise
+
+1. **O-07 est le chantier qui commande maintenant** : cinq contrôles y sont
+   rattachés (T-010, T-011, T-027, T-094). Le remède nommé est d'**engendrer** le
+   fond des lignes à sprites au lieu de le rééchantillonner depuis `H`.
+2. **T-023 / D6c ne prouve plus la convergence** et le registre le dit. Si
+   l'ancrage doit un jour fonctionner, l'instrumentation à faire porte sur le
+   chemin Ψ → densité à `H` : quatre hypothèses sont déjà écartées par la mesure,
+   consignées dans `approches-ecartees.md`.
+3. **L'axe du temps reste entier** : 11 colonnes non générées, T-036 et T-037 en
+   chantier.
+
+*Coûts à connaître : une cuisson complète prend 12 à 15 minutes et une cuisson de
+`H` seule 4 à 9 ; `H` frôle la limite mémoire du bac à sable et un processus
+enchaînant plusieurs essais se fait faucher. Un essai par tour, en `setsid
+nohup`.*

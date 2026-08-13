@@ -245,3 +245,26 @@ supérieures.* Trois clauses en découlent :
 *Ce que la décision ne fait pas :* elle ne retire pas l'exigence. Elle déplace la
 charge de la preuve d'une grandeur que le générateur ne peut pas produire vers
 celle que Marc décrit réellement à l'œil.
+
+## D-34 — T-094 rejoint le chantier O-07 *(10/08/2026)*
+
+**Tranché par Marc**, entre deux options mises en face l'une de l'autre : abaisser
+le seuil de D6b à 0,70, ou rattacher le contrôle au chantier ouvert. **C'est la
+seconde qui est retenue.** Le seuil de 0,75 n'est donc **pas desserré** : il reste
+écrit, et le contrôle reste rouge et affiché.
+
+**Motif d'admission.** Un contrôle ne rejoint cette liste que si **aucune cuisson
+ne peut le corriger** — c'est le critère posé le 07/08. T-094 y satisfait : le
+fond de `G` est le recadrage de `H` **agrandi ×2,52**, et un agrandissement ne
+fabrique pas de structure. C'est mot pour mot ce que O-07 nomme, et deux autres
+contrôles du même chantier (T-010, T-011) mesuraient déjà ce fait sur cette même
+arête.
+
+**Ce que la décision ne fait pas.** Elle ne referme pas D6b et ne baisse aucune
+exigence. L'état à l'entrée est consigné — **0,71 pour 0,75** — et il n'est pas
+l'état de départ : le gain de toile à `G` a rendu 0,07, et a fermé au passage
+T-010 et T-011 sur cette arête.
+
+**Ce qui le ferme :** que le fond de `G` soit **engendré** au lieu d'être
+rééchantillonné depuis `H`. Tant que ce n'est pas fait, T-094 affiche sa mesure à
+chaque cuisson.

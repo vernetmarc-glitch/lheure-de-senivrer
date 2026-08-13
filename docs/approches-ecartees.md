@@ -216,3 +216,35 @@ K », trois lignes plus haut. Cette mesure tranche **O-07** — voir
 | `frac>0` de la trace | la diffusion la porte à 1,0 partout, sans information |
 | Élongation globale des nuages | ne discrimine pas mousse et toile (1,87 contre 1,78 pour la référence). **07/08 : T-028 a été écrit sur cette métrique malgré cette ligne, et rend 4,26 à `O` là où Marc voit de la mousse. Conservé comme garde-fou, retiré du rôle de preuve.** |
 | Pic spectral à la fréquence de maille | mauvaise signature ; l'artefact de grille est une **anisotropie directionnelle**, pas une périodicité |
+
+---
+
+## 10/08/2026 — quatre impasses mesurées, à ne pas reparcourir
+
+**Gain d'ancrage, pour T-023 (D6).** `ANCHOR_GAIN` ×3 → 36 % devient 37 %. La
+baisse à 265 avait déjà été écartée le 08/08 : **les deux sens sont morts**. Coût
+de la mesure : deux cuissons de `H`, environ 9 minutes chacune.
+
+**`apply_fine` comme destructeur du signal d'ancrage.** Hypothèse de la passation
+du 08/08. Champ fin **entièrement annulé** à `H` → 41 % au lieu de 36 %. Il coûte
+cinq points, pas trente. *Écarté.*
+
+**Défaut de repère dans `anchor_psi`.** Les **huit** conventions (transposée,
+miroir X, miroir Y et combinaisons) testées sur la texture livrée : maximum
+47 %, toutes au niveau du hasard. *Écarté sans cuisson.*
+
+**Gain de toile pour T-052 à `N`.** 2,7 → 3,5 → 4,5 → 6,0 donne 0,43 → 0,41 →
+0,40 → 0,40, et casse T-078 à 6,0. Une loi de puissance ponctuelle amplifie les
+pics **sans déplacer leurs positions** : elle ne peut pas amasser. *Contre-
+productif, à ne pas réessayer.*
+
+**Champ fin propre à `G`, pour T-094 (D6b).** 1,0 → 1,4 → 1,8 → 2,4 donne 0,71 →
+0,47 → 0,28 → **0,13**. La modulation log-normale relève la moyenne plus vite que
+l'écart-type lissé, donc le contraste chute. La valeur nominale est optimale.
+*Effondrement, pas amélioration.*
+
+**Plafond ambiant seul, pour T-094.** Il comprime les hauts **et** le contraste
+ensemble : T-094 monte de 0,64 à 0,78 pendant que T-077 se dégrade de 0,56 à
+0,79. Ils se croisent avant de se rejoindre. Le levier juste est le gain de
+toile, qui creuse les vides **avant** le champ fin pendant que le plafond coiffe
+les pics ensuite.
