@@ -1207,3 +1207,108 @@ c'est le domaine de M5.
 croissance, donc **pour une fenêtre donnée**, changer d'époque ne demande qu'un
 rendu, pas une simulation. C'est l'étape coûteuse qui n'est pas mutualisable,
 puisque chaque cellule a sa propre fenêtre.
+
+---
+
+## 10/08/2026 — T-077 et T-035 : le paramètre que personne ne pouvait régler
+
+**Contexte.** Cuisson fraîche des 15 lignes : 380 passés, 15 en échec, **4
+bloquants** — T-077 (`G`), T-035 (arête `G|H`), T-052 (`N`), T-023 (`H`).
+
+### Le défaut trouvé avant la correction
+
+`SPRITE_GAIN` n'avait **aucun effet** sur `G` : balayé de 30 à 80, l'image ne
+changeait pas d'un octet. La raison est géométrique et se mesure — à `G` un pixel
+vaut 0,056 Mpc, donc la Voie lactée occupe **1,6 px** et les neuf vignettes
+N-corps ne pèsent rien dans le pic. Ce sont les **90 galaxies procédurales** qui
+portent le pic mesuré par T-077.
+
+Or leur gain était écrit **en dur** dans `sprites_layer.build` (`3.5`) alors que
+la matrice le déclarait déjà sous `generation.sprites.procedural.gain`. *Un
+paramètre déclaré dans la source de vérité mais non lu par le code est un
+paramètre que personne ne peut régler, et dont la valeur affichée ment.* Le code
+le lit désormais, et `procedural_gain_row` permet de le situer par ligne.
+
+### La correction, et pourquoi les deux contrôles tiraient dans le même sens
+
+T-077 demande que les galaxies dominent le fond ; T-035 que `G` ne rompe pas le
+contraste de `H` (0,368 contre 0,602). La compression ambiante à `G`
+(`ambient_ceil` 1,35) était **trop forte** : elle écrasait le fond *et* le
+contraste, creusant la rupture que T-035 mesure au titre de D1. Moins comprimer
+`G` rapproche les deux lignes ; le pic de fond que cela relève est compensé par
+le gain procédural.
+
+**Point retenu : `ambient_ceil` `G` = 2,40 · `procedural_gain_row` `G` = ×8.**
+
+| Contrôle | Avant | Après | Seuil |
+|---|---|---|---|
+| T-077 `G` | 0,70 | **0,56** | ≤ 0,60 |
+| T-035 `G|H` | 0,23 | **0,15** | ≤ 0,20 |
+| saturation `G` | — | **0,000 %** | — |
+
+T-033 (creux d'histogramme), T-034, T-050 et T-051 vérifiés non dégradés au même
+point de fonctionnement.
+
+*Balayage croisé conservé : le couple est un plateau, pas un point de justesse —
+`ceil` 1,8 à 2,4 et gain ×3,5 à ×8 passent tous les deux contrôles. Le point
+retenu est celui de plus large marge sans saturation.*
+
+---
+
+## 10/08/2026 — T-052 au banc de falsification : le contrôle est juste, `N` ne l'est pas
+
+**Motif.** Le détecteur de pics impose `maximum_filter(size=7)` : deux pics ne
+peuvent pas être plus proches que ~4 px. Cette exclusion **tronque la queue des
+courtes distances** et abaisse mécaniquement la dispersion. Avant de toucher au
+générateur, il fallait établir que T-052 mesure bien l'amassement et non son
+propre détecteur — c'est la faute attrapée quatre fois par relecture visuelle.
+
+**Mesures du banc (T-079), à travers le détecteur réel :**
+
+| Semis synthétique | Dispersion |
+|---|---|
+| réseau régulier — témoin négatif | **0,000** |
+| semis de Poisson pur | **0,480** |
+| semis amassé — témoin positif | **0,896** |
+| bande spectrale étroite (quasi-périodique) | 0,486 |
+
+**Le contrôle discrimine** : il sépare le régulier de l'amassé sans ambiguïté.
+Deux conséquences à consigner :
+
+1. **La référence de Poisson à travers ce détecteur vaut 0,480, non 0,523** (la
+   valeur théorique en 2D). Le seuil de 0,50 signifie donc « plus amassé qu'un
+   tirage aléatoire », et non « au moins aléatoire ».
+2. **`N` à 0,43 est réellement plus régulier que le hasard.** C'est un défaut
+   mesuré, pas un artefact de mesure.
+
+**Leviers épuisés, tous mesurés sur cuisson réelle de `N` :**
+
+| Levier | Résultat |
+|---|---|
+| gain de toile 2,7 → 3,5 / 4,5 / 6,0 | **dégrade** : 0,43 → 0,41 → 0,40 → 0,40, et casse T-078 à 6,0 |
+| champ fin 0,55 → 0,75 | 0,38 |
+| champ fin 0,55 → 1,00 | 0,49, mais contraste `N` à 0,558 — casserait le profil décroissant de T-049 |
+| halos | légitimement absents : `R_HALO_MPC` 2,2 Mpc contre `0,6 × px` = 21,7 Mpc |
+
+*Piège évité au passage : le littéral `FINE_STRENGTH` du code (`N` = 0,14) est
+**mort**, la valeur réelle (0,55) étant lue depuis la matrice. Un premier
+balayage a mesuré autre chose que ce qu'il croyait ; le témoin refait dans un
+processus neuf a rétabli la référence.*
+
+### Ce qui reste ouvert, et qui relève d'un arbitrage
+
+D-30 situe B11 là où la **bande spectrale** atteint deux octaves. `N` en offre
+2,59 et se trouve donc dans le domaine. Mais ce n'est pas la grandeur qui prédit
+le succès. La grandeur qui le prédit est la **place restant au-dessus de
+l'espacement des pics** — amasser des nœuds exige de moduler leur densité à une
+échelle plus grande que leur espacement, et B5 plafonne cette échelle :
+
+| Ligne | Espacement des pics | Plafond B5 | Place | T-052 |
+|---|---|---|---|---|
+| `M` | 152,6 Mpc | 540 Mpc | **1,82 octave** | passe |
+| `N` | 344,9 Mpc | 540 Mpc | **0,65 octave** | 0,43 |
+| `O` | 711,8 Mpc | 540 Mpc | **−0,40 octave** | hors domaine (D-30) |
+
+Reformuler le domaine de B11 sur ce critère écarterait `N` et conserverait `M`.
+**C'est un desserrage de seuil : il attend une décision de Marc et ne sera pas
+fait sans elle.**

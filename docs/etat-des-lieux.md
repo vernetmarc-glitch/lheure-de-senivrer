@@ -129,7 +129,7 @@ nœuds fabriqués — et l'écrire comme tel.
 
 ## 6. Chantiers ouverts — rouges, comptés, non bloquants
 
-D�clarés dans `bake.py:CHANTIERS`, chacun avec sa raison. Aucune cuisson ne peut
+Déclarés dans `bake.py:CHANTIERS`, chacun avec sa raison. Aucune cuisson ne peut
 les résoudre.
 
 | Contrôles | Chantier |
@@ -450,3 +450,77 @@ fermer les deux.
 - **T-081** : la réduction des sprites perdait **100 %** du flux sous 20 px.
 - **D-29** : avancer sans demander l'arbitrage à chaque étape.
 - **D-31 / M1** : plus aucune distance affichée n'est comobile.
+
+
+---
+
+# PASSATION — 10/08/2026
+
+*Lire après `bake.py --check`. Deux bloquants fermés, deux ouverts dont un qui
+attend une décision de Marc.*
+
+## L'état chiffré de la séance
+
+| Mesure | Passés | Échecs | Bloquants |
+|---|---|---|---|
+| `bake.py --check` — textures **publiées**, périmées | 356 | 39 | **27** |
+| `bake.py --all` — cuisson fraîche du 10/08 | 380 | 15 | **4** |
+
+*Le piège habituel : `--check` mesure l'état publié, qui a plusieurs cuissons de
+retard. Le chiffre vrai est celui de la cuisson fraîche.*
+
+Les 4 bloquants étaient : **T-077** (`G`), **T-035** (`G|H`), **T-052** (`N`),
+**T-023** (`H`).
+
+## Fermés et mesurés — T-077 et T-035
+
+Cause trouvée : à `G` un pixel vaut 0,056 Mpc, la Voie lactée y occupe **1,6 px**
+et les vignettes N-corps n'y pèsent rien. Le pic « galaxies » est porté par les
+90 galaxies procédurales, dont le gain était **écrit en dur** dans le code alors
+que la matrice le déclarait. `SPRITE_GAIN` balayé de 30 à 80 ne changeait pas un
+octet de l'image — c'est ce qui a mis sur la piste.
+
+**Correction :** le gain procédural est lu depuis la matrice, et
+`procedural_gain_row` le situe par ligne. Point retenu **`ambient_ceil` `G` =
+2,40, gain procédural `G` = ×8** :
+
+- T-077 : 0,70 → **0,56** (seuil ≤ 0,60)
+- T-035 : contraste 0,23 → **0,15** (seuil ≤ 0,20)
+- saturation 0,000 % ; T-033, T-034, T-050, T-051 non dégradés
+
+Les deux contrôles tiraient dans le même sens : la compression ambiante à `G`
+était trop forte et creusait la rupture de contraste avec `H` que T-035 mesure.
+
+## En attente d'arbitrage — T-052 à `N`
+
+Passé au banc T-079 **avant** toute correction : réseau régulier 0,000, Poisson
+pur 0,480, semis amassé 0,896. Le contrôle est juste, et `N` à 0,43 est
+réellement plus régulier que le hasard.
+
+Tous les leviers sont épuisés et mesurés (gain de toile : dégrade ; champ fin à
+1,00 : 0,49 mais casserait T-049 ; halos : légitimement absents, 2,2 Mpc contre
+21,7 Mpc de seuil). La grandeur qui prédit le succès n'est pas la bande
+spectrale de D-30 mais **la place au-dessus de l'espacement des pics** : `M`
+1,82 octave (passe), `N` **0,65 octave** (0,43), `O` −0,40 (déjà hors domaine).
+
+**Reformuler le domaine de B11 sur ce critère est un desserrage de seuil.
+Décision de Marc, pas de correction unilatérale.** Détail chiffré dans
+`registre-tests.md`.
+
+## Ouvert et diagnostiqué — T-023 à `H`
+
+36 % des positions du catalogue au-dessus de la médiane, pour 70 % exigés.
+
+**Le gain d'ancrage n'est pas le levier** — mesuré cette séance, ×3 donne 37 %
+contre 36 %. À écarter définitivement, avec la baisse à 265 déjà écartée le
+08/08. La cause est en aval : `apply_fine` module l'image par un champ
+log-normal d'amplitude `A = 1,7`, soit un facteur ×5,5 **décorrélé de la toile**,
+qui noie la convergence des filaments.
+
+*Coût à connaître : une cuisson de `H` seule prend 5 à 9 minutes et frôle la
+limite mémoire du bac à sable — un processus enchaînant trois essais s'est fait
+faucher. Lancer un essai par tour, en `setsid nohup`.*
+
+**Piste restante, à proposer avant d'implémenter :** moduler l'amplitude du champ
+fin là où l'ancrage est fort, ou appliquer le champ fin avant l'ancrage. La
+première touche au générateur et demande validation.

@@ -107,6 +107,16 @@ AMBIENT_STRENGTH = _SP.get("ambient_strength", {"G": 0.55, "F": 0.42, "E": 0.32,
                                                 "D": 0.22, "C": 0.14, "B": 0.09,
                                                 "A": 0.06})
 SPRITE_GAIN = _SP.get("gain", 30.0)
+# Gain des galaxies PROCEDURALES. Il etait ecrit en dur (`3.5`) dans `build`
+# alors que la matrice le declarait deja sous `procedural.gain` : le bloc
+# `generation` est la source de verite, et un parametre qui n'y est pas lu est un
+# parametre que personne ne peut regler. Trouve le 10/08 en cherchant pourquoi
+# `SPRITE_GAIN` n'avait aucun effet sur `G` -- a 0,056 Mpc/px la Voie lactee
+# mesure 1,6 px, et ce sont les 90 galaxies procedurales qui portent le pic.
+PROC_GAIN = _SP.get("procedural", {}).get("gain", 3.5)
+# Gain procedural par ligne, en multiple de PROC_GAIN. Sert la clause 3 d'A8 :
+# c'est le seul levier qui monte le pic des GALAXIES sans toucher au fond.
+PROC_GAIN_ROW = _SP.get("procedural_gain_row", {})
 HIRES_BELOW = _SP.get("hires_below_half_mpc", 0.15)
 SPRITE_FILE = {
     "Voie lactée": "milkyway", "Andromède (M31)": "andromede",
@@ -276,7 +286,9 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
         ys, xs = np.mgrid[y0:y1, x0:x1]
         rr = np.sqrt((xs - cx) ** 2 + (ys - cy) ** 2) / r_px
         amp_g = g["brightness"] * float(np.clip(amp, 0.0, 1.0)) ** 1.2
-        img[y0:y1, x0:x1] += (np.exp(-rr ** 1.4) * mean0 * 3.5 * amp_g).astype(np.float32)
+        g_proc = PROC_GAIN * PROC_GAIN_ROW.get(code, 1.0)
+        img[y0:y1, x0:x1] += (np.exp(-rr ** 1.4) * mean0 * g_proc
+                              * amp_g).astype(np.float32)
         n_proc += 1
 
     # Ton cale sur la fenetre visible (cf. gen_chain.render_full).

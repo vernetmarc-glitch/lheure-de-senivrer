@@ -1814,7 +1814,7 @@
    },
    "policy_below_g": "Arbitrage de Marc, 03/08 : des que les 92 galaxies du catalogue sont visibles, la priorite passe aux galaxies. Le fond devient diffus, sa moyenne baisse, et il ne subsiste que de legers filaments convergeant vers les galaxies. Les criteres de fond (ton a 68/255, brillances ponctuelles) ne s'appliquent donc plus tels quels sous G.",
    "ambient_ceil": {
-    "G": 1.35,
+    "G": 2.4,
     "F": 1.3,
     "E": 1.25,
     "D": 1.2,
@@ -1822,7 +1822,12 @@
     "B": 1.12,
     "A": 1.1
    },
-   "ambient_rule": "courbe de ton a genou doux : k*(1-exp(-x/k)) avec k = plafond x moyenne du fond. Remplace le fondu lineaire vers un uniforme (07/08). A8 clauses 2 et 3 : les mi-tons -- les nuages filamentaires -- passent intacts, les pics du fond s'ecrasent. Operateur ponctuel."
+   "ambient_rule": "courbe de ton a genou doux : k*(1-exp(-x/k)) avec k = plafond x moyenne du fond. Remplace le fondu lineaire vers un uniforme (07/08). A8 clauses 2 et 3 : les mi-tons -- les nuages filamentaires -- passent intacts, les pics du fond s'ecrasent. Operateur ponctuel.",
+   "procedural_gain_row": {
+    "G": 8.0
+   },
+   "procedural_gain_row_note": "Gain procedural par ligne, en multiple de procedural.gain. Seule `G` s'en ecarte (x8), pour la raison mesuree le 10/08 : a 0,056 Mpc/px la Voie lactee occupe 1,6 px et les neuf vignettes N-corps ne pesent rien -- le pic des GALAXIES y est porte par les 90 galaxies procedurales. Sans ce gain, la clause 3 d'A8 est intenable a `G` : le fond y atteignait 0,70 du pic des galaxies pour un plafond a 0,60.",
+   "ambient_ceil_note_G": "`G` remonte de 1,35 a 2,40 le 10/08. La compression y etait trop forte et creusait une rupture de contraste avec `H` (0,37 contre 0,60), que T-035 mesure au titre de D1. Moins comprimer `G` rapproche les deux lignes ; le pic du fond que cela releve est compense par le gain procedural."
   },
   "seeds": {
    "O": 23,
