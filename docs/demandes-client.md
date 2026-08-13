@@ -276,15 +276,25 @@ Ce qui est ancré, c'est le **fond** — il ne doit jamais noircir (B6) ; ce qui
 libre, c'est ce que les nœuds ajoutent au-dessus.
 *(Origine : 07/08, arbitrage de Marc.)*
 
-**B11 et A5 — domaine de validité.** Ces deux exigences s'appliquent **là où la
-bande spectrale disponible atteint deux octaves**. Elle est bornée en bas par la
-résolution (Nyquist) et en haut par B5. À la ligne `O`, un pixel vaut 91 Mpc et
-il ne reste que **1,26 octave** : B5 et B11 y sont arithmétiquement
-incompatibles. `N` en autorise 2,59, `M` 3,93. Les exigences ne sont pas
-retirées, elles sont **situées** — comme B4 l'a été à la fenêtre `D`→`J`.
-*(Borné le 08/08/2026, décision D-30, sur mesure. À `O` l'univers observable est
-homogène, ce que B8 déclare déjà ; y peindre une toile reviendrait à représenter
-un univers qui n'existe pas.)*
+**B11 et A5 — domaine de validité.** Ces deux exigences s'appliquent **là où il
+reste au moins une octave entre l'espacement des nœuds et le plafond de B5**.
+Amasser des nœuds, c'est moduler leur densité à une échelle **plus grande que
+leur espacement** ; B5 plafonne cette échelle. Quand il reste moins d'un facteur
+deux entre les deux, aucune échelle de modulation n'est à la fois assez grande
+pour amasser et assez petite pour être permise.
+
+| | Espacement des nœuds | Plafond B5 | Place | B11 |
+|---|---|---|---|---|
+| Ligne `M` | 152,6 Mpc | 540 Mpc | **1,82 octave** | s'applique |
+| Ligne `N` | 344,9 Mpc | 540 Mpc | **0,65 octave** | hors domaine |
+| Ligne `O` | 711,8 Mpc | 540 Mpc | **−0,40 octave** | hors domaine |
+
+*(Borné le 08/08/2026 par D-30, **corrigé le 10/08/2026 par D-32**. D-30 situait
+B11 sur la **bande spectrale totale**, qui met `N` dans le domaine à 2,59
+octaves ; ce n'est pas la grandeur qui prédit le résultat. Les exigences ne sont
+pas retirées, elles sont **situées** — comme B4 l'a été à la fenêtre `D`→`J`. Aux
+lignes exclues, T-050, T-051 et T-028 restent armés, et le contrôle écarté
+affiche une ligne au rapport au lieu de disparaître sans bruit.)*
 
 **B11. Aléatoire, jamais régulier.** La structure doit être celle d'un champ
 **aléatoire amassé** — distribution de type Poisson aux grandes échelles, puis de
@@ -488,13 +498,31 @@ doivent rester cohérentes. C'est la contrainte la plus facile à oublier.
 **position réelle**. Leur influence s'atténue avec l'échelle et disparaît au-delà
 du voisinage — elles ne doivent pas marquer les grandes échelles.
 
-**D6. Les galaxies réelles sont des centres de gravité.** Sur les lignes générées
-les plus basses, les filaments doivent **converger vers** les positions du
-catalogue, et non s'illuminer à leur endroit. En descendant vers les lignes à
-sprites, chaque galaxie nommée doit apparaître **au nœud d'une structure qui la
-désignait déjà** avant qu'elle ne soit visible. C'est ce qui rend **D1** vrai à
-l'œil, et pas seulement en moyenne.
-*(Origine : 31/07, formulée par Marc.)*
+**D6. Continuité de la matière au passage aux lignes à galaxies.**
+*(Réécrite le 10/08/2026 sur reformulation de Marc. Remplace « les galaxies
+réelles sont des centres de gravité », 31/07, dont la clause de coïncidence est
+allégée — voir D6c.)*
+
+L'intention, dans les termes de Marc : **les galaxies doivent se détacher du fond
+quand on zoome dessus, tout en étant déjà visibles sur les lignes supérieures.**
+Trois clauses mesurables en découlent, à satisfaire ensemble.
+
+- **D6a. Sur les lignes à galaxies, le fond est ténu.** Très peu de filaments ou
+  de nuages visibles sous `G` : rien n'y rivalise d'éclat avec une galaxie du
+  catalogue. *(Déjà porté par A8 clause 3.)*
+- **D6b. La matière entre les galaxies ne chute pas d'une ligne à l'autre.** Il
+  ne doit pas y en avoir trop entre les galaxies sur les lignes supérieures,
+  sinon **le zoom donne l'impression que la matière disparaît**. La grandeur est
+  le contraste du fond hors voisinage des galaxies, comparé de part et d'autre de
+  chaque arête. *(Mesuré le 10/08 : 0,463 à `H` contre 0,297 à `G`, soit une
+  chute de 36 % du contraste et de 42 % du pic à cette seule arête ; les autres
+  arêtes sont entre 0,84 et 1,04.)*
+- **D6c. Les galaxies ne tombent pas du côté raréfié de la toile.** Clause
+  **allégée** : l'ancien seuil de 70 % de coïncidence est abandonné. Il est
+  remplacé par une garde contre l'anti-corrélation, mesurée **contre son propre
+  témoin** — le même nuage de positions translaté au hasard sur la même texture.
+  *(Ce que cette clause n'affirme plus : elle ne prouve pas la convergence. La
+  charge de D6 est portée par D6b.)*
 
 **D7. Positions et tailles relatives justes.** Le diamètre apparent des galaxies
 et leurs distances mutuelles doivent être **cohérents avec le catalogue**. Deux

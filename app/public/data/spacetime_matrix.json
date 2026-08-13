@@ -1814,7 +1814,7 @@
    },
    "policy_below_g": "Arbitrage de Marc, 03/08 : des que les 92 galaxies du catalogue sont visibles, la priorite passe aux galaxies. Le fond devient diffus, sa moyenne baisse, et il ne subsiste que de legers filaments convergeant vers les galaxies. Les criteres de fond (ton a 68/255, brillances ponctuelles) ne s'appliquent donc plus tels quels sous G.",
    "ambient_ceil": {
-    "G": 2.4,
+    "G": 1.8,
     "F": 1.3,
     "E": 1.25,
     "D": 1.2,
@@ -1857,7 +1857,7 @@
     "D": 1.0,
     "E": 1.0,
     "F": 1.0,
-    "G": 1.0,
+    "G": 2.6,
     "H": 1.0,
     "I": 1.0,
     "J": 1.0,
@@ -1869,7 +1869,8 @@
    },
    "operateur": "ponctuel : mu * (img/mu)^g, applique a la densite projetee AVANT le champ fin",
    "raison": "B10 — les points brillants doivent etre les NOEUDS de la toile. A la ligne O, 10 % des pics seulement tombaient sur la toile (hasard pur). Valide visuellement par Marc le 07/08/2026.",
-   "gradue": "progression douce de K a O : une marche a la charniere K|L casserait l'heritage (B1, T-010)"
+   "gradue": "progression douce de K a O : une marche a la charniere K|L casserait l'heritage (B1, T-010)",
+   "note_G": "`G` passe de 1,0 a 2,6 le 10/08 au titre de D6b. Le fond de `G` est le recadrage de `H` AGRANDI x2,52 : un agrandissement ne fabrique pas de structure, et le contraste du fond entre les galaxies y tombait a 0,64 de celui de `H`. Le gain de toile creuse les vides AVANT le champ fin, le plafond ambiant coiffe les pics ensuite : contraste rendu sans relever le pic du fond, donc sans rouvrir A8 clause 3. Mesure : T-094 0,64 -> 0,71, T-077 0,58, T-035 0,14."
   },
   "lois_temporelles": {
    "statut": "DECLAREE le 08/08/2026, arbitrage de Marc sur planche de comparaison. Voir docs/decisions.md D-28 et docs/registre-tests.md.",

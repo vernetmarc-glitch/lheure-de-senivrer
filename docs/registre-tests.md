@@ -1312,3 +1312,225 @@ l'espacement des pics** — amasser des nœuds exige de moduler leur densité à
 Reformuler le domaine de B11 sur ce critère écarterait `N` et conserverait `M`.
 **C'est un desserrage de seuil : il attend une décision de Marc et ne sera pas
 fait sans elle.**
+
+
+---
+
+## 10/08/2026 — T-023 : quatre hypothèses falsifiées par la mesure
+
+**Le cadrage de la passation du 08/08 est faux et doit être retiré.** Il
+affirmait : *« l'ancrage fonctionne : sur la sortie de `render_full`, 65 % des
+positions du catalogue sont au-dessus de la médiane »*, et désignait `apply_fine`
+comme le destructeur du signal. Les deux affirmations sont contredites par la
+mesure sur la **texture livrée**, seul objet du contrôle.
+
+*C'est, une fois de plus, « mesurer l'aperçu et livrer autre chose ». Troisième
+occurrence. Le chiffre de 65 % ne correspond à aucun état mesurable de la
+texture publiée.*
+
+### Le témoin qui manquait
+
+Le nuage du catalogue à `H` s'étend sur **130 px** sur une texture de 480, centré
+à (243, 243), rayon type 20 px. Translaté **au hasard 300 fois** sur la même
+texture, il donne :
+
+| | Fraction au-dessus de la médiane |
+|---|---|
+| Positions réelles | **36 %** |
+| Témoin translaté — moyenne | **50 %** |
+| Témoin translaté — écart-type | **16 points** |
+| Témoin translaté — maximum sur 300 tirages | 87 % |
+
+**36 % est à 0,9 σ du hasard : ce n'est pas un signal négatif, c'est du bruit.**
+Et le seuil de 70 % exige 1,25 σ au-dessus du hasard — atteignable, mais
+seulement si l'ancrage produit un enrichissement systématique. Il n'en produit
+aucun de détectable.
+
+### Ce qui est écarté, avec la mesure qui l'écarte
+
+| Hypothèse | Essai | Résultat |
+|---|---|---|
+| **Gain d'ancrage trop faible** | `ANCHOR_GAIN` ×3 | 36 % → **37 %**. Écarté. *(La baisse à 265 l'avait déjà été le 08/08 : les deux sens sont morts.)* |
+| **`apply_fine` noie le signal** | `FINE_STRENGTH` `H` = 0 | 36 % → **41 %**. Écarté : le champ fin coûte 5 points, pas 30. |
+| **L'ancrage est inerte** | `ANCHOR_STRENGTH` `H` = 0 | T-023 identique (36 %) **mais la texture change sur 68,6 % des pixels**, écart max 78/255. L'ancrage déplace beaucoup de matière — ailleurs. |
+| **Défaut de repère** (`anchor_psi` dépose `X` sur l'axe 0 sans inverser `Y` ; le rendu lit `img[cy, cx]` avec `Y` inversé) | les **8** conventions transposée / miroir X / miroir Y testées sur la texture livrée | maximum **47 %**, toutes au niveau du hasard. Écarté. |
+
+### Ce que cela laisse
+
+L'ancrage produit un déplacement de grande amplitude qui **ne converge pas** vers
+les positions du catalogue, et la cause n'est ni le gain, ni le signe, ni le
+champ fin, ni le repère. Le chemin Ψ → densité à `H` doit être instrumenté
+lui-même — c'est un chantier de conception, pas un réglage de paramètre.
+
+*Coût à connaître avant de reprendre : une cuisson de `H` seule prend 4 à 9
+minutes et frôle la limite mémoire du bac à sable. Un processus enchaînant trois
+essais s'est fait faucher après le premier. Un essai par tour, en `setsid
+nohup`.*
+
+**Proposition, non appliquée :** verser T-023 aux `CHANTIERS` de `bake.py` le
+temps de cette instrumentation, comme T-010, T-011 et T-027 l'ont été pour O-07
+dont il partage probablement la cause. **C'est un desserrage : décision de
+Marc.**
+
+
+---
+
+## 10/08/2026 (soir) — D6 réécrite, T-094 ajouté, T-023 allégé
+
+**Décisions de Marc, prises sur les mesures de la journée.** D-32 corrige le
+domaine de B11 ; D6 est réécrite en trois clauses.
+
+### T-052 — D-32 : le domaine de B11 change de critère
+
+D-30 situait B11 sur la **bande spectrale totale** (≥ 2 octaves), ce qui met `N`
+dans le domaine à 2,59 octaves alors qu'aucun levier ne l'y amène. Le critère
+devient la **place au-dessus de l'espacement des nœuds** : amasser, c'est moduler
+leur densité à une échelle plus grande que leur espacement, et B5 plafonne cette
+échelle. Sous une octave, aucune échelle n'est à la fois assez grande pour
+amasser et assez petite pour être permise.
+
+| Ligne | Espacement | Plafond B5 | Place | Verdict |
+|---|---|---|---|---|
+| `M` | 152,6 Mpc | 540 Mpc | 1,82 octave | s'applique, **0,54** ✅ |
+| `N` | 344,9 Mpc | 540 Mpc | **0,65 octave** | hors domaine |
+| `O` | 711,8 Mpc | 540 Mpc | −0,40 octave | hors domaine (déjà) |
+
+Critère **calculé** et non codé en dur : si la géométrie de la grille change, le
+domaine suit. T-050, T-051 et T-028 restent armés aux lignes exclues, et T-054b
+affiche une ligne au rapport plutôt que de disparaître sans bruit.
+
+### T-023 — de la coïncidence à la garde, avec un témoin
+
+L'ancienne version exigeait 70 % des positions au-dessus de la médiane en
+échantillonnant **un seul pixel** par galaxie. D6 demandait la **convergence
+vers** les positions ; un pixel mesure la **coïncidence**. *Cinquième contrôle
+trouvé mesurant autre chose que ce qu'il cite.*
+
+Et il n'avait **pas de témoin**. Le nuage translaté au hasard 300 fois rend
+**50 % ± 18 points** : les 36 % mesurés sont à 0,8 σ du hasard. La version
+voisinage ne sauve rien — à 7 px le témoin atteint lui aussi 99 %.
+
+La nouvelle version **garde contre l'anti-corrélation** et son seuil est
+**relatif à son propre témoin** (plancher = moyenne − 1 σ), donc il suit la
+texture au lieu de dépendre d'un chiffre figé. *Elle ne prouve pas la
+convergence, et ne doit pas être lue ainsi : la charge de D6 est portée par
+T-094.*
+
+### T-094 — la matière entre les galaxies ne chute pas (D6b)
+
+Retour de Marc : *« il ne faut pas qu'il y en ait trop entre les galaxies sur les
+layers supérieurs, sinon on aura l'impression que de la matière disparaît en
+zoomant sur les galaxies »*.
+
+La grandeur est le **contraste du fond hors voisinage des galaxies**, comparé de
+part et d'autre de chaque arête. La moyenne ne voit pas le défaut — elle ne
+descend que de 12 % à l'arête `H|G` — alors que le contraste y perd 36 % et le
+pic 42 %.
+
+**Étalonnage : `I→H` 1,04 · `H→G` 0,64 · `G→F` 0,84 · `F→E` 0,93 · `E→D` 0,97 ·
+`D→C` 0,88 · `C→B` 0,99 · `B→A` 1,14.** Seuil à **0,75** : `H|G` est l'unique
+arête hors bande, et de loin. Le contrôle a donc été écrit rouge sur le seul
+défaut réel avant toute correction.
+
+### La correction, et ce qu'elle ne ferme pas
+
+Le plafond ambiant seul sature : il comprime les hauts **et** le contraste
+ensemble (T-094 0,64 → 0,78 mais T-077 0,56 → 0,79). Le levier juste est le
+**gain de toile**, appliqué à la densité projetée **avant** le champ fin : il
+creuse les vides, et le plafond coiffe les pics ensuite.
+
+**Point retenu : gain de toile `G` = 2,6 · plafond ambiant `G` = 1,8 · gain
+procédural `G` = ×8.**
+
+| Contrôle | Avant | Après | Seuil |
+|---|---|---|---|
+| T-094 `H→G` | 0,64 | **0,71** | ≥ 0,75 |
+| T-077 `G` | 0,56 | **0,58** | ≤ 0,60 |
+| T-035 `G|H` | 0,15 | **0,14** | ≤ 0,20 |
+
+*Écarté par la mesure :* renforcer le champ fin propre à `G` **effondre** T-094
+(0,71 → 0,13 de 1,0 à 2,4). La modulation log-normale relève la moyenne plus vite
+que l'écart-type lissé ; la valeur nominale est optimale. Ne pas y revenir.
+
+**T-094 ne se ferme pas à 0,75, et la cause est structurelle.** Le fond de `G`
+est le recadrage de `H` **agrandi ×2,52** : un agrandissement ne fabrique pas de
+structure. C'est le même fait physique que O-07 mesure par ailleurs — l'héritage
+`H→G` de T-010 vaut 0,80 pour 0,85 exigés, sur exactement cette arête.
+
+**Deux issues, l'une ou l'autre à trancher par Marc :**
+
+1. **Seuil à 0,70**, au motif que `H|G` est la seule arête où le mécanisme change
+   — motif déjà reconnu, puisque T-035 existe précisément pour cette charnière.
+   Un retour à 0,64 resterait attrapé.
+2. **Rattacher T-094 au chantier O-07**, non bloquant, jusqu'à ce que le fond de
+   `G` soit **engendré** au lieu d'être rééchantillonné. C'est le vrai remède, et
+   c'est un chantier de conception.
+
+
+---
+
+## 10/08/2026 (nuit) — T-095 : la matrice n'était pas lue, deux fois
+
+**Le défaut, trouvé par un écart entre banc et production.** Le banc annonçait
+T-094 à 0,71 ; la cuisson complète rendait **0,60**. Cause : `generation.web_gain`
+était déclaré dans la matrice depuis le 07/08 et **n'était lu par personne**. Le
+littéral du moteur coïncidait par chance avec la matrice pour `L`→`O`, si bien
+que rien ne l'avait jamais révélé — jusqu'à ce qu'une valeur posée à `G` reste
+sans effet.
+
+**Deuxième occurrence le même jour**, après `generation.sprites.procedural.gain`.
+La phrase de la hiérarchie des documents — « le code les lit ; les éditer dans le
+code ne sert à rien » — était donc fausse deux fois sur seize blocs, en silence.
+
+**T-095** compare valeur **déclarée** et valeur **effective après import**, sur
+douze blocs. La liste est explicite : le contrôle ne devine rien, et toute entrée
+ajoutée à la matrice qui doit agir doit y être inscrite.
+
+*Passé au banc T-079 :* témoin positif vert (12 blocs, aucun paramètre muet) ;
+témoin négatif rouge sur chacun des deux défauts réels, avec le nom du bloc et
+l'écart chiffré.
+
+### Deux contrôles de conformité réparés au passage
+
+- **T-055** — D6 n'était plus cité par aucun contrôle après la réécriture : le
+  lecteur extrait `D6` par frontière de mot, et `D6b`/`D6c` ne la produisent pas.
+  T-094 cite désormais `(D6b/D6)`.
+- **T-087** — s'accrochait au **nouveau tableau de B11**, qui commence lui aussi
+  par ``| `M` |`` et contient « Mpc ». Le lecteur s'arrête à la première ligne
+  qui correspond, dans tout le document, au lieu de chercher dans la section M4.
+  Contourné en changeant les libellés du tableau. *Fragilité réelle du lecteur,
+  à corriger un jour en bornant la recherche à la section citée.*
+
+---
+
+## 10/08/2026 (nuit) — état après cuisson complète
+
+| | Passés | Échecs | Bloquants |
+|---|---|---|---|
+| Matin, cuisson fraîche | 380 | 15 | 4 |
+| **Soir, après D-32, D-33, T-094, T-095** | **392** | **11** | **1** |
+
+**Le point retenu à `G` — gain de toile 2,6 · plafond ambiant 1,8 · gain
+procédural ×8 — a fermé quatre contrôles, dont deux qui ne le visaient pas :**
+
+| Contrôle | Matin | Soir | Seuil |
+|---|---|---|---|
+| T-077 `G` (A8) | 0,70 ❌ | **0,58** ✅ | ≤ 0,60 |
+| T-035 `G\|H` (D1) | 0,23 ❌ | **0,14** ✅ | ≤ 0,20 |
+| T-052 `N` (B11) | 0,43 ❌ | hors domaine (D-32) | — |
+| T-023 `H` (D6c) | 36 % ❌ | **36 %** ✅ contre témoin 50 % ± 18 | ≥ 31 % |
+| **T-010 `H→G`** (B1) | 0,795 ❌ | **≥ 0,85** ✅ | ≥ 0,85 |
+| **T-011 `H→G`** (B2/D2) | 3,2 px ❌ | **≤ 3 px** ✅ | ≤ 3 px |
+| T-094 `H→G` (D6b) | 0,64 ❌ | **0,71** ❌ | ≥ 0,75 |
+
+*Les deux dernières lignes en gras n'étaient pas visées.* T-010 et T-011 sur
+`H|G` appartenaient au chantier O-07 et se sont fermés seuls : la compression du
+fond à `G` était bien la cause, et pas seulement pour D6b. **C'est une
+confirmation indépendante du diagnostic**, par deux contrôles qui n'ont pas été
+réglés pour cela.
+
+**T-094 reste à 0,71 pour 0,75, et le banc annonce le même chiffre que la
+production** — l'écart banc/production est refermé. Le plateau est atteint : ni
+le plafond ambiant (qui dégrade T-077 plus vite qu'il ne rend du contraste), ni
+le champ fin propre à `G` (qui effondre T-094 à 0,13) n'y ajoutent quoi que ce
+soit.

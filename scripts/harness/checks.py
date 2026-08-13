@@ -29,6 +29,7 @@ regard de ce retour.
 """
 import json
 import os
+import sys
 
 import numpy as np
 from scipy import ndimage
@@ -339,8 +340,34 @@ def cell_checks(code, img, m):
         # conflit. Marc a tranche le 08/08 : « accepter que O soit la ligne ou
         # l'univers est montre homogene ».
         px = 2.0 * r["halfwidth_mpc"] / v.shape[0]
-        dispo = np.log2(max(homog * SEUIL_B5 / px, 2.21) / 2.2)
-        if dispo >= 2.0:
+        # DOMAINE DE B11 — CORRIGE le 10/08/2026, decision D-32.
+        #
+        # D-30 situait B11 sur la BANDE SPECTRALE TOTALE (>= 2 octaves). Ce
+        # n'est pas la grandeur qui predit le resultat : `N` offre 2,59 octaves
+        # et rendait pourtant 0,43 pour un seuil a 0,50, tous leviers epuises et
+        # mesures (gain de toile : degrade ; champ fin a 1,00 : 0,49 mais casse
+        # T-049 ; halos : legitimement absents, 2,2 Mpc contre 21,7 Mpc).
+        #
+        # La grandeur qui predit est la PLACE AU-DESSUS DE L'ESPACEMENT DES
+        # NOEUDS. Amasser, c'est moduler la densite des noeuds a une echelle plus
+        # GRANDE que leur espacement ; B5 plafonne cette echelle. Sous une octave
+        # il n'existe aucune echelle a la fois assez grande pour amasser et assez
+        # petite pour etre permise -- c'est arithmetique, pas un defaut de
+        # generateur.
+        #
+        #   `M` espacement 152,6 Mpc -> 1,82 octave -> s'applique, et passe
+        #   `N` espacement 344,9 Mpc -> 0,65 octave -> hors domaine
+        #   `O` espacement 711,8 Mpc -> -0,40 octave -> hors domaine (deja)
+        #
+        # Critere CALCULE, non code en dur : si la geometrie de la grille change,
+        # le domaine suit. Meme forme que la borne de B4 a la fenetre `D`->`J`.
+        if len(pk) >= 4:
+            lam = len(pk) / float(v.size)
+            espacement = px / (2.0 * np.sqrt(lam))
+        else:
+            espacement = float("inf")
+        dispo = np.log2(max(homog * SEUIL_B5 / max(espacement, 1e-9), 1e-9))
+        if dispo >= 1.0:
             out.append(Result("T-052", "CELL", "distribution amassee, non reguliere (B11)",
                               disp >= 0.50, "%s dispersion %.2f sur %d pics"
                               % (code, disp, len(pk))))
@@ -350,9 +377,10 @@ def cell_checks(code, img, m):
         else:
             out.append(Result("T-054b", "CELL",
                               "B11 hors domaine, et l'homogeneite est tenue (B8/B10)",
-                              True, "%s bande disponible %.2f octave < 2 : "
-                              "B11 non applicable ; T-050 et T-051 restent en garde"
-                              % (code, dispo)))
+                              True, "%s espacement des noeuds %.0f Mpc, plafond B5 "
+                              "%.0f Mpc : place %.2f octave < 1 ; B11 non "
+                              "applicable, T-050 et T-051 restent en garde"
+                              % (code, espacement, homog * SEUIL_B5, dispo)))
     return out
 
 
@@ -638,8 +666,78 @@ def chronologie_checks(m):
     return out
 
 
+def matrice_effectivement_lue(m):
+    """T-095 — un parametre declare dans la matrice doit etre LU par le moteur.
+
+    AJOUTE le 10/08/2026, apres DEUX occurrences le meme jour :
+
+      - `generation.sprites.procedural.gain` etait declare et le code utilisait
+        un litteral `3.5`. Consequence : `SPRITE_GAIN` balaye de 30 a 80 ne
+        changeait pas un octet de l'image `G`, et le defaut a mis une demi-
+        journee a se voir.
+      - `generation.web_gain.rows` etait declare depuis le 07/08 et n'etait lu
+        par personne. Le litteral du moteur COINCIDAIT par chance avec la matrice
+        pour `L`->`O`, donc rien ne l'avait revele -- jusqu'a ce qu'une valeur
+        posee a `G` reste sans effet et qu'une cuisson complete rende 0,60 la ou
+        le banc annoncait 0,71.
+
+    La hierarchie des documents dit que la matrice est la source de verite et que
+    « le code les lit ; les editer dans le code ne sert a rien ». Sans ce
+    controle, cette phrase etait fausse deux fois sur seize blocs, en silence.
+
+    Le controle compare valeur DECLAREE et valeur EFFECTIVE apres import. La liste
+    est explicite : elle ne devine rien, et toute entree ajoutee a la matrice qui
+    doit agir doit y etre inscrite.
+    """
+    import importlib
+    sys.path.insert(0, os.path.join(ROOT, "scripts", "dev"))
+    try:
+        G = importlib.import_module("gen_chain")
+        S = importlib.import_module("sprites_layer")
+    except Exception as e:
+        return Result("T-095", "CONF", "la matrice est lue par le moteur",
+                      False, "import impossible : %s" % str(e)[:60])
+    gen = m["generation"]
+    paires = [
+        ("generation.web_gain.rows", gen["web_gain"]["rows"], G.WEB_GAIN),
+        ("generation.champ_fin.strength", gen["champ_fin"]["strength"],
+         G.FINE_STRENGTH),
+        ("generation.ancrage.strength", gen["ancrage"]["strength"],
+         G.ANCHOR_STRENGTH),
+        ("generation.ancrage.gain", gen["ancrage"]["gain"], G.ANCHOR_GAIN),
+        ("generation.champ_fin.a", gen["champ_fin"]["a"], G.FINE_A),
+        ("generation.halos.r_mpc", gen["halos"]["r_mpc"], G.R_HALO_MPC),
+        ("generation.sprites.gain", gen["sprites"]["gain"], S.SPRITE_GAIN),
+        ("generation.sprites.procedural.gain",
+         gen["sprites"]["procedural"]["gain"], S.PROC_GAIN),
+        ("generation.sprites.ambient_ceil", gen["sprites"]["ambient_ceil"],
+         S.AMBIENT_CEIL),
+        ("generation.sprites.ambient_strength",
+         gen["sprites"]["ambient_strength"], S.AMBIENT_STRENGTH),
+        ("generation.sprites.target_mean_row",
+         gen["sprites"]["target_mean_row"], S.TARGET_MEAN_ROW),
+        ("generation.sprites.procedural_gain_row",
+         gen["sprites"].get("procedural_gain_row", {}), S.PROC_GAIN_ROW),
+    ]
+    muets = []
+    for nom, declare, effectif in paires:
+        if isinstance(declare, dict):
+            ecart = [k for k, v in declare.items()
+                     if abs(float(effectif.get(k, float("nan"))) - float(v)) > 1e-9]
+            if ecart:
+                muets.append("%s [%s]" % (nom, " ".join(sorted(ecart))))
+        elif abs(float(effectif) - float(declare)) > 1e-9:
+            muets.append("%s (%.4g declare, %.4g effectif)"
+                         % (nom, float(declare), float(effectif)))
+    return Result("T-095", "CONF",
+                  "tout parametre declare dans la matrice est lu (hierarchie)",
+                  not muets,
+                  "PARAMETRES MUETS : " + " · ".join(muets) if muets
+                  else "%d blocs verifies, aucun parametre muet" % len(paires))
+
+
 def conf_checks(d, m):
-    out = [plan_completeness(), requirement_coverage()]
+    out = [plan_completeness(), requirement_coverage(), matrice_effectivement_lue(m)]
     out += chronologie_checks(m)
     try:
         import checks_oeuvre as CO

@@ -19,6 +19,11 @@ from checks import DATA, ROOT, Result, SPRITE_ROWS, matrix, visible
 CATALOG = os.path.join(DATA, "local_group_catalog.json")
 MARGIN = 1.5
 
+# Domaine de T-094 (D6b) : les lignes ou le catalogue est dans le cadre, donc ou
+# « entre les galaxies » a un sens. Au-dessus de `I` le Groupe Local tient dans
+# quelques pixels et le fond n'a plus de galaxies a separer.
+CONTINUITE = set("IHGFEDCBA")
+
 # Cible mesuree sur l'image de reference, docs/reference-visuelle.md.
 # Les tolerances ci-dessous sont une PREMIERE CALIBRATION du 07/08/2026 : larges
 # a dessein, pour que le controle demarre en disant la verite plutot qu'en
@@ -438,11 +443,51 @@ def image_cell_checks(code, img, m):
     # positions du catalogue. Mesure : la densite y depasse la mediane de la
     # ligne. Origine 31/07, formulee par Marc.
     if code == "H" and pos:
-        vals = [float(img[int(cy), int(cx)]) for _, cx, cy in pos]
-        fr = float(np.mean([x > med for x in vals]))
-        out.append(Result("T-023", "CELL", "densite aux positions du catalogue (D6)",
-                          fr >= 0.70, "%s %.0f %% au-dessus de la mediane sur %d"
-                          % (code, 100 * fr, len(vals))))
+        # T-023 — REECRIT le 10/08/2026, D6c allegee par Marc.
+        #
+        # Ce que l'ancienne version pretendait, et ne mesurait pas
+        # --------------------------------------------------------
+        # Elle exigeait 70 % des positions au-dessus de la mediane, en
+        # echantillonnant UN SEUL PIXEL par galaxie. D6 demandait que les
+        # filaments CONVERGENT VERS les positions ; un pixel unique mesure la
+        # COINCIDENCE, pas la convergence. Cinquieme controle trouve mesurant
+        # autre chose que ce qu'il cite.
+        #
+        # Et surtout : le controle n'avait PAS DE TEMOIN. Le nuage du catalogue
+        # translate au hasard 300 fois sur la meme texture rend 50 % +- 18
+        # points. Les 36 % mesures sont donc a 0,8 sigma du hasard -- du bruit,
+        # pas un signal. Le seuil de 70 % exigeait 1,1 sigma AU-DESSUS du hasard
+        # sans que rien ne dise que le generateur puisse l'atteindre : mesure
+        # faite, il ne le peut a aucun rayon de voisinage (a 7 px le temoin
+        # atteint lui aussi 99 % et le controle ne prouve plus rien).
+        #
+        # Ce que la version ci-dessous affirme, et ce qu'elle n'affirme pas
+        # ----------------------------------------------------------------
+        # Elle GARDE contre l'anti-correlation : les galaxies ne doivent pas
+        # tomber du cote rarefie de la toile. Elle NE PROUVE PAS la convergence,
+        # et ne doit pas etre lue comme telle -- la charge de D6 est portee par
+        # T-094 (D6b). Le seuil est relatif au temoin et non absolu : il suit
+        # donc la texture au lieu de dependre d'un chiffre fige.
+        rows = m["zoom_axis"]["rows"]
+        n = img.shape[0]
+        cx = np.array([p[1] for p in pos])
+        cy = np.array([p[2] for p in pos])
+        fr = float(np.mean([img[int(b), int(a)] > med for a, b in zip(cx, cy)]))
+        rng = np.random.default_rng(20260810)
+        t = []
+        for d in rng.integers(-int(0.42 * n), int(0.42 * n), (300, 2)):
+            a = np.clip(cx + d[0], 0, n - 1).astype(int)
+            b = np.clip(cy + d[1], 0, n - 1).astype(int)
+            t.append(float((img[b, a] > med).mean()))
+        t = np.array(t)
+        seuil = float(t.mean() - t.std())
+        out.append(Result("T-023", "CELL",
+                          "pas d'anti-correlation avec la toile (D6c)",
+                          fr >= seuil,
+                          "%s %.0f %% au-dessus de la mediane sur %d, temoin "
+                          "%.0f %% +- %.0f, plancher %.0f %%"
+                          % (code, 100 * fr, len(cx), 100 * t.mean(),
+                             100 * t.std(), 100 * seuil)))
     return out
 
 
@@ -463,6 +508,43 @@ def image_pair_checks(pc, cc, pimg, cimg, m):
         out.append(Result("T-035", "PAIR", "fluidite a l'arete G|H (D1)",
                           dt <= 12.0 and dc <= 0.20,
                           "ton %.1f /255, contraste %.2f" % (dt, dc)))
+
+    # ---- T-094 : la matiere entre les galaxies ne chute pas (D6b) ----------
+    # AJOUTE le 10/08/2026, sur reformulation de D6 par Marc : « il ne faut pas
+    # qu'il y en ait trop entre les galaxies sur les layers superieurs, sinon on
+    # aura l'impression que de la matiere disparait en zoomant sur les galaxies ».
+    #
+    # C'est la clause qui porte reellement D6 depuis que D6c est allegee. La
+    # grandeur est le CONTRASTE DU FOND HORS VOISINAGE DES GALAXIES : la moyenne
+    # seule ne voit pas le defaut (elle ne descend que de 12 % a l'arete `H|G`)
+    # alors que le contraste y perd 36 % et le pic 42 %.
+    #
+    # Mesure du 10/08 sur cuisson fraiche : `I`->`H` 1,04 · `H`->`G` **0,64** ·
+    # `G`->`F` 0,84 · `F`->`E` 0,93 · `E`->`D` 0,97 · `D`->`C` 0,88. L'arete
+    # `H|G` est la seule hors bande -- c'est la charniere ou la trame change de
+    # mecanisme, et c'est exactement celle que Marc decrit.
+    if pc in CONTINUITE and cc in CONTINUITE:
+        def fond_contraste(code, im):
+            u = visible(im)
+            n = u.shape[0]
+            off = (im.shape[0] - n) // 2
+            px_m = 2.0 * rows[code]["halfwidth_mpc"] / n
+            msk = np.ones(u.shape, bool)
+            yy, xx = np.ogrid[0:n, 0:n]
+            for g, gx, gy in _positions(code, im):
+                r_px = max(3.0, 2.5 * g["radiusMpc"] / px_m)
+                msk &= np.hypot(yy - (gy - off), xx - (gx - off)) > r_px
+            if msk.sum() < 100:
+                return float("nan")
+            w = ndimage.gaussian_filter(u, 2.0)[msk]
+            return float(w.std() / max(w.mean(), 1e-9))
+        ap, ac = fond_contraste(pc, pimg), fond_contraste(cc, cimg)
+        rap = ac / max(ap, 1e-9)
+        out.append(Result("T-094", "PAIR",
+                          "la matiere entre les galaxies ne chute pas (D6b/D6)",
+                          rap >= 0.75,
+                          "%s->%s contraste du fond %.3f -> %.3f, rapport %.2f"
+                          % (pc, cc, ap, ac, rap)))
 
     # ---- T-039 : effet fractal dans la fenetre D -> J ---------------------
     # B4, borne a sa fenetre de validite : hors de 0,1-150 Mpc l'univers n'est

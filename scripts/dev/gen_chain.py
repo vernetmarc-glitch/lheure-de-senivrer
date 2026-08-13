@@ -368,6 +368,13 @@ def load_params(path=None):
         SUB_FRAC=gen["halos"]["sub_frac"],
         ANCHOR_GAIN=gen["ancrage"]["gain"], R_REF_MPC=gen["ancrage"]["r_ref_mpc"],
         ANCHOR_STRENGTH=gen["ancrage"]["strength"],
+        # AJOUTE le 10/08/2026. `web_gain` etait declare dans la matrice depuis le
+        # 07/08 et n'etait LU PAR PERSONNE : le moteur utilisait son propre
+        # litteral, qui coincidait par chance avec la matrice pour `L`->`O`, si
+        # bien que rien ne l'avait revele. Deuxieme occurrence du meme defaut le
+        # meme jour, apres `procedural.gain` dans `sprites_layer`. T-095 le
+        # surveille desormais pour tous les blocs concernes.
+        WEB_GAIN=gen["web_gain"]["rows"],
     )
     rows = json.load(open(path or MATRIX_PATH))["zoom_axis"]["rows"]
     seeds = gen["seeds"]

@@ -204,3 +204,44 @@ paramètre de génération exprimé en pixels reste interdit — cinq occurrence
   colonne 0. **D-21 doit être amendée** ;
 - les rayons des trois sphères sont publiés en propre
   (`horizons_propres_mpc`), en plus du comobile qui reste la source de calcul.
+
+## D-32 — B11 est situé sur la place au-dessus de l'espacement des nœuds *(10/08/2026)*
+
+**Tranché par Marc.** Corrige D-30, qui situait B11 sur la **bande spectrale
+totale** (≥ 2 octaves). Ce n'est pas la grandeur qui prédit le résultat : `N`
+offre 2,59 octaves et rendait 0,43 pour un seuil à 0,50, tous leviers épuisés et
+mesurés.
+
+Amasser des nœuds, c'est **moduler leur densité à une échelle plus grande que
+leur espacement** ; B5 plafonne cette échelle à `homogénéité × 1,8` = 540 Mpc.
+Sous une octave de place, aucune échelle n'est à la fois assez grande pour
+amasser et assez petite pour être permise. `M` en a 1,82 et passe ; `N` 0,65 ;
+`O` −0,40 et était déjà exclu.
+
+Le critère reste **calculé**, jamais codé en dur : si la géométrie de la grille
+change, le domaine suit. Les garde-fous de D-30 sont conservés — T-050, T-051 et
+T-028 restent armés aux lignes exclues, et T-054b affiche une ligne au rapport.
+
+## D-33 — D6 est réécrite : la continuité prime sur la coïncidence *(10/08/2026)*
+
+**Reformulation de Marc.** L'ancienne D6 — « les galaxies réelles sont des
+centres de gravité » — demandait que les filaments **convergent vers** les
+positions du catalogue. Mesure faite, le générateur ne le produit à **aucun**
+rayon de voisinage : les positions réelles sont au niveau du hasard (36 % contre
+un témoin à 50 % ± 18), et à 7 px le témoin atteint lui aussi 99 %.
+
+L'intention générale, dans les termes de Marc : *les galaxies doivent se détacher
+du fond quand on zoome dessus, tout en étant déjà visibles sur les lignes
+supérieures.* Trois clauses en découlent :
+
+- **D6a** — sur les lignes à galaxies, le fond est ténu (porté par A8 clause 3) ;
+- **D6b** — la matière visible **entre** les galaxies ne chute pas d'une ligne à
+  la suivante, sinon le zoom donne l'impression qu'elle disparaît. **C'est la
+  clause qui porte désormais D6**, et T-094 la mesure ;
+- **D6c** — les galaxies ne tombent pas du côté raréfié de la toile. Clause
+  **allégée** : garde contre l'anti-corrélation, seuil relatif à son propre
+  témoin. Elle ne prouve plus la convergence, et le registre le dit.
+
+*Ce que la décision ne fait pas :* elle ne retire pas l'exigence. Elle déplace la
+charge de la preuve d'une grandeur que le générateur ne peut pas produire vers
+celle que Marc décrit réellement à l'œil.
