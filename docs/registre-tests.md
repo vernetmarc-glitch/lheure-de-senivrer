@@ -1595,3 +1595,55 @@ Les trois passent sur le code corrigé.
 *Portée : `OEUVRE`. Ces contrôles ne tournent pas dans `--statique` (limité à
 CONF et SRC) mais dans `--all`. À garder en tête avant de conclure d'un statique
 vert que le code d'application est vérifié.*
+
+---
+
+## 11/08/2026 — T-099 et T-100 : les galaxies à T=0
+
+**Retour de Marc :** « elles sont moches, ultra simplistes et utilisant des
+gaussiennes ».
+
+**La mesure lui donne raison, et nomme la cause.** `starCountFor` rendait
+**~316 étoiles** pour Andromède — la plus grande galaxie du champ après la
+nôtre — chacune splattée en gaussienne, plus un halo central. Le modèle partagé
+`GalaxyModel` en engendre **81 758 avec quatre bras**. La structure existait ;
+c'est le pipeline qui la jetait, et l'aplatissement global `YSCALE = 0,40`
+achevait d'écraser ce qui restait.
+
+### T-099 — le catalogue porte l'orientation (D7)
+
+L'orientation est une grandeur **mesurée** : elle appartient au catalogue, comme
+les distances et les rayons, pas au moteur de rendu. Ajoutés pour les huit
+galaxies réelles : `inclinationDeg`, `positionAngleDeg`, `morphology`,
+`shapeIsApparent`.
+
+*Ce dernier champ est là par honnêteté :* pour les disques (M31, M33, LMC) il
+s'agit bien d'une inclinaison de disque. Pour les irrégulières et les
+sphéroïdales naines, l'inclinaison d'un disque **n'a pas de sens** — on y
+consigne l'aplatissement apparent converti (`cos i = b/a`), et le champ le dit.
+
+### T-100 — les sprites viennent du modèle, pas d'un ersatz
+
+**Pourquoi ce contrôle porte sur la CAUSE et non sur l'image.** Trois mesures
+perceptuelles de « richesse » ont été tentées, et les trois mesuraient autre
+chose :
+
+| Tentative | Ce qu'elle mesurait vraiment | Symptôme |
+|---|---|---|
+| Écart-type du profil azimutal | le **bruit de grenaille** | le nuage appauvri à 2 500 traceurs « gagnait » : 0,134 contre 0,037 |
+| Modes bas / modes hauts | l'**élongation** | 338 pour la tache plate d'Andromède contre 11 pour le modèle à quatre bras |
+| Cohérence de phase log-spirale | le **flou** et la **concentration** | le dénominateur s'effondre sur une image lisse |
+
+Plutôt que d'armer une quatrième mesure douteuse, T-100 vérifie ce qui est sans
+ambiguïté : que le générateur consomme le **modèle partagé** et l'**orientation
+du catalogue**, et que la graine dérive du **contenu** du nom. *Le jugement sur
+l'image reste celui de Marc — c'est la confirmation finale prévue par la
+méthode, pas la méthode de détection.*
+
+### La graine, cause de T-024
+
+Elle valait `(longueur du nom + 1) × 7919`. « IC 10 » et « Leo I » font **cinq
+caractères** : même graine, même morphologie par défaut, et les deux sprites
+avaient le **même md5**. Corrigée dans les deux générateurs. T-024 reste rouge
+tant que les sprites de **dissolution** ne sont pas recuits — ils relèvent de
+l'axe du temps.

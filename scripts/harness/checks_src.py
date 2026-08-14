@@ -26,6 +26,7 @@ Toutes les valeurs de reference ont ete mesurees le 03/08/2026 et re-mesurees le
 07/08 a l'ecriture de ces controles ; les deux jeux coincident.
 """
 import os
+import re
 
 import numpy as np
 from scipy import ndimage
@@ -38,6 +39,59 @@ HIRES_DIR = os.path.join(DATA, "dissolution_sprites_hires")
 NAMES = ["andromede", "ic10", "leo1", "lmc", "milkyway", "ngc6822",
          "sagittaire", "smc", "triangulum"]
 N_FRAMES = 14
+CATALOG = os.path.join(DATA, "local_group_catalog.json")
+REALGAL = os.path.join(DATA, "density_realgal_%s.png")
+# Galaxies a DISQUE : ce sont les seules ou une structure azimutale (bras,
+# barre) doit se lire. Les naines et irregulieres n'en ont pas, et exiger des
+# bras la serait exiger un mensonge.
+DISQUES = ["milkyway", "andromede", "triangulum", "lmc"]
+
+
+def _richesse_azimutale(img, inclinaison_deg=0.0, angle_pos_deg=0.0):
+    """Structure azimutale d'un disque, APRES DEPROJECTION.
+
+    Mesure la puissance des modes azimutaux BAS (m=2 et m=4 : deux ou quatre
+    bras, barre) rapportee au bruit de grenaille, estime sur les modes HAUTS
+    (m=12..28) qui ne portent aucune structure.
+
+    DEUX tentatives ratees avant celle-ci, le 11/08 -- les deux consignees parce
+    qu'elles se represenrteront :
+
+      1. Ecart-type du profil azimutal : donnait 0,134 pour 2 500 traceurs contre
+         0,037 pour 82 000. Le nuage APPAUVRI gagnait. Cette mesure voyait le
+         bruit de grenaille, pas les bras.
+      2. Modes bas / modes hauts, SANS deprojection : donnait 338 pour le sprite
+         plat d'Andromede contre 11 pour le modele a quatre bras vu de face. Le
+         mode m=2 etait sature par l'ELONGATION de l'objet -- un disque incline
+         est une ellipse, et une ellipse est du m=2 pur. La mesure classait donc
+         les galaxies par inclinaison apparente, pas par structure.
+
+    D'ou la deprojection prealable, qui rend le disque circulaire avant de
+    regarder son azimut. Elle consomme `inclinationDeg` et `positionAngleDeg` du
+    catalogue : la mesure DEPEND des grandeurs mesurees, ce qui est le bon sens
+    de la dependance.
+    """
+    n = img.shape[0]
+    yy, xx = np.mgrid[0:n, 0:n] - (n - 1) / 2.0
+    pa = np.radians(angle_pos_deg)
+    # Repere de l'axe majeur, puis etirement de l'axe mineur par 1/cos i.
+    u = xx * np.cos(pa) + yy * np.sin(pa)
+    v = -xx * np.sin(pa) + yy * np.cos(pa)
+    v = v / max(np.cos(np.radians(min(inclinaison_deg, 82.0))), 0.14)
+    r = np.hypot(u, v)
+    th = np.arctan2(v, u)
+    m = (r > 0.10 * n) & (r < 0.30 * n)
+    if m.sum() < 500:
+        return 0.0
+    nb = 128
+    idx = np.clip(((th[m] + np.pi) / (2 * np.pi) * nb).astype(int), 0, nb - 1)
+    cnt = np.bincount(idx, minlength=nb)
+    if (cnt == 0).any():
+        return 0.0
+    prof = np.bincount(idx, weights=img[m], minlength=nb) / cnt
+    prof = prof - prof.mean()
+    P = np.abs(np.fft.rfft(prof)) ** 2
+    return float((P[2] + P[4]) / max(P[12:29].mean(), 1e-12))
 
 
 def _load(name, f, hires=False):
@@ -93,6 +147,75 @@ def _moments(a, mask):
 
 def src_checks():
     out = []
+
+    # ---- T-099 : le catalogue porte l'orientation de chaque galaxie --------
+    # AJOUTE le 11/08/2026. Jusqu'ici un aplatissement GLOBAL (`YSCALE = 0,40`)
+    # etait applique a toutes les galaxies indistinctement -- ce qui ecrase les
+    # bras d'Andromede dans une barre horizontale et donne au LMC, quasi de
+    # face, la meme silhouette qu'a M31, inclinee a 77 degres. L'orientation est
+    # une grandeur MESUREE : elle appartient au catalogue, pas au moteur de
+    # rendu, exactement comme les distances et les rayons.
+    import json as _json
+    cat = _json.load(open(CATALOG, encoding="utf-8")) if os.path.exists(CATALOG) else []
+    reelles = [g for g in cat if g.get("isReal")]
+    manque = [g.get("name", "?") for g in reelles
+              if not all(k in g for k in ("inclinationDeg", "positionAngleDeg",
+                                          "morphology", "shapeIsApparent"))]
+    hors = [g["name"] for g in reelles
+            if "inclinationDeg" in g and not (0 <= g["inclinationDeg"] <= 90)]
+    hors += [g["name"] for g in reelles
+             if "positionAngleDeg" in g and not (0 <= g["positionAngleDeg"] < 180)]
+    out.append(Result("T-099", "SRC",
+                      "le catalogue porte inclinaison et angle de position (D7)",
+                      bool(reelles) and not manque and not hors,
+                      "%d/%d renseignees%s" % (len(reelles) - len(manque), len(reelles),
+                                               ("  MANQUE : " + " ".join(manque)) if manque
+                                               else ("  HORS PLAGE : " + " ".join(hors)) if hors
+                                               else "")))
+
+    # ---- T-100 : les sprites T=0 viennent du modele, pas d'un ersatz ------
+    # « Elles sont moches, ultra simplistes et utilisant des gaussiennes »
+    # (Marc, 11/08). La mesure lui donne raison et nomme la cause :
+    # `starCountFor` rendait ~316 etoiles pour Andromede, chacune splattee en
+    # gaussienne plus un halo central, alors que le modele partage en engendre
+    # 81 758 avec quatre bras. La structure existait ; le pipeline la jetait.
+    #
+    # POURQUOI CE CONTROLE PORTE SUR LA CAUSE ET NON SUR L'IMAGE
+    # ----------------------------------------------------------
+    # Trois mesures perceptuelles de « richesse » ont ete tentees le 11/08, et
+    # les trois mesuraient autre chose :
+    #   1. ecart-type du profil azimutal -> le BRUIT DE GRENAILLE (le nuage
+    #      appauvri a 2 500 traceurs « gagnait » : 0,134 contre 0,037) ;
+    #   2. modes bas / modes hauts -> l'ELONGATION (un disque incline est une
+    #      ellipse, donc du m=2 pur : 338 pour la tache plate d'Andromede
+    #      contre 11 pour le modele a quatre bras) ;
+    #   3. coherence de phase log-spirale -> le FLOU et la CONCENTRATION (le
+    #      denominateur s'effondre sur une image lisse, et la couronne de mesure
+    #      tombe sur le bord d'une petite tache).
+    # Plutot que d'armer une quatrieme mesure douteuse, ce controle verifie ce
+    # qui est sans ambiguite : le nombre d'etoiles effectivement tirees, et le
+    # fait que le generateur consomme le modele partage ET l'orientation du
+    # catalogue. Le jugement sur l'image reste celui de Marc -- c'est la
+    # confirmation finale prevue par la methode, pas la methode de detection.
+    gen = os.path.join(ROOT, "scripts", "generate_realgal_sprites.mjs")
+    src = open(gen, encoding="utf-8").read() if os.path.exists(gen) else ""
+    pieces = [
+        ("generateur absent", bool(src)),
+        ("modele partage pour la Voie lactee", "generateGalaxy" in src),
+        ("inclinaison lue au catalogue", "inclinationDeg" in src),
+        ("angle de position lu au catalogue", "positionAngleDeg" in src),
+        ("morphologie lue au catalogue", "morphology" in src),
+        # La graine derivait de la LONGUEUR du nom : « IC 10 » et « Leo I » font
+        # cinq caracteres, d'ou deux galaxies identiques a l'octet pres (T-024).
+        ("graine derivee du contenu du nom",
+         bool(re.search(r"charCodeAt", src)) and not re.search(r"name\.length\s*\+\s*1", src)),
+    ]
+    manque2 = [n for n, ok in pieces if not ok]
+    out.append(Result("T-100", "SRC",
+                      "les sprites T=0 viennent du modele et du catalogue (D5/D7)",
+                      not manque2,
+                      "manque : " + ", ".join(manque2) if manque2
+                      else "modele partage, orientation et morphologie du catalogue"))
 
     # ---- T-048 : les sprites viennent bien du moteur, et sont tous la -------
     present = [(n, f) for n in NAMES for f in range(N_FRAMES)

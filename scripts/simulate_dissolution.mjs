@@ -265,7 +265,18 @@ async function main() {
     const slug = SLUG_BY_NAME[gal.name]
     if (!slug) continue
     console.log(`Simulation ${gal.name} (${slug})...`)
-    const seed = (gal.name.length + 1) * 7919
+    // Graine derivee du CONTENU du nom, non de sa LONGUEUR. L'ancienne
+    // formule `(gal.name.length + 1) * 7919` donnait la meme valeur pour
+    // « IC 10 » et « Leo I » -- cinq caracteres chacun -- d'ou deux galaxies
+    // identiques a l'octet pres, sprite et positions comprises (T-024).
+    // Corrige le 11/08/2026 ; prend effet a la prochaine cuisson de
+    // dissolution, qui releve de l'axe du temps.
+    let h = 2166136261
+    for (let i = 0; i < gal.name.length; i++) {
+      h ^= gal.name.charCodeAt(i)
+      h = Math.imul(h, 16777619)
+    }
+    const seed = h >>> 0
     const points = generateMorphologyStars(gal.name, N_TRACERS, seed).map((s) => ({ x: s.x, y: s.y, b: s.b }))
     result[slug] = runSimulation(points, seed + 1)
     console.log(`  -> ${result[slug].frames.length} frames, ${points.length} particules`)
