@@ -1534,3 +1534,64 @@ production** — l'écart banc/production est refermé. Le plateau est atteint :
 le plafond ambiant (qui dégrade T-077 plus vite qu'il ne rend du contraste), ni
 le champ fin propre à `G` (qui effondre T-094 à 0,13) n'y ajoutent quoi que ce
 soit.
+
+---
+
+## 11/08/2026 — H9, H10, H11 : trois retours de Marc sur l'application
+
+*Écrits comme contrôles avant correction, et vérifiés rouges sur le code de la
+veille (banc de falsification ci-dessous).*
+
+### T-096 — aucun bord vide au zoom (H9)
+
+**Retour :** « sur les grands écrans on voit uniquement le nouveau layer en petit
+sur un fond noir ».
+
+**Cause.** Quand le champ de vue dépasse la couverture d'une texture
+(`overshoot > 1`), `DensityLayer` réduit le **rectangle de destination** à une
+boîte centrée. Le commentaire d'origine pariait que « le layer plus grossier,
+déjà visible en fondu à ce moment, comble naturellement les bords ». **Ce pari
+n'est vrai que pendant le fondu** : dès que le layer écrêté atteint la pleine
+opacité, le grossier est sauté (`w < 0.003`) et l'anneau reste noir.
+
+**Pourquoi sur PC et pas sur téléphone.** `halfWidthMpcX = (W/côté court) ×
+halfWidthMpc` : en 16:9 le débordement commence ~1,8× plus bas qu'en portrait.
+Le défaut était donc invisible sur l'appareil de développement.
+
+**Correction.** L'anneau est peint par le layer **le plus fin qui couvre encore
+tout l'écran** — le saut de résolution au raccord est ainsi minimal — **à la même
+opacité**, et découpé en **règle pair-impair** pour que le centre ne soit pas
+repeint : le ton y reste exactement celui d'avant.
+
+*Le contrôle exige les trois pièces, parce que deux sur trois ne peignent rien.*
+
+### T-097 — libellés proportionnés à l'écran (H10)
+
+Les tailles étaient des **constantes en px CSS** (9 à 16), calibrées sur
+téléphone, donc figées quelle que soit la largeur de la carte. Une seule taille
+oubliée redevient illisible sur grand écran : le contrôle exige donc qu'il n'en
+reste **aucune**, HTML comme canvas. Échelle indexée sur le **plus petit côté**
+de la zone de rendu — c'est lui qui fixe le champ de vue — avec un plancher à 1
+pour ne rien réduire sur téléphone, et un plafond à 2,1.
+
+### T-098 — témoin des layers affichés (H11)
+
+**C'est un instrument de mesure du retour client, pas une décoration.** Le
+contrôle exige qu'il lise les poids par la **même fonction** que le compositeur
+et avec le **même seuil** (0,003) : un témoin qui recalculerait autrement
+désignerait un layer pour un autre, et **tous les retours qu'il permet seraient
+faux**.
+
+### Banc de falsification — code du 10/08, avant correction
+
+| Contrôle | Sur le code de la veille |
+|---|---|
+| T-096 | ÉCHEC — manque : remplisseur, découpe pair-impair |
+| T-097 | ÉCHEC — 10 tailles HTML et 4 polices canvas encore figées |
+| T-098 | ÉCHEC — manque : même fonction de poids, pourcentages, même seuil |
+
+Les trois passent sur le code corrigé.
+
+*Portée : `OEUVRE`. Ces contrôles ne tournent pas dans `--statique` (limité à
+CONF et SRC) mais dans `--all`. À garder en tête avant de conclure d'un statique
+vert que le code d'application est vérifié.*

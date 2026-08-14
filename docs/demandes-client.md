@@ -686,6 +686,31 @@ certaines régions s'éloignent de nous plus vite qu'elle.
 
 ---
 
+
+**H9. Aucun bord vide au zoom.** À aucun moment le fond de carte ne doit laisser
+une zone d'écran **vide** autour du layer affiché. Quand un layer est écrêté
+parce que le champ de vue dépasse la couverture de sa texture, l'anneau laissé
+libre est peint par le layer le plus fin qui couvre encore tout l'écran, **à la
+même opacité**. *(Origine : 11/08/2026 — « sur les grands écrans on voit
+uniquement le nouveau layer en petit sur un fond noir ». Le pari d'origine —
+« le layer plus grossier comble naturellement les bords » — n'est vrai que
+pendant le fondu, et faux dès la pleine opacité, où le grossier est sauté.)*
+
+**H10. Libellés proportionnés à l'écran.** La taille apparente des libellés doit
+suivre la taille de la zone de rendu, et non rester figée en pixels CSS. Une
+valeur calibrée sur téléphone devient illisible sur un écran de PC, où la carte
+est trois à quatre fois plus large. *(Origine : 11/08/2026 — « sur un écran de PC
+la gestion et la taille apparente des labels est pas OK, ils sont trop
+petits ».)*
+
+**H11. Témoin des layers affichés.** Un libellé discret, dans un coin, indique en
+permanence **quels layers sont composés et avec quelle opacité**. Il lit les
+poids par la **même fonction** que le compositeur, avec le **même seuil**
+d'affichage : un témoin qui recalculerait autrement mentirait au premier
+désaccord. *(Origine : 11/08/2026 — « ça me permettra de te faire des retours sur
+les layers et les transitions qui posent problème ». C'est un instrument de
+mesure du retour client, pas une décoration.)*
+
 ## J. Parcours guidés
 
 **J1. Animations prédéfinies.** Les trois sphères doivent pouvoir être comprises

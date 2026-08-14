@@ -26,6 +26,7 @@ from checks import DATA, ROOT, Result
 TABLE = os.path.join(DATA, "cosmology_table.json")
 CARTE = os.path.join(ROOT, "app", "src", "UniverseMap.tsx")
 COSMO = os.path.join(ROOT, "app", "src", "cosmology.ts")
+DENSITE = os.path.join(ROOT, "app", "src", "DensityLayer.tsx")
 
 # Valeurs de reference du document client, section H. Tolerance 5 % : ce sont des
 # ordres de grandeur cosmologiques, pas des constantes de calibration.
@@ -138,6 +139,61 @@ def oeuvre_checks():
                           if os.path.exists(COSMO) else ""))
     out.append(Result("T-062", "OEUVRE", "la vitesse de la lumiere est representee (H8)",
                       ref_c, "aucune representation trouvee" if not ref_c else "presente"))
+
+    dens = open(DENSITE, encoding="utf-8").read() if os.path.exists(DENSITE) else ""
+
+    # ---- H9 : aucun bord vide au zoom -------------------------------------
+    # Le defaut du 11/08 : quand `overshoot > 1`, la destination est reduite a
+    # une boite centree et RIEN ne peint l'anneau restant des que le layer
+    # ecrete atteint la pleine opacite (le grossier est saute a `w < 0.003`).
+    # Sur un ecran large `halfWidthMpcX` est multiplie par W/H, donc le
+    # debordement arrive ~1,8x plus tot en 16:9 qu'en portrait -- d'ou le cadre
+    # noir vu par Marc sur ecran de PC et jamais sur telephone.
+    #
+    # Le controle exige les TROIS pieces, parce que deux sur trois ne peignent
+    # rien : un remplisseur CHOISI parmi les layers qui couvrent encore l'ecran,
+    # un DECOUPAGE en regle pair-impair (sans lui le centre serait repeint et le
+    # ton fausse), et un TRACE a l'interieur de la branche d'ecretage.
+    a_remplisseur = bool(re.search(r"filler\s*=", dens))
+    a_decoupe = bool(re.search(r"clip\(\s*['\"]evenodd", dens))
+    a_couverture = bool(re.search(r"maxMpc\s*\*\s*marginFor", dens))
+    manque = [n for n, ok in (("remplisseur", a_remplisseur),
+                              ("decoupe pair-impair", a_decoupe),
+                              ("choix par couverture", a_couverture)) if not ok]
+    out.append(Result("T-096", "OEUVRE", "aucun bord vide au zoom (H9)",
+                      not manque,
+                      "manque : " + ", ".join(manque) if manque
+                      else "remplisseur choisi par couverture, anneau seul repeint"))
+
+    # ---- H10 : libelles proportionnes a l'ecran ---------------------------
+    # Les tailles etaient des CONSTANTES en px CSS, calibrees sur telephone.
+    # Le controle verifie qu'il ne reste AUCUNE taille figee dans la carte :
+    # une seule oubliee et c'est elle qui redevient illisible sur grand ecran.
+    fige_html = re.findall(r"fontSize:\s*(\d+)(?![\d.])", src)
+    fige_canvas = re.findall(r"\$\{(\d+(?:\.\d+)?) \* DPR\}px", src)
+    a_echelle = bool(re.search(r"uiScale\s*=", src))
+    out.append(Result("T-097", "OEUVRE", "libelles proportionnes a l'ecran (H10)",
+                      a_echelle and not fige_html and not fige_canvas,
+                      "%d taille(s) HTML et %d police(s) canvas encore figees"
+                      % (len(fige_html), len(fige_canvas)) if (fige_html or fige_canvas)
+                      else ("echelle absente" if not a_echelle
+                            else "toutes les tailles suivent uiScale")))
+
+    # ---- H11 : temoin des layers affiches ---------------------------------
+    # Instrument de mesure du retour client : il doit lire les poids par la MEME
+    # fonction que le compositeur, sinon il designe un layer pour un autre et
+    # tous les retours qu'il permet sont faux.
+    meme_source = bool(re.search(r"getLayerWeights", src)) and \
+        bool(re.search(r"getLayerWeights", dens))
+    a_pourcent = bool(re.search(r"100 \* w\[", src))
+    meme_seuil = ("0.003" in src) and ("0.003" in dens)
+    manque2 = [n for n, ok in (("meme fonction de poids", meme_source),
+                               ("pourcentages", a_pourcent),
+                               ("meme seuil d'affichage", meme_seuil)) if not ok]
+    out.append(Result("T-098", "OEUVRE", "temoin des layers affiches (H11)",
+                      not manque2,
+                      "manque : " + ", ".join(manque2) if manque2
+                      else "poids lus par getLayerWeights, seuil 0,003 partage"))
     return out
 
 

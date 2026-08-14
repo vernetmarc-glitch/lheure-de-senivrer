@@ -4,6 +4,7 @@ import DensityLayer from './DensityLayer'
 import RealGalaxiesLayer from './RealGalaxiesLayer'
 import { type DensityStyle } from './colormaps'
 import InfoModal from './InfoModal'
+import { getLayerWeights, LAYER_ORDER } from './layerWeights'
 
 const MIN_HALF_WIDTH_MPC = 0.02 // ~65 000 al — la Voie lactée (rayon 52 000 al) remplit le cadre
 const MAX_HALF_WIDTH_MPC = 14570 // ~95 Gal de côté au total
@@ -80,6 +81,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
   // grille pour placer le bouton "i" HTML par-dessus au bon endroit.
   const [horizonLabelPos, setHorizonLabelPos] = useState<{ x: number; y: number } | null>(null)
   const halfWidthMpc = Math.pow(10, logHalfWidth)
+
   const dilution = densityDilutionFactor(cosmology.a)
 
   // Zone de rendu clampée au ratio max — le reste (bandes) montre juste le
@@ -93,6 +95,25 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
   // Résolution physique réelle (pas seulement CSS) : évite qu'un canvas trop
   // petit soit ré-agrandi (et donc flouté) par le navigateur sur un écran
   // haute densité (Retina, la plupart des smartphones récents).
+  // Echelle des libelles (H10, 11/08/2026). Les tailles etaient ecrites en px
+  // CSS constants (9 a 16), calibrees sur un telephone : sur un ecran de PC la
+  // carte fait 3 a 4 fois plus large et les libelles y deviennent illisibles,
+  // sans jamais changer de taille apparente relative. On indexe donc la taille
+  // sur le PLUS PETIT cote de la zone de rendu -- c'est lui qui fixe le champ
+  // de vue -- avec un plancher a 1 pour ne rien reduire sur telephone.
+  const uiScale = Math.min(Math.max(Math.min(renderWidth, renderHeight) / 380, 1), 2.1)
+  const fs = (px: number) => Math.round(px * uiScale)
+
+  // Lecture des layers affichés (H11). Même source que `DensityLayer` — le
+  // seuil de 0,3 % est celui sous lequel il saute le tracé.
+  const layerReadout = useMemo(() => {
+    const w = getLayerWeights(halfWidthMpc)
+    const vus = LAYER_ORDER.filter((k) => w[k] >= 0.003)
+      .sort((a, b) => w[b] - w[a])
+      .map((k) => `${k} ${(100 * w[k]).toFixed(1)} %`)
+    return `${vus.join('  ·  ')}\n${formatDistance(halfWidthMpc)} de demi-largeur`
+  }, [halfWidthMpc])
+
   const pixelWidth = renderWidth * DPR
   const pixelHeight = renderHeight * DPR
 
@@ -158,7 +179,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
 
     ctx.strokeStyle = 'rgba(255,255,255,0.22)'
     ctx.fillStyle = 'rgba(255,255,255,0.55)'
-    ctx.font = `${11 * DPR}px monospace`
+    ctx.font = `${11 * uiScale * DPR}px monospace`
     const maxRingLines = Math.max(nLinesX, nLinesY)
     const maxRingPx = Math.max(W, H) * 0.75
     for (let i = 1; i <= maxRingLines; i++) {
@@ -218,7 +239,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
       // chevaucheraient dès que les rayons se rapprochent.
       if (!s.principal && rPx < Math.max(W, H) * 0.9 && rPx > 24 * DPR) {
         ctx.fillStyle = s.color
-        ctx.font = `${10 * DPR}px monospace`
+        ctx.font = `${10 * uiScale * DPR}px monospace`
         ctx.textAlign = 'left'
         ctx.fillText(`${s.label} — ${formatDistance(s.r)}`, cx + 6 * DPR, cy - rPx - 5 * DPR)
       }
@@ -245,7 +266,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
         ctx.lineTo(bx + lenPx, by + 4 * DPR)
         ctx.stroke()
         ctx.fillStyle = '#ffffff'
-        ctx.font = `${10 * DPR}px monospace`
+        ctx.font = `${10 * uiScale * DPR}px monospace`
         ctx.textAlign = 'left'
         ctx.fillText('vitesse de la lumière : 1 milliard d\u2019années', bx, by - 8 * DPR)
       }
@@ -255,7 +276,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
     ctx.lineWidth = 2 * DPR
     if (horizonRPx < Math.max(W, H) * 0.9) {
       ctx.fillStyle = '#5aa9e6'
-      ctx.font = `bold ${11 * DPR}px monospace`
+      ctx.font = `bold ${11 * uiScale * DPR}px monospace`
       const label = 'Horizon des particules'
       // Point d'ancrage FIXE : juste au-dessus du sommet du cercle (pas de
       // chevauchement avec le trait). Le texte s'étend vers la GAUCHE
@@ -276,7 +297,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
     } else {
       setHorizonLabelPos(null)
     }
-  }, [halfWidthMpc, gridStepMpc, cosmology, dilution, width, height])
+  }, [halfWidthMpc, gridStepMpc, cosmology, dilution, width, height, uiScale])
 
   return (
     <div
@@ -338,7 +359,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
                 background: 'rgba(90,169,230,0.18)',
                 border: '1px solid #5aa9e6',
                 color: '#5aa9e6',
-                fontSize: 10,
+                fontSize: fs(10),
                 fontStyle: 'italic',
                 fontFamily: 'Georgia, serif',
                 lineHeight: '14px',
@@ -352,6 +373,32 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
         </div>
       )}
 
+      {/* Témoin des layers affichés (H11, 11/08/2026) — demandé par Marc pour
+          pouvoir désigner précisément quel layer ou quelle transition pose
+          problème. Il montre EXACTEMENT ce que `DensityLayer` compose : la même
+          fonction `getLayerWeights`, le même seuil de 0,3 % en dessous duquel
+          un layer n'est pas dessiné. Un témoin qui recalculerait les poids
+          autrement mentirait au premier désaccord. */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 'max(8px, env(safe-area-inset-bottom))',
+          left: 'max(8px, env(safe-area-inset-left))',
+          fontSize: fs(9),
+          lineHeight: 1.45,
+          fontFamily: 'monospace',
+          color: 'rgba(255,255,255,0.42)',
+          background: 'rgba(10,10,16,0.42)',
+          padding: `${fs(3)}px ${fs(7)}px`,
+          borderRadius: 5,
+          pointerEvents: 'none',
+          userSelect: 'text',
+          whiteSpace: 'pre',
+        }}
+      >
+        {layerReadout}
+      </div>
+
       {/* Indicateur de chargement discret — n'empêche jamais la navigation */}
       {loadProgress.loaded < loadProgress.total && (
         <div
@@ -359,7 +406,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
             position: 'absolute',
             bottom: 'max(8px, env(safe-area-inset-bottom))',
             right: 'max(8px, env(safe-area-inset-right))',
-            fontSize: 10,
+            fontSize: fs(10),
             fontFamily: 'monospace',
             color: 'rgba(255,255,255,0.45)',
             background: 'rgba(10,10,16,0.5)',
@@ -386,7 +433,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
         <div
           style={{
             fontFamily: "'Cinzel', serif",
-            fontSize: 16,
+            fontSize: fs(16),
             fontWeight: 600,
             letterSpacing: '0.03em',
             color: '#eee',
@@ -406,7 +453,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
             background: 'rgba(30,30,40,0.55)',
             border: '1px solid rgba(255,255,255,0.35)',
             color: '#ddd',
-            fontSize: 11,
+            fontSize: fs(11),
             fontStyle: 'italic',
             fontFamily: 'Georgia, serif',
             lineHeight: '16px',
@@ -425,7 +472,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           position: 'absolute',
           top: 'calc(max(14px, env(safe-area-inset-top)) + 30px)',
           right: 'max(4px, env(safe-area-inset-right))',
-          fontSize: 9,
+          fontSize: fs(9),
           fontFamily: 'system-ui, sans-serif',
           color: 'rgba(255,255,255,0.5)',
           textAlign: 'center',
@@ -434,7 +481,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           pointerEvents: 'none',
         }}
       >
-        <div style={{ fontSize: 13 }}>🌠</div>
+        <div style={{ fontSize: fs(13) }}>🌠</div>
         Galaxie
       </div>
       <div
@@ -479,7 +526,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           position: 'absolute',
           bottom: 'calc(max(14px, env(safe-area-inset-bottom)) + 62px)',
           right: 'max(4px, env(safe-area-inset-right))',
-          fontSize: 9,
+          fontSize: fs(9),
           fontFamily: 'system-ui, sans-serif',
           color: 'rgba(255,255,255,0.5)',
           textAlign: 'center',
@@ -488,7 +535,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           pointerEvents: 'none',
         }}
       >
-        <div style={{ fontSize: 13 }}>🌌</div>
+        <div style={{ fontSize: fs(13) }}>🌌</div>
         95 Gal
       </div>
 
@@ -501,7 +548,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
           bottom: 'calc(max(14px, env(safe-area-inset-bottom)) + 24px)',
           display: 'flex',
           justifyContent: 'space-between',
-          fontSize: 9,
+          fontSize: fs(9),
           fontFamily: 'system-ui, sans-serif',
           color: 'rgba(255,255,255,0.5)',
           pointerEvents: 'none',
@@ -549,7 +596,7 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
                 color: '#bcdcf7',
                 borderRadius: 8,
                 padding: '7px 14px',
-                fontSize: 13,
+                fontSize: fs(13),
                 cursor: 'pointer',
               }}
             >

@@ -187,6 +187,40 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
     const halfWidthMpcX = (W / shortSide) * halfWidthMpc
     const halfWidthMpcY = (H / shortSide) * halfWidthMpc
 
+    // Layer de REMPLISSAGE des bords (ajouté le 11/08/2026, exigence H9).
+    //
+    // Le défaut : quand le champ de vue dépasse la couverture d'une texture
+    // (`overshoot > 1`), la destination est réduite à une boîte centrée. Le
+    // pari d'origine — « le layer plus grossier, déjà visible en fondu à ce
+    // moment, comble naturellement les bords » — n'est vrai QUE pendant le
+    // fondu. Dès que le layer écrêté atteint la pleine opacité, le grossier
+    // est sauté (`w < 0.003`) et il ne reste RIEN autour : un cadre noir.
+    //
+    // Et cela arrive bien plus tôt sur un écran large, parce que
+    // `halfWidthMpcX` est multiplié par W/H : à 16:9 le débordement commence
+    // ~1,8x plus bas qu'en portrait. D'où le symptôme signalé par Marc — le
+    // nouveau layer « en petit sur fond noir » sur écran de PC.
+    //
+    // Le remplisseur est le layer le PLUS FIN qui couvre encore tout l'écran :
+    // le saut de résolution au raccord est ainsi le plus petit possible.
+    const covering = PROCEDURAL_LAYERS.filter(
+      (l) =>
+        Math.max(halfWidthMpcX, halfWidthMpcY) <= l.maxMpc * marginFor(l.key) &&
+        colorizedRef.current[l.key]
+    )
+    const filler = covering.length ? covering[0] : null
+
+    function drawFullScreen(layer: ProceduralLayer, alpha: number) {
+      const source = colorizedRef.current[layer.key]
+      if (!source || !ctx) return
+      const n = source.width
+      const texturePxPerMpc = n / (2 * layer.maxMpc * marginFor(layer.key))
+      const cw = 2 * halfWidthMpcX * texturePxPerMpc
+      const ch = 2 * halfWidthMpcY * texturePxPerMpc
+      ctx.globalAlpha = alpha
+      ctx.drawImage(source, (n - cw) / 2, (n - ch) / 2, cw, ch, 0, 0, W, H)
+    }
+
     // Ordre du plus grand (coarse) au plus petit (fin) — cohérent avec la
     // construction emboîtée des textures (§4.4 du document d'architecture).
     for (let i = PROCEDURAL_LAYERS.length - 1; i >= 0; i--) {
@@ -211,8 +245,8 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
       // exactement l'effet du zoom et l'image se fige (le layer arrête de
       // zoomer) tant que le clamp reste actif. En réduisant la destination,
       // le contenu continue de zoomer normalement sur une zone un peu plus
-      // petite que l'écran ; le layer plus grossier (déjà visible en fondu à
-      // ce moment) comble naturellement les bords.
+      // petite que l'écran ; l'anneau laissé libre est peint juste en dessous
+      // par le layer de remplissage, à la MÊME opacité (H9).
       let destX = 0
       let destY = 0
       let destW = W
@@ -225,6 +259,18 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
         destH = H / overshoot
         destX = (W - destW) / 2
         destY = (H - destH) / 2
+
+        // L'anneau seul, découpé en règle pair-impair : le centre n'est pas
+        // repeint, donc le ton y reste exactement celui d'avant la correction.
+        if (filler && filler.key !== layer.key) {
+          ctx.save()
+          ctx.beginPath()
+          ctx.rect(0, 0, W, H)
+          ctx.rect(destX, destY, destW, destH)
+          ctx.clip('evenodd')
+          drawFullScreen(filler, w)
+          ctx.restore()
+        }
       }
       const startX = (n - cropW) / 2
       const startY = (n - cropH) / 2
