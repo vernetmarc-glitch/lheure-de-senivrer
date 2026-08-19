@@ -85,6 +85,60 @@ def _local_extent(img, cy, cx, rad=12):
     return float(r[o][np.searchsorted(c, 0.6 * c[-1])])
 
 
+def _ajuste_profil(img, cy, cx, r_px):
+    """Ajuste I(r) = A exp(-r/h) + B autour d'un objet, et rend (h/r_px, A/B).
+
+    LE POINT ESSENTIEL : `B` est un PARAMETRE LIBRE. C'est ce qui distingue
+    cette mesure des cinq qui ont echoue avant elle (voir approches-ecartees) --
+    toutes integraient une statistique sur une fenetre fixe, et a ces echelles la
+    fenetre contient plus de fond que de galaxie, si bien qu'elles mesuraient le
+    fond. Ici le fond est ESTIME conjointement et retire par construction.
+
+    `A/B` est le contraste de l'objet sur son fond local. Mesure du 11/08 :
+    3,0 a 8,0 sur les galaxies du catalogue, 0,25 a 0,36 a des positions tirees
+    au hasard -- un facteur vingt. C'est lui qui dit s'il y a un objet a mesurer.
+
+    L'ajustement est un balayage sur `h` avec resolution lineaire de (A, B) a
+    chaque pas : pas d'optimiseur, pas de point de depart, donc pas de minimum
+    local dependant de l'initialisation.
+    """
+    rad = max(8, int(4.0 * r_px))
+    n = img.shape[0]
+    y0, y1 = int(max(0, cy - rad)), int(min(n, cy + rad + 1))
+    x0, x1 = int(max(0, cx - rad)), int(min(n, cx + rad + 1))
+    if y1 - y0 < 11 or x1 - x0 < 11:
+        return None
+    w = img[y0:y1, x0:x1]
+    yy, xx = np.indices(w.shape)
+    r = np.hypot(yy - (cy - y0), xx - (cx - x0)).ravel()
+    v = w.ravel()
+    nb = 18
+    bords = np.linspace(0, 4.0 * r_px, nb + 1)
+    idx = np.digitize(r, bords) - 1
+    prof, rc = [], []
+    for k in range(nb):
+        m = idx == k
+        if m.sum() >= 3:
+            prof.append(float(v[m].mean()))
+            rc.append(0.5 * (bords[k] + bords[k + 1]))
+    if len(prof) < 8:
+        return None
+    prof = np.array(prof)
+    rc = np.array(rc)
+    best = None
+    for h in np.geomspace(0.10 * r_px, 3.0 * r_px, 60):
+        M = np.stack([np.exp(-rc / h), np.ones_like(rc)], 1)
+        coef = np.linalg.lstsq(M, prof, rcond=None)[0]
+        if coef[0] <= 0:
+            continue
+        chi = float(((prof - M @ coef) ** 2).sum())
+        if best is None or chi < best[0]:
+            best = (chi, h, coef[0], coef[1])
+    if best is None:
+        return None
+    return best[1] / r_px, float(best[2] / max(best[3], 1e-6))
+
+
 def _extent_excess(img, cy, cx, r_px):
     """Rayon a 60 % du flux EXCEDENTAIRE d'un objet, le fond etant estime sur un
     anneau LOCAL (2,6 a 3,2 rayons) et non par la mediane globale.
@@ -428,8 +482,32 @@ def image_cell_checks(code, img, m):
         # T-012 porte la meme proportionnalite d'une ligne a l'autre ; celui-ci
         # la porte AU SEIN d'une ligne. Sous deux objets resolus la question n'a
         # pas de sens et le controle le dit plutot que d'inventer un chiffre.
-        DISPERSION_MAX = 0.35
-        mesures = []
+        # T-016 — TROISIEME version, 11/08/2026, par ajustement de profil.
+        #
+        # Les deux precedentes ont ete refusees par le banc (D-35) :
+        #  - la bande (1,8 · 3,4) sur `_local_extent` recompensait l'ABSENCE de
+        #    galaxie -- le fond nu rendait 2,61 a 2,70, en plein milieu ;
+        #  - la dispersion des rapports sur anneau local ne reagissait PAS a un
+        #    grossissement x2 (0,197 aux memes decimales dans les trois cas).
+        # Toutes deux integraient une statistique sur une fenetre fixe, et a ces
+        # echelles la fenetre contient plus de fond que de galaxie.
+        #
+        # Ici le fond est un PARAMETRE LIBRE de l'ajustement, donc retire par
+        # construction. Deux conditions, dans cet ordre :
+        #  1. l'objet EXISTE : contraste A/B >= 1,0. Mesure du 11/08 -- 3,0 a 8,0
+        #     sur les galaxies, 0,25 a 0,36 au hasard. Le seuil est entre les
+        #     deux populations, pas au bord de l'une d'elles ;
+        #  2. sa longueur d'echelle est PROPORTIONNELLE a son rayon reel : h/r
+        #     dans (0,30 · 0,85). Mesure : 0,42 a 0,60 sur toutes les lignes et
+        #     tous les objets -- la bande laisse un facteur ~1,4 de chaque cote.
+        #
+        # Un objet sans contraste n'est pas mesure ET n'est pas compte comme
+        # conforme : il est signale. C'est la difference avec la branche de repli
+        # de la version precedente, qui passait au vert quand la mesure
+        # disparaissait -- donc precisement quand quelque chose etait casse.
+        BANDE_H = (0.30, 0.85)
+        CONTRASTE_MIN = 1.0
+        mesures, sans_contraste = [], []
         for g, cx, cy in pos:
             if g["radiusMpc"] <= 0:
                 continue
@@ -440,49 +518,26 @@ def image_cell_checks(code, img, m):
             if any(np.hypot(cy - y2, cx - x2) < garde
                    for h, x2, y2 in pos if h is not g):
                 continue
-            e = _extent_excess(img, cy, cx, r_px)
-            if e > 0:
-                mesures.append((g.get("name") or "proc", e / r_px))
-        # ETAT DU CONTROLE : NON CONCLUANT, ET IL LE DIT.
-        #
-        # La version ci-dessus est meilleure que l'ancienne -- elle ne recompense
-        # plus l'absence de galaxie -- mais son banc de falsification du 11/08 l'a
-        # refusee sur trois points :
-        #
-        #   1. Grossir artificiellement une galaxie de x1,25, x1,60 puis x2,00 ne
-        #      change PAS la dispersion mesuree : 0,197 dans les trois cas, aux
-        #      memes valeurs 1,38 et 2,05. Un controle insensible a un doublement
-        #      de taille ne protege rien.
-        #   2. L'insensibilite au fond annoncee est fausse : l'excedent au-dessus
-        #      de l'anneau local est non nul dans 60 cas sur 60, et les positions
-        #      tirees au hasard rendent 3,01 +- 0,16 contre 1,38 et 2,05 pour les
-        #      vraies galaxies. Le fond domine encore.
-        #   3. La branche « moins de deux objets » passait au vert -- et lors du
-        #      premier essai de falsification elle est passee PRECISEMENT parce
-        #      que la deformation avait fait disparaitre le second objet.
-        #
-        # Cinq mesures ont echoue sur cette famille de grandeurs (trois pour la
-        # richesse, deux pour la taille apparente), toutes pour la meme raison :
-        # a ces echelles la fenetre contient plus de fond que de galaxie, et
-        # toute statistique integree sur la fenetre mesure le fond. Il faut
-        # AJUSTER UN PROFIL sur l'objet en traitant le fond comme parametre
-        # libre. C'est un travail a part entiere, pas un reglage.
-        #
-        # D'ici la, le controle RESTE ROUGE et rattache aux chantiers (D-35).
-        # Le principe du projet est qu'un controle se taise plutot que de rendre
-        # un chiffre qui ne veut rien dire ; ici il ne se taít pas, il declare
-        # qu'il ne conclut pas -- ce qui vaut mieux qu'un vert trompeur.
-        if mesures:
-            k = np.array([v for _, v in mesures])
-            disp = float(k.std() / max(k.mean(), 1e-9)) if len(k) > 1 else 0.0
+            f = _ajuste_profil(img, cy, cx, r_px)
+            if f is None:
+                continue
+            h_r, contraste = f
+            if contraste < CONTRASTE_MIN:
+                sans_contraste.append("%s A/B %.2f" % (g.get("name") or "proc", contraste))
+            else:
+                mesures.append((g.get("name") or "proc", h_r, contraste))
+        if mesures or sans_contraste:
+            hors = ["%s h/r %.2f" % (n_, h_) for n_, h_, _ in mesures
+                    if not (BANDE_H[0] <= h_ <= BANDE_H[1])]
             out.append(Result("T-016", "CELL",
                               "tailles apparentes ~ rayons reels (D7/A9)",
-                              False,
-                              "%s MESURE NON CONCLUANTE (banc du 11/08 : aucune "
-                              "reaction a un grossissement x2) -- pour "
-                              "information, dispersion %.3f sur %d objet(s) : %s"
-                              % (code, disp, len(k),
-                                 " ".join("%.2f" % v for v in k[:5]))))
+                              not hors and not sans_contraste,
+                              "%s h/r %s sur %d objet(s)%s%s"
+                              % (code, " ".join("%.2f" % h_ for _, h_, _ in mesures),
+                                 len(mesures),
+                                 "  HORS BANDE : " + " ".join(hors[:3]) if hors else "",
+                                 "  SANS CONTRASTE : " + " ".join(sans_contraste[:3])
+                                 if sans_contraste else "")))
 
         # T-018 — halo de raccord present autour de chaque galaxie (A10) : la
         # lumiere ne doit pas s'arreter net au bord de la vignette.

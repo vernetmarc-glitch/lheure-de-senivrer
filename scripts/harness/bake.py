@@ -123,55 +123,7 @@ CHANTIERS = {
     # CE QUI LE FERME : que le fond de `G` soit ENGENDRE au lieu d'etre
     # reechantillonne depuis `H`. Tant que ce n'est pas fait, ce controle
     # affiche sa mesure a chaque cuisson et ne doit pas etre desarme.
-    # Verse le 11/08/2026 par decision de Marc, apres que le banc a refuse LES
-    # DEUX versions du controle.
-    #
-    # L'ANCIENNE version exigeait `_local_extent / r_px` dans (1,8 · 3,4).
-    # `_local_extent` retranche la mediane GLOBALE, donc le fond cosmique de la
-    # fenetre compte comme du flux. Temoin a des positions tirees AU HASARD,
-    # sans aucune galaxie : 2,61 a `B`, 2,62 a `C`, 2,70 a `E` -- **le fond nu
-    # tombait en plein milieu de la bande**, et une galaxie brillante en sortait
-    # par le bas (1,33 a 1,60). Le controle recompensait l'ABSENCE de galaxie et
-    # contredisait A8/T-077, qui exige au contraire que rien ne soit aussi
-    # brillant qu'une galaxie. Les anciennes vignettes le passaient parce
-    # qu'elles etaient invisibles.
-    #
-    # La REECRITURE (dispersion des rapports taille/rayon, fond estime sur un
-    # anneau local) n'a pas tenu non plus, et son banc l'a dit :
-    #   - grossir artificiellement une galaxie de x1,25, x1,60 puis x2,00 ne
-    #     change PAS la dispersion -- 0,197 dans les trois cas, aux memes
-    #     decimales. Un controle insensible a ce qu'il pretend detecter ;
-    #   - l'excedent au-dessus de l'anneau local n'est nul dans AUCUN des 60
-    #     tirages au hasard : le fond domine toujours, a un autre niveau (3,01
-    #     +- 0,16 contre 1,38 et 2,05 pour les vraies galaxies) ;
-    #   - sous deux objets resolus, la branche de repli PASSE -- lors du premier
-    #     essai de falsification, la deformation a fait disparaitre le second
-    #     objet et le controle est passe au vert PARCE QUE quelque chose etait
-    #     casse.
-    #
-    # Cinq mesures ont echoue sur cette famille de grandeurs (trois sur la
-    # richesse, deux sur la taille apparente), toutes pour la meme raison : a ces
-    # echelles la fenetre contient plus de fond que de galaxie, et toute
-    # statistique integree sur la fenetre mesure le fond.
-    #
-    # CE QUI LE FERME : une mesure par AJUSTEMENT DE PROFIL sur l'objet, dont
-    # l'echelle est un parametre et le fond un autre parametre LIBRE -- et non
-    # une statistique integree sur une fenetre fixe. C'est un travail a part
-    # entiere. D7 et A9 restent couvertes en attendant par T-012, qui porte la
-    # proportionnalite d'une ligne a l'autre et qui, lui, passe.
-    "T-016": "mesure de taille apparente a refaire par ajustement de profil",
     "T-094": "O-07 : le fond de `G` est le recadrage de `H` agrandi, pas engendre",
-    # Rattache le 11/08/2026 par decision de Marc (D-35). Le controle est
-    # DEMONTRE non concluant : l'ancienne version recompensait l'absence de
-    # galaxie (temoin au hasard 2,61 a 2,70 en plein milieu de la bande 1,8-3,4,
-    # contre 1,33 a 1,60 pour les vraies galaxies), et la version reecrite ne
-    # reagit pas a un grossissement x2. Il reste ROUGE et affiche « MESURE NON
-    # CONCLUANTE » a chaque cuisson.
-    #
-    # CE QUI LE FERME : une mesure de taille apparente par AJUSTEMENT DE PROFIL
-    # sur l'objet, le fond etant un parametre libre -- et non par integration sur
-    # une fenetre, ou le fond pese plus que la galaxie a ces echelles.
-    "T-016": "mesure de taille apparente a reecrire par ajustement de profil",
 }
 
 
@@ -305,6 +257,15 @@ def main(argv):
             f = os.path.join(tmp, "density_%s.png" % c)
             if os.path.exists(f):
                 shutil.copy2(f, PUBLISHED)
+        # `provenance.json` fait partie de l'etat publie, au meme titre que les
+        # images : c'est lui qui permet a T-054 de verifier que les 15 lignes
+        # viennent bien d'une meme cuisson. Il etait ecrit dans le repertoire de
+        # travail et jamais recopie, si bien que l'etat publie ne pouvait pas
+        # declarer son origine et que T-054 echouait sur TOUTE publication --
+        # y compris une publication parfaitement saine. Corrige le 11/08/2026.
+        prov = os.path.join(tmp, "provenance.json")
+        if os.path.exists(prov):
+            shutil.copy2(prov, PUBLISHED)
         print("\nPUBLIE.")
         shutil.rmtree(tmp, ignore_errors=True)
         return 0

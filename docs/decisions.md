@@ -370,3 +370,32 @@ d'une ligne à l'autre et qui, lui, passe.
 **Ce qui le ferme :** une mesure par **ajustement de profil** sur l'objet, dont
 l'échelle est un paramètre et le fond un **paramètre libre** — et non une
 statistique intégrée sur une fenêtre fixe.
+
+## D-36 — T-016 sort du chantier : la mesure par ajustement de profil tient *(11/08/2026)*
+
+Ferme D-35, le jour même. La troisième version du contrôle ajuste
+`I(r) = A·exp(−r/h) + B` autour de chaque objet, **le fond `B` étant un
+paramètre libre**. C'est ce qui la distingue des cinq mesures écartées : toutes
+intégraient une statistique sur une fenêtre fixe, et à ces échelles la fenêtre
+contient plus de fond que de galaxie.
+
+Deux conditions, dans cet ordre : l'objet **existe** (contraste `A/B ≥ 1,0` —
+mesuré 3,0 à 8,0 sur les galaxies, 0,25 à 0,36 à des positions tirées au hasard,
+soit un facteur vingt), puis sa longueur d'échelle est **proportionnelle** à son
+rayon réel (`h/r` dans 0,30 · 0,85 — mesuré 0,42 à 0,60 partout).
+
+**Banc de falsification, sur la Naine du Sagittaire :**
+
+| Épreuve | h/r | Verdict |
+|---|---|---|
+| témoin | 0,45 | passe |
+| ×1,6 | 0,67 | passe (dans la tolérance) |
+| ×2,2 | **0,95** | échoue |
+| ×3,0 | **1,13** | échoue |
+| effacée | A/B 0,00 | échoue — signalée, pas de passage silencieux |
+
+*Le banc lui-même a d'abord été faux : il modifiait une tranche vide, parce que
+l'objet mesuré est à `cx = 25` et que `b[…, −14:65]` est vide en indexation
+négative. Trois épreuves « sans réaction » ont ainsi été crues concluantes avant
+que la vérification des coordonnées ne montre l'erreur. **Un banc de
+falsification doit lui-même être falsifié** — c'est la leçon du jour.*

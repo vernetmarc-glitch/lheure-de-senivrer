@@ -1741,3 +1741,45 @@ ici il ne se taît pas, il dit qu'il ne conclut pas.*
 **Compacité 0,800 · halo σ = 0,75 rayon, amplitude 0,14.** Le halo est
 indispensable : sans lui T-033 tombe à −4,29 à la ligne `C` pour un plancher à
 −0,40 — c'est lui qui relie la galaxie au fond dans l'histogramme.
+
+---
+
+## 11/08/2026 (nuit) — T-016 tient enfin, et T-054 pouvait échouer sur toute publication
+
+**Cuisson : 398 contrôles passés, 11 en échec, 0 bloquant. PUBLIÉ.**
+
+### T-054 — `provenance.json` n'était jamais publié
+
+Trouvé par la séquence de démarrage : `bake.py --check` sur l'état fraîchement
+publié rendait **un bloquant**. Le fichier de provenance était écrit dans le
+répertoire de travail et **jamais recopié** vers l'état publié. Conséquence :
+l'état publié ne pouvait pas déclarer son origine, et T-054 échouait sur **toute**
+publication, y compris parfaitement saine. Un contrôle qui échoue toujours cesse
+d'être lu — c'est la pire forme de panne. Corrigé à la publication.
+
+### T-016 — troisième version, et elle réagit
+
+Les deux précédentes ont été refusées par le banc (D-35). Celle-ci ajuste
+`I(r) = A·exp(−r/h) + B`, **le fond `B` étant un paramètre libre** — c'est ce qui
+la distingue des cinq mesures écartées, qui intégraient toutes une statistique
+sur une fenêtre fixe alors qu'à ces échelles la fenêtre contient plus de fond que
+de galaxie.
+
+Deux conditions : l'objet **existe** (`A/B ≥ 1,0` ; mesuré 3,0 à 8,0 sur les
+galaxies contre 0,25 à 0,36 à des positions au hasard, facteur vingt), puis sa
+longueur d'échelle est **proportionnelle** à son rayon (`h/r` dans 0,30 · 0,85 ;
+mesuré 0,42 à 0,60 partout).
+
+| Épreuve du banc | h/r | Verdict |
+|---|---|---|
+| témoin | 0,45 | passe |
+| ×1,6 | 0,67 | passe |
+| ×2,2 | **0,95** | échoue |
+| ×3,0 | **1,13** | échoue |
+| objet effacé | A/B 0,00 | échoue, **signalé** |
+
+**Le banc lui-même était faux au premier essai.** Il modifiait une tranche vide :
+l'objet mesuré est à `cx = 25`, et `b[…, −14:65]` ne désigne rien en indexation
+négative. Trois épreuves « sans réaction » ont été crues concluantes avant que la
+vérification des coordonnées ne montre l'erreur. *Un banc de falsification doit
+lui-même être falsifié.*
