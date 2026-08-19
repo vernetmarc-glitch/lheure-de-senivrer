@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { densityDilutionFactor, type CosmologyState } from './cosmology'
 import DensityLayer from './DensityLayer'
-import RealGalaxiesLayer from './RealGalaxiesLayer'
 import { type DensityStyle } from './colormaps'
 import InfoModal from './InfoModal'
 import { getLayerWeights, LAYER_ORDER } from './layerWeights'
@@ -328,13 +327,6 @@ export default function UniverseMap({ cosmology, tGyr, tMin, tMax, onTimeChange 
             width={pixelWidth}
             height={pixelHeight}
             onLoadProgress={(loaded, total) => setLoadProgress({ loaded, total })}
-          />
-          <RealGalaxiesLayer
-            style={DENSITY_STYLE}
-            opacity={DENSITY_PRESENCE}
-            halfWidthMpc={halfWidthMpc}
-            width={pixelWidth}
-            height={pixelHeight}
           />
           <canvas
             ref={gridCanvasRef}

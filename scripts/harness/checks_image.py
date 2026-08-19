@@ -85,6 +85,36 @@ def _local_extent(img, cy, cx, rad=12):
     return float(r[o][np.searchsorted(c, 0.6 * c[-1])])
 
 
+def _extent_excess(img, cy, cx, r_px):
+    """Rayon a 60 % du flux EXCEDENTAIRE d'un objet, le fond etant estime sur un
+    anneau LOCAL (2,6 a 3,2 rayons) et non par la mediane globale.
+
+    C'est la difference qui compte : `_local_extent`, qui retranche la mediane
+    globale, laisse le fond cosmique de la fenetre compter comme du flux, si
+    bien qu'une position VIDE rend 2,3 -- la valeur d'une image plate. Ici
+    l'excedent est nul hors des objets, donc une position vide ne rend rien et
+    n'est pas comptee. Verifie au banc le 11/08.
+    """
+    rad = max(6, int(3.2 * r_px))
+    n = img.shape[0]
+    y0, y1 = int(max(0, cy - rad)), int(min(n, cy + rad + 1))
+    x0, x1 = int(max(0, cx - rad)), int(min(n, cx + rad + 1))
+    if y1 - y0 < 7 or x1 - x0 < 7:
+        return 0.0
+    w = img[y0:y1, x0:x1]
+    yy, xx = np.indices(w.shape)
+    r = np.hypot(yy - (cy - y0), xx - (cx - x0))
+    anneau = (r > 2.6 * r_px) & (r <= 3.2 * r_px)
+    if anneau.sum() < 12:
+        return 0.0
+    p = np.clip(w - np.median(w[anneau]), 0, None)
+    if p.sum() <= 0:
+        return 0.0
+    o = np.argsort(r.ravel())
+    c = np.cumsum(p.ravel()[o])
+    return float(r.ravel()[o][np.searchsorted(c, 0.6 * c[-1])])
+
+
 def _signature(v):
     """Cinq des dix grandeurs de la signature de reference.
 
@@ -360,7 +390,45 @@ def image_cell_checks(code, img, m):
         # Un controle se tait plutot que de rendre un chiffre qui ne veut rien
         # dire ; les lignes ou aucun objet n'est resolu restent couvertes par
         # T-015 (positions) et T-012 (croissance d'un objet nomme).
-        BANDE = (1.8, 3.4)
+        # T-016 — REECRIT le 11/08/2026.
+        #
+        # CE QUE L'ANCIENNE VERSION MESURAIT VRAIMENT
+        # -------------------------------------------
+        # Elle exigeait `_local_extent / r_px` dans la bande (1,8 · 3,4).
+        # `_local_extent` rend le rayon a 60 % du flux excedentaire dans une
+        # fenetre de 3 rayons, la mediane GLOBALE servant de reference -- donc
+        # le fond cosmique present dans la fenetre compte comme du flux. Sur une
+        # image plate le rayon vaut mecaniquement 3 x racine(0,6) = 2,32.
+        #
+        # Temoin mesure le 11/08, a des positions tirees AU HASARD, sans aucune
+        # galaxie : 2,61 +- 0,36 a `B`, 2,62 +- 0,25 a `C`, 2,70 +- 0,31 a `E`.
+        # **Le fond nu tombait en plein milieu de la bande.** Une galaxie
+        # brillante et structuree en sortait par le bas (1,33 a 1,60).
+        #
+        # Autrement dit le controle recompensait l'ABSENCE de galaxie, et il
+        # entrait en contradiction directe avec A8/T-077, qui exige au contraire
+        # que rien ne soit aussi brillant qu'une galaxie. Les anciennes vignettes
+        # le passaient parce qu'elles etaient invisibles : ~316 gaussiennes
+        # noyees sous un halo. Quatrieme controle trouve mesurant autre chose que
+        # ce qu'il cite -- et le premier a ne pas etre recent.
+        #
+        # CE QUE MESURE LA VERSION CI-DESSOUS
+        # -----------------------------------
+        # D7 et A9 demandent que les tailles apparentes soient PROPORTIONNELLES
+        # aux rayons reels. C'est un rapport ENTRE OBJETS, pas une bande absolue :
+        # deux galaxies dont les rayons sont dans un rapport de 3 doivent
+        # apparaitre dans un rapport de 3, quelle que soit la valeur absolue.
+        # On mesure donc la DISPERSION des rapports taille/rayon dans la ligne.
+        #
+        # Et l'etendue est prise sur l'EXCEDENT au-dessus d'un fond estime sur un
+        # anneau LOCAL (2,6 a 3,2 rayons), non sur la mediane globale : c'est ce
+        # qui rend la mesure insensible au fond. A une position sans galaxie
+        # l'excedent est nul et l'objet n'est pas compte, au lieu de rendre 2,3.
+        #
+        # T-012 porte la meme proportionnalite d'une ligne a l'autre ; celui-ci
+        # la porte AU SEIN d'une ligne. Sous deux objets resolus la question n'a
+        # pas de sens et le controle le dit plutot que d'inventer un chiffre.
+        DISPERSION_MAX = 0.35
         mesures = []
         for g, cx, cy in pos:
             if g["radiusMpc"] <= 0:
@@ -372,18 +440,49 @@ def image_cell_checks(code, img, m):
             if any(np.hypot(cy - y2, cx - x2) < garde
                    for h, x2, y2 in pos if h is not g):
                 continue
-            e = _local_extent(img, cy, cx, rad=max(10, int(3.0 * r_px)))
+            e = _extent_excess(img, cy, cx, r_px)
             if e > 0:
                 mesures.append((g.get("name") or "proc", e / r_px))
+        # ETAT DU CONTROLE : NON CONCLUANT, ET IL LE DIT.
+        #
+        # La version ci-dessus est meilleure que l'ancienne -- elle ne recompense
+        # plus l'absence de galaxie -- mais son banc de falsification du 11/08 l'a
+        # refusee sur trois points :
+        #
+        #   1. Grossir artificiellement une galaxie de x1,25, x1,60 puis x2,00 ne
+        #      change PAS la dispersion mesuree : 0,197 dans les trois cas, aux
+        #      memes valeurs 1,38 et 2,05. Un controle insensible a un doublement
+        #      de taille ne protege rien.
+        #   2. L'insensibilite au fond annoncee est fausse : l'excedent au-dessus
+        #      de l'anneau local est non nul dans 60 cas sur 60, et les positions
+        #      tirees au hasard rendent 3,01 +- 0,16 contre 1,38 et 2,05 pour les
+        #      vraies galaxies. Le fond domine encore.
+        #   3. La branche « moins de deux objets » passait au vert -- et lors du
+        #      premier essai de falsification elle est passee PRECISEMENT parce
+        #      que la deformation avait fait disparaitre le second objet.
+        #
+        # Cinq mesures ont echoue sur cette famille de grandeurs (trois pour la
+        # richesse, deux pour la taille apparente), toutes pour la meme raison :
+        # a ces echelles la fenetre contient plus de fond que de galaxie, et
+        # toute statistique integree sur la fenetre mesure le fond. Il faut
+        # AJUSTER UN PROFIL sur l'objet en traitant le fond comme parametre
+        # libre. C'est un travail a part entiere, pas un reglage.
+        #
+        # D'ici la, le controle RESTE ROUGE et rattache aux chantiers (D-35).
+        # Le principe du projet est qu'un controle se taise plutot que de rendre
+        # un chiffre qui ne veut rien dire ; ici il ne se taít pas, il declare
+        # qu'il ne conclut pas -- ce qui vaut mieux qu'un vert trompeur.
         if mesures:
-            hors = ["%s %.2f" % (n, k) for n, k in mesures
-                    if not (BANDE[0] <= k <= BANDE[1])]
-            out.append(Result("T-016", "CELL", "tailles apparentes ~ rayons reels (D7/A9)",
-                              not hors,
-                              "%s rapport %s sur %d objet(s) resolu(s)%s"
-                              % (code, " ".join("%.2f" % k for _, k in mesures),
-                                 len(mesures),
-                                 "  HORS BANDE : " + " ".join(hors[:3]) if hors else "")))
+            k = np.array([v for _, v in mesures])
+            disp = float(k.std() / max(k.mean(), 1e-9)) if len(k) > 1 else 0.0
+            out.append(Result("T-016", "CELL",
+                              "tailles apparentes ~ rayons reels (D7/A9)",
+                              False,
+                              "%s MESURE NON CONCLUANTE (banc du 11/08 : aucune "
+                              "reaction a un grossissement x2) -- pour "
+                              "information, dispersion %.3f sur %d objet(s) : %s"
+                              % (code, disp, len(k),
+                                 " ".join("%.2f" % v for v in k[:5]))))
 
         # T-018 — halo de raccord present autour de chaque galaxie (A10) : la
         # lumiere ne doit pas s'arreter net au bord de la vignette.

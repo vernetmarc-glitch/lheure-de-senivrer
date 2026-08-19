@@ -3,61 +3,44 @@ import { type DensityStyle } from './colormaps'
 import { getLayerWeights } from './layerWeights'
 import { processDensityField, getStyleParamsForLayer } from './densityStyle'
 
-// Marge de génération des textures (cf. scripts/generate_layers.py et
-// generate_local_group_texture.py) : chaque texture couvre en réalité
-// layer.maxMpc * MARGIN_FACTOR de demi-largeur physique, pas seulement
-// layer.maxMpc — nécessaire pour le recadrage rectangulaire (portrait/
-// paysage) sans letterboxing. Garder cette valeur synchronisée avec le Python.
-const MARGIN_FACTOR = 1.5
-// L5 est le seul layer visible pile à son bord extrême (zoom maximal absolu
-// de la carte) — marge dédiée plus large pour éviter le letterboxing sur les
-// écrans très allongés. Cf. scripts/generate_layers.py : MARGIN_FACTOR_L5.
-const MARGIN_FACTOR_L5 = 2.4
-function marginFor(key: string): number {
-  return key === 'l5' ? MARGIN_FACTOR_L5 : MARGIN_FACTOR
+// Grille `A` -> `O` : quinze lignes géométriques de raison ×2,520, cuites et
+// contrôlées par `scripts/harness/bake.py`. Elles REMPLACENT le découpage
+// historique en douze paliers (`milkyway`, `localgroup`, `l1b`... `l5`), le
+// 11/08/2026.
+//
+// Ce que le changement apporte, et pourquoi il valait le recâblage :
+//  - les textures publiées sont celles qui passent les 392 contrôles du
+//    harnais, alors que les anciennes n'en passaient aucun ;
+//  - le pas est CONSTANT, donc une seule largeur de fondu ; l'ancien découpage
+//    avait un pas de ×24 sur l'arête Groupe Local -> premier palier, masqué par
+//    une largeur spéciale de 0,52 dex sur cette seule arête ;
+//  - les galaxies nommées sont DANS la texture, à leur position et à leur
+//    échelle, au lieu d'être surimprimées par un composant séparé.
+//
+// Chemin des textures : `essai-v4/data/v4/`, qui est la destination de
+// publication du harnais (`PUBLISHED` dans bake.py). Ne pas recopier ailleurs :
+// deux exemplaires divergeraient à la première cuisson.
+import { LAYER_ORDER, LAYER_HALFWIDTH_MPC, LAYER_MARGIN, type LayerKey } from './layerWeights'
+
+const TEXTURE_DIR = 'essai-v4/data/v4'
+
+function marginFor(_key: string): number {
+  // Marge UNIQUE : la grille est homogène, contrairement à l'ancien découpage
+  // où `l5` avait sa propre marge de 2,4.
+  return LAYER_MARGIN
 }
 
 interface ProceduralLayer {
-  key: 'milkyway' | 'localgroup' | 'l1b' | 'l2' | 'l2b' | 'l3' | 'l3b' | 'l4' | 'l4a' | 'l4b' | 'l5a' | 'l5'
+  key: LayerKey
   maxMpc: number
 }
 
-// Demi-largeur nominale (Mpc, avant marge) de la texture "milkyway" — voir
-// scripts/generate_simulated_textures.mjs pour le calcul exact
-// (MW_R*2.2/LY_PER_MPC). Garder synchronisé si le script est relancé avec
-// d'autres paramètres.
-const MILKYWAY_MAX_MPC = 0.035075
-
-// Du plus petit au plus grand — cf. document d'architecture §4.1. "milkyway"
-// (disque + bulbe de la Voie lactée UNIQUEMENT) est une texture PRÉ-CUITE
-// hors-ligne (cf. scripts/generate_simulated_textures.mjs, qui appelle le
-// vrai module partagé GalaxyModel) au lieu d'un rendu étoile-par-étoile en
-// direct — ce dernier ne passait pas à l'échelle (~40 000 tracés canvas
-// individuels par frame). Les 8 galaxies réelles nommées du Groupe Local
-// (Andromède, M33...) ne sont PAS ici : elles ont chacune leur propre
-// sprite haute résolution, composé séparément par RealGalaxiesLayer.tsx —
-// les mettre dans une texture partagée à l'échelle du Groupe Local leur
-// faisait perdre toute structure visible (bras spiraux, barre...), cf.
-// diagnostic du 6 juillet. "localgroup" reste la texture des galaxies
-// PROCÉDURALES (non nommées) du Groupe Local (cf.
-// scripts/generate_local_group_texture.py). Les paliers "b"/"a" sont des
-// paliers TECHNIQUES intermédiaires (doublement du nombre de layers pour la
-// résolution apparente moyenne), pas de nouveaux layers scientifiques —
-// cf. scripts/generate_layers.py.
-const PROCEDURAL_LAYERS: ProceduralLayer[] = [
-  { key: 'milkyway', maxMpc: MILKYWAY_MAX_MPC },
-  { key: 'localgroup', maxMpc: 2.4 },
-  { key: 'l1b', maxMpc: 8.49 },
-  { key: 'l2', maxMpc: 30 },
-  { key: 'l2b', maxMpc: 67.08 },
-  { key: 'l3', maxMpc: 150 },
-  { key: 'l3b', maxMpc: 212.13 },
-  { key: 'l4', maxMpc: 300 },
-  { key: 'l4a', maxMpc: 793.73 },
-  { key: 'l4b', maxMpc: 2100 },
-  { key: 'l5a', maxMpc: 5531.46 },
-  { key: 'l5', maxMpc: 14570 },
-]
+// Du plus petit au plus grand demi-champ, comme l'ancienne liste : l'ordre de
+// composition (grossier -> fin) en dépend.
+const PROCEDURAL_LAYERS: ProceduralLayer[] = LAYER_ORDER.map((k) => ({
+  key: k,
+  maxMpc: LAYER_HALFWIDTH_MPC[k],
+}))
 
 interface DensityLayerProps {
   style: DensityStyle
@@ -113,7 +96,7 @@ export default function DensityLayer({ style, opacity, halfWidthMpc, width, heig
       // selon la version de TS/lib — cast défensif, propriété bien
       // supportée par les moteurs de rendu principaux.
       ;(img as unknown as { fetchPriority: string }).fetchPriority = priority
-      img.src = `${import.meta.env.BASE_URL}data/density_${layer.key}.png`
+      img.src = `${import.meta.env.BASE_URL}${TEXTURE_DIR}/density_${layer.key}.png`
       img.onload = () => {
         const off = document.createElement('canvas')
         off.width = img.naturalWidth

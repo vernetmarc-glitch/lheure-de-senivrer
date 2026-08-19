@@ -27,6 +27,8 @@ TABLE = os.path.join(DATA, "cosmology_table.json")
 CARTE = os.path.join(ROOT, "app", "src", "UniverseMap.tsx")
 COSMO = os.path.join(ROOT, "app", "src", "cosmology.ts")
 DENSITE = os.path.join(ROOT, "app", "src", "DensityLayer.tsx")
+POIDS = os.path.join(ROOT, "app", "src", "layerWeights.ts")
+MATRICE = os.path.join(ROOT, "app", "public", "data", "spacetime_matrix.json")
 
 # Valeurs de reference du document client, section H. Tolerance 5 % : ce sont des
 # ordres de grandeur cosmologiques, pas des constantes de calibration.
@@ -190,6 +192,42 @@ def oeuvre_checks():
     manque2 = [n for n, ok in (("meme fonction de poids", meme_source),
                                ("pourcentages", a_pourcent),
                                ("meme seuil d'affichage", meme_seuil)) if not ok]
+    # ---- T-101 : l'application affiche la grille cuite, sans derive --------
+    # AJOUTE le 11/08/2026. Jusqu'a cette date l'application de production
+    # tournait sur un decoupage en DOUZE paliers herite (`milkyway`,
+    # `localgroup`, `l1b`... `l5`) pendant que la grille `A` -> `O`, cuite et
+    # controlee par les 392 controles du harnais, ne servait qu'a une page
+    # d'essai separee. **L'oeuvre ne montrait donc AUCUNE des textures que ce
+    # harnais valide.** C'est le genre d'ecart qui ne se voit pas depuis le
+    # rapport de cuisson, puisque tout y est vert.
+    #
+    # Le controle compare la table de demi-largeurs de `layerWeights.ts` a
+    # `zoom_axis.rows` de la matrice. Recopier des chiffres est legitime -- le
+    # navigateur ne lit pas le JSON de generation -- mais une recopie que rien
+    # ne verifie derive a la premiere cuisson qui bouge la geometrie.
+    poids = open(POIDS, encoding="utf-8").read() if os.path.exists(POIDS) else ""
+    try:
+        rows = json.load(open(MATRICE, encoding="utf-8"))["zoom_axis"]["rows"]
+    except Exception:
+        rows = {}
+    ecarts = []
+    for code, r in sorted(rows.items()):
+        m = re.search(r"^\s*%s:\s*([0-9.]+)," % code, poids, re.M)
+        if not m:
+            ecarts.append("%s absente" % code)
+        elif abs(float(m.group(1)) - float(r["halfwidth_mpc"])) > 1e-3:
+            ecarts.append("%s %s vs %.4f" % (code, m.group(1), r["halfwidth_mpc"]))
+    # La marge de rendu doit elle aussi correspondre : c'est elle qui fixe quelle
+    # part de la texture est visible, donc l'echelle a l'ecran.
+    mm = re.search(r"LAYER_MARGIN\s*=\s*([0-9.]+)", poids)
+    if not mm or abs(float(mm.group(1)) - 1.5) > 1e-9:
+        ecarts.append("marge de rendu")
+    out.append(Result("T-101", "OEUVRE",
+                      "l'application affiche la grille cuite (B6)",
+                      bool(rows) and not ecarts,
+                      "ECARTS : " + " · ".join(ecarts) if ecarts
+                      else "les %d lignes de la matrice, marge 1,5" % len(rows)))
+
     out.append(Result("T-098", "OEUVRE", "temoin des layers affiches (H11)",
                       not manque2,
                       "manque : " + ", ".join(manque2) if manque2

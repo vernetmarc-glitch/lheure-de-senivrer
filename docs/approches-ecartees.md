@@ -248,3 +248,36 @@ ensemble : T-094 monte de 0,64 à 0,78 pendant que T-077 se dégrade de 0,56 à
 0,79. Ils se croisent avant de se rejoindre. Le levier juste est le gain de
 toile, qui creuse les vides **avant** le champ fin pendant que le plafond coiffe
 les pics ensuite.
+
+---
+
+## 11/08/2026 — cinq mesures écartées sur les galaxies
+
+Toutes butent sur le même fait : **à ces échelles la fenêtre de mesure contient
+plus de fond que de galaxie.** Ne pas les réessayer sans changer de méthode.
+
+**Richesse de structure — trois tentatives.**
+1. Écart-type du profil azimutal → mesurait le **bruit de grenaille** : le nuage
+   appauvri à 2 500 traceurs « gagnait », 0,134 contre 0,037 pour 82 000 étoiles.
+2. Modes azimutaux bas / modes hauts → mesurait l'**élongation** : un disque
+   incliné est une ellipse, donc du m=2 pur. 338 pour la tache plate d'Andromède
+   contre 11 pour le modèle à quatre bras.
+3. Cohérence de phase log-spirale → mesurait le **flou** et la **concentration** :
+   le dénominateur s'effondre sur une image lisse, et la couronne de mesure tombe
+   sur le bord d'une petite tache.
+
+**Taille apparente — deux tentatives.**
+4. `_local_extent` sur médiane globale, bande (1,8 · 3,4) → mesurait le **fond** :
+   2,61 à 2,70 à des positions sans aucune galaxie.
+5. Dispersion des rapports taille/rayon sur anneau local → **ne réagit pas** à un
+   grossissement ×2 (0,197 dans les trois cas).
+
+**Enveloppe stellaire étendue (route écartée avant implémentation).** Amener le
+rapport de T-016 à 1,8 imposait que la galaxie cesse de dominer sa fenêtre —
+c'est-à-dire exactement ce qu'A8/T-077 interdit. Réfutée par le témoin au hasard,
+sans écrire une ligne.
+
+**Halo de transition à forte amplitude.** ×2 puis ×5 : 5 puis 7 bloquants, T-018
+et T-012 cassés au passage. L'étendue apparente venait du halo dans l'ancien
+générateur, et le rapporter au flux de 80 000 étoiles au lieu d'une amplitude
+absolue change complètement son poids relatif.

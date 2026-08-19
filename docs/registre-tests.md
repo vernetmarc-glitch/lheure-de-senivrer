@@ -1647,3 +1647,97 @@ caractères** : même graine, même morphologie par défaut, et les deux sprites
 avaient le **même md5**. Corrigée dans les deux générateurs. T-024 reste rouge
 tant que les sprites de **dissolution** ne sont pas recuits — ils relèvent de
 l'axe du temps.
+
+---
+
+## 11/08/2026 — T-016 : le contrôle récompensait l'absence de galaxie
+
+**Le témoin qui manquait depuis toujours.** T-016 exigeait
+`_local_extent / r_px` dans la bande (1,8 · 3,4). Appliqué à des positions tirées
+**au hasard**, sans aucune galaxie :
+
+| Ligne | Vraies galaxies | Témoin sans galaxie | Bande |
+|---|---|---|---|
+| `B` | Voie lactée 1,43 · LMC 1,33 | **2,61 ± 0,36** | 1,8 – 3,4 |
+| `C` | Voie lactée 1,48 | **2,62 ± 0,25** | 1,8 – 3,4 |
+| `E` | Andromède 1,60 | **2,70 ± 0,31** | 1,8 – 3,4 |
+
+Le fond nu tombait en plein milieu de la bande ; une galaxie brillante en sortait
+par le bas. Le calcul le confirme : `_local_extent` retranche la médiane
+**globale**, donc le fond de la fenêtre compte comme du flux, et sur une image
+plate le rayon à 60 % vaut mécaniquement 3 × √0,6 = **2,32**.
+
+**Le contrôle était en contradiction directe avec A8/T-077**, qui exige que rien
+ne soit aussi brillant qu'une galaxie. Les anciennes vignettes — ~316 gaussiennes
+noyées sous un halo — le passaient *parce qu'elles étaient invisibles*.
+
+### La réécriture, et son refus au banc
+
+Version réécrite : dispersion des rapports taille/rayon **entre objets** d'une
+même ligne (D7/A9 demandent la proportionnalité, pas une valeur absolue), sur
+l'excédent au-dessus d'un anneau **local**. Refusée par son banc :
+
+- grossissement artificiel ×1,25, ×1,60, ×2,00 → dispersion **inchangée au
+  millième** (0,197, mêmes valeurs 1,38 et 2,05) ;
+- insensibilité au fond **fausse** : excédent non nul dans 60 cas sur 60,
+  positions au hasard à 3,01 ± 0,16 ;
+- la branche « moins de deux objets » passait au vert, et au premier essai elle
+  est passée **parce que** la déformation avait supprimé le second objet.
+
+### Bilan de méthode
+
+**Cinq mesures ont échoué sur la même famille de grandeurs** — trois pour la
+richesse (bruit de grenaille, élongation, flou), deux pour la taille apparente.
+Cause commune : *à ces échelles la fenêtre contient plus de fond que de galaxie,
+et toute statistique intégrée sur la fenêtre mesure le fond.*
+
+La bonne méthode est l'**ajustement d'un profil** sur l'objet, le fond étant
+paramètre libre. Travail à part entière, ouvert au chantier (D-35).
+
+D'ici là T-016 affiche **« MESURE NON CONCLUANTE »** et reste rouge. *Un contrôle
+vert qui ne mesure rien est pire qu'un rouge documenté.*
+
+**Conséquence utile :** T-016 n'étant plus bloquant, le halo de transition a pu
+être rétabli, ce qui **ferme T-033** (creux d'histogramme à `C`, A6). Point
+retenu : compacité 0,800, halo σ = 0,75 rayon, amplitude 0,14.
+
+---
+
+## 11/08/2026 (soir) — l'application passe sur la grille cuite, T-016 au chantier
+
+**Cuisson : 394 contrôles passés, 15 en échec, 0 bloquant. PUBLIÉ.**
+
+### T-101 — l'application affiche la grille cuite (B6)
+
+**L'écart le plus grave trouvé de la journée, et le plus silencieux.**
+L'application de production tournait sur un découpage en **douze paliers** hérité
+(`milkyway`, `localgroup`, `l1b`… `l5`) pendant que la grille `A`→`O`, cuite et
+validée par les 392 contrôles du harnais, ne servait qu'à une page d'essai
+séparée. **L'œuvre ne montrait aucune des textures que ce harnais valide** — et
+rien dans le rapport de cuisson ne pouvait le dire, puisque tout y était vert.
+
+Le contrôle compare la table de `layerWeights.ts` à `zoom_axis.rows` de la
+matrice, ligne par ligne, plus la marge de rendu. Recopier des chiffres est
+légitime — le navigateur ne lit pas le JSON de génération — mais une recopie que
+rien ne vérifie dérive à la première cuisson qui bouge la géométrie.
+
+*Banc de falsification : rouge sur une table trafiquée (« A 0.99 vs 0.0350 · C
+absente… »), vert sur la vraie.*
+
+**Conséquence du recâblage :** `RealGalaxiesLayer` est **supprimé**. Les galaxies
+sont dans les textures, à leur position et sous contrôle du harnais ; le garder
+les aurait dessinées deux fois.
+
+### T-016 — versé aux chantiers (D-35)
+
+Les deux versions ont été refusées par le banc. Le détail est dans `decisions.md`
+et les cinq mesures écartées dans `approches-ecartees.md`. Le contrôle **reste
+rouge** et déclare « mesure non concluante » plutôt que de rendre un chiffre
+trompeur. *Le principe du projet est qu'un contrôle se taise plutôt que de mentir ;
+ici il ne se taît pas, il dit qu'il ne conclut pas.*
+
+### Les galaxies à T=0, point retenu
+
+**Compacité 0,800 · halo σ = 0,75 rayon, amplitude 0,14.** Le halo est
+indispensable : sans lui T-033 tombe à −4,29 à la ligne `C` pour un plancher à
+−0,40 — c'est lui qui relie la galaxie au fond dans l'histogramme.

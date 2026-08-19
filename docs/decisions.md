@@ -268,3 +268,105 @@ T-010 et T-011 sur cette arête.
 **Ce qui le ferme :** que le fond de `G` soit **engendré** au lieu d'être
 rééchantillonné depuis `H`. Tant que ce n'est pas fait, T-094 affiche sa mesure à
 chaque cuisson.
+
+## D-35 — T-016 rejoint les chantiers : la mesure est à réécrire, pas le seuil à desserrer *(11/08/2026)*
+
+**Tranché par Marc**, sur mesure. Le contrôle est **cassé dans les deux sens** :
+
+- **L'ancienne version récompensait l'absence de galaxie.** Elle exigeait
+  `_local_extent / r_px` dans la bande (1,8 · 3,4). Or `_local_extent` retranche
+  la médiane **globale**, si bien que le fond cosmique présent dans la fenêtre
+  compte comme du flux. Témoin mesuré à des positions tirées **au hasard**, sans
+  aucune galaxie : **2,61 ± 0,36** à `B`, **2,62 ± 0,25** à `C`, **2,70 ± 0,31**
+  à `E` — en plein milieu de la bande. Les vraies galaxies rendaient 1,33 à 1,60
+  et **échouaient**. Sur une image plate le rayon vaut mécaniquement
+  3 × √0,6 = 2,32, ce qui explique le témoin.
+  *Le contrôle était donc en contradiction directe avec A8/T-077, qui exige que
+  rien ne soit aussi brillant qu'une galaxie. Les anciennes vignettes le
+  passaient parce qu'elles étaient invisibles.*
+- **La version réécrite ne détecte rien.** Banc du 11/08 : grossir une galaxie de
+  ×1,25, ×1,60 puis ×2,00 laisse la dispersion **inchangée au millième** (0,197
+  dans les trois cas). L'insensibilité au fond annoncée est fausse (excédent non
+  nul dans 60 cas sur 60). Et sa branche « moins de deux objets » passait au vert
+  — au premier essai de falsification, elle est passée **parce que** la
+  déformation avait fait disparaître le second objet.
+
+**Cinq mesures ont échoué sur cette famille de grandeurs** — trois pour la
+richesse de structure, deux pour la taille apparente — toutes pour la même
+raison : à ces échelles la fenêtre de mesure contient **plus de fond que de
+galaxie**, et toute statistique intégrée sur la fenêtre mesure le fond.
+
+**Ce que la décision fait.** Le seuil n'est pas desserré ; l'exigence D7/A9 n'est
+pas retirée. Le contrôle **reste rouge**, déclaré au chantier, et affiche
+« MESURE NON CONCLUANTE » à chaque cuisson. *Un contrôle vert qui ne mesure rien
+est pire qu'un rouge documenté.*
+
+**Ce qui le ferme :** une mesure de taille apparente par **ajustement de profil**
+sur l'objet, le fond étant traité comme paramètre libre — et non par intégration
+sur une fenêtre.
+
+**Conséquence utile.** T-016 n'étant plus bloquant, le **halo de transition** a pu
+être rétabli, ce qui ferme T-033 (creux d'histogramme à `C`, A6). Il ne reste donc
+qu'un contrôle rouge de plus, pas deux.
+
+## D-36 — l'application de production passe à la grille A→O *(11/08/2026)*
+
+**Demandé par Marc :** « le lien que tu m'as donné n'utilise pas les nouveaux
+layers ». Constat exact et grave : l'application tournait sur un découpage en
+**douze paliers hérités** (`milkyway`, `localgroup`, `l1b`… `l5`) pendant que la
+grille `A`→`O`, cuite et validée par les 392 contrôles, ne servait qu'à une page
+d'essai séparée. **L'œuvre ne montrait aucune des textures que le harnais
+valide** — un écart invisible depuis le rapport de cuisson, puisque tout y était
+vert.
+
+Trois conséquences :
+
+1. `layerWeights.ts` porte les quinze lignes, raison ×2,520 constante, **une
+   seule largeur de fondu** (0,15 dex). L'ancien découpage avait un pas de ×24
+   sur une arête, masqué par une largeur spéciale de 0,52 dex à cet endroit.
+2. `RealGalaxiesLayer` est **supprimé** : les galaxies sont dans les textures, à
+   leur position et sous contrôle du harnais. Le garder les dessinait deux fois.
+3. **T-101** interdit désormais à la table de l'application de diverger de la
+   matrice. C'est le contrôle qui manquait pour que cet écart ne se reproduise
+   pas en silence.
+
+## D-35 — T-016 rejoint les chantiers : la mesure de taille apparente est à refaire *(11/08/2026)*
+
+**Tranché par Marc**, après que le banc de falsification a refusé **les deux**
+versions du contrôle.
+
+**L'ancienne version récompensait l'absence de galaxie.** Elle exigeait
+`_local_extent / r_px` dans la bande (1,8 · 3,4). Or `_local_extent` retranche la
+médiane **globale**, si bien que le fond cosmique présent dans la fenêtre compte
+comme du flux. Témoin à des positions tirées au hasard, sans aucune galaxie :
+**2,61 à `B`, 2,62 à `C`, 2,70 à `E`** — le fond nu tombait en plein milieu de la
+bande, tandis qu'une galaxie brillante en sortait par le bas (1,33 à 1,60). Le
+contrôle entrait donc en contradiction directe avec A8/T-077, qui exige que rien
+ne soit aussi brillant qu'une galaxie. Les anciennes vignettes le passaient parce
+qu'elles étaient invisibles.
+
+**La réécriture n'a pas tenu davantage.** Dispersion des rapports taille/rayon,
+fond estimé sur un anneau local. Le banc :
+
+- grossir artificiellement une galaxie de ×1,25, ×1,60 puis ×2,00 ne change
+  **pas** la dispersion — 0,197 dans les trois cas, aux mêmes décimales ;
+- l'excédent au-dessus de l'anneau local n'est nul dans **aucun** des 60 tirages
+  au hasard : 3,01 ± 0,16 contre 1,38 et 2,05 pour les vraies galaxies ;
+- sous deux objets résolus, la branche de repli **passait** — lors du premier
+  essai, la déformation a fait disparaître le second objet et le contrôle est
+  passé au vert *parce que* quelque chose était cassé.
+
+**Le constat de fond.** Cinq mesures ont échoué sur cette famille de grandeurs —
+trois sur la richesse, deux sur la taille apparente — toutes pour la même raison :
+à ces échelles **la fenêtre de mesure contient plus de fond que de galaxie**, et
+toute statistique intégrée sur la fenêtre mesure le fond.
+
+**Ce que la décision fait, et ne fait pas.** Le contrôle n'est pas désarmé et son
+seuil n'est pas desserré : il **reste rouge**, s'affiche à chaque cuisson, et
+déclare explicitement « mesure non concluante » au lieu de rendre un chiffre
+trompeur. D7 et A9 restent couvertes par T-012, qui porte la proportionnalité
+d'une ligne à l'autre et qui, lui, passe.
+
+**Ce qui le ferme :** une mesure par **ajustement de profil** sur l'objet, dont
+l'échelle est un paramètre et le fond un **paramètre libre** — et non une
+statistique intégrée sur une fenêtre fixe.

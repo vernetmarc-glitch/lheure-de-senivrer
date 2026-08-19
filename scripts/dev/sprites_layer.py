@@ -38,6 +38,11 @@ DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                     "..", "..", "app", "public", "data")
 SPRITE_DIR = os.path.normpath(os.path.join(DATA, "dissolution_sprites"))
 SPRITE_HIRES = os.path.normpath(os.path.join(DATA, "dissolution_sprites_hires"))
+# Vignettes de T = AUJOURD'HUI, engendrees par generate_realgal_sprites.mjs
+# (1024 px, modele partage a pleine richesse pour la Voie lactee, modele
+# parametre oriente par le catalogue pour les huit autres). Elles remplacent la
+# frame 0 des vignettes de dissolution, qui etaient ~316 gaussiennes.
+SPRITE_T0 = os.path.normpath(DATA)
 CATALOG = os.path.normpath(os.path.join(DATA, "local_group_catalog.json"))
 
 # Parametres lus depuis la source de verite, bloc `generation.sprites`.
@@ -140,11 +145,24 @@ def frame_for(amp):
 
 def load_sprite(name, amp, hires=False):
     from PIL import Image
+    # A T = AUJOURD'HUI (frame 0) on prend la vignette haute qualite, qui suit la
+    # meme convention d'echelle que la famille 512 : SPRITE_MARGIN = 2,8 rayons.
+    # C'est vrai AUSSI pour la Voie lactee, dont la vignette de dissolution en
+    # 2048 avait, elle, une etendue interne differente (HIRES_REACH = 1,37) --
+    # d'ou le retour de `reach` avec le tableau, pour que l'appelant n'ait pas a
+    # deviner a quelle famille il a affaire. Confondre les deux rendait la
+    # galaxie 3,7 fois trop grande (rupture C -> B du 03/08).
+    if frame_for(amp) == 0:
+        f0 = os.path.join(SPRITE_T0, "density_realgal_%s.png" % name)
+        if os.path.exists(f0):
+            a = np.asarray(Image.open(f0).convert("L"), dtype=np.float32) / 255.0
+            return a, SPRITE_MARGIN
     d = SPRITE_HIRES if hires else SPRITE_DIR
     f = os.path.join(d, "%s_f%02d.png" % (name, frame_for(amp)))
     if not os.path.exists(f):
         return None
-    return np.asarray(Image.open(f).convert("L"), dtype=np.float32) / 255.0
+    a = np.asarray(Image.open(f).convert("L"), dtype=np.float32) / 255.0
+    return a, (HIRES_REACH if hires else SPRITE_MARGIN)
 
 
 def _paste(img, sp, cx, cy, diam_px, gain):
@@ -244,7 +262,8 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
         if key:
             # Sprite N-corps : il porte deja sa propre dissolution.
             hires = (key == "milkyway" and half < HIRES_BELOW)
-            sp = load_sprite(key, amp, hires=hires)
+            charge = load_sprite(key, amp, hires=hires)
+            sp, reach_sp = charge if charge else (None, SPRITE_MARGIN)
             if sp is not None:
                 frac = SPRITE_EXTENT["hires" if hires else "normal"]
                 # Gain 30 calibre le 02/08 : la courbe de ton a gamma 0,45 comprime fortement
@@ -268,8 +287,7 @@ def build(code, half, seed, base_img, fine, amp=1.0, ambient_half=None):
                 # des le basculement sur le hires (rupture C -> B, 03/08) ;
                 # appliquer le rapport des r90 la rendait au contraire trop
                 # petite pour remplir le cadre de A.
-                reach = HIRES_REACH if hires else SPRITE_MARGIN
-                d_px = 2.0 * reach * g["radiusMpc"] / px
+                d_px = 2.0 * reach_sp * g["radiusMpc"] / px
                 if _paste(img, sp, cx, cy, d_px, mean0 * SPRITE_GAIN * g["brightness"]):
                     n_real += 1
                     continue

@@ -42,6 +42,31 @@ const OUT_DIR = new URL('../app/public/data/', import.meta.url)
 const SPRITE_MARGIN = 2.8
 const N = 1024 // 320 auparavant : à 320 px les bras tombaient sous le pixel
 
+// Compacité : ramène l'étendue du champ d'étoiles sur celle de la famille
+// historique. Mesure du 11/08 : les vignettes engendrées ici avaient un r90 de
+// 0,29 du demi-côté contre 0,10 pour les vignettes 512 — soit 2,9 fois plus
+// étalées. Un disque exponentiel dont la lumière porte jusqu'à ~0,8 rayon est
+// physiquement plus juste que l'ancien profil, très concentré ; mais TOUTE la
+// chaîne est calibrée sur l'ancienne convention — tailles apparentes (T-016),
+// courbes de ton, raccords entre lignes. Changer l'étendue et desserrer les
+// seuils qui s'en plaignent serait prendre le problème à l'envers.
+//
+// On aligne donc l'étendue, et la richesse de structure — le sujet du retour de
+// Marc — est gagnée sans rien déplacer d'autre. Si l'étalement physique est un
+// jour préféré, c'est T-016 qu'il faudra ré-étalonner, explicitement.
+const COMPACITE = 0.800
+
+// Halo de transition, repris de generate_simulated_textures.mjs (mêmes valeurs).
+// OMIS dans la première version de ce générateur, et l'omission s'est vue à la
+// mesure : T-033 tombait à -4,29 à la ligne `C` pour un plancher à -0,40. Ce
+// contrôle protège A6 — la continuité entre les points brillants et le fond. Un
+// nuage d'étoiles net posé sur un fond sombre SANS palier intermédiaire creuse
+// un trou dans l'histogramme : l'œil y voit deux populations au lieu d'une
+// galaxie qui s'estompe. Le halo est volontairement faible pour ne pas noyer la
+// structure que tout ce travail cherche justement à rendre visible.
+const HALO_SIGMA_FACTOR = 0.75 // en multiple du rayon de la galaxie
+const HALO_AMPLITUDE = 0.14
+
 const SLUG_BY_NAME = {
   'Andromède (M31)': 'andromede',
   'Triangulum (M33)': 'triangulum',
@@ -188,8 +213,8 @@ function rendre(stars, inclinaisonDeg, angleDeg) {
   for (const s of stars) {
     // Inclinaison : l'axe mineur est comprimé par cos i. Puis rotation par
     // l'angle de position, pour poser l'axe majeur là où il est observé.
-    const xi = s.x
-    const yi = s.y * ci
+    const xi = s.x * COMPACITE
+    const yi = s.y * ci * COMPACITE
     const px = (xi * cp - yi * sp) * echelle + N / 2
     const py = (xi * sp + yi * cp) * echelle + N / 2
     if (px < 0 || px >= N - 1 || py < 0 || py >= N - 1) continue
@@ -201,6 +226,23 @@ function rendre(stars, inclinaisonDeg, angleDeg) {
     champ[y0 * N + x0 + 1] += s.b * fx * (1 - fy)
     champ[(y0 + 1) * N + x0] += s.b * (1 - fx) * fy
     champ[(y0 + 1) * N + x0 + 1] += s.b * fx * fy
+  }
+  return champ
+}
+
+/** Halo gaussien centré, large et faible : le palier qui relie la galaxie au fond. */
+function ajouterHalo(champ, fluxEtoiles) {
+  const echelle = N / (2 * SPRITE_MARGIN)
+  const sigma = HALO_SIGMA_FACTOR * echelle
+  // Amplitude rapportée au flux du nuage d'étoiles, pour que le rapport
+  // halo/étoiles ne dépende pas du nombre d'étoiles tirées.
+  const amp = (HALO_AMPLITUDE * fluxEtoiles) / (2 * Math.PI * sigma * sigma)
+  for (let y = 0; y < N; y++) {
+    const dy = y - N / 2
+    for (let x = 0; x < N; x++) {
+      const dx = x - N / 2
+      champ[y * N + x] += amp * Math.exp(-(dx * dx + dy * dy) / (2 * sigma * sigma))
+    }
   }
   return champ
 }
@@ -314,7 +356,9 @@ async function main() {
     y: s.gy / GM.MW_R,
     b: s.b,
   }))
-  let champ = flouSeparable(rendre(mw, 66, 0), 0.9)
+  const champMw = rendre(mw, 66, 0)
+  const fluxMw = champMw.reduce((a, b) => a + b, 0)
+  let champ = flouSeparable(ajouterHalo(champMw, fluxMw), 0.9)
   ecrirePNG(champ, new URL('density_realgal_milkyway.png', OUT_DIR))
   console.log(`milkyway    ${mw.length} étoiles (modèle partagé)`)
 
@@ -325,7 +369,9 @@ async function main() {
     if (!slug) continue
     const rng = mulberry32(grainePourNom(gal.name))
     const stars = champEtoiles(gal.name, gal.morphology, rng)
-    const c = flouSeparable(rendre(stars, gal.inclinationDeg, gal.positionAngleDeg), 0.9)
+    const ch = rendre(stars, gal.inclinationDeg, gal.positionAngleDeg)
+    const flux = ch.reduce((a, b) => a + b, 0)
+    const c = flouSeparable(ajouterHalo(ch, flux), 0.9)
     ecrirePNG(c, new URL(`density_realgal_${slug}.png`, OUT_DIR))
     console.log(
       `${slug.padEnd(11)} ${String(stars.length).padStart(6)} étoiles  ${gal.morphology}  i=${gal.inclinationDeg}° PA=${gal.positionAngleDeg}°`

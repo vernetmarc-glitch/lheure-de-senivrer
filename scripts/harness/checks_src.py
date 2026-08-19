@@ -358,7 +358,8 @@ def paste_flux_checks():
     out = []
     pires = []
     for key in ("milkyway", "andromede", "triangulum", "lmc", "sagittaire"):
-        sp = S.load_sprite(key, 1.0)
+        charge = S.load_sprite(key, 1.0)
+        sp = charge[0] if charge else None
         if sp is None:
             continue
         f_src = float(np.asarray(sp, np.float64).mean())
