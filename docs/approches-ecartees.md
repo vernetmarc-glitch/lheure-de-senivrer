@@ -281,3 +281,57 @@ sans écrire une ligne.
 et T-012 cassés au passage. L'étendue apparente venait du halo dans l'ancien
 générateur, et le rapporter au flux de 80 000 étoiles au lieu d'une amplitude
 absolue change complètement son poids relatif.
+
+---
+
+## 11/08/2026 — O-07 : trois causes proposées, trois réfutées par la mesure
+
+**Le nom du chantier désigne la mauvaise cause.** « Zel'dovich ne fabrique pas la
+structure fine » : mesuré, le Ψ **frais** n'ajoute que 1,68 px à `J` et 2,15 px à
+`I`, soit 6 à 12 % du déplacement. Il ne peut pas expliquer les 5,2 et 9,0 px que
+T-011 mesure.
+
+**Le témoin de T-011, qui manquait.** Sur deux images sans aucune correspondance,
+le contrôle sature à **10,2 – 11,0 px**. Le seuil de 3 px est donc lisible, et
+`I→H` à 9,0 px signifie que l'héritage y est *quasiment perdu* — non pas
+« légèrement dégradé ».
+
+**Le champ transmis est sain.** En comparant `delta_lo` au lieu des textures :
+`I→H` rend corrélation **0,947** et 3,9 px, la meilleure de la chaîne, alors que
+la texture rendue tombe à 0,719 et 9,0 px. *La perte est entièrement en aval du
+raccord spectral.*
+
+**La perte n'est pas de petite échelle.** Lissage commun de 0 à 16 px : la
+corrélation ne remonte pas (0,719 → 0,736). Ce n'est donc ni le grain, ni les
+halos, ni le champ fin.
+
+### Ce qui a été écarté
+
+**La dalle de projection.** L'épaisseur diminue vers les lignes fines, mais la
+prédiction par racine du rapport donne `K→J` comme la *pire* arête (0,752) alors
+que c'est la *meilleure* mesurée (0,936). La tendance s'inverse. *Réfutée.*
+
+**`K_CUT_SAFETY = 1,0`.** La bande `(k_cut, k_max]` est bien appliquée par le
+parent puis jetée, et régénérée par l'enfant avec un autre tirage — 2,21 px
+contre 2,56 px à `J→I`. La supprimer semblait donc devoir gagner ~3,4 px. Essayé,
+cuisson complète, **mesuré** : T-010 à `I→H` 0,719 → **0,664**, T-011 9,0 → **9,4
+px**, T-094 0,71 → **0,64**, plus deux bloquants (T-052 à `M`, T-077 à `G`).
+*Ce que le docstring annonçait se vérifie : à la Nyquist entière, l'interpolation
+devient la nouvelle source d'erreur, et elle coûte plus que la bande supprimée.*
+Revenu à 1,2.
+
+*Le calibrage d'origine du 30/07 avait été fait sur la seule paire `M→L` — une
+paire grossière où l'écart en pixels est invisible, la cellule y étant quarante
+fois plus grande. Le refaire au bout fin de la chaîne était légitime ; il donne
+la même réponse.*
+
+### Ce qui reste à instruire
+
+L'écart total entre le Ψ appliqué par le parent et par l'enfant vaut **3,86 Mpc
+à `J→I`**, soit 10,9 px. Sa décomposition n'est pas concluante : le terme
+dominant apparent — « part héritée mal reconstituée », 3,67 Mpc — est contaminé
+par **l'erreur de ma propre reconstruction**, mesurée à 11 % du champ en
+comparant au `psi_lo` du cache. *Une décomposition dont un terme dépend de la
+fidélité du reconstructeur ne prouve rien sur le générateur.* Il faut instrumenter
+`bake_layer` de l'intérieur, en enregistrant le Ψ réellement appliqué, plutôt que
+de le reconstituer de l'extérieur.

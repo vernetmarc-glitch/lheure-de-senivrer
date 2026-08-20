@@ -1688,7 +1688,8 @@
    "psi_transmis": "le DÉPLACEMENT APPLIQUÉ (Psi frais + Psi hérité interpolé), filtré à k_cut — jamais un Psi recalculé depuis delta. Corrigé le 02/08 : le recalcul faisait diverger position transmise et position réelle.",
    "sub_z": 2,
    "fresh_psi_gain": 1.0,
-   "chunk": 4000000
+   "chunk": 4000000,
+   "k_cut_safety_note": "RESTE a 1,2. Le passage a 1,0 a ete essaye et MESURE le 11/08/2026, puis annule : il supprime bien la bande de recouvrement, mais l heritage se DEGRADE la ou il comptait -- T-010 a I->H 0,719 -> 0,664, T-011 a I->H 9,0 -> 9,4 px, T-094 0,71 -> 0,64 -- et deux bloquants apparaissent (T-052 a M, T-077 a G). Ce que le docstring annoncait se verifie : a la Nyquist entiere, l interpolation devient la nouvelle source d erreur, et elle coute plus que la bande qu on supprime."
   },
   "champ_fin": {
    "role": "Module la densité APRÈS le dépôt, donc n'est pas déplacé et ne subit pas le délavage de Zel'dovich. C'est lui qui porte le détail fin (B4).",
