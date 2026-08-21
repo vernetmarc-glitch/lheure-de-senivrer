@@ -123,7 +123,7 @@ impose des halos elliptiques, donc une anisotropie voulue.
 | T-017 | aucune galaxie visible ne disparaît au palier suivant | D8 | 06/07 |
 | T-018 | halo présent, croissant avec la distance | A10 | 06/07 |
 | T-019 | la Voie lactée ne recouvre aucune galaxie plus proche | A10 | 06/07 |
-| T-023 | densité aux positions du catalogue > médiane de la ligne | D6 | 31/07 |
+| ~~T-023~~ | **RETIRÉ le 11/08/2026** — D6c supprimée : sans matière entre les galaxies, la convergence n'a plus d'objet (D-37) | — | — |
 | T-024 | dispersion des morphologies | D5 | 28/07 |
 
 ### Priorité 3 — piqué et grandes échelles
@@ -1783,3 +1783,121 @@ l'objet mesuré est à `cx = 25`, et `b[…, −14:65]` ne désigne rien en inde
 négative. Trois épreuves « sans réaction » ont été crues concluantes avant que la
 vérification des coordonnées ne montre l'erreur. *Un banc de falsification doit
 lui-même être falsifié.*
+
+---
+
+## 11/08/2026 — l'état de l'art tranche un conflit que le réglage ne pouvait pas trancher
+
+**Le nœud.** D4 exigeait que l'ancrage du catalogue **décroisse** vers les grandes
+échelles ; D6c qu'il agisse **tôt**, aux lignes grossières, sinon les galaxies
+tombaient du côté raréfié ; B1/B2 interdisaient l'**incrément** de force d'une
+ligne à l'autre — qui est précisément ce que la rampe produit. Cinq configurations
+cuites, aucune ne satisfait les trois.
+
+**Ce que dit l'observation.** Entre les galaxies, à ces échelles, il n'y a rien de
+visible : les baryons du réseau sont un gaz à 10⁵–10⁷ K dont 30 à 50 % échappent
+encore à toute détection, et la première détection en émission a exigé d'empiler
+7 000 filaments. Le Groupe local est un groupe **pauvre et isolé** — 35 galaxies
+dans un rayon de 1,18 Mpc. Le voisinage n'est pas un réseau mais une **paroi
+mince** : Local Sheet, 10,4 Mpc de grand axe pour 0,465 Mpc de petit axe. Et le
+Local Void, pratiquement dépourvu de galaxies, commence juste dehors.
+
+### Ce qui est retiré
+
+| Contrôle | Motif |
+|---|---|
+| **T-023** | D6c supprimée : sans matière entre les galaxies, la convergence n'a plus d'objet. |
+| **Ancrage** | Plus nécessaire — et il pesait **7,08 px des 9,01 px** de perte d'héritage à `I→H` (O-07). |
+
+### Ce qui est réécrit
+
+**T-094** mesurait que le contraste du fond entre les galaxies ne chute pas d'une
+ligne à l'autre. *Cette exigence était contraire à l'observation* : le fond diffus
+des grandes échelles est fait de galaxies **non résolues**, et zoomer les résout
+en points discrets, ce qui vide nécessairement l'espace intermédiaire. Le contrôle
+interdisait le phénomène réel que l'œuvre doit faire comprendre. Il mesure
+désormais la continuité du **ton moyen** : la quantité de lumière ne saute pas,
+seule sa répartition change.
+
+**T-067** lisait la *table de paramètres* et exigeait une force décroissante. Il
+vérifie maintenant le **fait** : aucun mécanisme n'inscrit le catalogue au-delà de
+`J`.
+
+**T-000** reconnaît désormais les contrôles **retirés**. Sans cela, retirer un
+contrôle rendait le plan définitivement incomplet et la seule issue était
+d'effacer son histoire — l'inverse de la non-régression.
+
+### Ce qui est ajouté
+
+| Contrôle | Exigence | Mesure à l'entrée | Seuil |
+|---|---|---|---|
+| **T-102** | D9 — structure aplatie aux échelles locales | `F` 1,54 · `G` 1,39 | ≥ 2,5 |
+| **T-103** | D10 — le vide local occupe le champ | `G` **14,0 %** · `H` 25,5 % ✅ | ≥ 18 % |
+
+Les deux entrent en chantier : le générateur produit un champ **isotrope et de
+moyenne homogène à toutes les lignes**, ce qui est vrai au-delà de l'échelle
+d'homogénéité et faux en dessous. Aucune cuisson ne peut le corriger.
+
+---
+
+## 11/08/2026 — T-104 et T-105 : la mémoire du projet devient contrôlée
+
+**Question de Marc :** *« est-ce que le code que tu archives contient tous les
+commentaires qui permettent de savoir pourquoi tel algorithme, tel paramètre, et
+éviter de reperdre du temps sur les mêmes sujets ? »*
+
+**Mesure plutôt que jugement.** Densité de commentaire : 29 % dans `gen_chain.py`,
+37 % dans `sprites_layer.py`, 33 % dans `checks_image.py`. Registres : 7 426
+lignes. **Là où le projet a saigné, la trace est excellente.** Ailleurs, deux
+trous mesurés :
+
+| Trou | Mesure |
+|---|---|
+| Contrôles sans trace **datée** au registre | **68 sur 102** |
+| Valeurs de la matrice sans note au même niveau | **69 sur 128** |
+
+### Ce que coûte un contrôle sans trace — mesuré le jour même
+
+`T-016` et `T-011` ont exigé plusieurs heures pour **redécouvrir** ce qu'ils
+mesuraient. Et dans le cas de T-016, pour découvrir qu'il mesurait autre chose
+que ce qu'il annonçait **depuis l'origine** : le fond nu rendait 2,61 à 2,70 dans
+une bande exigée de 1,8 à 3,4, donc le contrôle récompensait l'**absence** de
+galaxie. Personne ne pouvait le savoir : aucune ligne du registre ne disait quel
+retour l'avait motivé ni quelle mesure l'avait calibré.
+
+### Ce que coûte un paramètre sans domaine de validité
+
+`raccord.calibration` conservait les trois mesures du balayage du 30/07 **sans
+dire sur quelle paire** elles avaient été faites. J'ai donc réessayé
+`k_cut_safety = 1,0` — une cuisson complète perdue — sans savoir que le calibrage
+portait sur la seule paire `M→L`, où l'écart en pixels est invisible parce que la
+cellule y est quarante fois plus grande. *Une mesure sans son domaine de validité
+n'est pas une mesure, c'est un chiffre.*
+
+### Les deux contrôles
+
+**T-104** — deux exigences de dureté différente. **Dure** : un contrôle
+implémenté doit **figurer** au registre. **Cliquet** : le nombre de contrôles
+portant une trace datée ne descend pas, et part de 34. On rattrape le passé par
+lots, et un contrôle neuf ne peut plus naître sans trace.
+
+**T-105** — tout bloc de paramètres qui agit sur le rendu porte sa note. Il a
+immédiatement pointé `halos`, dont les cinq valeurs — `frac`, `profile_q`,
+`r_mpc`, `sub_levels`, `sub_frac` — n'avaient aucune justification écrite alors
+qu'elles pèsent lourd sur l'image. Comblé.
+
+
+---
+
+## Rattrapage de traçabilité — lot 1 *(11/08/2026)*
+
+*Contrôles implémentés qui ne figuraient nulle part au registre. Ils sont ici
+inscrits avec ce qu'ils protègent et l'exigence qu'ils servent. Leur date
+d'origine est celle de la campagne « axe du temps » du 08/08/2026 ; le retour
+client qui les a motivés n'est pas retrouvable — c'est précisément le manque que
+T-104 empêche désormais de reproduire.*
+
+| Contrôle | Ce qu'il vérifie | Exigence | Origine |
+|---|---|---|---|
+| T-088 | chaque ligne déclare son **demi-champ propre** en Mpc, sans quoi l'échelle affichée ne peut pas être vérifiée | M1 | 08/08 |
+| T-090 | le **régime d'expansion dépend de l'époque** : toute ligne part en régime `hubble` à la colonne 0, et une ligne déjà liée ne peut pas se délier en avançant dans le temps | M4, C10 ter | 08/08 |

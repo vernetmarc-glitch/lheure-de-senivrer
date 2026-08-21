@@ -301,6 +301,12 @@ ANCHOR_GAIN = 2.235e3
 # D4 : l'influence s'attenue avec l'echelle et disparait au-dela du voisinage.
 # La §4.7 s'arretait a 67 Mpc, ce qui tombe sur la ligne I dans l'echelle du 30/07.
 ANCHOR_STRENGTH = {"H": 1.00, "I": 0.45, "J": 0.12}
+# Longueur d'onde la plus COURTE que porte l'ancrage, en Mpc. Fixee, donc
+# identique a toutes les lignes : c'est ce qui permet a l'heritage de traverser
+# l'ancrage sans perte. Vaut la cellule de `J`, la ligne la plus grossiere ou
+# l'ancrage agit -- au-dela, le Groupe Local tient dans une cellule et
+# l'ancrage n'a plus de sens.
+ANCHOR_LAM_MPC = 1.8
 
 
 def anchor_psi(code, shape, box, cell):
@@ -332,7 +338,30 @@ def anchor_psi(code, shape, box, cell):
         return None
     rho = np.zeros(shape, np.float32)
     np.add.at(rho, (ix[keep], iy[keep], iz[keep]), (w[keep] * ANCHOR_GAIN).astype(np.float32))
-    return psi_band(rho, box, 0.0, 2 * np.pi / (2 * cell)) * np.float32(w0), int(keep.sum())
+    # BANDE DE L'ANCRAGE — corrigee le 11/08/2026.
+    #
+    # Elle valait `2*pi / (2*cell)`, c'est-a-dire la Nyquist DE CHAQUE LIGNE.
+    # Consequence : meme a force egale, `H` recevait un ancrage plus detaille que
+    # `I`, qui en recevait un plus detaille que `J`. L'enfant appliquait donc un
+    # deplacement que son parent n'avait pas applique, et l'heritage s'y perdait.
+    #
+    # Mesure du 11/08, decomposition exacte de l'ecart de Psi entre parent et
+    # enfant -- elle redonne T-011 a 0,3 px pres :
+    #     J -> I : frais 2,56 px · ANCRAGE 4,21 px · bande jetee 2,06 px
+    #              -> 5,34 px predits, 5,2 px mesures
+    #     I -> H : frais 3,12 px · ANCRAGE 7,08 px · bande jetee 4,60 px
+    #              -> 9,01 px predits, 9,0 px mesures
+    # L'ancrage est le terme DOMINANT de la perte d'heritage.
+    #
+    # L'ancrage represente la convergence des filaments vers le Groupe Local :
+    # son echelle est PHYSIQUE, fixee par `R_REF_MPC`, et n'a aucune raison de
+    # dependre de la taille du pixel de la ligne. On la borne donc a une valeur
+    # unique, en Mpc, pour que toutes les lignes appliquent EXACTEMENT le meme
+    # deplacement d'ancrage et que l'heritage le traverse sans perte.
+    # `lam_mpc = 0` -> inactif, on retombe sur la Nyquist de la ligne.
+    k_anchor = (np.pi / ANCHOR_LAM_MPC) if ANCHOR_LAM_MPC > 0 else np.inf
+    return psi_band(rho, box, 0.0, min(k_anchor, 2 * np.pi / (2 * cell))) \
+        * np.float32(w0), int(keep.sum())
 
 
 # ------------------------------------------------- chargement des parametres
@@ -621,6 +650,24 @@ def bake_layer(code, half, margin, seed, parent=None):
     del PSI
     disp_b = disp_b[:nb_done]
     web = Q
+
+    # DIAGNOSTIC O-07 (11/08/2026). Depose la matiere JUSTE APRES L'ADVECTION,
+    # avant les halos, avant le champ fin, avant la courbe de ton. C'est le seul
+    # moyen de savoir OU se perd l'heritage : `delta_lo` transmis est sain
+    # (correlation 0,947 a `I->H`) alors que la texture finale tombe a 0,719, et
+    # le lissage commun ne fait pas remonter la correlation -- donc la perte est
+    # a grande echelle, entre les deux. Non active par defaut : aucun cout quand
+    # `DIAG_O07` n'est pas dans l'environnement.
+    if os.environ.get("DIAG_O07"):
+        d_out = os.environ["DIAG_O07"]
+        os.makedirs(d_out, exist_ok=True)
+        demi = half  # fenetre VISIBLE, la meme que celle des controles
+        sel = (np.abs(web[:, 0]) < demi) & (np.abs(web[:, 1]) < demi)
+        H2, _, _ = np.histogram2d(web[sel, 1], web[sel, 0], bins=OUT_N,
+                                  range=[[-demi, demi], [-demi, demi]])
+        np.save(os.path.join(d_out, "advecte_%s.npy" % code), H2.astype(np.float32))
+        print("   [DIAG_O07] %s : %d particules deposees dans la fenetre"
+              % (code, int(sel.sum())), flush=True)
 
     L = Layer()
     L.code, L.half, L.cell, L.box_xy, L.Lz, L.shape = code, half, cell, box_xy, Lz, shape

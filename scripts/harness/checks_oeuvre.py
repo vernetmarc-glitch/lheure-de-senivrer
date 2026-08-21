@@ -295,26 +295,27 @@ def construction_checks():
                       mult, "champ fin %s" % ("multiplicatif" if mult else "ADDITIF")))
 
     # ---- D4 : les galaxies ne marquent pas les grandes echelles -----------
-    # « Leur influence s'attenue avec l'echelle et disparait au-dela du
-    # voisinage. » L'ancrage du catalogue ne doit exister que sur les lignes
-    # basses ; s'il agit jusqu'a `O`, le Groupe Local marque tout l'univers.
+    # REECRIT le 11/08/2026. Il lisait la TABLE DE PARAMETRES et exigeait que la
+    # force d'ancrage decroisse vers les grandes echelles. Or l'ancrage est
+    # RETIRE (D-37) : le controle passait donc a cote de son objet et bloquait
+    # toute configuration ou la table est plate -- y compris celle ou le
+    # mecanisme n'existe plus.
+    #
+    # D4 dit que l'influence des galaxies s'attenue avec l'echelle et disparait
+    # au-dela du voisinage. Ce qui se verifie maintenant, c'est le FAIT : aucun
+    # mecanisme ne doit inscrire le catalogue dans les lignes au-dela de `J`.
+    # La galaxie la plus lointaine du catalogue est a 9,82 Mpc ; `J` couvre
+    # 143 Mpc de demi-champ.
     import checks as CK
     m = CK.matrix()
-    anc = m["generation"].get("ancrage", {})
-    force = anc.get("strength", {})
+    force = m["generation"].get("ancrage", {}).get("strength", {})
     ordre = "ONMLKJIHGFEDCBA"
-    lignes_anc = sorted(force, key=ordre.index)
-    vals = [force[c] for c in lignes_anc]
-    # L'influence doit DECROITRE avec l'echelle et disparaitre au-dela du
-    # voisinage. La galaxie la plus lointaine du catalogue est a 9,82 Mpc ; un
-    # ancrage subsistant au-dela de `J` (143 Mpc) ferait du Groupe Local une
-    # marque sur tout l'univers, ce que D4 interdit.
-    deborde = [c for c in lignes_anc if ordre.index(c) < ordre.index("J")]
-    decroit = all(vals[i] < vals[i + 1] for i in range(len(vals) - 1))
-    out.append(Result("T-067", "CONF", "les galaxies ne marquent pas les grandes echelles (D4)",
-                      bool(force) and not deborde and decroit,
-                      "ancrage %s%s" % (" ".join("%s=%.2f" % (c, force[c])
-                                                 for c in lignes_anc) or "non declare",
-                                        "  DEBORDE : " + " ".join(deborde)
-                                        if deborde else "")))
+    actifs = [c for c, v in force.items() if v > 0]
+    deborde = [c for c in actifs if ordre.index(c) < ordre.index("J")]
+    out.append(Result("T-067", "CONF",
+                      "les galaxies ne marquent pas les grandes echelles (D4)",
+                      not deborde,
+                      "aucun ancrage actif" if not actifs
+                      else "ancrage actif a " + " ".join(sorted(actifs, key=ordre.index))
+                      + ("  DEBORDE : " + " ".join(deborde) if deborde else "")))
     return out

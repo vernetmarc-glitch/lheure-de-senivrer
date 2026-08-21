@@ -592,56 +592,51 @@ def image_cell_checks(code, img, m):
                                  "noyees : " + " ".join(noyees[:3]) if noyees
                                  else "toutes visibles")))
 
-    # ---- T-023 : les galaxies sont des centres de gravite (D6) -------------
-    # Sur la premiere ligne generee, les filaments doivent CONVERGER vers les
-    # positions du catalogue. Mesure : la densite y depasse la mediane de la
-    # ligne. Origine 31/07, formulee par Marc.
-    if code == "H" and pos:
-        # T-023 — REECRIT le 10/08/2026, D6c allegee par Marc.
-        #
-        # Ce que l'ancienne version pretendait, et ne mesurait pas
-        # --------------------------------------------------------
-        # Elle exigeait 70 % des positions au-dessus de la mediane, en
-        # echantillonnant UN SEUL PIXEL par galaxie. D6 demandait que les
-        # filaments CONVERGENT VERS les positions ; un pixel unique mesure la
-        # COINCIDENCE, pas la convergence. Cinquieme controle trouve mesurant
-        # autre chose que ce qu'il cite.
-        #
-        # Et surtout : le controle n'avait PAS DE TEMOIN. Le nuage du catalogue
-        # translate au hasard 300 fois sur la meme texture rend 50 % +- 18
-        # points. Les 36 % mesures sont donc a 0,8 sigma du hasard -- du bruit,
-        # pas un signal. Le seuil de 70 % exigeait 1,1 sigma AU-DESSUS du hasard
-        # sans que rien ne dise que le generateur puisse l'atteindre : mesure
-        # faite, il ne le peut a aucun rayon de voisinage (a 7 px le temoin
-        # atteint lui aussi 99 % et le controle ne prouve plus rien).
-        #
-        # Ce que la version ci-dessous affirme, et ce qu'elle n'affirme pas
-        # ----------------------------------------------------------------
-        # Elle GARDE contre l'anti-correlation : les galaxies ne doivent pas
-        # tomber du cote rarefie de la toile. Elle NE PROUVE PAS la convergence,
-        # et ne doit pas etre lue comme telle -- la charge de D6 est portee par
-        # T-094 (D6b). Le seuil est relatif au temoin et non absolu : il suit
-        # donc la texture au lieu de dependre d'un chiffre fige.
-        rows = m["zoom_axis"]["rows"]
-        n = img.shape[0]
-        cx = np.array([p[1] for p in pos])
-        cy = np.array([p[2] for p in pos])
-        fr = float(np.mean([img[int(b), int(a)] > med for a, b in zip(cx, cy)]))
-        rng = np.random.default_rng(20260810)
-        t = []
-        for d in rng.integers(-int(0.42 * n), int(0.42 * n), (300, 2)):
-            a = np.clip(cx + d[0], 0, n - 1).astype(int)
-            b = np.clip(cy + d[1], 0, n - 1).astype(int)
-            t.append(float((img[b, a] > med).mean()))
-        t = np.array(t)
-        seuil = float(t.mean() - t.std())
-        out.append(Result("T-023", "CELL",
-                          "pas d'anti-correlation avec la toile (D6c)",
-                          fr >= seuil,
-                          "%s %.0f %% au-dessus de la mediane sur %d, temoin "
-                          "%.0f %% +- %.0f, plancher %.0f %%"
-                          % (code, 100 * fr, len(cx), 100 * t.mean(),
-                             100 * t.std(), 100 * seuil)))
+    # T-023 RETIRE le 11/08/2026 : la clause D6c qu'il servait est SUPPRIMEE.
+    # Il exigeait que les galaxies ne tombent pas du cote rarefie de la toile,
+    # ce qui n'a de sens que s'il y a de la matiere ENTRE elles. A8 reecrite dit
+    # le contraire, et l'observation avec elle : a ces echelles les baryons du
+    # reseau sont un gaz a 10^5-10^7 K dont 30 a 50 % echappent encore a toute
+    # detection. Le controle et son mecanisme -- l'ancrage du catalogue --
+    # partent ensemble (D-37).
+    # ---- T-102 : aux echelles locales, la structure est APLATIE (D9) ------
+    # AJOUTE le 11/08/2026, apres analyse de l'etat de l'art. Presque toutes les
+    # galaxies brillantes proches appartiennent au Local Sheet, dont le grand axe
+    # mesure 10,4 Mpc pour un petit axe de 0,465 Mpc -- un rapport de 22 pour 1.
+    # Aux lignes `F` et `G` (3,6 et 9,0 Mpc de demi-champ) la matiere doit donc
+    # se presenter comme une PAROI MINCE, pas comme un champ isotrope.
+    #
+    # L'isotropie n'est exigible qu'AU-DELA de l'echelle d'homogeneite ; l'exiger
+    # ici serait exiger le contraire de ce que le ciel montre. Le seuil est
+    # volontairement modeste (2,5 contre 22 pour la vraie feuille) : l'oeuvre
+    # projette une dalle epaisse, ce qui attenue l'aplatissement apparent.
+    if code in ("F", "G"):
+        el = _elongation(ndimage.gaussian_filter(v, 2.0))
+        out.append(Result("T-102", "CELL",
+                          "structure aplatie aux echelles locales (D9)",
+                          el >= 2.5,
+                          "%s elongation %.2f  (Local Sheet reel : 22)" % (code, el)))
+
+    # ---- T-103 : le vide local occupe une part majeure du champ (D10) -----
+    # AJOUTE le 11/08/2026. Le Local Void commence juste a l'exterieur du Groupe
+    # local et parait pratiquement depourvu de galaxies ; environ 23 % des
+    # galaxies du Local Volume sont des galaxies de vide. Aux lignes `G` et `H`
+    # le champ doit donc etre FRANCHEMENT ASYMETRIQUE -- une region large et
+    # sombre -- et non une densite uniforme.
+    #
+    # Grandeur : la plus grande region connexe sous la mediane, en fraction de la
+    # fenetre visible. Un champ homogene la laisse petite et morcelee ; un vrai
+    # vide en fait un bloc.
+    if code in ("G", "H"):
+        sombre = ndimage.gaussian_filter(v, 3.0) < np.median(v)
+        lbl, n = ndimage.label(sombre)
+        part = (max(ndimage.sum(sombre, lbl, range(1, n + 1))) / v.size) if n else 0.0
+        out.append(Result("T-103", "CELL",
+                          "le vide local occupe une part majeure du champ (D10)",
+                          part >= 0.18,
+                          "%s plus grande region sombre : %.1f %% du cadre"
+                          % (code, 100 * part)))
+
     return out
 
 
@@ -663,42 +658,26 @@ def image_pair_checks(pc, cc, pimg, cimg, m):
                           dt <= 12.0 and dc <= 0.20,
                           "ton %.1f /255, contraste %.2f" % (dt, dc)))
 
-    # ---- T-094 : la matiere entre les galaxies ne chute pas (D6b) ----------
-    # AJOUTE le 10/08/2026, sur reformulation de D6 par Marc : « il ne faut pas
-    # qu'il y en ait trop entre les galaxies sur les layers superieurs, sinon on
-    # aura l'impression que de la matiere disparait en zoomant sur les galaxies ».
+    # ---- T-094 : continuite du TON a l'arete (D6b) -------------------------
+    # REECRIT le 11/08/2026. Il exigeait que le CONTRASTE du fond entre les
+    # galaxies ne chute pas d'une ligne a la suivante. **Cette exigence etait
+    # contraire a l'observation** : le fond diffus des grandes echelles est fait
+    # de galaxies NON RESOLUES, et zoomer les resout en points discrets, ce qui
+    # vide necessairement l'espace intermediaire. Le controle interdisait donc
+    # le phenomene reel que l'oeuvre doit faire comprendre.
     #
-    # C'est la clause qui porte reellement D6 depuis que D6c est allegee. La
-    # grandeur est le CONTRASTE DU FOND HORS VOISINAGE DES GALAXIES : la moyenne
-    # seule ne voit pas le defaut (elle ne descend que de 12 % a l'arete `H|G`)
-    # alors que le contraste y perd 36 % et le pic 42 %.
-    #
-    # Mesure du 10/08 sur cuisson fraiche : `I`->`H` 1,04 · `H`->`G` **0,64** ·
-    # `G`->`F` 0,84 · `F`->`E` 0,93 · `E`->`D` 0,97 · `D`->`C` 0,88. L'arete
-    # `H|G` est la seule hors bande -- c'est la charniere ou la trame change de
-    # mecanisme, et c'est exactement celle que Marc decrit.
+    # Ce qui doit rester continu, c'est le TON MOYEN : la quantite de lumiere ne
+    # saute pas d'une ligne a l'autre, seule sa REPARTITION change. Mesure du
+    # 10/08 sur les aretes saines : 0,88 · 0,89 · 0,90. La bande retenue laisse
+    # passer la decroissance douce voulue et attrape une rupture.
     if pc in CONTINUITE and cc in CONTINUITE:
-        def fond_contraste(code, im):
-            u = visible(im)
-            n = u.shape[0]
-            off = (im.shape[0] - n) // 2
-            px_m = 2.0 * rows[code]["halfwidth_mpc"] / n
-            msk = np.ones(u.shape, bool)
-            yy, xx = np.ogrid[0:n, 0:n]
-            for g, gx, gy in _positions(code, im):
-                r_px = max(3.0, 2.5 * g["radiusMpc"] / px_m)
-                msk &= np.hypot(yy - (gy - off), xx - (gx - off)) > r_px
-            if msk.sum() < 100:
-                return float("nan")
-            w = ndimage.gaussian_filter(u, 2.0)[msk]
-            return float(w.std() / max(w.mean(), 1e-9))
-        ap, ac = fond_contraste(pc, pimg), fond_contraste(cc, cimg)
-        rap = ac / max(ap, 1e-9)
+        rap = float(vc.mean()) / max(float(vp.mean()), 1e-9)
         out.append(Result("T-094", "PAIR",
-                          "la matiere entre les galaxies ne chute pas (D6b/D6)",
-                          rap >= 0.75,
-                          "%s->%s contraste du fond %.3f -> %.3f, rapport %.2f"
-                          % (pc, cc, ap, ac, rap)))
+                          "continuite du ton a l'arete (D6b/D6)",
+                          0.75 <= rap <= 1.25,
+                          "%s->%s ton moyen %.1f -> %.1f /255, rapport %.2f"
+                          % (pc, cc, 255 * float(vp.mean()),
+                             255 * float(vc.mean()), rap)))
 
     # ---- T-039 : effet fractal dans la fenetre D -> J ---------------------
     # B4, borne a sa fenetre de validite : hors de 0,1-150 Mpc l'univers n'est

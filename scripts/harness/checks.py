@@ -30,6 +30,7 @@ regard de ce retour.
 import json
 import os
 import sys
+import re
 
 import numpy as np
 from scipy import ndimage
@@ -528,8 +529,17 @@ def plan_completeness():
     if not os.path.exists(reg):
         return Result("T-000", "CONF", "plan de test complet", False,
                       "registre introuvable")
-    declared = set(re.findall(r"T-\d{3}", open(reg).read()))
+    txt = open(reg).read()
+    declared = set(re.findall(r"T-\d{3}", txt))
     declared.discard("T-000")
+    # Un controle RETIRE reste ecrit au registre -- avec la raison et la date,
+    # c'est le principe de non-regression -- mais il n'est plus a implementer.
+    # Convention : la ligne du tableau qui le retire porte le mot RETIRE.
+    # Sans cela, retirer un controle rendait le plan definitivement incomplet et
+    # la seule issue etait d'effacer son histoire.
+    for ligne in txt.splitlines():
+        if "RETIR" in ligne.upper():
+            declared -= set(re.findall(r"T-\d{3}", ligne))
     # Balaye TOUT le harnais, pas le seul fichier courant : la batterie est
     # repartie sur plusieurs modules depuis le 07/08, et ne regarder qu'ici
     # ferait croire a un plan incomplet alors qu'il ne l'est pas.
@@ -736,8 +746,94 @@ def matrice_effectivement_lue(m):
                   else "%d blocs verifies, aucun parametre muet" % len(paires))
 
 
+# Cliquet de T-104. Mesure du 11/08/2026 : 34 controles sur 102 portent une
+# trace DATEE au registre. Ce nombre ne peut que MONTER -- le baisser demande de
+# l'ecrire ici avec la raison, comme tout desserrage. Il rattrape le passe par
+# lots et interdit qu'un controle neuf naisse sans trace.
+TRACABILITE_MIN = 34
+
+
+def controles_traces():
+    """T-104 — tout controle implemente a une trace DATEE au registre.
+
+    AJOUTE le 11/08/2026, sur la question de Marc : « est-ce que le code archive
+    contient tous les commentaires qui permettent de savoir pourquoi tel
+    algorithme, tel parametre, et eviter de reperdre du temps sur les memes
+    sujets ? » Mesure faite : **34 controles sur 102** portent une trace datee.
+    68 sont cites sans date et deux ne figuraient pas du tout au registre.
+
+    Ce que coute un controle sans trace, mesure le meme jour : T-016 et T-011 ont
+    exige plusieurs heures pour REDECOUVRIR ce qu'ils mesuraient -- et dans le cas
+    de T-016, pour decouvrir qu'il mesurait autre chose que ce qu'il annoncait
+    depuis l'origine (il recompensait l'ABSENCE de galaxie). Un controle sans
+    trace finit contourne ou cru sur parole.
+
+    Deux exigences, de durete differente :
+      - DURE : un controle implemente doit FIGURER au registre. Sans quoi il est
+        invisible a la relecture et son seuil devient un chiffre magique.
+      - CLIQUET : le nombre de controles portant une trace DATEE ne descend pas.
+    """
+    impl = set()
+    for f in sorted(os.listdir(HERE)):
+        if f.endswith(".py"):
+            impl |= set(re.findall(r'"(T-\d{3})"',
+                                   open(os.path.join(HERE, f), encoding="utf-8").read()))
+    reg = os.path.join(ROOT, "docs", "registre-tests.md")
+    lignes = open(reg, encoding="utf-8").read().splitlines()
+    absents, dates = [], 0
+    for t in sorted(impl):
+        b = [l for l in lignes if t in l]
+        if not b:
+            absents.append(t)
+        elif any(re.search(r"\d{2}/\d{2}", l) for l in b):
+            dates += 1
+    ok = not absents and dates >= TRACABILITE_MIN
+    return Result("T-104", "CONF",
+                  "tout controle a une trace datee au registre",
+                  ok,
+                  "%d/%d dates (cliquet %d)%s"
+                  % (dates, len(impl), TRACABILITE_MIN,
+                     "  ABSENTS DU REGISTRE : " + " ".join(absents) if absents else ""))
+
+
+def blocs_matrice_justifies():
+    """T-105 — tout bloc de parametres qui agit sur le rendu porte une note.
+
+    AJOUTE le 11/08/2026. Mesure : 69 valeurs sur 128 n'ont aucune note au meme
+    niveau. Le cas qui a coute le plus cher ce jour-la : `raccord.calibration`
+    conservait les trois mesures du balayage du 30/07 SANS DIRE SUR QUELLE PAIRE
+    elles avaient ete faites. J'ai donc reessaye `k_cut_safety = 1,0` -- une
+    cuisson complete perdue -- sans savoir que le calibrage d'origine portait sur
+    la seule paire `M->L`, ou l'ecart en pixels est invisible parce que la
+    cellule y est quarante fois plus grande.
+
+    *Une mesure sans son domaine de validite n'est pas une mesure, c'est un
+    chiffre.* La liste est explicite : y inscrire un bloc, c'est declarer qu'il
+    agit sur le rendu et qu'il doit donc se justifier.
+    """
+    gen = matrix()["generation"]
+    exiges = ["champ_fin", "halos", "ancrage", "sprites", "web_gain", "raccord",
+              "render"]
+    muets = []
+    for b in exiges:
+        bloc = gen.get(b)
+        if not isinstance(bloc, dict):
+            muets.append("%s absent" % b)
+            continue
+        if not any(k for k in bloc
+                   if any(x in k.lower() for x in ("note", "raison", "comment",
+                                                   "gradue", "operateur"))):
+            muets.append(b)
+    return Result("T-105", "CONF",
+                  "tout bloc de parametres porte sa justification",
+                  not muets,
+                  "SANS NOTE : " + " ".join(muets) if muets
+                  else "%d blocs justifies" % len(exiges))
+
+
 def conf_checks(d, m):
-    out = [plan_completeness(), requirement_coverage(), matrice_effectivement_lue(m)]
+    out = [plan_completeness(), requirement_coverage(), matrice_effectivement_lue(m),
+           controles_traces(), blocs_matrice_justifies()]
     out += chronologie_checks(m)
     try:
         import checks_oeuvre as CO

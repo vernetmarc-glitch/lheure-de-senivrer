@@ -124,6 +124,20 @@ CHANTIERS = {
     # reechantillonne depuis `H`. Tant que ce n'est pas fait, ce controle
     # affiche sa mesure a chaque cuisson et ne doit pas etre desarme.
     "T-094": "O-07 : le fond de `G` est le recadrage de `H` agrandi, pas engendre",
+    # AJOUTES le 11/08/2026 avec les exigences D9 et D10, issues de l'analyse de
+    # l'etat de l'art. Aucune cuisson ne peut les corriger : le generateur produit
+    # aujourd'hui un champ ISOTROPE et de moyenne HOMOGENE a toutes les lignes,
+    # ce qui est vrai au-dela de l'echelle d'homogeneite et faux en dessous.
+    #
+    # Etat a l'entree : T-102 elongation 1,54 a `F` et 1,39 a `G` pour 2,5 exiges
+    # (le Local Sheet reel vaut 22) ; T-103 plus grande region sombre 14,0 % du
+    # cadre a `G` pour 18 % exiges -- `H` passe deja, a 25,5 %.
+    #
+    # CE QUI LES FERME : que le generateur porte une DALLE APLATIE aux lignes
+    # locales et un VIDE etendu a `G`. C'est un travail de conception, pas un
+    # reglage : il touche la geometrie de la dalle et la condition initiale.
+    "T-102": "D9 : le generateur est isotrope, le voisinage reel est une paroi 22:1",
+    "T-103": "D10 : le generateur est homogene, le Local Void occupe le voisinage",
 }
 
 

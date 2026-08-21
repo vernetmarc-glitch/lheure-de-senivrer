@@ -131,27 +131,25 @@ blancs et les nuages ».)*
 
 **A7.** La palette est celle du projet (« Astro », du noir au blanc chaud par le
 rouge sombre et l'orange). Le rendu ne doit jamais être en noir et blanc pur.
-**A8. Sous `G`, le fond s'atténue sans disparaître.** Les layers montrant des
-galaxies doivent porter, eux aussi, un **fond généré de matière filamentaire**,
-afin de rester visuellement cohérents avec les layers supérieurs. Une galaxie ne
-flotte pas sur du vide.
+**A8. Sous `G`, l'espace entre les galaxies est essentiellement vide.**
+*(Réécrite le 11/08/2026. Remplace « le fond s'atténue sans disparaître », 07/08,
+qui demandait « quelques nuages filamentaires diffus » sur les lignes à galaxies.)*
 
-L'atténuation attendue est précisée ainsi *(Marc, 07/08)* :
+**Motif : cette exigence était contraire à l'observation.** Entre les galaxies, à
+ces échelles, il n'y a rien de visible. Les baryons du réseau cosmique y sont
+sous forme de gaz chaud-tiède à 10⁵–10⁷ K ; 30 à 50 % d'entre eux échappent
+encore à toute détection, et la première détection en émission a exigé d'empiler
+les données de plus de 7 000 filaments. *Les galaxies sont les seules perles
+brillantes de la toile ; le fil, on ne le voit pas.*
 
-- le fond devient **très peu perceptible par rapport aux galaxies** — il
-  s'efface au regard, il ne s'efface pas de l'image ;
-- il subsiste **quelques nuages filamentaires diffus** ; ce n'est **pas** un
-  fond uniforme, et ce n'est pas non plus un grain sans forme ;
-- **aucune zone de haute luminosité autre que les galaxies elles-mêmes** : rien
-  dans le fond ne doit rivaliser en éclat avec un objet du catalogue.
-
-Les trois clauses sont distinctes et doivent être satisfaites ensemble : un fond
-lissé jusqu'à l'uniforme échoue la deuxième, et un fond conservé tel quel échoue
-la troisième.
-*(Origine : 29/07. Précisée le 07/08 après mesure : le fond mesurait un pic de
-220/255 sur `G` contre 245 pour les galaxies — presque leur égal — et 118 contre
-108 sur `E`, donc **plus brillant qu'elles** ; à l'autre bout, `C` et `B`
-tombaient à 2,0 et 2,5 d'écart-type, soit quasiment uniformes.)*
+- Sur les lignes à galaxies (`G`→`A`), l'espace entre les objets du catalogue est
+  **sombre**. Aucun nuage filamentaire n'y est attendu ni souhaité.
+- **La chute de matière entre les galaxies au fil du zoom n'est pas un défaut :
+  c'est le phénomène réel.** Le fond diffus des grandes échelles est fait de
+  galaxies non résolues ; zoomer les résout en points discrets et vide l'espace
+  intermédiaire. C'est l'une des choses que l'œuvre doit faire comprendre.
+- Ce qui reste exigé : rien ne rivalise d'éclat avec une galaxie du catalogue, et
+  la transition à l'arête `G|H` reste continue en ton (D1).
 
 **A9. Uniformité de rendu entre objets de même nature.** Deux objets du même type
 — deux galaxies, deux amas — doivent être rendus par le **même procédé** et à la
@@ -498,31 +496,44 @@ doivent rester cohérentes. C'est la contrainte la plus facile à oublier.
 **position réelle**. Leur influence s'atténue avec l'échelle et disparaît au-delà
 du voisinage — elles ne doivent pas marquer les grandes échelles.
 
-**D6. Continuité de la matière au passage aux lignes à galaxies.**
-*(Réécrite le 10/08/2026 sur reformulation de Marc. Remplace « les galaxies
-réelles sont des centres de gravité », 31/07, dont la clause de coïncidence est
-allégée — voir D6c.)*
+*Le mécanisme d'ancrage qui déposait le catalogue dans le champ de déplacement a
+été retiré le 11/08/2026. Il n'est plus nécessaire : si l'espace entre les
+galaxies est vide (A8), il n'y a plus rien à faire converger vers elles. Il
+coûtait par ailleurs 7,08 px des 9,01 px de perte d'héritage à `I→H` (O-07). La
+position réelle des galaxies reste tenue par le catalogue et les vignettes.*
 
-L'intention, dans les termes de Marc : **les galaxies doivent se détacher du fond
+**D6. Continuité au passage aux lignes à galaxies.**
+*(Réécrite une seconde fois le 11/08/2026, après analyse de l'état de l'art.)*
+
+L'intention reste celle de Marc : **les galaxies doivent se détacher du fond
 quand on zoome dessus, tout en étant déjà visibles sur les lignes supérieures.**
-Trois clauses mesurables en découlent, à satisfaire ensemble.
 
-- **D6a. Sur les lignes à galaxies, le fond est ténu.** Très peu de filaments ou
-  de nuages visibles sous `G` : rien n'y rivalise d'éclat avec une galaxie du
-  catalogue. *(Déjà porté par A8 clause 3.)*
-- **D6b. La matière entre les galaxies ne chute pas d'une ligne à l'autre.** Il
-  ne doit pas y en avoir trop entre les galaxies sur les lignes supérieures,
-  sinon **le zoom donne l'impression que la matière disparaît**. La grandeur est
-  le contraste du fond hors voisinage des galaxies, comparé de part et d'autre de
-  chaque arête. *(Mesuré le 10/08 : 0,463 à `H` contre 0,297 à `G`, soit une
-  chute de 36 % du contraste et de 42 % du pic à cette seule arête ; les autres
-  arêtes sont entre 0,84 et 1,04.)*
-- **D6c. Les galaxies ne tombent pas du côté raréfié de la toile.** Clause
-  **allégée** : l'ancien seuil de 70 % de coïncidence est abandonné. Il est
-  remplacé par une garde contre l'anti-corrélation, mesurée **contre son propre
-  témoin** — le même nuage de positions translaté au hasard sur la même texture.
-  *(Ce que cette clause n'affirme plus : elle ne prouve pas la convergence. La
-  charge de D6 est portée par D6b.)*
+- **D6a.** Sur les lignes à galaxies, rien ne rivalise d'éclat avec une galaxie du
+  catalogue. *(Porté par A8.)*
+- **D6b.** La transition à l'arête `G|H` reste continue **en ton moyen**. Ce qui
+  change d'une ligne à l'autre, c'est la **résolution** des sources, pas la
+  quantité de lumière. *(Remplace l'ancienne clause qui exigeait que le contraste
+  du fond entre les galaxies ne chute pas — exigence contraire à l'observation,
+  voir A8.)*
+- **D6c — SUPPRIMÉE.** Elle demandait que les galaxies ne tombent pas du côté
+  raréfié de la toile, ce qui supposait un ancrage. Sans matière entre les
+  galaxies, la clause n'a plus d'objet.
+
+**D9. Aux échelles locales, la structure est APLATIE, pas isotrope.**
+*(Ajoutée le 11/08/2026.)* Presque toutes les galaxies brillantes proches
+appartiennent au **Local Sheet**, dont le grand axe mesure 10,4 Mpc pour un petit
+axe de 0,465 Mpc — un rapport de **22 pour 1**. Aux lignes `F` et `G`, la matière
+doit donc se présenter comme une **paroi mince**, et non comme un champ isotrope.
+L'isotropie n'est exigible qu'au-delà de l'échelle d'homogénéité.
+
+**D10. Le vide local occupe une part majeure du champ.**
+*(Ajoutée le 11/08/2026.)* Le Local Void commence **juste à l'extérieur** du
+Groupe local et paraît pratiquement dépourvu de galaxies. Dans le Local Volume,
+environ **23 %** des galaxies connues sont des galaxies de vide. Aux lignes `G`
+et `H`, le champ doit donc être **franchement asymétrique** : une région large et
+sombre, et non une densité uniforme. *Cette exigence contredit une lecture
+naïve de B8 (moyenne homogène partout) : l'homogénéité est une propriété des
+GRANDES échelles, pas de notre voisinage.*
 
 **D7. Positions et tailles relatives justes.** Le diamètre apparent des galaxies
 et leurs distances mutuelles doivent être **cohérents avec le catalogue**. Deux

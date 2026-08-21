@@ -399,3 +399,51 @@ l'objet mesuré est à `cx = 25` et que `b[…, −14:65]` est vide en indexatio
 négative. Trois épreuves « sans réaction » ont ainsi été crues concluantes avant
 que la vérification des coordonnées ne montre l'erreur. **Un banc de
 falsification doit lui-même être falsifié** — c'est la leçon du jour.*
+
+## D-37 — L'ancrage est retiré, et D6c avec lui *(11/08/2026)*
+
+**Tranché par Marc, sur analyse de l'état de l'art qu'il a demandée.**
+
+**Le nœud.** D4 exigeait une influence **décroissante** vers les grandes échelles ;
+D6c que l'ancrage agisse **tôt** ; B1/B2 interdisaient l'**incrément** de force
+d'une ligne à l'autre. Cinq configurations cuites et mesurées, aucune ne satisfait
+les trois. Ce n'était pas un défaut de code mais une contradiction d'exigences.
+
+**Ce que l'observation dit.** Entre les galaxies, à ces échelles, il n'y a **rien
+de visible** — les baryons du réseau sont un gaz à 10⁵–10⁷ K dont 30 à 50 %
+échappent encore à toute détection. Les galaxies sont les seules perles brillantes
+de la toile ; le fil, on ne le voit pas.
+
+**Conséquence.** S'il n'y a rien entre les galaxies, il n'y a **rien à faire
+converger** vers elles. L'ancrage perd son objet, et avec lui D6c et T-023. Le
+conflit disparaît au lieu d'être arbitré.
+
+**Bénéfice mesuré.** L'ancrage pesait **7,08 px des 9,01 px** de perte d'héritage
+à `I→H` — terme dominant du chantier O-07, établi par décomposition exacte qui
+redonne T-011 à 0,3 px près.
+
+*Ce que la décision ne fait pas :* elle ne supprime pas D4. Les galaxies restent à
+leur position réelle, portées par le catalogue et les vignettes ; T-067 vérifie
+désormais le **fait** — aucun mécanisme n'inscrit le catalogue au-delà de `J` —
+au lieu de lire une table de paramètres.
+
+## D-38 — Deux exigences nouvelles : le voisinage n'est ni isotrope ni homogène *(11/08/2026)*
+
+L'analyse a révélé deux traits réels que l'œuvre ne montrait pas du tout, et qui
+sont plus intéressants que les nuages qu'on cherchait à sauver.
+
+**D9 — la structure locale est APLATIE.** Le Local Sheet mesure 10,4 Mpc de grand
+axe pour **0,465 Mpc** de petit axe, soit 22 pour 1, et presque toutes les
+galaxies brillantes proches y appartiennent. Aux lignes `F` et `G`, nos textures
+sont isotropes — B7 l'exigeait même. **L'isotropie n'est exigible qu'au-delà de
+l'échelle d'homogénéité.**
+
+**D10 — le vide local occupe une part majeure du champ.** Le Local Void commence
+juste à l'extérieur du Groupe local et paraît pratiquement dépourvu de galaxies ;
+environ 23 % des galaxies du Local Volume sont des galaxies de vide. Nos contrôles
+imposaient au contraire une moyenne homogène partout.
+
+T-102 et T-103 les arment. Ils entrent **en chantier** avec leur mesure d'entrée :
+le générateur produit un champ isotrope et de moyenne homogène à toutes les
+lignes, et seule une évolution de la géométrie de la dalle et de la condition
+initiale peut les fermer.
