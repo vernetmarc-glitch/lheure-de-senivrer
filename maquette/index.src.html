@@ -175,7 +175,7 @@ const tFromU = u => u <= U1 ? Math.exp(Math.log(TMIN) + (Math.log(TA) - Math.log
 const uFromT = t => t <= TA ? U1 * (Math.log(t) - Math.log(TMIN)) / (Math.log(TA) - Math.log(TMIN))
   : t <= T0 ? U1 + (U2 - U1) * (t - TA) / (T0 - TA)
   : U2 + (1000 - U2) * (Math.log(t) - Math.log(T0)) / (Math.log(TMAX) - Math.log(T0));
-const WMIN = 0.04, WMAX = 90;
+const WMIN = 0.00006, WMAX = 90;
 const wFromU = u => Math.exp(Math.log(WMIN) + (Math.log(WMAX) - Math.log(WMIN)) * u / 1000);
 const uFromW = w => 1000 * (Math.log(w) - Math.log(WMIN)) / (Math.log(WMAX) - Math.log(WMIN));
 
@@ -213,7 +213,7 @@ function tailleZoom() {
   const h = document.getElementById("zoomBloc").clientHeight;
   elZ.style.width = h + "px";
   const rz = document.getElementById("reperesZoom"); rz.innerHTML = "";
-  for (const [w, txt] of [[0.13, "superamas"], [1.2, "toile cosmique"], [14.5, "sphère de Hubble"], [46, "univers observable"]]) {
+  for (const [w, txt] of [[0.00025, "Voie lactée"], [0.13, "superamas"], [1.2, "toile cosmique"], [14.5, "sphère de Hubble"], [46, "univers observable"]]) {
     const sp = document.createElement("span"); sp.textContent = txt; sp.style.top = (uFromW(w) / 1000 * 100) + "%"; rz.appendChild(sp);
   }
 }
@@ -400,9 +400,117 @@ const matiere = (() => {
     depose(fboL, d, d, a, d / 2, d / 2, ech, decs, wk);
     ton(texL, x, th - y - d, d, d, a, m, wk, 1.45, true);
   };
+
+  // -------------------------------------------------------------------------
+  // La Voie lactée (TNG50, galaxie jumelle 522530) : 40 000 étoiles suivies une
+  // à une sur 48 époques. Entre deux époques, l'angle tourne selon la rotation
+  // (nombre de tours k précalculé) ; avant sa naissance une étoile n'existe pas ;
+  // absente d'une découpe, elle apparaît en fondu. Couleur : jeune = bleu et
+  // brillant, ancienne = dorée. Ton à bornes FIXES en étoiles par kpc².
+  // -------------------------------------------------------------------------
+  const pGal = prog(`#version 300 es
+    in float r0; in float r1; in float q0; in float q1; in float h0; in float h1; in float kk; in float tn; in float pw;
+    uniform float f, t, ppk, smin, smax, rpas, wk; uniform vec2 centre, res;
+    out vec3 vc; out float vw;
+    void main() {
+      bool a = r0 < 65534.5, b = r1 < 65534.5;
+      float fc = min(f, 1.0), al = (a && b) ? 1.0 : (b ? fc : (a ? 1.0 - fc : 0.0));
+      float age = t - tn / 4000.0;
+      if (al < 0.002 || age < -0.02) { gl_Position = vec4(2.0, 2.0, 0.0, 1.0); gl_PointSize = 0.0; return; }
+      float p0 = q0 / 65536.0 * 6.28319, p1 = q1 / 65536.0 * 6.28319;
+      float d = p1 - p0; d -= 6.28319 * floor(d / 6.28319 + 0.5); d += 6.28319 * kk;
+      float rr = (a && b) ? mix(r0, r1, fc) : (b ? r1 : r0);
+      float ph = (a && b) ? p0 + d * f : (b ? p1 : p0);
+      rr *= rpas;
+      vec2 px = centre + vec2(cos(ph), -sin(ph)) * rr * ppk;
+      gl_Position = vec4(px.x / res.x * 2.0 - 1.0, 1.0 - px.y / res.y * 2.0, 0.0, 1.0);
+      float hp = exp2(mix(h0, h1, fc) / 16.0 - 6.0);
+      float sig = clamp(0.5 * hp * ppk, smin, smax);
+      gl_PointSize = 6.0 * sig;
+      vw = al * pw / 1000.0 * wk / (6.2832 * sig * sig);
+      float j = exp(-max(age, 0.0) / 0.25);
+      vc = vec3(0.95 - 0.40 * j, 0.78 - 0.02 * j, 0.52 + 0.48 * j) * (1.0 + 14.0 * j);
+    }`, `#version 300 es
+    precision highp float; in vec3 vc; in float vw; out vec4 o;
+    void main() {
+      vec2 d = gl_PointCoord * 2.0 - 1.0; float r2 = 9.0 * dot(d, d);
+      if (r2 > 9.0) discard;
+      o = vec4(vc * vw * exp(-0.5 * r2), 1.0);
+    }`);
+  const pGalTon = prog(`#version 300 es
+    out vec2 uv; void main() { vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); uv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`,
+    `#version 300 es
+    precision highp float; in vec2 uv; uniform sampler2D acc; uniform float ppk2, wk, alpha; out vec4 o;
+    void main() {
+      vec3 c = texture(acc, uv).rgb / wk;
+      float lum = (c.r + c.g + c.b) / 2.25 * ppk2;
+      float tt = clamp((log(lum + 1e-9) / 2.302585 - 0.6) / 3.6, 0.0, 1.0);
+      tt = (1.0 - exp(-2.6 * tt)) / (1.0 - exp(-2.6));
+      vec3 ch = c / max(max(c.r, max(c.g, c.b)), 1e-12);
+      o = vec4(ch * tt * alpha, 1.0);
+    }`);
+  const G = { pret: false, n: 0, ts: [], rpas: 0.005 };
+  let bG = {}, texG = null, fboG = null, gw = 0, gh = 0;
+  const LG = {}; for (const nm of ["r0", "r1", "q0", "q1", "h0", "h1", "kk", "tn", "pw"]) LG[nm] = gl.getAttribLocation(pGal, nm);
+  const UG = n => gl.getUniformLocation(pGal, n), UGT = n => gl.getUniformLocation(pGalTon, n);
+  const vaoG = gl.createVertexArray();
+  M.galaxie = G;
+  M.chargeGalaxie = async url => {
+    const r = await fetch(url); const txt = await r.text();
+    const bin = Uint8Array.from(atob(txt), c => c.charCodeAt(0));
+    const lh = new DataView(bin.buffer).getUint32(0, true);
+    const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
+    let o = 4 + lh; o += o % 2;
+    const N = tete.n, E = tete.t.length;
+    const tranche = (nb) => { const v = bin.slice(o, o + nb); o += nb; return v; };
+    const tampon = v => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, v, gl.STATIC_DRAW); return b; };
+    bG.r = tampon(tranche(N * E * 2)); bG.q = tampon(tranche(N * E * 2)); bG.h = tampon(tranche(N * E));
+    bG.k = tampon(tranche(N * (E - 1))); bG.tn = tampon(tranche(N * 2)); bG.w = tampon(tranche(N * 2));
+    Object.assign(G, { n: N, ts: tete.t, rpas: tete.rpas, pret: true });
+  };
+  function cibleG() {
+    if (gw === tw && gh === th && texG) return;
+    if (texG) { gl.deleteTexture(texG); gl.deleteFramebuffer(fboG); }
+    texG = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texG);
+    gl.texImage2D(gl.TEXTURE_2D, 0, flottant ? gl.RGBA16F : gl.RGBA8, tw, th, 0, gl.RGBA, flottant ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    fboG = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fboG);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texG, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gw = tw; gh = th;
+  }
+  // (cx, cy) : centre de la galaxie à l'écran ; ppk : pixels par kpc
+  M.dessineGalaxie = (tt, cx, cy, ppk, alpha) => {
+    if (!G.pret || alpha < 0.002 || tt < G.ts[0] * 0.8) return;
+    cibleG();
+    const ts = G.ts, E = ts.length, N = G.n;
+    let i, j, f;
+    if (tt >= ts[E - 1]) { i = E - 2; j = E - 1; f = 1 + (tt - ts[E - 1]) / (ts[E - 1] - ts[E - 2]); }
+    else { j = Math.max(1, ts.findIndex(v => v >= tt)); i = j - 1; f = Math.max(0, (tt - ts[i]) / (ts[j] - ts[i])); }
+    const wk = flottant ? 0.05 : 0.002;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fboG); gl.viewport(0, 0, tw, th); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(pGal); gl.bindVertexArray(vaoG);
+    const att = (nom, buf, n, type, off) => { gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(LG[nom]); gl.vertexAttribPointer(LG[nom], n, type, false, 0, off); };
+    att("r0", bG.r, 1, gl.UNSIGNED_SHORT, i * N * 2); att("r1", bG.r, 1, gl.UNSIGNED_SHORT, j * N * 2);
+    att("q0", bG.q, 1, gl.UNSIGNED_SHORT, i * N * 2); att("q1", bG.q, 1, gl.UNSIGNED_SHORT, j * N * 2);
+    att("h0", bG.h, 1, gl.UNSIGNED_BYTE, i * N); att("h1", bG.h, 1, gl.UNSIGNED_BYTE, j * N);
+    att("kk", bG.k, 1, gl.BYTE, i * N); att("tn", bG.tn, 1, gl.UNSIGNED_SHORT, 0); att("pw", bG.w, 1, gl.UNSIGNED_SHORT, 0);
+    gl.uniform1f(UG("f"), f); gl.uniform1f(UG("t"), tt); gl.uniform1f(UG("ppk"), ppk); gl.uniform1f(UG("rpas"), G.rpas);
+    gl.uniform1f(UG("smin"), 0.6 * DPR); gl.uniform1f(UG("smax"), 40 * DPR); gl.uniform1f(UG("wk"), wk);
+    gl.uniform2f(UG("centre"), cx, cy); gl.uniform2f(UG("res"), tw, th);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    gl.drawArrays(gl.POINTS, 0, N);
+    // ton, ajouté par-dessus le fond
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, tw, th);
+    gl.useProgram(pGalTon); gl.bindVertexArray(null);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texG);
+    gl.uniform1i(UGT("acc"), 0); gl.uniform1f(UGT("ppk2"), ppk * ppk); gl.uniform1f(UGT("wk"), wk); gl.uniform1f(UGT("alpha"), alpha);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.disable(gl.BLEND);
+  };
   return M;
 })();
-let zonesInfo = [], pulsation = -1e9;
+let zonesInfo = [], pulsation = -1e9, galDemandee = false;
 
 // ---------------------------------------------------------------------------
 // Dessin
@@ -417,7 +525,11 @@ function dessine() {
   // la matière en points (WebGL) quand la boîte simulée couvre l'écran ; au-delà, la tuile
   const boitePx = s.a * TUILE_GAL * ppg;
   const aPts = matiere.prete ? lisse(0.6 * Wpx, 1.0 * Wpx, boitePx) : 0;
-  matiere.dessine(s.a, cx, cy, boitePx, aPts);
+  const aGal = 1 - lisse(0.0006, 0.003, W), KPC = 3.26156e-6, ppk = ppg * KPC;
+  if (aGal > 0 && !galDemandee) { galDemandee = true; matiere.chargeGalaxie("voie-lactee.txt").then(() => { sale = true; }).catch(console.error); }
+  matiere.dessine(s.a, cx, cy, boitePx, aPts * (1 - aGal));
+  const gx = cx, gy = cy - 8.2 * ppk;   // le Soleil est à 8,2 kpc du centre
+  if (aGal > 0) matiere.dessineGalaxie(t, gx, gy, ppk, aGal);
   const loupe = scen && scen.loupe && fronts[0] ? scen.loupe : null;
 
   // fond : la matière, à échelle propre fixe (elle se resserre en remontant le temps).
@@ -475,6 +587,7 @@ function dessine() {
     ctx.globalAlpha = 1;
   }
 
+  if (aGal > 0.25) dessineLegendeGalaxie(gx, gy, ppk, aGal);
   // nous (et la pulsation quand une lumière arrive)
   const dp = (performance.now() - pulsation) / 1600;
   if (dp >= 0 && dp < 1) {
@@ -640,6 +753,22 @@ function dessineLoupe(cx, cy, ppg, s) {
   ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "left"; ctx.fillStyle = "rgba(225,232,245,0.9)";
   ctx.fillText(`loupe : ${fmt(champ * TUILE_GAL * s.a)} autour d'une source`, x, y + d + 15 * DPR * US);
 }
+function dessineLegendeGalaxie(gx, gy, ppk, al) {
+  const G = matiere.galaxie;
+  ctx.globalAlpha = al; ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; ctx.fillStyle = "rgba(225,232,245,0.85)";
+  if (!G.pret) { ctx.textAlign = "center"; ctx.fillText("Voie lactée : chargement…", gx, gy + 40 * DPR); ctx.globalAlpha = 1; return; }
+  if (t < G.ts[0]) { ctx.textAlign = "center"; ctx.fillText("la Voie lactée n'a pas encore d'étoiles", gx, gy + 8.2 * ppk - 30 * DPR); }
+  else if (8.2 * ppk > 40 * DPR) {
+    ctx.strokeStyle = "rgba(225,232,245,0.5)"; ctx.lineWidth = DPR;
+    ctx.beginPath(); ctx.moveTo(gx - 5 * DPR, gy); ctx.lineTo(gx + 5 * DPR, gy); ctx.moveTo(gx, gy - 5 * DPR); ctx.lineTo(gx, gy + 5 * DPR); ctx.stroke();
+    ctx.textAlign = "left"; ctx.fillText("centre de la Voie lactée", gx + 9 * DPR, gy - 8 * DPR);
+  }
+  ctx.textAlign = "left"; ctx.fillStyle = "rgba(225,232,245,0.7)";
+  const yb = Hpx - document.getElementById("bas").offsetHeight * DPR - 14 * DPR;
+  ctx.fillText("une jumelle de la Voie lactée, simulée par TNG50", 16 * DPR, yb);
+  if (t > G.ts[G.ts.length - 1] + 0.05) ctx.fillText("après aujourd'hui : rotation prolongée (sans la fusion avec Andromède)", 16 * DPR, yb - 15 * DPR * US);
+  ctx.globalAlpha = 1;
+}
 function dessineGrille(cx, cy, ppg) {
   const lw = Math.log10(W), k = Math.floor(lw) - 1, f = lw - Math.floor(lw);
   const pas = [[10 ** k, 0.10 * (1 - f)], [10 ** (k + 1), 0.10 + 0.06 * (1 - f)]];
@@ -660,10 +789,11 @@ function dessineGrille(cx, cy, ppg) {
   ctx.font = `${11 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "left"; ctx.fillStyle = "rgba(225,232,245,0.9)";
   ctx.fillText(fmtCourt(g), x0 + L + 6 * DPR, y0 + 4 * DPR);
 }
-function fmtCourt(g) { return g >= 1 ? `${g.toFixed(0)} Gal` : `${(g * 1000).toFixed(0)} Mal`; }
+function fmtCourt(g) { return g >= 1 ? `${g.toFixed(0)} Gal` : g >= 0.001 ? `${(g * 1000).toFixed(0)} Mal` : `${(g * 1e6).toFixed(0)} 000 al`; }
 function fmtLong(g) {
   if (g >= 1) return `${g >= 10 ? g.toFixed(0) : g.toFixed(0)} milliard${g >= 2 ? "s" : ""} d'années-lumière`;
-  const m = g * 1000; return `${m.toFixed(0)} million${m >= 2 ? "s" : ""} d'années-lumière`;
+  const m = g * 1000; if (m < 1) return `${(g * 1e6).toFixed(0)} 000 années-lumière`;
+  return `${m.toFixed(0)} million${m >= 2 ? "s" : ""} d'années-lumière`;
 }
 // le « tapis roulant » de l'expansion : des grains d'espace s'éloignent de nous à une
 // vitesse proportionnelle à leur distance ; orange au-delà de la sphère de Hubble.
@@ -875,7 +1005,9 @@ function boucle(now) {
     if (scen.avance(dts)) { scen.fin = true; bouton("rejouer"); }
     elT.value = uFromT(t); sale = true;
   } else if (lecture) {
-    t = Math.min(TMAX, t * Math.exp(0.32 * dts));
+    // à l'échelle de la Voie lactée, le temps ralentit (0,12 Ga/s) pour que la rotation reste lisible
+    const aG = 1 - lisse(0.0006, 0.003, W), tExp = t * Math.exp(0.32 * dts);
+    t = Math.min(TMAX, aG > 0 ? t + (tExp - t) * (1 - aG) + 0.12 * dts * aG : tExp);
     // la lumière qui vient vers nous s'arrête en arrivant, aujourd'hui
     if (fronts.length && fronts[0].sens === "in" && t >= T0) { t = T0; joue(false); }
     if (t >= TMAX) joue(false);
