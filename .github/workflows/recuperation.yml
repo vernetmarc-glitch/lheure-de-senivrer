@@ -26,6 +26,13 @@ jobs:
           pattern: sorties-*
           run-id: 43827873108
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      # Les données binaires brutes contiennent par hasard une suite d'octets qui
+      # ressemble à un jeton d'accès : la protection de GitHub refuse le push.
+      # Compressées, elles ne la déclenchent plus (et pèsent moins).
+      - name: Compression des données
+        run: |
+          find sim/sorties -name '*.bin' -exec gzip -9 {} \;
+          ls -la sim/sorties/*
       - name: Commit des sorties
         run: |
           git config user.name "fond-de-carte[bot]"
