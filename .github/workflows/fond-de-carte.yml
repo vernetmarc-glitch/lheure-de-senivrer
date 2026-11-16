@@ -1,0 +1,80 @@
+name: Fond de carte — simulations N-corps
+
+# Étape 2 du plan du 14/11/2026 : deux simulations particle-mesh 512³,
+# une petite boîte (toile fine) et une grande (grandes échelles), avec
+# instantanés de z = 14 à aujourd'hui. Le post-traitement choisit
+# l'observateur, extrait la tranche, écrit les données de la page et les
+# tuiles d'image, et une planche de comparaison avec Millennium.
+# Les sorties sont committées dans sim/sorties/ sur cette branche.
+
+on:
+  push:
+    branches: [fond-de-carte]
+    paths: ['sim/pm.py', 'sim/post.py', '.github/workflows/fond-de-carte.yml']
+  workflow_dispatch:
+
+jobs:
+  simulation:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - boite: petite
+            np: 512
+            nm: 640
+            l: 200
+            hz: 6
+            npts: 350000
+            dmin: 4
+            dmax: 8
+            liss: 2
+          - boite: grande
+            np: 512
+            nm: 512
+            l: 1500
+            hz: 30
+            npts: 350000
+            dmin: 1.5
+            dmax: 3
+            liss: 8
+    name: Boîte ${{ matrix.boite }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v4
+      - name: Place disque
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL || true
+          df -h /
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet numpy scipy pillow
+      - name: Simulation
+        run: python sim/pm.py ${{ matrix.np }} ${{ matrix.nm }} ${{ matrix.l }} /tmp/sim 48
+      - name: Post-traitement
+        run: python sim/post.py /tmp/sim sorties/${{ matrix.boite }} ${{ matrix.boite }} ${{ matrix.hz }} ${{ matrix.npts }} ${{ matrix.dmin }} ${{ matrix.dmax }} ${{ matrix.liss }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sorties-${{ matrix.boite }}
+          path: sorties/${{ matrix.boite }}
+
+  commit:
+    needs: simulation
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: sim/sorties
+          pattern: sorties-*
+      - name: Commit des sorties
+        run: |
+          git config user.name "fond-de-carte[bot]"
+          git config user.email "fond-de-carte@users.noreply.github.com"
+          git add sim/sorties
+          git commit -m "Sorties des simulations N-corps (petite et grande boîte)" || echo "rien à committer"
+          git push
