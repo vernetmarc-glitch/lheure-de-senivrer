@@ -27,6 +27,7 @@ S.headers["api-key"] = CLE
 def get(url, params=None, fichier=None, essais=4):
     if not url.startswith("http"):
         url = f"{BASE}/{url.lstrip('/')}"
+    url = url.replace("http://", "https://", 1)
     for k in range(essais):
         try:
             r = S.get(url, params=params, timeout=600)
