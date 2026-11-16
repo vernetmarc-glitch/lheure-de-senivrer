@@ -191,11 +191,38 @@ const jeu = nom => AT.map(a => { const im = new Image(); im.src = `tuiles/${nom}
 const imgsP = jeu("petite"), imgsG = jeu("grande"), imgs = imgsP.concat(imgsG);
 let pretes = 0;
 imgs.forEach(o => o.im.onload = () => {
-  const c = document.createElement("canvas"); c.width = c.height = 1;
-  const x = c.getContext("2d"); x.drawImage(o.im, 0, 0, 1, 1);
-  const d = x.getImageData(0, 0, 1, 1).data; o.moy = `rgb(${d[0]},${d[1]},${d[2]})`;
-  o.motif = ctx.createPattern(o.im, "repeat"); pretes++; sale = true;
+  const c = document.createElement("canvas"); c.width = c.height = 16;
+  const x = c.getContext("2d"); x.imageSmoothingQuality = "high"; x.drawImage(o.im, 0, 0, 16, 16);
+  const d = x.getImageData(0, 0, 16, 16).data; let r = 0, g = 0, b = 0;
+  for (let k = 0; k < d.length; k += 4) { r += d[k]; g += d[k + 1]; b += d[k + 2]; }
+  o.moy = `rgb(${Math.round(r / 256)},${Math.round(g / 256)},${Math.round(b / 256)})`;
+  o.motif = true; pretes++; sale = true;
 });
+// Pavage sans répétition visible : chaque copie de la boîte est tournée d'un quart
+// de tour et/ou retournée selon un tirage fixe (la copie qui nous contient reste
+// droite, elle se raccorde aux points WebGL). Au-dessous de 256 px par copie, on
+// pave avec une « super-tuile » de 4×4 copies déjà orientées (motif 4 fois plus long).
+const orient = (i, j) => (i === 0 && j === 0) ? 0 : ((Math.imul(i * 73856093 ^ j * 19349663, 2654435761) >>> 13) & 7);
+function placeCopie(c, o, x, y, T) {
+  c.translate(x, y); c.rotate((o & 3) * Math.PI / 2); if (o & 4) c.scale(-1, 1);
+}
+const superTuiles = new Map();
+function superTuile(o) {
+  let st = superTuiles.get(o.im.src); if (st) return st;
+  const n = 4, T = 256, c = document.createElement("canvas"); c.width = c.height = n * T;
+  // réduction par moitiés successives : pas de crénelage
+  let src = o.im, w = o.im.width;
+  while (w / 2 >= T) { const h = document.createElement("canvas"); h.width = h.height = w / 2; const hx = h.getContext("2d"); hx.imageSmoothingQuality = "high"; hx.drawImage(src, 0, 0, w / 2, w / 2); src = h; w /= 2; }
+  const x = c.getContext("2d"); x.imageSmoothingQuality = "high";
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const ii = i >= n / 2 ? i - n : i, jj = j >= n / 2 ? j - n : j;   // la cellule 0 reste droite
+    x.setTransform(1, 0, 0, 1, 0, 0); placeCopie(x, orient(ii, jj), (i + 0.5) * T, (j + 0.5) * T, T);
+    x.drawImage(src, -T / 2, -T / 2, T, T);
+  }
+  st = ctx.createPattern(c, "repeat"); st.cote = n * T;
+  if (superTuiles.size > 6) superTuiles.delete(superTuiles.keys().next().value);
+  superTuiles.set(o.im.src, st); return st;
+}
 
 // ---------------------------------------------------------------------------
 // État
@@ -295,7 +322,7 @@ const matiere = (() => {
       float D = texture(acc, uv).r / wk, G = textureLod(acc, uv, 3.0).r / wk;
       float dl = log(1.0 + D / m) / 2.302585 + 0.25 * log(1.0 + G / m) / 2.302585;
       dl = 0.30103 + (dl - 0.30103) * contraste;
-      float t = clamp((dl - 0.14) / (2.0 - 0.14), 0.0, 1.0);
+      float t = clamp((dl - 0.30) / (2.0 - 0.30), 0.0, 1.0);
       vec3 c = vec3(clamp(t * 1.75, 0.0, 1.0), pow(clamp((t - 0.40) * 1.75, 0.0, 1.0), 1.1), clamp((t - 0.80) * 3.5, 0.0, 1.0));
       o = vec4(mix(vec3(0.016, 0.02, 0.04), c, gain), 1.0);
     }`);
@@ -345,7 +372,7 @@ const matiere = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); tl = w;
   }
   // dépose les particules (copies périodiques `decs`) dans un tampon d'accumulation
-  function depose(fb, w, h, a, cx, cy, ech, decs, wk) {
+  function depose(fb, w, h, a, cx, cy, ech, decs, wk, smaxPx) {
     let i = AS.findIndex(v => v >= a); if (i < 0) i = AS.length - 1;
     let j = i; i = Math.max(0, i - 1); if (a <= AS[0]) { i = 0; j = 0; } else if (a >= AS[AS.length - 1]) { i = j = AS.length - 1; }
     const f = j === i ? 0 : (a - AS[i]) / (AS[j] - AS[i]);
@@ -358,7 +385,7 @@ const matiere = (() => {
     gl.enableVertexAttribArray(L.h0); gl.vertexAttribPointer(L.h0, 1, gl.UNSIGNED_BYTE, false, 0, i * N);
     gl.enableVertexAttribArray(L.h1); gl.vertexAttribPointer(L.h1, 1, gl.UNSIGNED_BYTE, false, 0, j * N);
     gl.uniform1f(U("f"), f); gl.uniform1f(U("ech"), ech);
-    gl.uniform1f(U("smin"), 0.7 * DPR); gl.uniform1f(U("smax"), 14 * DPR);
+    gl.uniform1f(U("smin"), 0.7 * DPR); gl.uniform1f(U("smax"), smaxPx ?? 14 * DPR);
     gl.uniform2f(U("centre"), cx, cy); gl.uniform2f(U("res"), w, h);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     // budget de points par image : les particules sont dans un ordre aléatoire,
@@ -375,7 +402,7 @@ const matiere = (() => {
     gl.useProgram(pTon); gl.bindVertexArray(null);
     gl.uniform1i(UT("acc"), 0); gl.uniform1f(UT("m"), m); gl.uniform1f(UT("wk"), wk); gl.uniform1f(UT("rond"), rond ? 1 : 0);
     gl.uniform1f(UT("contraste"), a < AS[0] ? Math.max(0, a / AS[0]) : 1);
-    gl.uniform1f(UT("gain"), 0.7 * alpha * (a < AS[0] ? Math.max(0.15, a / AS[0]) : 1));
+    gl.uniform1f(UT("gain"), 1.0 * alpha * (a < AS[0] ? Math.max(0.15, a / AS[0]) : 1));
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
   M.dessine = (a, cx, cy, boitePx, alpha) => {
@@ -386,8 +413,13 @@ const matiere = (() => {
     const x0 = Math.ceil(-cx / boitePx - 0.56), x1 = Math.floor((tw - cx) / boitePx + 0.56);
     const y0 = Math.ceil(-cy / boitePx - 0.56), y1 = Math.floor((th - cy) / boitePx + 0.56);
     const decs = []; for (let a1 = x0; a1 <= x1; a1++) for (let b1 = y0; b1 <= y1; b1++) decs.push([a1, b1]);
-    depose(fbo, tw, th, a, cx, cy, boitePx, decs, wk);
-    ton(tex, 0, 0, tw, th, a, m, wk, alpha, false);
+    // zoomé au-delà de la résolution de la simulation, le noyau de lissage ne grossit plus
+    const smaxPx = DPR * Math.max(1.1, 14 * Math.min(1, 1.2 * tw / boitePx));
+    depose(fbo, tw, th, a, cx, cy, boitePx, decs, wk, smaxPx);
+    // une particule isolée (noyau plafonné) doit rester un point moyen, pas saturer :
+    // la densité de référence ne descend pas sous le dixième de son pic
+    const mEff = Math.max(m, 0.1 / (6.2832 * smaxPx * smaxPx));
+    ton(tex, 0, 0, tw, th, a, mEff, wk, alpha, false);
   };
   // loupe : un disque qui montre la MÊME région de matière (champ comobile fixe),
   // centrée en (ux, uy) en unités de boîte ; x, y, d en pixels écran (haut-gauche)
@@ -449,6 +481,67 @@ const matiere = (() => {
       vec3 ch = c / max(max(c.r, max(c.g, c.b)), 1e-12);
       o = vec4(ch * tt * alpha, 1.0);
     }`);
+  // gaz froid (formant des étoiles) : un échantillon par intervalle, fondu aux raccords
+  const pGaz = prog(`#version 300 es
+    in float r0; in float r1; in float q0; in float q1; in float h0; in float h1; in float kk;
+    uniform float f, ppk, smin, smax, rpas, wk, al; uniform vec2 centre, res;
+    out vec3 vc; out float vw;
+    void main() {
+      if (r0 > 65534.5 || r1 > 65534.5) { gl_Position = vec4(2.0, 2.0, 0.0, 1.0); gl_PointSize = 0.0; return; }
+      float fc = clamp(f, 0.0, 1.0);
+      float p0 = q0 / 65536.0 * 6.28319, p1 = q1 / 65536.0 * 6.28319;
+      float d = p1 - p0; d -= 6.28319 * floor(d / 6.28319 + 0.5); d += 6.28319 * kk;
+      float rr = mix(r0, r1, fc) * rpas, ph = p0 + d * f;
+      vec2 px = centre + vec2(cos(ph), -sin(ph)) * rr * ppk;
+      gl_Position = vec4(px.x / res.x * 2.0 - 1.0, 1.0 - px.y / res.y * 2.0, 0.0, 1.0);
+      float sig = clamp(0.5 * exp2(mix(h0, h1, fc) / 16.0 - 6.0) * ppk, smin, smax);
+      gl_PointSize = 6.0 * sig;
+      vw = al * wk / (6.2832 * sig * sig);
+      vc = vec3(1.0, 0.34, 0.50) * 1.4;
+    }`, `#version 300 es
+    precision highp float; in vec3 vc; in float vw; out vec4 o;
+    void main() {
+      vec2 d = gl_PointCoord * 2.0 - 1.0; float r2 = 9.0 * dot(d, d);
+      if (r2 > 9.0) discard;
+      o = vec4(vc * vw * exp(-0.5 * r2), 1.0);
+    }`);
+  const Z = { pret: false, n: 0, ts: [], rpas: 0.005, base: 0 };
+  let bZ = null; const LZ = {}; for (const nm of ["r0", "r1", "q0", "q1", "h0", "h1", "kk"]) LZ[nm] = gl.getAttribLocation(pGaz, nm);
+  const UZ = n => gl.getUniformLocation(pGaz, n);
+  M.chargeGaz = async url => {
+    const r = await fetch(url); const txt = await r.text();
+    const bin = Uint8Array.from(atob(txt), c => c.charCodeAt(0));
+    const lh = new DataView(bin.buffer).getUint32(0, true);
+    const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
+    let o = 4 + lh; o += o % 2;
+    bZ = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, bZ); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(o), gl.STATIC_DRAW);
+    Object.assign(Z, { n: tete.n, ts: tete.t, rpas: tete.rpas, w: tete.w, pret: true });
+  };
+  function dessineGaz(e, f, al, cx, cy, ppk, wk) {
+    const N = Z.n, B = 11 * N, o = e * B;
+    gl.useProgram(pGaz); gl.bindVertexArray(vaoG); gl.bindBuffer(gl.ARRAY_BUFFER, bZ);
+    const att = (nom, n, type, off) => { gl.enableVertexAttribArray(LZ[nom]); gl.vertexAttribPointer(LZ[nom], n, type, false, 0, off); };
+    att("r0", 1, gl.UNSIGNED_SHORT, o); att("r1", 1, gl.UNSIGNED_SHORT, o + 2 * N);
+    att("q0", 1, gl.UNSIGNED_SHORT, o + 4 * N); att("q1", 1, gl.UNSIGNED_SHORT, o + 6 * N);
+    att("h0", 1, gl.UNSIGNED_BYTE, o + 8 * N); att("h1", 1, gl.UNSIGNED_BYTE, o + 9 * N); att("kk", 1, gl.BYTE, o + 10 * N);
+    gl.uniform1f(UZ("f"), f); gl.uniform1f(UZ("ppk"), ppk); gl.uniform1f(UZ("rpas"), Z.rpas); gl.uniform1f(UZ("al"), al * Z.w[e]);
+    gl.uniform1f(UZ("smin"), 0.6 * DPR); gl.uniform1f(UZ("smax"), 40 * DPR); gl.uniform1f(UZ("wk"), wk);
+    gl.uniform2f(UZ("centre"), cx, cy); gl.uniform2f(UZ("res"), tw, th);
+    gl.drawArrays(gl.POINTS, 0, N);
+    for (const nm in LZ) gl.disableVertexAttribArray(LZ[nm]);
+  }
+  // à l'instant tt : l'échantillon de l'intervalle courant, et en fondu celui d'à côté
+  function gazA(tt, cx, cy, ppk, wk) {
+    if (!Z.pret) return;
+    const ts = Z.ts, E = ts.length;
+    let e = ts.findIndex(v => v > tt) - 1; if (e < 0) e = tt < ts[0] ? -1 : E - 2; if (e < 0) return;
+    e = Math.min(e, E - 2);
+    const fr = k => (tt - ts[k]) / (ts[k + 1] - ts[k]), f = fr(e), lis = u => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u); };
+    let ac = 1;
+    if (f > 0.7 && e + 1 <= E - 2) { const s = lis((f - 0.7) / 0.3); ac -= 0.5 * s; dessineGaz(e + 1, fr(e + 1), 0.5 * s, cx, cy, ppk, wk); }
+    if (f < 0.3 && e > 0) { const s = lis(f / 0.3); ac -= 0.5 * (1 - s); dessineGaz(e - 1, fr(e - 1), 0.5 * (1 - s), cx, cy, ppk, wk); }
+    dessineGaz(e, f, ac, cx, cy, ppk, wk);
+  }
   const G = { pret: false, n: 0, ts: [], rpas: 0.005 };
   let bG = {}, texG = null, fboG = null, gw = 0, gh = 0;
   const LG = {}; for (const nm of ["r0", "r1", "q0", "q1", "h0", "h1", "kk", "tn", "pw"]) LG[nm] = gl.getAttribLocation(pGal, nm);
@@ -500,6 +593,8 @@ const matiere = (() => {
     gl.uniform2f(UG("centre"), cx, cy); gl.uniform2f(UG("res"), tw, th);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     gl.drawArrays(gl.POINTS, 0, N);
+    for (const nm in LG) gl.disableVertexAttribArray(LG[nm]);
+    gazA(tt, cx, cy, ppk, wk);
     // ton, ajouté par-dessus le fond
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, tw, th);
     gl.useProgram(pGalTon); gl.bindVertexArray(null);
@@ -526,7 +621,7 @@ function dessine() {
   const boitePx = s.a * TUILE_GAL * ppg;
   const aPts = matiere.prete ? lisse(0.6 * Wpx, 1.0 * Wpx, boitePx) : 0;
   const aGal = 1 - lisse(0.0006, 0.003, W), KPC = 3.26156e-6, ppk = ppg * KPC;
-  if (aGal > 0 && !galDemandee) { galDemandee = true; matiere.chargeGalaxie("voie-lactee.txt").then(() => { sale = true; }).catch(console.error); }
+  if (aGal > 0 && !galDemandee) { galDemandee = true; matiere.chargeGalaxie("voie-lactee.txt").then(() => { sale = true; }).catch(console.error); matiere.chargeGaz("voie-lactee-gaz.txt").then(() => { sale = true; }).catch(console.error); }
   matiere.dessine(s.a, cx, cy, boitePx, aPts * (1 - aGal));
   const gx = cx, gy = cy - 8.2 * ppk;   // le Soleil est à 8,2 kpc du centre
   if (aGal > 0) matiere.dessineGalaxie(t, gx, gy, ppk, aGal);
@@ -545,24 +640,39 @@ function dessine() {
       const f = j === i ? 1 : Math.min(1, Math.max(0, (s.a - jeuT[i].a) / (jeuT[j].a - jeuT[i].a)));
       const tuilePx = s.a * Lgal * ppg;
       const couche = (o, al) => {
-        if (!o.motif) return;
-        ctx.globalAlpha = al * 0.42 * dim * (1 - aPts) * poids;
-        if (tuilePx < 10) { ctx.fillStyle = o.moy; ctx.fillRect(0, 0, Wpx, Hpx); return; }
-        const k = tuilePx / o.im.width;
-        o.motif.setTransform(new DOMMatrix().translateSelf(cx, cy).scaleSelf(k, k));
-        ctx.fillStyle = o.motif; ctx.fillRect(0, 0, Wpx, Hpx);
+        if (!o.motif || al < 0.002) return;
+        ctx.globalAlpha = Math.min(1, al * 0.95 * dim * (1 - aPts) * poids);
+        if (tuilePx < 6) { ctx.fillStyle = o.moy; ctx.fillRect(0, 0, Wpx, Hpx); return; }
+        ctx.imageSmoothingQuality = "high";
+        if (tuilePx >= 256) {
+          const i0 = Math.floor(-cx / tuilePx - 0.5), i1 = Math.ceil((Wpx - cx) / tuilePx + 0.5);
+          const j0 = Math.floor(-cy / tuilePx - 0.5), j1 = Math.ceil((Hpx - cy) / tuilePx + 0.5);
+          for (let a1 = i0; a1 <= i1; a1++) for (let b1 = j0; b1 <= j1; b1++) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0); placeCopie(ctx, orient(a1, b1), cx + a1 * tuilePx, cy + b1 * tuilePx, tuilePx);
+            ctx.drawImage(o.im, -tuilePx / 2, -tuilePx / 2, tuilePx, tuilePx);
+          }
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+        } else {
+          const st = superTuile(o), k = tuilePx / 256;
+          st.setTransform(new DOMMatrix().translateSelf(cx - tuilePx / 2, cy - tuilePx / 2).scaleSelf(k, k));
+          ctx.fillStyle = st; ctx.fillRect(0, 0, Wpx, Hpx);
+        }
       };
-      couche(jeuT[i], 1);
+      // fondu enchaîné entre deux époques : addition pondérée (le noir n'ajoute rien)
+      ctx.globalCompositeOperation = "lighter";
+      couche(jeuT[i], j === i ? 1 : 1 - f);
       if (j !== i) couche(jeuT[j], f);
+      ctx.globalCompositeOperation = "source-over";
     };
     tuiles(imgsP, TUILE_GAL, 1 - aG);
-    tuiles(imgsG, GRANDE_GAL, aG * 1.7);   // la grande boîte, plus homogène, est rehaussée pour rester lisible
+    // la grande boîte, plus homogène, est rehaussée ; au très grand champ on l'atténue pour garder les sphères lisibles
+    tuiles(imgsG, GRANDE_GAL, aG * 1.4 * (1 - 0.55 * lisse(8, 40, W)));
     ctx.globalAlpha = 1;
   }
 
   // les sphères : toutes en mode libre, seulement celle du scénario sinon
   // grille d'échelle, centrée sur nous
-  dessineGrille(cx, cy, ppg);
+  ctx.globalAlpha = 1 - 0.6 * aGal; dessineGrille(cx, cy, ppg); ctx.globalAlpha = 1;
   zonesInfo = [];
   const vis = scen ? (scen.fin && scen.cerclesFin ? scen.cerclesFin : scen.cercles) : (voirSpheres ? ["p", "e", "h"] : []);
   if (vis.length) {
@@ -733,15 +843,23 @@ function dessineLoupe(cx, cy, ppg, s) {
   // sur la galaxie suivie : bien plus fine que les points à cette échelle
   ctx.save(); cercle(x + d / 2, y + d / 2, d / 2); ctx.clip();
   ctx.globalAlpha = 1; ctx.fillStyle = "#04050a"; ctx.fillRect(x, y, d, d);
+  // au début, la matière est un gaz presque uniforme et chaud : une lueur égale, qui
+  // s'éteint pendant que les premières structures se creusent (échelle log du temps)
+  const chaud = 1 - lisse(Math.log10(0.0004), Math.log10(0.8), Math.log10(t));
+  if (chaud > 0.01) { ctx.fillStyle = `rgba(165,58,24,${(0.6 * chaud).toFixed(3)})`; ctx.fillRect(x, y, d, d); }
   let j = imgsP.findIndex(o => o.a >= s.a); if (j < 0) j = imgsP.length - 1;
   const i = Math.max(0, j - 1), f = j === i ? 1 : Math.min(1, Math.max(0, (s.a - imgsP[i].a) / (imgsP[j].a - imgsP[i].a)));
   const contraste = s.a < AT[0] ? Math.max(0.1, s.a / AT[0]) : 1;
-  for (const [o, al] of [[imgsP[i], 1], [imgsP[j], j === i ? 0 : f]]) {
+  ctx.globalCompositeOperation = "lighter"; ctx.imageSmoothingQuality = "high";
+  for (const [o, al] of [[imgsP[i], j === i ? 1 : 1 - f], [imgsP[j], j === i ? 0 : f]]) {
     if (!o.motif || al <= 0) continue;
     const n = o.im.width, k = d / (champ * n);
-    o.motif.setTransform(new DOMMatrix().translateSelf(x + d / 2, y + d / 2).scaleSelf(k, k).translateSelf(-(n / 2 + ux * n), -(n / 2 + uy * n)));
-    ctx.globalAlpha = al * 0.9 * contraste; ctx.fillStyle = o.motif; ctx.fillRect(x, y, d, d);
+    const px = ((n / 2 + ux * n) % n + n) % n, py = ((n / 2 + uy * n) % n + n) % n;   // centre de la loupe dans la tuile (périodique)
+    ctx.globalAlpha = al * contraste;
+    for (let a1 = -1; a1 <= 1; a1++) for (let b1 = -1; b1 <= 1; b1++)
+      ctx.drawImage(o.im, x + d / 2 + (a1 * n - px) * k, y + d / 2 + (b1 * n - py) * k, n * k, n * k);
   }
+  ctx.globalCompositeOperation = "source-over";
   ctx.restore(); ctx.globalAlpha = 1;
   // repère sur la sphère des sources et fil vers la loupe
   const gx = cx + mk.r * ppg * Math.cos(th), gy = cy + mk.r * ppg * Math.sin(th);

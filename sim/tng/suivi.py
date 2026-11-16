@@ -94,7 +94,7 @@ def main():
     print(f"{len(dans)} étoiles à < 35 kpc, {N} suivies", flush=True)
 
     r = np.full((E, N), np.nan); phi = np.zeros((E, N)); hh = np.full((E, N), 1.0)
-    om = np.zeros((E, N)); ts = np.zeros(E)
+    om = np.zeros((E, N)); ts = np.zeros(E); centres = np.zeros((E, 3)); profils = []
     for e, ep in enumerate(eps):
         a, st, ga = lit(f"{dos}/e{ep['snap']:03d}.hdf5")
         ts[e] = age_gyr(a)
@@ -102,6 +102,7 @@ def main():
         st = {k: v[okk] for k, v in st.items()}
         ref = POS[ep["snap"]]
         xs = phys(st["Coordinates"], a, ref); c = centre(xs, st["Masses"], np.zeros(3), 8.0); xs = (xs - c) @ R.T
+        centres[e] = c
         vs = (st["Velocities"] * np.sqrt(a)) @ R.T
         sel = (xs ** 2).sum(1) < 9
         vs -= np.average(vs[sel], axis=0, weights=st["Masses"][sel]) if sel.sum() > 20 else vs.mean(0)
@@ -120,7 +121,7 @@ def main():
         rr = np.hypot(xs[:, 0], xs[:, 1]); vphi = (xs[:, 0] * vs[:, 1] - xs[:, 1] * vs[:, 0]) / np.maximum(rr, 1e-3)
         bins = np.geomspace(0.2, 200, 40); cb = np.sqrt(bins[1:] * bins[:-1])
         med = np.array([np.median(vphi[(rr >= bins[i]) & (rr < bins[i + 1])]) if ((rr >= bins[i]) & (rr < bins[i + 1])).sum() > 15 else np.nan for i in range(len(cb))])
-        okm = np.isfinite(med)
+        okm = np.isfinite(med); profils.append(med)
         vprof = np.interp(np.log(np.maximum(r[e], 0.2)), np.log(cb[okm]), med[okm]) if okm.sum() > 2 else np.zeros(N)
         om[e] = np.where(np.isfinite(r[e]), vprof / np.maximum(r[e], 0.3) * 1.0227, 0)
         print(f"  {ts[e]:5.2f} Ga : {trouve.mean()*100:5.1f} % retrouvées "
@@ -149,7 +150,8 @@ def main():
         f.write(ru.tobytes()); f.write(pu.astype(np.uint16).tobytes())
         f.write(hu.tobytes()); f.write(k.tobytes()); f.write(tn.tobytes())
         f.write(np.clip(np.round(poids * 1000), 1, 65535).astype(np.uint16).tobytes())
-    np.savez_compressed(sortie.replace(".bin", ".npz"), r=r, phi=phi, h=hh, k=k, t=ts, naiss=naiss, om=om, poids=poids)
+    np.savez_compressed(sortie.replace(".bin", ".npz"), r=r, phi=phi, h=hh, k=k, t=ts, naiss=naiss, om=om, poids=poids,
+                        centres=centres, R=R, profils=np.array(profils), rprof=cb, snaps=[e["snap"] for e in eps])
     print("écrit", sortie, flush=True)
 
 

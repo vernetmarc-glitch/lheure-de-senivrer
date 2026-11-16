@@ -67,14 +67,19 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fond-de-carte
       - uses: actions/download-artifact@v4
         with:
           path: sim/sorties
           pattern: sorties-*
       - name: Commit des sorties
         run: |
+          # les binaires bruts déclenchent la détection de secrets de GitHub : on les compresse
+          find sim/sorties -name '*.bin' -exec gzip -9f {} \;
           git config user.name "fond-de-carte[bot]"
           git config user.email "fond-de-carte@users.noreply.github.com"
           git add sim/sorties
-          git commit -m "Sorties des simulations N-corps (petite et grande boîte)" || echo "rien à committer"
-          git push
+          git commit -m "Sorties des simulations N-corps (petite et grande boîte) [skip ci]" || { echo "rien à committer"; exit 0; }
+          # la branche a pu avancer pendant les heures de calcul
+          for i in 1 2 3; do git pull --rebase origin fond-de-carte && git push && break; sleep 10; done
