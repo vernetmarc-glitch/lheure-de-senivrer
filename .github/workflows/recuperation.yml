@@ -1,0 +1,36 @@
+name: Récupération des sorties de simulation
+
+# Le job « commit » du run 43827873108 a été refusé (la branche avait avancé
+# entre-temps). Les simulations, elles, ont réussi : on récupère leurs
+# artefacts et on les committe, sans tout recalculer.
+
+on:
+  push:
+    branches: [fond-de-carte]
+    paths: ['.github/workflows/recuperation.yml']
+  workflow_dispatch:
+
+jobs:
+  recuperation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fond-de-carte
+      - uses: actions/download-artifact@v4
+        with:
+          path: sim/sorties
+          pattern: sorties-*
+          run-id: 43827873108
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit des sorties
+        run: |
+          git config user.name "fond-de-carte[bot]"
+          git config user.email "fond-de-carte@users.noreply.github.com"
+          git add sim/sorties
+          git commit -m "Sorties des simulations N-corps 512³ (petite et grande boîte)" || echo "rien à committer"
+          git pull --rebase
+          git push
