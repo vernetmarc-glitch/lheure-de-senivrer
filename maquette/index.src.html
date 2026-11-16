@@ -183,9 +183,12 @@ const uFromW = w => 1000 * (Math.log(w) - Math.log(WMIN)) / (Math.log(WMAX) - Ma
 // Fond : tranches de la simulation N-corps à plusieurs époques, en motif
 // périodique ; une tuile = 312 Mpc comobiles = 1,016 Gal comobile.
 // ---------------------------------------------------------------------------
-const TUILE_GAL = 1.0163;
-const TUILES = [[0.15, "__O015__"], [0.25, "__O025__"], [0.40, "__O040__"], [0.60, "__O060__"], [1.00, "__O100__"]];
-const imgs = TUILES.map(([a, src]) => { const im = new Image(); im.src = src; return { a, im, moy: "rgb(20,4,2)", motif: null }; });
+// deux simulations 512³ : une petite boîte (toile fine) et une grande (grands champs),
+// chacune rendue en tuile périodique à 11 instants (z = 14 à aujourd'hui)
+const TUILE_GAL = 0.96782, GRANDE_GAL = 7.25866;
+const AT = [0.0667, 0.0909, 0.1250, 0.1667, 0.2222, 0.2857, 0.3704, 0.5000, 0.6667, 0.8333, 1.0000];
+const jeu = nom => AT.map(a => { const im = new Image(); im.src = `tuiles/${nom}-a${a.toFixed(4)}.jpg`; return { a, im, moy: "rgb(20,4,2)", motif: null }; });
+const imgsP = jeu("petite"), imgsG = jeu("grande"), imgs = imgsP.concat(imgsG);
 let pretes = 0;
 imgs.forEach(o => o.im.onload = () => {
   const c = document.createElement("canvas"); c.width = c.height = 1;
@@ -316,8 +319,8 @@ const matiere = (() => {
     const r = await fetch(url); const tot = +r.headers.get("content-length") || 0;
     const lect = r.body.getReader(); const morceaux = []; let lu = 0;
     for (;;) { const { done, value } = await lect.read(); if (done) break; morceaux.push(value); lu += value.length; progres(tot ? lu / tot : 0); }
-    const b64 = new TextDecoder().decode(await new Blob(morceaux).arrayBuffer());
-    const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const brut = new Uint8Array(await new Blob(morceaux).arrayBuffer());
+    const bin = url.endsWith(".txt") ? Uint8Array.from(atob(new TextDecoder().decode(brut)), c => c.charCodeAt(0)) : brut;
     const lh = new DataView(bin.buffer).getUint32(0, true);
     const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
     let o = 4 + lh; o += o % 2;
@@ -417,22 +420,31 @@ function dessine() {
   matiere.dessine(s.a, cx, cy, boitePx, aPts);
   const loupe = scen && scen.loupe && fronts[0] ? scen.loupe : null;
 
-  // fond : la matière, à échelle propre fixe (elle se resserre en remontant le temps)
-  if (pretes === imgs.length && aPts < 0.999) {
-    let j = imgs.findIndex(o => o.a >= s.a); if (j < 0) j = imgs.length - 1;
-    const i = Math.max(0, j - 1);
-    const f = j === i ? 1 : Math.min(1, Math.max(0, (s.a - imgs[i].a) / (imgs[j].a - imgs[i].a)));
-    const tuilePx = s.a * TUILE_GAL * ppg;
-    const dim = s.a < 0.15 ? Math.max(0.15, s.a / 0.15) : 1;
-    const couche = (o, al) => {
-      ctx.globalAlpha = al * 0.42 * dim * (1 - aPts);
-      if (tuilePx < 10) { ctx.fillStyle = o.moy; ctx.fillRect(0, 0, Wpx, Hpx); return; }
-      const k = tuilePx / o.im.width;
-      o.motif.setTransform(new DOMMatrix().translateSelf(cx, cy).scaleSelf(k, k));
-      ctx.fillStyle = o.motif; ctx.fillRect(0, 0, Wpx, Hpx);
+  // fond : la matière, à échelle propre fixe (elle se resserre en remontant le temps).
+  // Trois relais : les points (petite boîte), la tuile de la petite boîte, puis celle de la grande
+  // quand la petite deviendrait un carrelage trop serré.
+  if (pretes > 0 && aPts < 0.999) {
+    const dim = s.a < AT[0] ? Math.max(0.15, s.a / AT[0]) : 1;
+    const aG = 1 - lisse(0.10 * Wpx, 0.30 * Wpx, boitePx);
+    const tuiles = (jeuT, Lgal, poids) => {
+      if (poids < 0.002) return;
+      let j = jeuT.findIndex(o => o.a >= s.a); if (j < 0) j = jeuT.length - 1;
+      const i = Math.max(0, j - 1);
+      const f = j === i ? 1 : Math.min(1, Math.max(0, (s.a - jeuT[i].a) / (jeuT[j].a - jeuT[i].a)));
+      const tuilePx = s.a * Lgal * ppg;
+      const couche = (o, al) => {
+        if (!o.motif) return;
+        ctx.globalAlpha = al * 0.42 * dim * (1 - aPts) * poids;
+        if (tuilePx < 10) { ctx.fillStyle = o.moy; ctx.fillRect(0, 0, Wpx, Hpx); return; }
+        const k = tuilePx / o.im.width;
+        o.motif.setTransform(new DOMMatrix().translateSelf(cx, cy).scaleSelf(k, k));
+        ctx.fillStyle = o.motif; ctx.fillRect(0, 0, Wpx, Hpx);
+      };
+      couche(jeuT[i], 1);
+      if (j !== i) couche(jeuT[j], f);
     };
-    couche(imgs[i], 1);
-    if (j !== i) { ctx.globalAlpha = 1; couche(imgs[j], f); }
+    tuiles(imgsP, TUILE_GAL, 1 - aG);
+    tuiles(imgsG, GRANDE_GAL, aG * 1.7);   // la grande boîte, plus homogène, est rehaussée pour rester lisible
     ctx.globalAlpha = 1;
   }
 
@@ -604,9 +616,20 @@ function dessineLoupe(cx, cy, ppg, s) {
   const ux = chi / TUILE_GAL * Math.cos(th), uy = chi / TUILE_GAL * Math.sin(th);
   const d = Math.round(128 * DPR * US), x = 16 * DPR, y = Math.round(Hpx - 300 * DPR * US) - d;
   const champ = 0.3;                                       // en boîtes : environ 300 millions d'années-lumière aujourd'hui
-  matiere.loupe(s.a, ux, uy, champ, x, y, d);
-  // la loupe passe au-dessus de tout : on perce le calque 2D à son emplacement
-  ctx.save(); ctx.globalCompositeOperation = "destination-out"; ctx.fillStyle = "#000"; cercle(x + d / 2, y + d / 2, d / 2); ctx.fill(); ctx.restore();
+  // la loupe montre la tuile de la petite boîte (1024 px pour la boîte entière), recadrée
+  // sur la galaxie suivie : bien plus fine que les points à cette échelle
+  ctx.save(); cercle(x + d / 2, y + d / 2, d / 2); ctx.clip();
+  ctx.globalAlpha = 1; ctx.fillStyle = "#04050a"; ctx.fillRect(x, y, d, d);
+  let j = imgsP.findIndex(o => o.a >= s.a); if (j < 0) j = imgsP.length - 1;
+  const i = Math.max(0, j - 1), f = j === i ? 1 : Math.min(1, Math.max(0, (s.a - imgsP[i].a) / (imgsP[j].a - imgsP[i].a)));
+  const contraste = s.a < AT[0] ? Math.max(0.1, s.a / AT[0]) : 1;
+  for (const [o, al] of [[imgsP[i], 1], [imgsP[j], j === i ? 0 : f]]) {
+    if (!o.motif || al <= 0) continue;
+    const n = o.im.width, k = d / (champ * n);
+    o.motif.setTransform(new DOMMatrix().translateSelf(x + d / 2, y + d / 2).scaleSelf(k, k).translateSelf(-(n / 2 + ux * n), -(n / 2 + uy * n)));
+    ctx.globalAlpha = al * 0.9 * contraste; ctx.fillStyle = o.motif; ctx.fillRect(x, y, d, d);
+  }
+  ctx.restore(); ctx.globalAlpha = 1;
   // repère sur la sphère des sources et fil vers la loupe
   const gx = cx + mk.r * ppg * Math.cos(th), gy = cy + mk.r * ppg * Math.sin(th);
   ctx.strokeStyle = "rgba(225,232,245,0.55)"; ctx.lineWidth = DPR;
