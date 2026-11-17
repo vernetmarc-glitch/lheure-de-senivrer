@@ -46,8 +46,11 @@ button {
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button.actif { background: var(--accent); color: #0a0f18; border-color: var(--accent); }
 input[type=range] { accent-color: var(--accent); margin: 0; }
+/* pendant un scénario, le curseur qui bouge pulse doucement */
+@keyframes pouls { 0%, 100% { filter: drop-shadow(0 0 0 rgba(150,200,255,0)); } 50% { filter: drop-shadow(0 0 7px rgba(150,200,255,0.95)) drop-shadow(0 0 2px rgba(220,235,255,0.9)); } }
+input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 /* zoom vertical, bord droit */
-#zoomBloc { position: fixed; right: max(4px, env(safe-area-inset-right)); top: calc(env(safe-area-inset-top) + 56px); bottom: calc(env(safe-area-inset-bottom) + 262px); width: 44px; touch-action: none; }
+#zoomBloc { position: fixed; right: max(4px, env(safe-area-inset-right)); top: calc(env(safe-area-inset-top) + 56px); bottom: calc(env(safe-area-inset-bottom) + 300px); width: 44px; touch-action: none; }
 #zoom { position: absolute; top: 50%; left: 50%; height: 30px; transform: translate(-50%, -50%) rotate(90deg); touch-action: none; }
 #reperesZoom { position: absolute; inset: 0; pointer-events: none; }
 #reperesZoom span { position: absolute; right: 40px; transform: translateY(-50%); font-size: 9.5px; color: rgba(154,159,171,0.8); white-space: nowrap; text-shadow: 0 1px 3px #000; }
@@ -98,6 +101,7 @@ input[type=range] { accent-color: var(--accent); margin: 0; }
     <div class="scen"><button data-scen="observable">Univers observable</button><span>passé : jusqu'où la lumière a déjà pu venir</span></div>
     <div class="scen"><button data-scen="hubble">Sphère de Hubble</button><span>présent : l'espace y fuit à la vitesse de la lumière</span></div>
     <div class="scen"><button data-scen="evenements">Horizon des événements</button><span>futur : les galaxies que notre message atteindra</span></div>
+    <div class="scen"><button data-scen="promenade">Promenade</button><span>de la toile cosmique à la naissance de la Voie lactée</span></div>
   </div>
   <div id="tempsBloc">
     <button id="lecture" class="rond" aria-label="Lecture">▶</button>
@@ -1276,6 +1280,36 @@ const SCEN = {
       return "La lumière avance toujours à sa vitesse, mais sur ce tapis. En deçà de la sphère, elle gagne du terrain vers nous ; sur la sphère, elle fait du surplace ; au-delà, elle recule.";
     },
   },
+  // promenade : de la toile cosmique jusqu'à notre galaxie, puis sa formation
+  promenade: {
+    W: 0.15, cercles: [],
+    init() { t = T0; fronts = []; chargeVoieLactee(); },
+    avance(dts) {
+      const e = this.el, lis = (a, b) => lisse(a, b, e), lW = (w0, w1, f) => Math.exp(Math.log(w0) + (Math.log(w1) - Math.log(w0)) * f);
+      if (e < 3) { W = 0.15; }
+      else if (e < 13) W = lW(0.15, 0.00006, lis(3, 13));                // plongée vers la Voie lactée
+      else if (e < 15) W = 0.00006;
+      else if (e < 18) W = lW(0.00006, 0.00011, lis(15, 18));            // un peu de recul
+      else if (e < 21) t = T0 + (1.0 - T0) * lis(18, 21);                // retour en arrière : 13,8 → 1 Ga
+      else if (e < 23) t = 1.0;
+      else { t = Math.min(T0, t + dts * (t < 9 ? 0.4 : 0.15)); }        // la formation, au ralenti à la fin
+      if (W !== this.Wv) { elZ.value = uFromW(W); this.Wv = W; }
+      return e > 23 && t >= T0;
+    },
+    legende() {
+      const e = this.el;
+      if (this.fin) return "Aujourd'hui : une spirale de cent mille années-lumière, faite d'étoiles nées sur place et de galaxies avalées. Nous sommes dans son disque, à 27 000 années-lumière du centre.";
+      if (e < 3) return "La toile cosmique aujourd'hui : des filaments de matière, des nœuds où s'amassent les galaxies, de grands vides.";
+      if (e < 9) return "Plongée vers l'un de ces nœuds : notre groupe de galaxies.";
+      if (e < 15) return "La Voie lactée, telle que la simule TNG50 : une jumelle de notre galaxie, vue de biais.";
+      if (e < 18) return "Un peu de recul pour l'embrasser tout entière.";
+      if (e < 23) return "Remontons le temps : il y a 12,8 milliards d'années, elle n'était qu'un petit amas d'étoiles naissantes.";
+      if (t < 4.5) return "Des nuages de gaz et de petites galaxies tombent les uns sur les autres ; chaque étoile s'allume là où elle naît.";
+      if (t < 7.5) return "Une galaxie voisine plonge, traverse, revient et se dissout : la Voie lactée grandit en avalant ses voisines.";
+      if (t < 10) return "Le calme revient : le gaz s'aplatit en un disque qui tourne.";
+      return "Les bras spiraux se dessinent, nourris par le gaz froid qui forme encore des étoiles.";
+    },
+  },
   // futur : émission figée à aujourd'hui, le temps court vers le futur, champ fixe
   // futur, en deux actes. 1) Notre message : un éclair part de nous aujourd'hui ; la
   // carte dézoome au rythme de l'expansion (champ ∝ a), si bien que les galaxies restent
@@ -1417,6 +1451,16 @@ cv.addEventListener("pointerup", e => {
 // légende courte : une phrase, la suite au toucher
 let phraseLongue = false, phraseDerniere = "";
 document.getElementById("phrase").addEventListener("click", () => { phraseLongue = !phraseLongue; phraseDerniere = ""; sale = true; });
+// curseurs en mouvement pendant un scénario : on note le dernier instant où chacun a bougé
+const bougeDepuis = { t: -1e9, W: -1e9 }; let tAvant = null, WAvant = null;
+function marqueMouvement(now) {
+  const actif = !!(scen && !scen.pause && !scen.fin) || !!zoomAnim;
+  if (actif && tAvant !== null && Math.abs(t - tAvant) > 1e-7) bougeDepuis.t = now;
+  if (actif && WAvant !== null && Math.abs(W - WAvant) > 1e-9 * W) bougeDepuis.W = now;
+  tAvant = t; WAvant = W;
+  elT.classList.toggle("bouge", now - bougeDepuis.t < 350);
+  elZ.classList.toggle("bouge", now - bougeDepuis.W < 350);
+}
 function boucle(now) {
   const dts = Math.min(0.05, (now - tPrec) / 1000); tPrec = now; dtsGlobal = dts;
   if (scen && !scen.pause && !scen.fin) {
@@ -1445,6 +1489,7 @@ function boucle(now) {
   if (!reduit && (fronts.length || scen)) { phase += dts; sale = true; }
   // une erreur de dessin ne doit jamais arrêter la boucle (sinon la carte se fige) ; on
   // l'affiche discrètement pour pouvoir la signaler
+  marqueMouvement(now);
   if (sale) {
     sale = false;
     try { dessine(); } catch (err) {
@@ -1459,7 +1504,8 @@ function boucle(now) {
 taille(); tailleZoom(); requestAnimationFrame(boucle);
 // point d'entrée pour les vérifications automatiques
 window.HDS = { aller(v) { t = v; if (scen && scen.cadre) scen.cadre(); sale = true; }, get t() { return t; }, get W() { return W; },
-  get etat() { return { scen: scen ? scen.cle : null, fronts: fronts.length }; } };
+  get etat() { return { scen: scen ? scen.cle : null, fronts: fronts.length }; },
+  set el(v) { if (scen) { scen.el = v; sale = true; } } };
 const elCh = document.getElementById("chargement");
 matiere.charge("matiere", q => { elCh.textContent = `matière : chargement ${Math.round(100 * q)} %`; })
   .then(() => { elCh.remove(); sale = true; setTimeout(chargeVoieLactee, 1500); })
