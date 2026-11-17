@@ -61,6 +61,15 @@ async def main(url):
             fr.append((((im.max(-1) - im.min(-1)) > 25) & (im.mean(-1) > 20)).mean())   # la matière est colorée, cercles et textes gris
         note("grain de matière aux très grandes échelles", min(fr) > 0.02, " ; ".join(f"{w} Gal {x:.1%}" for w, x in zip((4, 15, 50), fr)),
              "« au-delà de la toile cosmique, continuer à voir des structures, pas un fond noir »")
+        # 3 quater. époques jeunes : pas de noir (17/11, 19 h 25 : « une augmentation de contraste pour
+        #    éviter le noir aux époques jeunes »), mais les vides restent sombres (sphères lisibles)
+        jeunes = []
+        for Wj in (0.15, 1.5):
+            for tj in (0.6, 1.2, 2.2):
+                im = await vue(Wj, tj, 1300); Lj = im.mean(-1)
+                jeunes.append((Wj, tj, (((im.max(-1) - im.min(-1)) > 25) & (Lj > 25)).mean(), (Lj < 18).mean()))
+        note("époques jeunes : la toile visible, les vides sombres", all(c >= 0.04 and d >= 0.45 for _, _, c, d in jeunes),
+             " ; ".join(f"{w} Gal {t} Ga : {c:.1%} colorés, {d:.0%} sombres" for w, t, c, d in jeunes), "« éviter le noir aux époques jeunes de l'univers »")
         # 3 ter. pas de dallage au grand champ (univers observable), sur un écran de téléphone (densité 3)
         pg3 = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=3)
         await pg3.goto(url); await pg3.wait_for_timeout(5000)
