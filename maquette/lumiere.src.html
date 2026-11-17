@@ -37,11 +37,11 @@ html, body { height: 100%; margin: 0; background: var(--nuit); color: var(--text
 #matiere { background: #04050a; }
 #titre { position: fixed; top: calc(env(safe-area-inset-top) + 12px); left: 14px; display: flex; align-items: center; gap: 8px; }
 h1 { font-family: var(--f-titre); font-weight: 600; font-size: 16px; letter-spacing: 0.03em; margin: 0; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
-.rond { width: 30px; height: 30px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
-#apropos { width: 20px; height: 20px; font: italic 12px Georgia, serif; }
+.rond { width: 44px; height: 44px; font-size: 17px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+#apropos { width: 40px; height: 40px; font: italic 17px Georgia, serif; }
 button {
-  font: 500 13px var(--f-corps); color: var(--texte); background: rgba(20,22,30,0.6);
-  border: 1px solid var(--trait); border-radius: 999px; padding: 7px 12px; cursor: pointer;
+  font: 500 15px var(--f-corps); color: var(--texte); background: rgba(20,22,30,0.6);
+  border: 1px solid var(--trait); border-radius: 999px; padding: 10px 18px; min-height: 44px; cursor: pointer;
 }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button.actif { background: var(--accent); color: #0a0f18; border-color: var(--accent); }
@@ -70,13 +70,13 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 .scen button { flex: 0 0 auto; width: 162px; font-size: 11.5px; padding: 6px 8px; text-align: center; white-space: nowrap; }
 .scen span { font-size: 11px; line-height: 1.3; color: var(--doux); min-width: 0; text-shadow: 0 1px 3px #000; }
 #tempsBloc { display: flex; align-items: center; gap: 10px; }
-.piste { flex: 1; position: relative; padding-top: 16px; padding-bottom: 22px; }
+.piste { flex: 1; position: relative; padding-top: 16px; padding-bottom: 46px; }
 #lectureTemps { position: absolute; top: 0; left: 0; right: 0; text-align: center; font-size: 12px; color: var(--texte); font-variant-numeric: tabular-nums; }
 #temps { width: 100%; transition: width 0.7s ease; }
 #dispoTemps { transition: right 0.7s ease; }
-.reperes { position: absolute; left: 0; right: 0; bottom: 0; height: 20px; font-size: 10px; color: var(--doux); }
-.reperes span { position: absolute; white-space: nowrap; }
-#repAuj { transform: translateX(-50%); position: absolute; top: -3px; font: 500 10.5px var(--f-corps); color: var(--texte); padding: 2px 8px; border-radius: 999px; background: rgba(20,22,30,0.8); border: 1px solid var(--trait); white-space: nowrap; }
+.reperes { position: absolute; left: 0; right: 0; bottom: 0; height: 42px; font-size: 10px; color: var(--doux); }
+.reperes span { position: absolute; white-space: nowrap; top: 11px; font-size: 12px; }
+#repAuj { transform: translateX(-50%); position: absolute; top: 0; font: 500 14px var(--f-corps); color: var(--texte); padding: 8px 16px; min-height: 40px; border-radius: 999px; background: rgba(20,22,30,0.8); border: 1px solid var(--trait); white-space: nowrap; }
 #repAuj::before { content: ""; position: absolute; left: 50%; top: -7px; width: 1px; height: 6px; background: var(--doux); }
 /* fenêtre « à propos » */
 #modale { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; padding: 20px; }
@@ -96,7 +96,7 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 #intro p { margin: 0 0 10px; }
 #intro .titreIntro { font-weight: 600; color: var(--accent); margin-bottom: 6px; }
 #intro button { background: var(--accent); color: #0a0f18; border-color: var(--accent); font-weight: 600; }
-#chargement { position: fixed; top: calc(env(safe-area-inset-top) + 74px); left: 14px; font-size: 11px; color: var(--doux); }
+#chargement { position: fixed; top: calc(env(safe-area-inset-top) + 62px); left: 14px; font-size: 11px; color: var(--doux); }
 #phrase { cursor: pointer; }
 #phrase .suite { color: var(--doux); }
 /* ---- la découverte : un mode à la fois (data-mode sur <body>) ----
@@ -116,7 +116,7 @@ body[data-mode=ouverture] #ouverture { display: block; }
 @keyframes apparait { to { opacity: 1; } }
 body[data-mode=ouverture] #titre, body[data-mode=ouverture] #zoomBloc, body[data-mode=ouverture] #bas, body[data-mode=ouverture] #chargement { display: none; }
 /* immersion : l'image, une ligne, « Passer » ; les curseurs en filigrane, intouchables */
-#passer { position: fixed; top: calc(env(safe-area-inset-top) + 12px); left: 14px; z-index: 5; font-size: 12px; padding: 6px 12px; display: none; }
+#passer { position: fixed; top: calc(env(safe-area-inset-top) + 12px); left: 14px; z-index: 5; display: none; }
 body[data-mode=immersion] #passer { display: inline-block; }
 body[data-mode=immersion] #titre, body[data-mode=immersion] #chargement, body[data-mode=immersion] #barreRecits { display: none; }
 body[data-mode=immersion] #zoomBloc, body[data-mode=immersion] #tempsBloc { opacity: 0.3; pointer-events: none; }
@@ -136,8 +136,14 @@ body[data-mode=zoom] #zoom, body[data-mode=temps] #temps { animation: pouls 1s e
 #reperesZoom span { opacity: 0; transition: opacity 0.4s ease; }
 #reperesZoom span.proche { opacity: 1; }
 /* récits : un bouton, un panneau */
-#barreRecits { display: flex; align-items: center; gap: 10px; min-height: 30px; }
-#recits { flex: 0 0 auto; }
+#barreRecits { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+#recits { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* exploration libre : « Récits » est l'action principale */
+body[data-mode=libre] #recits { flex: 1; max-width: 420px; background: var(--accent); color: #0a0f18; border-color: var(--accent); font-weight: 600; font-size: 18px; padding: 14px 20px; min-height: 54px; letter-spacing: 0.02em; }
+body[data-mode=libre] #points { display: none; }
+/* pendant un récit : une croix ronde, les étapes, « Suite » en grand */
+body[data-mode=recit] #recits { width: 44px; height: 44px; padding: 0; font-size: 18px; flex: 0 0 auto; }
+#suite { font-size: 17px; padding: 12px 26px; min-height: 50px; }
 #points { display: flex; gap: 6px; flex: 1; justify-content: center; }
 #points i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.22); }
 #points i.fait { background: rgba(207,230,255,0.55); }
@@ -145,7 +151,9 @@ body[data-mode=zoom] #zoom, body[data-mode=temps] #temps { animation: pouls 1s e
 #suite { flex: 0 0 auto; animation: pouls 1.2s ease-in-out infinite; }
 #suite[hidden], #panneauRecits[hidden], #indice[hidden] { display: none; }
 #panneauRecits { position: fixed; left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 10px); z-index: 7; background: #0c0e15; border: 1px solid var(--trait); border-radius: 14px; padding: 14px; display: grid; gap: 10px; box-shadow: 0 -8px 30px rgba(0,0,0,0.6); }
-#panneauRecits .scen button { width: 168px; }
+#panneauRecits .scen button { width: 100%; font-size: 17px; padding: 14px 16px; min-height: 54px; white-space: normal; }
+.enteteRecits { display: flex; align-items: center; justify-content: space-between; }
+.enteteRecits h2 { font: 500 18px var(--f-titre); letter-spacing: 0.03em; margin: 0 0 0 4px; }
 body[data-mode=recit] #titre { display: none; }
 @media (min-width: 900px) and (min-height: 650px) { #bas, #titre, #reperesZoom, #chargement { zoom: 1.3; } }
 </style>
@@ -156,7 +164,7 @@ body[data-mode=recit] #titre { display: none; }
 <div id="ouverture" aria-live="polite">
   <div class="noir"></div>
   <p id="vers">Il est l'heure de s'enivrer.</p>
-  <div id="invite"><p>Une carte de l'univers, d'un seul geste.</p><button id="partir" class="principal">Partir</button></div>
+  <div id="invite"><p>Une carte de l'univers, d'un seul geste.</p><button id="partir" class="principal">Découvrir</button></div>
 </div>
 <button id="passer">Passer</button>
 <div id="indice" role="status"></div>
@@ -214,11 +222,12 @@ body[data-mode=recit] #titre { display: none; }
 </div>
 <div id="chargement">matière : chargement…</div>
 <div id="panneauRecits" class="scenarios" role="group" aria-label="Récits" hidden>
-  <div class="scen"><button data-scen="promenade">Formation de la Voie lactée</button><span>de la toile cosmique à notre galaxie naissante</span></div>
-  <div class="scen"><button data-scen="toile">Formation de la toile cosmique</button><span>de presque rien aux filaments et aux amas</span></div>
-  <div class="scen"><button data-scen="observable">Univers observable</button><span>passé : jusqu'où la lumière a pu venir</span></div>
-  <div class="scen"><button data-scen="hubble">Sphère de Hubble</button><span>présent : là où l'espace fuit à la vitesse de la lumière</span></div>
-  <div class="scen"><button data-scen="evenements">Horizon des événements</button><span>futur : ce que notre message atteindra</span></div>
+  <div class="enteteRecits"><h2>Récits</h2><button id="fermeRecits" class="rond" aria-label="Fermer">✕</button></div>
+  <div class="scen"><button data-scen="promenade">Formation de la Voie lactée</button></div>
+  <div class="scen"><button data-scen="toile">Formation de la toile cosmique</button></div>
+  <div class="scen"><button data-scen="observable">Univers observable</button></div>
+  <div class="scen"><button data-scen="hubble">Sphère de Hubble</button></div>
+  <div class="scen"><button data-scen="evenements">Horizon des événements</button></div>
 </div>
 <div id="modale" role="dialog" aria-modal="true" aria-labelledby="modaleTitre">
   <div>
@@ -2130,8 +2139,11 @@ elT.addEventListener("input", () => { if (document.body.dataset.mode === "temps"
 function majRecits() {
   const b = document.getElementById("recits"), dans = scen && document.body.dataset.mode === "recit";
   const nom = dans ? document.querySelector(`#panneauRecits button[data-scen=${scen.cle}]`).textContent : "";
-  b.textContent = dans ? `✕ ${nom}` : "Récits"; b.setAttribute("aria-label", dans ? `Quitter le récit ${nom}` : "Récits");
+  b.textContent = dans ? "✕" : "Récits"; b.setAttribute("aria-label", dans ? `Quitter le récit ${nom}` : "Récits");
 }
+document.getElementById("fermeRecits").addEventListener("click", () => { document.getElementById("panneauRecits").hidden = true; });
+// un toucher hors du panneau le referme
+document.addEventListener("pointerdown", e => { const pn = document.getElementById("panneauRecits"); if (!pn.hidden && !pn.contains(e.target) && e.target.id !== "recits") pn.hidden = true; });
 document.getElementById("recits").addEventListener("click", () => {
   if (scen && document.body.dataset.mode === "recit") { libre(); return; }
   const pn = document.getElementById("panneauRecits"); pn.hidden = !pn.hidden;

@@ -433,6 +433,39 @@ async def main(url):
         await pd.click("#passer"); await pd.wait_for_timeout(800)
         z4 = await pd.evaluate(MOTS)
         note("visiteur qui revient : tout de suite libre", "recits" in z4["commandes"] and "temps" in z4["commandes"], f"commandes {z4['commandes']}", "découverte faite une fois")
+        # tailles des boutons (retour du 17 novembre 2026) : un bouton d'ouverture qui dit ce qu'il fait,
+        # « Récits » action principale une fois la présentation finie, des cibles au doigt, un panneau sans sous-titres
+        mot = await pd.evaluate("document.getElementById('partir').textContent.trim()")
+        note("bouton d'ouverture : « Découvrir »", mot == "Découvrir", f"« {mot} »", "« le bouton partir n'est pas clair »")
+        TAILLES = """(() => { const vis = el => { for (let a = el; a; a = a.parentElement) { const st = getComputedStyle(a); if (a.hidden || st.display === 'none' || st.visibility === 'hidden' || +st.opacity < 0.3) return false; } const r = el.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < innerHeight; };
+          return [...document.querySelectorAll('button')].filter(vis).map(b => { const r = b.getBoundingClientRect(); return [b.id || b.dataset.scen || b.textContent.trim().slice(0, 10), Math.round(r.width), Math.round(r.height)]; }); })()"""
+        rc = await pd.evaluate("""(() => { const b = document.getElementById('recits'), r = b.getBoundingClientRect(), br = document.getElementById('barreRecits').getBoundingClientRect(), st = getComputedStyle(b);
+          return { fond: st.backgroundColor, accent: getComputedStyle(document.querySelector('button.principal') || b).backgroundColor, l: r.width, h: r.height, part: r.width / br.width, police: parseFloat(st.fontSize), bas: document.getElementById('bas').getBoundingClientRect().height }; })()""")
+        acc = await pd.evaluate("(() => { const b = document.createElement('button'); b.className = 'principal'; document.body.appendChild(b); const c = getComputedStyle(b).backgroundColor; b.remove(); return c; })()")
+        note("« Récits » : l'action principale, bien visible", rc["fond"] == acc and rc["h"] >= 48 and rc["part"] >= 0.6 and rc["police"] >= 16 and rc["bas"] <= 0.32 * 844,
+             f"fond {rc['fond']}, {rc['l']:.0f}×{rc['h']:.0f} px ({rc['part']:.0%} de la barre), police {rc['police']:.0f} px, bas {rc['bas']:.0f} px",
+             "« une fois la présentation faite, l'action principale devient récit : beaucoup plus gros »")
+        t_libre = await pd.evaluate(TAILLES)
+        await pd.click("#recits"); await pd.wait_for_timeout(500)
+        t_pan = await pd.evaluate(TAILLES)
+        pan = await pd.evaluate("""(() => { const p = document.getElementById('panneauRecits'), lp = p.clientWidth - 28;
+          const bs = [...p.querySelectorAll('button[data-scen]')].map(b => { const r = b.getBoundingClientRect(); return [r.width / lp, r.height, parseFloat(getComputedStyle(b).fontSize)]; });
+          const sous = [...p.querySelectorAll('span')].filter(s => s.offsetParent && s.textContent.trim()).length; return { bs, sous }; })()""")
+        ferme = await pd.evaluate("(() => { const f = document.getElementById('fermeRecits'); if (!f) return false; f.click(); return document.getElementById('panneauRecits').hidden; })()")
+        await pd.wait_for_timeout(300)
+        # pendant un récit : la croix, les étapes, « Suite » — rien de tronqué
+        await pd.evaluate("HDS.recit('hubble')"); await pd.wait_for_timeout(800); await pd.click("#cestParti")
+        for _ in range(60):
+            await pd.wait_for_timeout(500)
+            if await pd.evaluate("!!document.getElementById('suite').offsetParent"): break
+        t_rec = await pd.evaluate(TAILLES)
+        tronque = await pd.evaluate("[...document.querySelectorAll('#barreRecits button')].filter(b => b.offsetParent && b.scrollWidth > b.clientWidth + 1).map(b => b.id)")
+        await pd.evaluate("HDS.recit('hubble')"); await pd.wait_for_timeout(500)
+        t_libre += t_rec
+        petits = [x for x in t_libre + t_pan if x[1] < 40 or x[2] < 40] + [[i, "tronqué"] for i in tronque]
+        note("boutons à la taille du doigt (≥ 40 px)", not petits, f"trop petits : {petits}" if petits else f"{len(t_libre)} + {len(t_pan)} boutons mesurés", "« tout est aussi petit »")
+        note("panneau des récits : le titre seul, gros boutons", ferme and pan["sous"] == 0 and all(l >= 0.85 and h >= 48 and f >= 16 for l, h, f in pan["bs"]),
+             f"refermable {ferme} ; {pan['sous']} sous-titres visibles ; boutons {[(round(l, 2), round(h), round(f)) for l, h, f in pan['bs']]}", "« les récits peuvent n'avoir que le texte du bouton »")
         # un vrai doigt sur les curseurs (écran tactile simulé) : ils doivent avoir leur longueur et répondre
         tc = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=3, has_touch=True, is_mobile=True)
         pt = await tc.new_page(); await pt.goto(url); await pt.wait_for_selector("#partir", state="visible", timeout=20000)
