@@ -99,12 +99,67 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 #chargement { position: fixed; top: calc(env(safe-area-inset-top) + 74px); left: 14px; font-size: 11px; color: var(--doux); }
 #phrase { cursor: pointer; }
 #phrase .suite { color: var(--doux); }
+/* ---- la découverte : un mode à la fois (data-mode sur <body>) ----
+   ouverture : le noir, une ligne, la toile, un bouton · immersion : la Promenade, image et légende seules
+   zoom / temps : on passe la main, une commande après l'autre · libre : l'exploration · recit : un récit en étapes */
+button.principal { background: var(--accent); color: #0a0f18; border-color: var(--accent); font-weight: 600; }
+#ouverture { position: fixed; inset: 0; z-index: 6; display: none; pointer-events: none; }
+body[data-mode=ouverture] #ouverture { display: block; }
+#ouverture .noir { position: absolute; inset: 0; background: #000; animation: leveNoir 2.2s ease 3.4s forwards; }
+@keyframes leveNoir { to { opacity: 0; } }
+#vers { position: absolute; left: 0; right: 0; top: 42%; margin: 0; text-align: center; font: 500 21px var(--f-titre); letter-spacing: 0.04em; opacity: 0;
+  animation: vers 3.6s ease 0.4s forwards; }
+@keyframes vers { 0% { opacity: 0; } 30% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+#invite { position: absolute; left: 24px; right: 24px; bottom: calc(env(safe-area-inset-bottom) + 48px); text-align: center; opacity: 0; animation: apparait 1.2s ease 5s forwards; pointer-events: auto; }
+#invite p { margin: 0 0 16px; font-size: 17px; text-shadow: 0 1px 6px #000; }
+#invite button { width: 100%; max-width: 360px; padding: 13px 14px; font-size: 16px; }
+@keyframes apparait { to { opacity: 1; } }
+body[data-mode=ouverture] #titre, body[data-mode=ouverture] #zoomBloc, body[data-mode=ouverture] #bas, body[data-mode=ouverture] #chargement { display: none; }
+/* immersion : l'image, une ligne, « Passer » ; les curseurs en filigrane, intouchables */
+#passer { position: fixed; top: calc(env(safe-area-inset-top) + 12px); left: 14px; z-index: 5; font-size: 12px; padding: 6px 12px; display: none; }
+body[data-mode=immersion] #passer { display: inline-block; }
+body[data-mode=immersion] #titre, body[data-mode=immersion] #chargement, body[data-mode=immersion] #barreRecits { display: none; }
+body[data-mode=immersion] #zoomBloc, body[data-mode=immersion] #tempsBloc { opacity: 0.3; pointer-events: none; }
+body[data-mode=immersion] #zoomBloc *, body[data-mode=immersion] #tempsBloc * { pointer-events: none; }
+body[data-mode=immersion] #reperesZoom, body[data-mode=immersion] #axeEspace, body[data-mode=immersion] .reperes, body[data-mode=immersion] #lectureTemps, body[data-mode=immersion] #lecture { visibility: hidden; }
+body[data-mode=immersion] #phrase { font-size: 17px; line-height: 1.35; text-align: center; min-height: 46px; padding: 0 4px; }
+#phrase { transition: opacity 0.6s ease; }
+#phrase.estompe, #phrase.change { opacity: 0; }
+/* on passe la main : le zoom seul, puis le temps */
+#indice { position: fixed; z-index: 5; display: none; max-width: 210px; background: rgba(12,14,21,0.92); border: 1px solid var(--accent); border-radius: 12px; padding: 9px 12px; font-size: 14px; line-height: 1.35; }
+body[data-mode=zoom] #indice { display: block; right: 62px; top: 60%; }
+body[data-mode=temps] #indice { display: block; left: 14px; bottom: calc(env(safe-area-inset-bottom) + 92px); }
+body[data-mode=zoom] #titre, body[data-mode=zoom] #bas, body[data-mode=zoom] #chargement { display: none; }
+body[data-mode=temps] #titre, body[data-mode=temps] #barreRecits, body[data-mode=temps] #phrase, body[data-mode=temps] #chargement, body[data-mode=temps] #lecture, body[data-mode=temps] #repAuj { display: none; }
+body[data-mode=zoom] #zoom, body[data-mode=temps] #temps { animation: pouls 1s ease-in-out infinite; }
+/* repères du zoom : seul le plus proche du curseur */
+#reperesZoom span { opacity: 0; transition: opacity 0.4s ease; }
+#reperesZoom span.proche { opacity: 1; }
+/* récits : un bouton, un panneau */
+#barreRecits { display: flex; align-items: center; gap: 10px; min-height: 30px; }
+#recits { flex: 0 0 auto; }
+#points { display: flex; gap: 6px; flex: 1; justify-content: center; }
+#points i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.22); }
+#points i.fait { background: rgba(207,230,255,0.55); }
+#points i.ici { background: var(--accent); }
+#suite { flex: 0 0 auto; animation: pouls 1.2s ease-in-out infinite; }
+#suite[hidden], #panneauRecits[hidden], #indice[hidden] { display: none; }
+#panneauRecits { position: fixed; left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 10px); z-index: 7; background: #0c0e15; border: 1px solid var(--trait); border-radius: 14px; padding: 14px; display: grid; gap: 10px; box-shadow: 0 -8px 30px rgba(0,0,0,0.6); }
+#panneauRecits .scen button { width: 168px; }
+body[data-mode=recit] #titre { display: none; }
 @media (min-width: 900px) and (min-height: 650px) { #bas, #titre, #reperesZoom, #chargement { zoom: 1.3; } }
 </style>
 </head>
-<body>
+<body data-mode="ouverture">
 <canvas id="matiere" aria-hidden="true"></canvas>
 <canvas id="carte" aria-label="Carte de l'univers en distances réelles, avec la progression de la lumière"></canvas>
+<div id="ouverture" aria-live="polite">
+  <div class="noir"></div>
+  <p id="vers">Il est l'heure de s'enivrer.</p>
+  <div id="invite"><p>Une carte de l'univers, d'un seul geste.</p><button id="partir" class="principal">Partir</button></div>
+</div>
+<button id="passer">Passer</button>
+<div id="indice" role="status"></div>
 <div id="titre">
   <h1>L'Heure de s'enivrer</h1>
   <button id="apropos" class="rond" aria-label="À propos">i</button>
@@ -120,35 +175,29 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
   <button id="cestParti">C'est parti</button>
 </div>
 <template id="introObservable">
-  <p>380 000 ans après le Big Bang, l'univers, assez refroidi et dilué, devient enfin transparent : la lumière peut voyager librement. À 41 millions d'années-lumière de nous, des photons commencent un voyage de 13,8 milliards d'années.</p>
-  <p>Mais ils remontent un espace en expansion : au début, ils s'éloignent même de nous, comme des fourmis qui marchent à contre-sens sur un tapis roulant plus rapide qu'elles.</p>
+  <p>380 000 ans après le Big Bang, la lumière part. L'espace l'emporte, tel un tapis roulant trop rapide.</p>
 </template>
 <template id="introHubble">
-  <p class="titreIntro">Sphère de Hubble</p>
-  <p>Une photographie de l'instant présent : le temps restera figé. L'espace entre les galaxies s'étire, et plus une galaxie est loin, plus elle s'éloigne vite de nous, comme sur un tapis roulant qui accélère avec la distance.</p>
-  <p>Les points montrent l'espace qui s'étire : gris, il nous fuit moins vite que la lumière ; orange, plus vite. Un rayon gradue ensuite les vitesses de recul : la moitié de la lumière, la lumière elle-même sur le cercle (14,5 milliards d'années-lumière, la sphère de Hubble), puis une fois et demie. Enfin, trois grains de lumière, en deçà, sur et au-delà de ce cercle, avec leur vitesse nette vers nous : l'un avance, l'autre fait du surplace, le dernier recule.</p>
+  <p>Sphère de Hubble, une photographie de l'instant. Plus une galaxie est loin, plus elle nous fuit vite.</p>
 </template>
 <template id="introHorizon1">
-  <p class="titreIntro">Horizon des événements · acte 1 sur 2</p>
-  <p>Aujourd'hui, nous envoyons un message lumineux dans toutes les directions. Quelles galaxies atteindra-t-il un jour ?</p>
-  <p>Les points gris sont des galaxies ; chacune s'allume quand le message l'atteint. Pour qu'elles restent immobiles à l'écran malgré l'expansion, la carte dézoomera au même rythme : regardez l'échelle grandir. Le temps défilera jusqu'à 100 milliards d'années, et le message, de plus en plus lent, finira par se figer sur un cercle.</p>
+  <p class="titreIntro">Acte 1 sur 2</p>
+  <p>Nous envoyons un message lumineux. Quelles galaxies atteindra-t-il un jour ?</p>
 </template>
 <template id="introHorizon2">
-  <p class="titreIntro">Horizon des événements · acte 2 sur 2</p>
-  <p>Le message s'est figé : au-delà de ce cercle, aucune galaxie ne le recevra jamais. Maintenant, dans l'autre sens : ce qui se passe aujourd'hui dans une galaxie lointaine, le verrons-nous un jour ?</p>
-  <p>La carte ne dézoome plus : elle montre les vraies distances. Les points gris sont l'espace lui-même, emporté vers l'extérieur ; orange, il nous fuit plus vite que la lumière. Trois lumières partent aujourd'hui vers nous : de 15,5 milliards d'années-lumière, de l'horizon (16,7) et de 18.</p>
+  <p class="titreIntro">Acte 2 sur 2</p>
+  <p>Dans l'autre sens : ce qui part aujourd'hui de loin nous parviendra-t-il ?</p>
 </template>
 <div id="finObs" class="carteInfo" hidden>
-  <p>Le point de l'espace qui a émis cette lumière est aujourd'hui à 45 milliards d'années-lumière de nous, tout près de la frontière de notre univers observable, à 46 milliards. Au-delà, aucune lumière n'a encore eu le temps de nous parvenir.</p>
+  <p>Sa source est aujourd'hui à 45 milliards d'années-lumière : tout près de la frontière de l'univers observable, à 46.</p>
   <button id="fermeFinObs">Fermer</button>
 </div>
 <div id="bas">
   <div id="phrase"></div>
-  <div class="scenarios" role="group" aria-label="Scénarios">
-    <div class="scen"><button data-scen="promenade">Promenade</button><span>de la toile cosmique à la Voie lactée naissante</span></div>
-    <div class="scen"><button data-scen="observable">Univers observable</button><span>passé : jusqu'où la lumière a déjà pu venir</span></div>
-    <div class="scen"><button data-scen="hubble">Sphère de Hubble</button><span>présent : l'espace y fuit à la vitesse de la lumière</span></div>
-    <div class="scen"><button data-scen="evenements">Horizon des événements</button><span>futur : les galaxies que notre message atteindra</span></div>
+  <div id="barreRecits">
+    <button id="recits">Récits</button>
+    <div id="points" aria-hidden="true"></div>
+    <button id="suite" class="principal" hidden>Suite ›</button>
   </div>
   <div id="tempsBloc">
     <button id="lecture" class="rond" aria-label="Lecture">▶</button>
@@ -161,6 +210,12 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
   </div>
 </div>
 <div id="chargement">matière : chargement…</div>
+<div id="panneauRecits" class="scenarios" role="group" aria-label="Récits" hidden>
+  <div class="scen"><button data-scen="promenade">Promenade</button><span>de la toile cosmique à la Voie lactée naissante</span></div>
+  <div class="scen"><button data-scen="observable">Univers observable</button><span>passé : jusqu'où la lumière a pu venir</span></div>
+  <div class="scen"><button data-scen="hubble">Sphère de Hubble</button><span>présent : là où l'espace fuit à la vitesse de la lumière</span></div>
+  <div class="scen"><button data-scen="evenements">Horizon des événements</button><span>futur : ce que notre message atteindra</span></div>
+</div>
 <div id="modale" role="dialog" aria-modal="true" aria-labelledby="modaleTitre">
   <div>
     <h2 id="modaleTitre">L'Heure de s'enivrer</h2>
@@ -172,7 +227,7 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
     <p>Ici, l'univers tient entre vos doigts. Le curseur de droite vous emporte d'une échelle à l'autre, de notre galaxie jusqu'aux confins de l'univers observable ; celui du bas remonte le temps, jusqu'à l'aube du monde. Et sur cette carte se dessinent trois frontières que nul œil ne voit : l'univers observable, tout ce que la lumière a eu le temps de nous apporter ; la sphère de Hubble, au-delà de laquelle l'espace nous fuit plus vite que la lumière ; l'horizon des événements, au-delà duquel rien de ce qui advient aujourd'hui ne nous parviendra jamais.</p>
     <p>La lumière qui vous atteint ce soir a parfois quitté sa source avant que la Terre n'existe. Entre chaque point que vous voyez, l'espace lui-même s'étire, en silence. Et ce halo de 93 milliards d'années-lumière qui nous enveloppe n'est peut-être qu'une parcelle infime de ce qui existe, au-delà de ce que la lumière a pu nous confier.</p>
     <p>Zoomez, et vous franchirez d'un geste des distances que la lumière met des milliards d'années à parcourir. Remontez le temps, et vous verrez la matière se resserrer, jusqu'au seuil où l'univers, trop dense et trop jeune, ne laissait encore s'échapper aucune lumière.</p>
-    <p>Quatre récits vous prennent par la main : une promenade, de la toile cosmique jusqu'à la naissance de notre galaxie, puis un récit pour chacune des trois frontières. Un second appui sur un récit vous rend la liberté, là où vous êtes ; « aujourd'hui », sous la frise du temps, vous ramène au présent.</p>
+    <p>Le bouton « Récits » ouvre quatre histoires : une promenade, de la toile cosmique jusqu'à la naissance de notre galaxie, puis une pour chacune des trois frontières. La croix vous rend la liberté, là où vous êtes ; « aujourd'hui », sous la frise du temps, vous ramène au présent.</p>
     <p>Il n'y a pas de centre à cette carte : seulement le point d'où nous regardons, comme n'importe quel autre point de l'univers pourrait le faire.</p>
 </template>
 <template id="txtObservable">
@@ -350,7 +405,7 @@ function tailleZoom() {
   elZ.style.width = h + "px";
   const rz = document.getElementById("reperesZoom"); rz.innerHTML = "";
   for (const [w, txt] of [[0.00025, "Voie lactée"], [0.13, "superamas"], [1.2, "toile cosmique"], [14.5, "sphère de Hubble"], [46, "univers observable"]]) {
-    const sp = document.createElement("span"); sp.textContent = txt; sp.style.top = (uFromW(w) / 1000 * 100) + "%"; rz.appendChild(sp);
+    const sp = document.createElement("span"); sp.textContent = txt; sp.dataset.u = uFromW(w); sp.style.top = (uFromW(w) / 1000 * 100) + "%"; rz.appendChild(sp);
   }
 }
 function taille() {
@@ -1011,7 +1066,16 @@ function majDispo() {
 // Dessin
 // ---------------------------------------------------------------------------
 function cercle(cx, cy, r) { ctx.beginPath(); ctx.arc(cx, cy, Math.max(r, 0.1), 0, 2 * Math.PI); }
+let marqueurIci = false;
+function cerclesVisibles() { return scen ? (scen.cerclesVus ?? (scen.fin && scen.cerclesFin ? scen.cerclesFin : scen.cercles)) : ["p", "e", "h"]; }
+// le curseur du zoom ne nomme que le repère le plus proche
+function majReperes() {
+  const sp = document.querySelectorAll("#reperesZoom span"), u = uFromW(W); let best = null, d = 1e9;
+  for (const x of sp) { const dd = Math.abs(+x.dataset.u - u); if (dd < d) { d = dd; best = x; } }
+  sp.forEach(x => x.classList.toggle("proche", x === best));
+}
 function dessine() {
+  majReperes();
   const cx = (Wpx - 44 * DPR) / 2, cy = Hpx * 0.44, ppg = Math.min(Wpx - 44 * DPR, Hpx * 0.8) / 2 / W;
   const s = at(t);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1088,14 +1152,15 @@ function dessine() {
   // grille d'échelle, centrée sur nous
   ctx.globalAlpha = 1 - 0.6 * aGal; if (!sansGrille) dessineGrille(cx, cy, ppg); ctx.globalAlpha = 1;
   zonesInfo = [];
-  const vis = scen ? (scen.cerclesVus ?? (scen.fin && scen.cerclesFin ? scen.cerclesFin : scen.cercles)) : ["p", "e", "h"];
+  const vis = cerclesVisibles();
   if (vis.length) {
     const rp = s.a * s.eta, rh = DH / E(s.a), re = s.a * (ETA_INF - s.eta);
     const sph = [[rp, "#dfe4ee", [], "univers observable", "p"], [re, "#dfe4ee", [10, 6], "horizon des événements", "e"], [rh, "#dfe4ee", [2, 5], "sphère de Hubble", "h"]].filter(x => vis.includes(x[4]));
     ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "center";
     sph.forEach(([r, c, d, txt], k) => {
       const R = r * ppg; if (R < 4 * DPR) return;
-      ctx.globalAlpha = scen ? 0.8 : 0.45; ctx.strokeStyle = c; ctx.lineWidth = 1.2 * DPR;
+      const fa = scen && scen.fondu ? scen.fondu(sph[k][4]) : 1;
+      ctx.globalAlpha = (scen ? 0.8 : 0.45) * fa; ctx.strokeStyle = c; ctx.lineWidth = 1.2 * DPR;
       ctx.setLineDash(d.map(v => v * DPR)); cercle(cx, cy, R); ctx.stroke(); ctx.setLineDash([]);
       // libellés répartis sur le haut des cercles, chacun à son angle, hors du cercle
       const ang = { p: -Math.PI / 2, e: -Math.PI / 2 + 0.75, h: Math.PI / 2 }[sph[k][4]];
@@ -1104,7 +1169,7 @@ function dessine() {
       if (y < 78 * DPR || y > Hpx * 0.6) { x = cx + (R - 14 * DPR) * Math.cos(ang); y = cy + (R - 14 * DPR) * Math.sin(ang); }
       if (y < Hpx * 0.62) {
         const lab = `${txt} · ${fmt(r)}  ⓘ`, xx = Math.min(Math.max(x, 90 * DPR), Wpx - 90 * DPR), lw = ctx.measureText(lab).width;
-        ctx.globalAlpha = 0.8; ctx.fillStyle = c; ctx.fillText(lab, xx, y);
+        ctx.globalAlpha = 0.8 * fa; ctx.fillStyle = c; ctx.fillText(lab, xx, y);
         zonesInfo.push({ x0: xx - lw / 2 - 8 * DPR, x1: xx + lw / 2 + 8 * DPR, y0: y - 16 * DPR, y1: y + 8 * DPR, cle: sph[k][4] });
       }
     });
@@ -1129,7 +1194,13 @@ function dessine() {
   }
   ctx.fillStyle = "#ffffff"; cercle(cx, cy, 2.2 * DPR); ctx.fill();
   ctx.font = `${11 * DPR * US}px Jost, sans-serif`; ctx.fillStyle = "#d9dbe2"; ctx.textAlign = "center";
-  ctx.fillText("nous", cx, cy + 15 * DPR);
+  marqueurIci = !!(scen && scen.ici && scen.ici());
+  if (marqueurIci) {
+    // la Promenade arrive sur la Voie lactée : un anneau qui respire autour du Soleil
+    const pr = 0.5 + 0.5 * Math.sin(performance.now() / 380);
+    ctx.strokeStyle = `rgba(207,230,255,${0.55 + 0.4 * pr})`; ctx.lineWidth = 1.6 * DPR; cercle(cx, cy, (11 + 4 * pr) * DPR); ctx.stroke();
+    ctx.font = `600 ${12.5 * DPR * US}px Jost, sans-serif`; ctx.fillStyle = "#eef4ff"; ctx.fillText("nous sommes ici", cx, cy + 32 * DPR); sale = true;
+  } else ctx.fillText("nous", cx, cy + 15 * DPR);
 
   // flèches de vitesse (scénario de la sphère de Hubble)
   if (scen && scen.tapis) { dessineTapis(cx, cy, ppg, s); if (scen.cle === "hubble") dessineVitesses(cx, cy, ppg, s); }
@@ -1297,6 +1368,7 @@ function dessineLoupe(cx, cy, ppg, s) {
 }
 function dessineLegendeGalaxie(gx, gy, ppk, al) {
   const G = matiere.galaxie;
+  if (document.body.dataset.mode === "immersion" && G.pret) return;
   ctx.globalAlpha = al; ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; ctx.fillStyle = "rgba(225,232,245,0.85)";
   if (!G.pret) { ctx.textAlign = "center"; ctx.fillText("Voie lactée : chargement…", gx, gy + 40 * DPR); ctx.globalAlpha = 1; return; }
   if (t < G.ts[0]) { ctx.textAlign = "center"; ctx.fillText("la Voie lactée n'a pas encore d'étoiles", gx, gy + 8.2 * ppk - 30 * DPR); }
@@ -1413,11 +1485,28 @@ function montrePhrase(txt) {
   const m = txt.match(/^(.+?[.!?])\s+(.+)$/s);
   if (!m || phraseLongue) el.innerHTML = txt + (m ? ' <span class="suite">(moins)</span>' : "");
   else el.innerHTML = m[1] + ' <span class="suite">… la suite</span>';
-  phraseDerniere = txt + phraseLongue;
+  phraseDerniere = txt + phraseLongue; el.classList.remove("change"); rappelPhrase();
+}
+function texteRecit() {
+  if (scen.attente) return "";
+  const E = scen.etapes;
+  if (scen.fin && scen.texteFin) return scen.texteFin;
+  if (E) return E[Math.min(scen.ie || 0, E.length - 1)].txt;
+  return scen.legende();
+}
+// légende d'un récit ou de la Promenade : une ligne, en fondu quand elle change
+let legendeAffichee = null;
+function montreLegende(txt) {
+  if (txt === legendeAffichee) return;
+  legendeAffichee = txt; const el = document.getElementById("phrase");
+  el.classList.add("change");
+  setTimeout(() => { if (legendeAffichee === txt) { el.textContent = txt; el.classList.toggle("change", !txt); } }, 300);
 }
 function phrase() {
   const f = fronts[0];
-  if (scen) { montrePhrase(scen.legende()); return; }
+  majEtapes();
+  if (scen) { montreLegende(texteRecit()); return; }
+  legendeAffichee = null;
   let txt = "";
   if (f) {
     const p = rayonFront(f, t), q = rayonFront(f, Math.max(f.te, t * 0.995));
@@ -1430,7 +1519,7 @@ function phrase() {
     }
     else txt = "L'éclair ne rattrapera jamais les galaxies en pointillé, même en un temps infini.";
     if (p) txt += ` (à ${fmt(p.r)} de nous, étirée ×${p.s.toFixed(1).replace(".", ",")})`;
-  } else txt = "Choisissez un scénario, ou explorez librement : zoom à droite, temps en bas.";
+  } else txt = "Explorez : l'espace à droite, le temps en bas.";
   montrePhrase(txt);
 }
 // lecture du temps : l'âge de l'univers, et l'écart avec aujourd'hui en mots
@@ -1465,7 +1554,7 @@ function bouton(mode) { // lecture | pause | rejouer
 }
 function joue(on) { lecture = on; bouton(on ? "pause" : "lecture"); }
 elL.addEventListener("click", () => {
-  if (scen) { if (scen.fin) { lanceScenario(scen.cle); return; } if (scen.attente) { depart(); return; } scen.pause = !scen.pause; bouton(scen.pause ? "lecture" : "pause"); return; }
+  if (scen) { if (scen.fin) { lanceScenario(scen.cle); return; } if (scen.attente) { depart(); return; } if (scen.attenteSuite) { suite(); return; } scen.pause = !scen.pause; bouton(scen.pause ? "lecture" : "pause"); return; }
   if (t >= (futurOuvert() ? TMAX : T0) * 0.999) t = TMIN; joue(!lecture);
 });
 // « aujourd'hui » : revenir au présent, en exploration libre, au même champ
@@ -1480,6 +1569,13 @@ const SCEN = {
     intro: "introObservable",
     init() { t = TREC; fronts = [{ sens: "in", te: TREC, etiquette: "la matière qui a émis cette lumière" }]; this.cadre(); this.pause = true; this.attente = true; },
     alaFin() { setTimeout(() => { if (scen && scen.cle === "observable" && scen.fin) document.getElementById("finObs").hidden = false; }, 1200); },
+    // une phrase par étape ; à la fin d'une étape, le récit attend « Suite »
+    etapes: [
+      { txt: "380 000 ans après le Big Bang : cette lumière part vers nous.", fin() { return t >= 0.002; } },
+      { txt: "L'expansion l'emporte : la lumière s'éloigne de nous, sa source bien plus vite.", fin() { return t >= 3.6; } },
+      { txt: "Demi-tour : la lumière cesse de reculer.", fin() { return t >= 4.6; } },
+      { txt: "Elle revient vers nous ; sa source continue de s'éloigner.", fin() { return t >= T0; } }],
+    texteFin: "Elle nous atteint aujourd'hui : c'est le fond diffus cosmologique.",
     cadre() { const mk = marqueurs(fronts[0], t); const Wc = Math.min(WMAX, Math.max(WMIN, mk.r * 1.3)); if (zoomAnim) zoomAnim.W1 = Wc; else { W = Wc; elZ.value = uFromW(W); } },
     avance(dts) { if (this.el < 2.5) return false; t = Math.min(T0, t * Math.exp(0.7 * dts)); this.cadre(); return t >= T0; },
     legende() {
@@ -1498,6 +1594,11 @@ const SCEN = {
   hubble: {
     W: 25, cercles: ["h"], tapis: true, pause: false,
     intro: "introHubble",
+    etapes: [
+      { txt: "L'espace s'étire : plus une galaxie est loin, plus elle nous fuit vite.", fin() { return this.el >= 4; } },
+      { txt: "À 14,5 milliards d'années-lumière, elle nous fuit à la vitesse de la lumière.", fin() { return this.el >= 9; } },
+      { txt: "La lumière y fait du surplace ; en deçà elle avance, au-delà elle recule.", fin() { return this.el >= 17; } }],
+    texteFin: "Cette sphère grandit : la lumière qui y piétine finira par nous atteindre.",
     init() { t = T0; fronts = []; this.pause = true; this.attente = true; },
     avance(dts) { return this.el > 17; },
     legende() {
@@ -1512,19 +1613,21 @@ const SCEN = {
   promenade: {
     W: 1.2, cercles: [],
     init() { t = T0; fronts = []; this.retour = -1; },
-    // fin : retour fluide à aujourd'hui, au champ le plus proche de la référence Millennium
-    // (0,2 Gal : élongation et rapport filaments/grenaille les plus proches de la cible)
-    WFIN: 0.2,
+    // fin (décision du 17/11, 15 h 54) : retour au présent puis grand recul jusqu'à l'univers
+    // observable entier, où les trois frontières s'allument l'une après l'autre
     WRECUL: 0.00017,      // champ pendant la remontée du temps : la galaxie assez grande pour ses détails
-    alaFin() { libre(); },
+    WFIN: 52, ALLUME: { p: 18.5, h: 21.5, e: 24.5 }, FIN: 28.5,
+    alaFin() { libre(); mainAuVisiteur(); },
+    get cerclesVus() { const r = this.retour; return r < 0 ? [] : ["p", "h", "e"].filter(c => r >= this.ALLUME[c]); },
+    fondu(c) { return lisse(this.ALLUME[c], this.ALLUME[c] + 1.2, this.retour); },
+    ici() { return this.retour < 0 && this.el > 15.5 && this.el < 19.5; },
     avance(dts) {
       if (this.retour >= 0) {
-        this.retour += dts;
-        const f = lisse(2.5, 11, this.retour), ft = lisse(2.5, 10, this.retour);
-        t = 1.2 + (T0 - 1.2) * ft;
-        W = Math.exp(Math.log(this.WRECUL) + (Math.log(this.WFIN) - Math.log(this.WRECUL)) * f);
+        this.retour += dts; const r = this.retour;
+        t = 1.2 + (T0 - 1.2) * lisse(2.5, 10, r);
+        W = Math.exp(Math.log(this.WRECUL) + (Math.log(this.WFIN) - Math.log(this.WRECUL)) * lisse(2.5, 17.5, r));
         elZ.value = uFromW(W); this.Wv = W;
-        return this.retour >= 11.3;
+        return r >= this.FIN;
       }
       const e = this.el, lis = (a, b) => lisse(a, b, e), lW = (w0, w1, f) => Math.exp(Math.log(w0) + (Math.log(w1) - Math.log(w0)) * f);
       if (e < 3) { W = 1.2; }
@@ -1538,22 +1641,29 @@ const SCEN = {
         t = Math.max(1.2, t - dts * v * lisse(19.5, 23, e) * Math.max(0.08, lisse(1.2, 2.2, t)));   // freinage avant l'arrêt
       }
       if (W !== this.Wv) { elZ.value = uFromW(W); this.Wv = W; }
-      if (e > 19.5 && t <= 1.205) this.retour = 0;                        // presque rien : on revient à aujourd'hui
+      if (e > 19.5 && t <= 1.205) this.retour = 0;                        // presque rien : retour, puis grand recul
       return false;
     },
+    // une ligne à la fois, et le silence pendant les mouvements rapides
     legende() {
-      const e = this.el;
-      if (this.retour >= 0 && this.retour < 3) return "Il y a 12,6 milliards d'années, la Voie lactée n'était qu'un petit amas d'étoiles naissantes, nourri par le gaz et les petites galaxies alentour. Tout le reste s'est construit depuis.";
-      if (this.retour >= 3) return "Retour à aujourd'hui, à l'échelle des superamas : à vous d'explorer, avec le zoom à droite et le temps en bas.";
-      if (e < 3) return "La toile cosmique aujourd'hui, sur des milliards d'années-lumière : des filaments de matière, des nœuds où s'amassent les galaxies, de grands vides.";
-      if (e < 11) return "Plongée vers l'un de ces nœuds : notre superamas, puis notre groupe de galaxies.";
-      if (e < 15.5) return "La Voie lactée, telle que la simule TNG50 : une jumelle de notre galaxie, vue de biais. Nous sommes dans son disque, à 27 000 années-lumière du centre.";
-      if (e < 19.5) return "Un peu de recul pour l'embrasser tout entière.";
-      if (t > 12.5) return "Et maintenant, remontons le temps.";
-      if (t > 10) return "Les bras spiraux s'effacent : ils sont faits d'étoiles jeunes et de gaz.";
-      if (t > 7.2) return "Le disque se défait : il y a 6 à 8 milliards d'années, il était plus petit et plus agité.";
-      if (t > 4.5) return "Une galaxie voisine ressort de la nôtre : la Voie lactée l'avait avalée après plusieurs passages.";
-      return "Il ne reste que de petits amas d'étoiles et de gaz qui tombent les uns sur les autres : l'embryon de notre galaxie.";
+      const e = this.el, r = this.retour;
+      if (r >= 0) {
+        if (r < 3) return "Il y a douze milliards d'années, elle naissait.";
+        if (r < 6) return "Revenons à aujourd'hui.";
+        if (r < this.ALLUME.p) return "";
+        if (r < this.ALLUME.h) return "L'univers observable : tout ce que la lumière a pu nous apporter.";
+        if (r < this.ALLUME.e) return "La sphère de Hubble : au-delà, l'espace nous fuit plus vite que la lumière.";
+        return "L'horizon des événements : ce qui s'y passe aujourd'hui ne nous parviendra jamais.";
+      }
+      if (e < 3) return "Chaque lueur est un amas de galaxies.";
+      if (e < 5) return "Plongeons vers l'un d'eux.";
+      if (e < 12.5) return "";
+      if (e < 15.5) return "La Voie lactée. La nôtre.";
+      if (e < 19.5) return "Nous sommes ici, à 27 000 années-lumière du centre.";
+      if (t > 12.6) return "Remontons le temps.";
+      if (t > 7.2) return "Le disque se défait, les bras s'effacent.";
+      if (t > 4.5) return "Elle a dévoré ses voisines.";
+      return "Il y a douze milliards d'années, elle naissait.";
     },
   },
   // futur : émission figée à aujourd'hui, le temps court vers le futur, champ fixe
@@ -1564,6 +1674,14 @@ const SCEN = {
   // fixe ; elle finit immobile, à 17,5 Gal, sans jamais arriver.
   evenements: {
     W: 22, cercles: [], acte: 1, intro: "introHorizon1",
+    get etapes() { return this.acte === 1 ? [
+      { txt: "Notre message part ; la carte dézoome au rythme de l'expansion.", fin() { return t >= 25; } },
+      { txt: "Il ralentit : les galaxies lointaines fuient presque aussi vite que lui.", fin() { return t >= 60; } },
+      { txt: "Il se fige sur ce cercle : l'horizon des événements.", fin() { return t >= 100; } }] : [
+      { txt: "La carte est fixe : les points sont l'espace, emporté vers l'extérieur.", fin() { return t >= 40; } },
+      { txt: "Partie de 15,5 milliards d'années-lumière, la lumière arrivera ; partie de 18, elle recule.", fin() { return t >= 70; } },
+      { txt: "Partie de l'horizon, elle reste à jamais à 17,5 milliards d'années-lumière.", fin() { return t >= 100; } }]; },
+    texteFin: "Ce qui se passe aujourd'hui au-delà de 16,7 milliards d'années-lumière ne nous parviendra jamais.",
     init() {
       this.acte = 1; this.pauseActe = 0; t = T0; this.pause = true; this.attente = true; this.intro = "introHorizon1";
       fronts = [{ sens: "out", te: T0, etiquetteMarq: "horizon : les galaxies qui étaient à 16,7 Gal aujourd'hui" }];
@@ -1578,7 +1696,7 @@ const SCEN = {
         const chi = at(t).eta - ETA0;                                    // rayon comobile du message
         for (const g of cibles) if (g.allume < 0 && g.chi <= chi) g.allume = performance.now();
         if (t >= 100) { this.pauseActe += dts; if (this.pauseActe > 4) { this.acte = 2; this.el2 = 0; t = T0; zoomVers(24, 1200); elT.value = uFromT(t);
-          this.pause = true; this.attente = true; this.intro = "introHorizon2"; montreIntro(); bouton("lecture");
+          this.pause = true; this.attente = true; this.intro = "introHorizon2"; this.ie = 0; montreIntro(); bouton("lecture");
           fronts = [{ sens: "in", te: T0, chi0: 15.5, secteur: [-2.44, -0.70], etiquette: "partie de 15,5 Gal" },
                     { sens: "in", te: T0, chi0: ETA_INF - ETA0, secteur: [-0.17, 1.57], etiquette: "partie de l'horizon" },
                     { sens: "in", te: T0, chi0: 18, secteur: [1.92, 3.66], etiquette: "partie de 18 Gal" }]; } }
@@ -1650,7 +1768,9 @@ document.getElementById("cestParti").addEventListener("click", depart);
 document.getElementById("fermeFinObs").addEventListener("click", () => { document.getElementById("finObs").hidden = true; });
 function lanceScenario(cle) {
   joue(false);
-  scen = Object.assign(Object.create(SCEN[cle]), { cle, el: 0, fin: false, pause: false });
+  scen = Object.assign(Object.create(SCEN[cle]), { cle, el: 0, fin: false, pause: false, ie: 0, attenteSuite: false });
+  document.getElementById("panneauRecits").hidden = true;
+  mode(cle === "promenade" ? "immersion" : "recit");
   const W0z = W; W = scen.W; scen.init(); const Wc = W; W = W0z; zoomVers(Wc, 900); elT.value = uFromT(t);
   montreIntro(); document.getElementById("finObs").hidden = true; bornesTemps();
   document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.toggle("actif", x.dataset.scen === cle));
@@ -1662,12 +1782,71 @@ function libre() {
   joue(false); fronts = []; zoomAnim = null; document.getElementById("intro").hidden = true; document.getElementById("finObs").hidden = true;
   if (!scen) { sale = true; return; }
   scen = null; document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.remove("actif"));
+  if (["immersion", "recit"].includes(document.body.dataset.mode)) mode("libre");
   cibles.forEach(g => g.allume = -1); COURANT.forEach(g => g.tn = -1);
   if (W > WMAX) { W = WMAX; } elZ.value = uFromW(W); bornesTemps();
   bouton("lecture"); sale = true;
 }
 // un deuxième appui sur le scénario en cours le désactive
-document.querySelectorAll(".scen button[data-scen]").forEach(b => b.addEventListener("click", () => { if (scen && scen.cle === b.dataset.scen) libre(); else lanceScenario(b.dataset.scen); }));
+function recit(cle) { document.getElementById("panneauRecits").hidden = true; if (scen && scen.cle === cle) libre(); else lanceScenario(cle); }
+document.querySelectorAll(".scen button[data-scen]").forEach(b => b.addEventListener("click", () => recit(b.dataset.scen)));
+// ---------------------------------------------------------------------------
+// La découverte : un mode à la fois. Ouverture → Promenade en immersion → on passe la main
+// (le zoom seul, puis le temps) → exploration libre. Faite une fois, elle n'est pas refaite.
+// ---------------------------------------------------------------------------
+const CLE_DECOUVERTE = "lheure-decouverte";
+const decouverteFaite = () => { try { return localStorage.getItem(CLE_DECOUVERTE) === "faite"; } catch (e) { return false; } };
+function marqueDecouverte() { try { localStorage.setItem(CLE_DECOUVERTE, "faite"); } catch (e) {} }
+const indice = document.getElementById("indice");
+function mode(m) {
+  document.body.dataset.mode = m; sale = true;
+  const ph = document.getElementById("phrase");
+  if (m === "libre") rappelPhrase(); else { clearTimeout(minuteurPhrase); ph.classList.remove("estompe"); }
+  majRecits();
+}
+function ouverture() { mode("ouverture"); t = T0; W = 1.7; elZ.value = uFromW(W); elT.value = uFromT(t); zoomVers(1.2, 9000); }
+function mainAuVisiteur() {
+  if (decouverteFaite()) { mode("libre"); return; }
+  indice.textContent = "Glissez pour voyager dans l'espace."; mode("zoom");
+}
+document.getElementById("partir").addEventListener("click", () => lanceScenario("promenade"));
+document.getElementById("passer").addEventListener("click", () => { libre(); mainAuVisiteur(); });
+elZ.addEventListener("input", () => { if (document.body.dataset.mode === "zoom") { indice.textContent = "Glissez pour remonter le temps."; mode("temps"); } });
+elT.addEventListener("input", () => { if (document.body.dataset.mode === "temps") { mode("libre"); marqueDecouverte(); } });
+// le bouton « Récits » : ouvre le panneau ; pendant un récit, sa croix en sort
+function majRecits() {
+  const b = document.getElementById("recits"), dans = scen && document.body.dataset.mode === "recit";
+  const nom = dans ? document.querySelector(`#panneauRecits button[data-scen=${scen.cle}]`).textContent : "";
+  b.textContent = dans ? `✕ ${nom}` : "Récits"; b.setAttribute("aria-label", dans ? `Quitter le récit ${nom}` : "Récits");
+}
+document.getElementById("recits").addEventListener("click", () => {
+  if (scen && document.body.dataset.mode === "recit") { libre(); return; }
+  const pn = document.getElementById("panneauRecits"); pn.hidden = !pn.hidden;
+});
+// étapes d'un récit : à la fin de chacune, on attend « Suite »
+function finEtape() {
+  const E = scen && scen.etapes; if (!E || scen.attente || scen.attenteSuite) return;
+  if (scen.ie < E.length - 1 && E[scen.ie].fin.call(scen)) { scen.pause = true; scen.attenteSuite = true; bouton("lecture"); majEtapes(); }
+}
+function suite() {
+  if (!scen || !scen.attenteSuite) return;
+  scen.ie++; scen.attenteSuite = false; scen.pause = false; bouton("pause"); majEtapes(); sale = true;
+}
+document.getElementById("suite").addEventListener("click", suite);
+let pointsAffiches = "";
+function majEtapes() {
+  const E = scen && !scen.attente ? scen.etapes : null;
+  document.getElementById("suite").hidden = !(E && scen.attenteSuite);
+  const cle = E ? `${E.length}|${scen.ie}|${scen.fin}` : "";
+  if (cle === pointsAffiches) return; pointsAffiches = cle;
+  document.getElementById("points").innerHTML = E ? E.map((_, k) => `<i class="${scen.fin || k < scen.ie ? "fait" : k === scen.ie ? "ici" : ""}"></i>`).join("") : "";
+}
+// légende de l'exploration libre : elle s'efface au bout de 6 s ; un toucher sur la carte la rappelle
+let minuteurPhrase = null;
+function rappelPhrase() {
+  const el = document.getElementById("phrase"); el.classList.remove("estompe"); clearTimeout(minuteurPhrase);
+  minuteurPhrase = setTimeout(() => { if (document.body.dataset.mode === "libre") el.classList.add("estompe"); }, 6000);
+}
 function cadrer() {
   // champ qui contient la lumière tout au long de son trajet
   let m = 0;
@@ -1719,7 +1898,7 @@ cv.addEventListener("pointerup", e => {
   if (!tap || Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 8 || performance.now() - tap.t > 400) return;
   const x = e.clientX * DPR, y = e.clientY * DPR;
   const z = zonesInfo.find(z => x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1);
-  if (z) ouvre(...INFOS[z.cle]);
+  if (z) ouvre(...INFOS[z.cle]); else rappelPhrase();
 });
 // légende courte : une phrase, la suite au toucher
 let phraseLongue = false, phraseDerniere = "";
@@ -1741,8 +1920,10 @@ function boucle(now) {
   if (doitAttendre && scen.attendu < 10) {
     sale = true;                                         // on attend les images de ce champ, 10 s au plus
   } else if (scen && !scen.pause && !scen.fin) {
-    scen.el += dts;
-    if (scen.avance(dts)) { scen.fin = true; bouton("rejouer"); if (scen.alaFin) scen.alaFin(); }
+    const dS = dts * vitesseTest;
+    scen.el += dS;
+    if (scen.avance(dS)) { scen.fin = true; bouton("rejouer"); if (scen.alaFin) scen.alaFin(); }
+    else finEtape();
     elT.value = uFromT(t); sale = true;
   } else if (lecture) {
     // à l'échelle de la Voie lactée, le temps ralentit (0,12 Ga/s) pour que la rotation reste lisible
@@ -1781,8 +1962,15 @@ function boucle(now) {
 taille(); tailleZoom(); requestAnimationFrame(boucle);
 // point d'entrée pour les vérifications automatiques
 let sansGrille = false;                                   // contrôles seulement : mesurer le fond sans la grille
-window.HDS = { set grille(v) { sansGrille = !v; sale = true; }, get galaxie() { return matiere.etat; }, set galaxieDirecte(v) { matiere.directe = !!v; sale = true; }, get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
-  aller(v) { t = v; if (scen && scen.cadre) scen.cadre(); sale = true; }, get t() { return t; }, get W() { return W; },
+let vitesseTest = 1;                                      // contrôles seulement : accélère un scénario
+window.HDS = { set grille(v) { sansGrille = !v; sale = true; },
+  demarrerLibre() { marqueDecouverte(); libre(); zoomAnim = null; mode("libre"); }, recit(cle) { recit(cle); }, suite() { suite(); },
+  set vitesse(v) { vitesseTest = v; }, get cercles() { return cerclesVisibles(); }, get ici() { return marqueurIci; }, get galaxie() { return matiere.etat; }, set galaxieDirecte(v) { matiere.directe = !!v; sale = true; }, get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
+  aller(v) {
+    t = v; if (scen && scen.cadre) scen.cadre(); sale = true;
+    const E = scen && scen.etapes;                          // un saut dans le temps saute les étapes déjà passées
+    if (E && !scen.attente) { while (scen.ie < E.length - 1 && E[scen.ie].fin.call(scen)) scen.ie++; if (scen.attenteSuite) { scen.attenteSuite = false; scen.pause = false; } }
+  }, get t() { return t; }, get W() { return W; },
   get etat() { return { scen: scen ? scen.cle : null, fronts: fronts.length, acte: scen ? scen.acte || 0 : 0, attente: !!(scen && scen.attente) }; },
   set el(v) { if (scen) { scen.el = v; sale = true; } }, get el() { return scen ? scen.el : 0; } };
 const elCh = document.getElementById("chargement");
@@ -1791,7 +1979,7 @@ matiere.charge("matiere", suivi("matiere"))
   .then(fini("matiere"), rate("matiere"))
   .then(() => chargeEnvirons())
   .then(() => chargeVoieLactee());
-ouvre("L'Heure de s'enivrer", "txtApropos", null, ["Commençons par une promenade", () => lanceScenario("promenade")], true);
+ouverture();
 document.getElementById("repAuj").style.left = (uFromT(T0) / 1000 * 100) + "%";
 
 })();
