@@ -33,6 +33,13 @@ jobs:
       - name: Build
         working-directory: app
         run: npm run build
+      - name: La carte devient la page d'accueil (l'ancienne application reste sur ancienne.html)
+        working-directory: app/dist
+        run: |
+          mv index.html ancienne.html
+          cp carte/index.html index.html
+          cp -r carte/tuiles carte/donnees .
+          ls -la index.html ancienne.html manifest.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: app/dist
