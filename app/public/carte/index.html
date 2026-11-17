@@ -78,6 +78,10 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 #modale > div { max-width: 520px; max-height: 80%; overflow: auto; background: #0c0e15; border: 1px solid var(--trait); border-radius: 12px; padding: 18px 20px; font-size: 14.5px; line-height: 1.55; }
 #modale h2 { font-family: var(--f-titre); font-weight: 500; font-size: 17px; margin: 0 0 10px; }
 #modaleBoutons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+#intro { position: fixed; left: 14px; right: 62px; top: calc(env(safe-area-inset-top) + 92px); background: rgba(12,14,21,0.92); border: 1px solid var(--trait); border-radius: 12px; padding: 12px 14px; z-index: 4; font-size: 14px; line-height: 1.5; }
+#intro[hidden] { display: none; }
+#intro p { margin: 0 0 10px; }
+#intro button { background: var(--accent); color: #0a0f18; border-color: var(--accent); font-weight: 600; }
 #chargement { position: fixed; top: calc(env(safe-area-inset-top) + 40px); left: 14px; font-size: 11px; color: var(--doux); }
 #phrase { cursor: pointer; }
 #phrase .suite { color: var(--doux); }
@@ -95,13 +99,17 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
   <input id="zoom" type="range" min="0" max="1000" step="1" aria-label="Champ de vue">
   <div id="reperesZoom"></div>
 </div>
+<div id="intro" hidden>
+  <p>380 000 ans après le Big Bang, l'univers, assez refroidi et dilué, devient enfin transparent : la lumière peut voyager librement. À 41 millions d'années-lumière de nous, des photons commencent un voyage de 13,8 milliards d'années.</p>
+  <button id="cestParti">C'est parti</button>
+</div>
 <div id="bas">
   <div id="phrase"></div>
   <div class="scenarios" role="group" aria-label="Scénarios">
     <div class="scen"><button data-scen="observable">Univers observable</button><span>passé : jusqu'où la lumière a déjà pu venir</span></div>
     <div class="scen"><button data-scen="hubble">Sphère de Hubble</button><span>présent : l'espace y fuit à la vitesse de la lumière</span></div>
     <div class="scen"><button data-scen="evenements">Horizon des événements</button><span>futur : les galaxies que notre message atteindra</span></div>
-    <div class="scen"><button data-scen="promenade">Promenade</button><span>de la toile cosmique à la naissance de la Voie lactée</span></div>
+    <div class="scen"><button data-scen="promenade">Promenade</button><span>de la toile cosmique à la Voie lactée naissante</span></div>
   </div>
   <div id="tempsBloc">
     <button id="lecture" class="rond" aria-label="Lecture">▶</button>
@@ -170,7 +178,7 @@ function at(t) { // état cosmologique à l'âge t (Ga)
 }
 const T0 = (() => { let lo = 0, hi = NT - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (A[m] <= 1) lo = m; else hi = m; } return T[lo]; })();
 const ETA0 = at(T0).eta;
-const TMIN = 0.00035, TMAX = 100, TREC = 0.00037;   // TREC : recombinaison, 370 000 ans
+const TMIN = 0.00035, TMAX = 100, TREC = 0.00038;   // TREC : recombinaison, 380 000 ans
 // curseur de temps réparti : les 500 premiers millions d'années en échelle logarithmique (15 %),
 // puis l'histoire jusqu'à aujourd'hui en temps linéaire (70 %), puis le futur (15 %)
 const U1 = 150, U2 = 850, TA = 0.5;
@@ -1242,7 +1250,7 @@ function bouton(mode) { // lecture | pause | rejouer
 }
 function joue(on) { lecture = on; bouton(on ? "pause" : "lecture"); }
 elL.addEventListener("click", () => {
-  if (scen) { if (scen.fin) { lanceScenario(scen.cle); return; } scen.pause = !scen.pause; bouton(scen.pause ? "lecture" : "pause"); return; }
+  if (scen) { if (scen.fin) { lanceScenario(scen.cle); return; } if (scen.attente) { depart(); return; } scen.pause = !scen.pause; bouton(scen.pause ? "lecture" : "pause"); return; }
   if (t >= TMAX * 0.999) t = TMIN; joue(!lecture);
 });
 // « aujourd'hui » : revenir au présent, en exploration libre, au même champ
@@ -1254,10 +1262,11 @@ const SCEN = {
   // passé : champ fixe, le temps court du Big Bang à aujourd'hui
   observable: {
     W: 52, cercles: [], cerclesFin: ["p"],
-    init() { t = TREC; fronts = [{ sens: "in", te: TREC, etiquette: "la matière qui a émis cette lumière" }]; this.cadre(); },
+    init() { t = TREC; fronts = [{ sens: "in", te: TREC, etiquette: "la matière qui a émis cette lumière" }]; this.cadre(); this.pause = true; this.attente = true; },
     cadre() { const mk = marqueurs(fronts[0], t); const Wc = Math.min(WMAX, Math.max(WMIN, mk.r * 1.3)); if (zoomAnim) zoomAnim.W1 = Wc; else { W = Wc; elZ.value = uFromW(W); } },
     avance(dts) { if (this.el < 2.5) return false; t = Math.min(T0, t * Math.exp(0.7 * dts)); this.cadre(); return t >= T0; },
     legende() {
+      if (this.attente) return "Appuyez sur « C'est parti » pour lancer la course des photons.";
       if (this.fin) return "Aujourd'hui, cette lumière nous atteint : c'est le fond diffus cosmologique. Sa source est maintenant à 45 milliards d'années-lumière. Ce cercle, à 46, est l'univers observable : au-delà, aucune lumière n'a encore eu le temps de nous parvenir. Au moment où cette lumière est partie, toute cette région ne mesurait que 42 millions d'années-lumière de rayon.";
       if (t < 0.002) return "380 000 ans après le Big Bang, l'univers devient transparent. De la matière à 41 millions d'années-lumière de nous, une lumière part vers nous. Toute la région qui forme aujourd'hui notre univers observable tient alors dans 42 millions d'années-lumière de rayon (une dizaine d'années-lumière à 1 seconde, quelques mètres à la fin de l'inflation).";
       if (t < 3.6) return "L'expansion l'emporte : cette lumière s'éloigne de nous, et sa source bien plus vite encore.";
@@ -1387,17 +1396,24 @@ function dessineCibles(cx, cy, ppg, s) {
   ctx.font = `${11 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,217,138,0.95)";
   ctx.fillText(`galaxies atteintes par notre message : ${n} / ${cibles.length}`, 16 * DPR, 92 * DPR);
 }
+// le départ des photons (scénario « univers observable »), après l'explication
+function depart() {
+  if (!scen || !scen.attente) return;
+  scen.attente = false; scen.pause = false; scen.el = 0; document.getElementById("intro").hidden = true; bouton("pause"); sale = true;
+}
+document.getElementById("cestParti").addEventListener("click", depart);
 function lanceScenario(cle) {
   joue(false);
   scen = Object.assign(Object.create(SCEN[cle]), { cle, el: 0, fin: false, pause: false });
   const W0z = W; W = scen.W; scen.init(); const Wc = W; W = W0z; zoomVers(Wc, 900); elT.value = uFromT(t);
+  document.getElementById("intro").hidden = !scen.attente;
   document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.toggle("actif", x.dataset.scen === cle));
-  bouton("pause"); sale = true;
+  bouton(scen.attente ? "lecture" : "pause"); sale = true;
 }
 // sortir d'un scénario : on garde l'instant et le champ, on retire tout ce que le scénario
 // avait ajouté (lumière, galaxies-témoins, courant), et l'on revient aux trois sphères
 function libre() {
-  joue(false); fronts = []; zoomAnim = null;
+  joue(false); fronts = []; zoomAnim = null; document.getElementById("intro").hidden = true;
   if (!scen) { sale = true; return; }
   scen = null; document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.remove("actif"));
   cibles.forEach(g => g.allume = -1); COURANT.forEach(g => g.tn = -1);
