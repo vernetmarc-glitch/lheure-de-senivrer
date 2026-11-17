@@ -112,7 +112,16 @@ async def main(url):
         await pg.click("[data-scen=hubble]"); await pg.wait_for_timeout(12000)
         th = await pg.evaluate("HDS.t")
         note("Hubble : temps figé", abs(th - 13.787) < 0.05, f"t = {th:.2f} Ga après 12 s", "« une photographie à l'instant t »")
-        await pg.click("[data-scen=hubble]"); await pg.evaluate("document.querySelector('[data-scen=hubble]').click()")
+        # 9 quinquies. un second appui arrête le scénario, retire ses ajouts, garde l'instant
+        await pg.click("[data-scen=evenements]"); await pg.wait_for_timeout(9000)
+        avant = await pg.evaluate("HDS.t"); await pg.click("[data-scen=evenements]"); await pg.wait_for_timeout(600)
+        e = await pg.evaluate("HDS.etat"); apres = await pg.evaluate("HDS.t")
+        note("second appui : retour à l'exploration", e["scen"] is None and e["fronts"] == 0 and abs(apres - avant) < 0.5,
+             f"scénario {e['scen']}, {e['fronts']} lumière(s), t {avant:.1f} → {apres:.1f} Ga", "« je ne sais pas revenir à la vue par défaut »")
+        # 9 sexies. « aujourd'hui » ramène au présent
+        await vue(0.15, 5.0, 300); await pg.click("#repAuj"); await pg.wait_for_timeout(400)
+        ta = await pg.evaluate("HDS.t")
+        note("bouton « aujourd'hui »", abs(ta - 13.787) < 0.05, f"t = {ta:.2f} Ga", "« appuyer sur aujourd'hui pour explorer »")
         # 10. pas de gel quand la Voie lactée se charge (on recharge la page, on zoome tout de suite)
         await pg.goto(url); await pg.wait_for_timeout(5000)
         await pg.evaluate("document.getElementById('fermer').click()")
