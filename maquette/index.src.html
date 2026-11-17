@@ -427,13 +427,13 @@ const matiere = (() => {
     gl.disable(gl.BLEND);
   }
   // ton logarithmique à bornes fixes + palette feu, vers une zone de l'écran
-  function ton(t, vx, vy, vw, vh, a, m, wk, alpha, rond, ajout) {
+  function ton(t, vx, vy, vw, vh, a, m, wk, alpha, rond, ajout, contr) {
     gl.bindTexture(gl.TEXTURE_2D, t); gl.generateMipmap(gl.TEXTURE_2D);
     gl.uniform1f(UT("fond"), 1);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(vx, vy, vw, vh);
     gl.useProgram(pTon); gl.bindVertexArray(null);
     gl.uniform1i(UT("acc"), 0); gl.uniform1f(UT("m"), m); gl.uniform1f(UT("wk"), wk); gl.uniform1f(UT("rond"), rond ? 1 : 0);
-    gl.uniform1f(UT("contraste"), a < AS[0] ? Math.max(0, a / AS[0]) : 1);
+    gl.uniform1f(UT("contraste"), (a < AS[0] ? Math.max(0, a / AS[0]) : 1) * (contr ?? 1));
     gl.uniform1f(UT("gain"), 1.0 * alpha * (a < AS[0] ? Math.max(0.15, a / AS[0]) : 1));
     gl.uniform1f(UT("fond"), ajout ? 0 : 1);
     if (ajout) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); }
@@ -475,7 +475,7 @@ const matiere = (() => {
     gl.useProgram(pPts); gl.bindVertexArray(vao); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     gl.uniform1f(U("ech"), boxPx); gl.uniform2f(U("centre"), cx, cy); gl.uniform2f(U("res"), tw, th);
     // comme pour la toile : zoomé au-delà de l'échantillonnage, les points restent des points
-    const smaxPx = DPR * Math.max(1.1, 14 * Math.min(1, 6 * tw / boxPx));
+    const smaxPx = DPR * Math.max(0.9, 14 * Math.min(1, 1.2 * tw / boxPx));
     gl.uniform1f(U("smin"), 0.7 * DPR); gl.uniform1f(U("smax"), smaxPx); gl.uniform2f(U("dec"), 0, 0); gl.uniform1f(U("f"), 0);
     for (const [k, w] of [[i, j === i ? 1 : 1 - f], [j, j === i ? 0 : f]]) {
       if (w < 0.002) continue;
@@ -491,7 +491,7 @@ const matiere = (() => {
     gl.disable(gl.BLEND);
     // densité de référence : celle des points d'aujourd'hui (masse par point constante)
     const mEff = Math.max(HL.nRef / (boxPx * boxPx), 0.1 / (6.2832 * smaxPx * smaxPx));
-    ton(tex, 0, 0, tw, th, Math.max(a, AS[0]), mEff, 1, alpha * debut, false, true);
+    ton(tex, 0, 0, tw, th, Math.max(a, AS[0]), mEff, 1, alpha * debut, false, true, 0.8);
   };
   M.dessine = (a, cx, cy, boitePx, alpha) => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, tw, th);
@@ -781,17 +781,20 @@ function dessine() {
   // la matière en points (WebGL) quand la boîte simulée couvre l'écran ; au-delà, la tuile
   const boitePx = s.a * TUILE_GAL * ppg;
   const aPts = matiere.prete ? lisse(0.6 * Wpx, 1.0 * Wpx, boitePx) : 0;
-  const aGal = 1 - lisse(0.0006, 0.003, W), KPC = 3.26156e-6, ppk = ppg * KPC;
+  // les simulations s'arrêtent aujourd'hui : on ne grossit pas des structures figées vers un
+  // futur où elles auront changé ; la matière s'efface entre 16 et 22 milliards d'années
+  const futur = 1 - lisse(16, 22, t);
+  const aGal = (1 - lisse(0.0006, 0.003, W)) * futur, KPC = 3.26156e-6, ppk = ppg * KPC;
   if (aGal > 0) chargeVoieLactee();
   // relais d'échelles : toile simulée (≥ 20 Mal) → galaxies TNG50 (1–60 Mal) → Voie lactée détaillée
   const boiteTNG = s.a * 0.16904;                                   // la boîte TNG50 en Gal propres
   const aCat = lisse(0.0005, 0.0016, W) * (1 - lisse(0.32, 0.48, W / boiteTNG));
   const aPM = 1 - (1 - lisse(0.004, 0.025, W)) * Math.min(1, aCat * 1.2);
   if (aCat > 0 && !catDemande) { catDemande = true; matiere.chargeCatalogue("galaxies").then(() => { sale = true; }).catch(console.error); }
-  matiere.dessine(s.a, cx, cy, boitePx, aPts * (1 - aGal) * aPM);
+  matiere.dessine(s.a, cx, cy, boitePx, aPts * (1 - aGal) * aPM * futur);
   if (aCat > 0 && !halosDemandes) { halosDemandes = true; matiere.chargeHalos("halos").then(() => { sale = true; }).catch(console.error); }
-  matiere.dessineHalos(s.a, cx, cy, boiteTNG * ppg, aCat * (1 - 0.85 * aGal));
-  matiere.dessineCatalogue(s.a, cx, cy, ppg, aCat, aGal);
+  matiere.dessineHalos(s.a, cx, cy, boiteTNG * ppg, aCat * (1 - 0.85 * aGal) * futur);
+  matiere.dessineCatalogue(s.a, cx, cy, ppg, aCat * futur, aGal);
   const gx = cx, gy = cy - 8.2 * ppk;   // le Soleil est à 8,2 kpc du centre
   if (aGal > 0) matiere.dessineGalaxie(t, gx, gy, ppk, aGal);
   const loupe = scen && scen.loupe && fronts[0] ? scen.loupe : null;
@@ -799,8 +802,8 @@ function dessine() {
   // fond : la matière, à échelle propre fixe (elle se resserre en remontant le temps).
   // Trois relais : les points (petite boîte), la tuile de la petite boîte, puis celle de la grande
   // quand la petite deviendrait un carrelage trop serré.
-  if (pretes > 0 && aPts < 0.999) {
-    const dim = s.a < AT[0] ? Math.max(0.15, s.a / AT[0]) : 1;
+  if (pretes > 0 && aPts < 0.999 && futur > 0.002) {
+    const dim = (s.a < AT[0] ? Math.max(0.15, s.a / AT[0]) : 1) * futur;
     const aG = 1 - lisse(0.10 * Wpx, 0.30 * Wpx, boitePx);
     const tuiles = (jeuT, Lgal, poids) => {
       if (poids < 0.002) return;
@@ -867,6 +870,11 @@ function dessine() {
   }
 
   if (aGal > 0.25) dessineLegendeGalaxie(gx, gy, ppk, aGal);
+  if (futur < 0.98 && !(scen && scen.cle === "evenements")) {
+    ctx.globalAlpha = Math.min(1, (1 - futur) * 2); ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "left"; ctx.fillStyle = "rgba(225,232,245,0.7)";
+    ctx.fillText("futur lointain : la matière n'est plus représentée (non simulée)", 16 * DPR, Hpx - document.getElementById("bas").offsetHeight * DPR - 14 * DPR);
+    ctx.globalAlpha = 1;
+  }
   // nous (et la pulsation quand une lumière arrive)
   const dp = (performance.now() - pulsation) / 1600;
   if (dp >= 0 && dp < 1) {
@@ -882,7 +890,7 @@ function dessine() {
   ctx.fillText("nous", cx, cy + 15 * DPR);
 
   // flèches de vitesse (scénario de la sphère de Hubble)
-  if (scen && scen.tapis) dessineTapis(cx, cy, ppg, s);
+  if (scen && scen.tapis) { dessineTapis(cx, cy, ppg, s); if (scen.cle === "hubble") dessineVitesses(cx, cy, ppg, s); }
   if (scen && scen.cle === "evenements" && scen.acte === 1) dessineCibles(cx, cy, ppg, s);
 
   // galaxies associées, puis la lumière
@@ -1087,6 +1095,47 @@ function fmtLong(g) {
 // vitesse proportionnelle à leur distance ; orange au-delà de la sphère de Hubble.
 // Mouvement figuratif (le temps est figé pendant cette phase).
 const TAPIS = Array.from({ length: 220 }, (_, k) => ({ th: PH.th[k], d: 1 + 25 * ((PH.jr[k] + 0.5) % 1) }));
+// photographie des vitesses : recul de l'espace (graduations sur un rayon) et vitesse
+// nette vers nous de la lumière en trois endroits (flèche : vers nous, surplace, recule)
+function dessineVitesses(cx, cy, ppg, s) {
+  const rh = DH / E(s.a), el = scen.el, ang = 0.62;
+  if (el >= 4) {
+    const al = Math.min(1, (el - 4) / 1.2);
+    ctx.globalAlpha = al; ctx.strokeStyle = "rgba(225,232,245,0.55)"; ctx.lineWidth = DPR;
+    const R1 = 1.6 * rh * ppg; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R1 * Math.cos(ang), cy + R1 * Math.sin(ang)); ctx.stroke();
+    ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "left";
+    for (const [v, txt] of [[0.5, "0,5 c"], [1, "c"], [1.5, "1,5 c"]]) {
+      const R = v * rh * ppg, x = cx + R * Math.cos(ang), y = cy + R * Math.sin(ang);
+      if (y > Hpx * 0.62) continue;
+      ctx.fillStyle = v > 1 ? "rgba(255,165,90,0.95)" : "rgba(215,222,236,0.95)";
+      cercle(x, y, 2.4 * DPR); ctx.fill(); ctx.fillText(`recul ${txt}`, x + 8 * DPR, y - 4 * DPR);
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (el >= 9) {
+    const al = Math.min(1, (el - 9) / 1.2);
+    // trois photons, vitesse nette vers nous = c − H·D (en unités de c)
+    for (const [d, th] of [[0.62, -2.2], [1, -1.15], [1.24, 2.5]]) {
+      const net = 1 - d, R = d * rh * ppg, x = cx + R * Math.cos(th), y = cy + R * Math.sin(th);
+      const ux = -Math.cos(th), uy = -Math.sin(th), Lf = 70 * DPR * net;   // flèche vers nous si net > 0
+      ctx.globalAlpha = al;
+      const coul = net > 0.02 ? "#9fe0ff" : net < -0.02 ? "#ffb070" : "#ffffff";
+      ctx.strokeStyle = coul; ctx.fillStyle = coul; ctx.lineWidth = 2 * DPR;
+      if (Math.abs(net) > 0.02) {
+        const x2 = x + ux * Lf, y2 = y + uy * Lf, sg = Math.sign(net);
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x2, y2); ctx.stroke();
+        const ax = ux * sg, ay = uy * sg;
+        ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 8 * DPR * ax - 5 * DPR * ay, y2 - 8 * DPR * ay + 5 * DPR * ax); ctx.lineTo(x2 - 8 * DPR * ax + 5 * DPR * ay, y2 - 8 * DPR * ay - 5 * DPR * ax); ctx.closePath(); ctx.fill();
+      } else { ctx.beginPath(); ctx.arc(x, y, 9 * DPR, 0, 2 * Math.PI); ctx.stroke(); }
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 9 * DPR); g.addColorStop(0, "rgba(255,255,255,0.95)"); g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g; cercle(x, y, 9 * DPR); ctx.fill();
+      ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "center"; ctx.fillStyle = coul;
+      const txt = net > 0.02 ? `vers nous à ${net.toFixed(2).replace(".", ",")} c` : net < -0.02 ? `recule à ${(-net).toFixed(2).replace(".", ",")} c` : "surplace";
+      ctx.fillText(txt, Math.min(Math.max(x, 70 * DPR), Wpx - 90 * DPR), y + (y < cy ? -16 : 24) * DPR);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
 function dessineTapis(cx, cy, ppg, s) {
   const rh = DH / E(s.a), al = scen.el < 6 ? 1 : 0.35;
   for (const g of TAPIS) {
@@ -1100,7 +1149,7 @@ function dessineTapis(cx, cy, ppg, s) {
   ctx.fillStyle = `rgba(255,165,90,${0.95 * al})`;
   ctx.fillText("orange : plus vite que la lumière", 16 * DPR, 108 * DPR);
 }
-function fmt(g) { return g >= 10 ? `${g.toFixed(0)} Gal` : g >= 1 ? `${g.toFixed(1).replace(".", ",")} Gal` : g >= 0.001 ? `${(g * 1000).toFixed(0)} Mal` : `${(g * 1e6).toFixed(0)} 000 al`; }
+function fmt(g) { return g >= 20 ? `${g.toFixed(0)} Gal` : g >= 10 ? `${g.toFixed(1).replace(".", ",")} Gal` : g >= 1 ? `${g.toFixed(1).replace(".", ",")} Gal` : g >= 0.001 ? `${(g * 1000).toFixed(0)} Mal` : `${(g * 1e6).toFixed(0)} 000 al`; }
 function fmtT(tt) { if (tt < 0.01) return `${(Math.round(tt * 1e6) * 1000).toLocaleString("fr-FR")} ans`; return tt < 1 ? `${(tt * 1000).toFixed(0)} millions d'années` : `${tt.toFixed(tt < 10 ? 2 : 1).replace(".", ",")} milliards d'années`; }
 function montrePhrase(txt) {
   const el = document.getElementById("phrase");
@@ -1188,22 +1237,18 @@ const SCEN = {
     },
   },
   // présent : temps figé (le tapis roulant), puis le temps court vers le futur
+  // présent, et seulement le présent : la sphère de Hubble est une photographie des
+  // vitesses à un instant. Le temps reste figé ; on lit les vitesses de recul, puis la
+  // vitesse nette, vers nous, de la lumière en trois endroits.
   hubble: {
-    W: 24, cercles: ["h"], tapis: true,
-    init() {
-      t = T0;
-      fronts = [{ sens: "in", te: T0, chi0: 14.507, secteur: [-2.44, -0.70], etiquette: "partis de la sphère de Hubble" },
-                { sens: "in", te: T0, chi0: 9, secteur: [-0.17, 1.40], etiquette: "partis de 9 Gal" },
-                { sens: "in", te: T0, chi0: 17.5, secteur: [1.74, 3.31], etiquette: "partis de 17,5 Gal" }];
-    },
-    avance(dts) { if (this.el < 7) return false; t = Math.min(49.4, t * Math.exp(0.09 * dts)); return t >= 49.4; },
+    W: 25, cercles: ["h"], tapis: true, pause: false,
+    init() { t = T0; fronts = []; },
+    avance(dts) { return this.el > 17; },
     legende() {
-      if (this.fin) return "Partis de la sphère de Hubble, ils arrivent au bout de 35 milliards d'années. La sphère de Hubble marque le surplace d'aujourd'hui, pas une frontière définitive. La limite sans retour est plus loin, à 16,7 milliards d'années-lumière : l'horizon des événements, troisième scénario.";
-      if (this.el < 3.5) return "L'espace entre les galaxies s'étire : chaque point s'éloigne de nous d'autant plus vite qu'il est loin, comme un tapis roulant qui accélère avec la distance.";
-      if (this.el < 7) return "Sur la sphère de Hubble, à 14,5 milliards d'années-lumière, ce tapis nous fuit exactement à la vitesse de la lumière. Au-delà, plus vite qu'elle.";
-      if (t < 20) return "Trois éclairs partent vers nous. Ceux partis de la sphère avancent vers nous aussi vite que le tapis les emporte : ils font du surplace.";
-      if (t < 30) return "Mais l'expansion ralentit : la sphère de Hubble grandit et dépasse ces photons, qui commencent à se rapprocher. Ceux partis de 9 milliards d'années-lumière sont arrivés.";
-      return "Ceux partis de 17,5 milliards d'années-lumière, au-delà de l'horizon des événements, reculent toujours : ils ne nous atteindront jamais.";
+      if (this.fin) return "La sphère de Hubble est une photographie : elle dit à quelle vitesse l'espace nous fuit aujourd'hui, pas ce que la lumière deviendra. Comme le taux d'expansion diminue, cette sphère grandit : la lumière qui y fait du surplace aujourd'hui se retrouve peu à peu en deçà, et finit par nous atteindre, dans 35 milliards d'années. La frontière sans retour, c'est l'horizon des événements.";
+      if (this.el < 4) return "L'espace entre les galaxies s'étire : chaque point s'éloigne de nous d'autant plus vite qu'il est loin, comme un tapis roulant qui accélère avec la distance.";
+      if (this.el < 9) return "Les vitesses de recul aujourd'hui : la moitié de la lumière à 7 milliards d'années-lumière, exactement la vitesse de la lumière à 14,5 : c'est la sphère de Hubble. Au-delà, plus vite qu'elle.";
+      return "La lumière avance toujours à sa vitesse, mais sur ce tapis. En deçà de la sphère, elle gagne du terrain vers nous ; sur la sphère, elle fait du surplace ; au-delà, elle recule.";
     },
   },
   // futur : émission figée à aujourd'hui, le temps court vers le futur, champ fixe

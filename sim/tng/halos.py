@@ -22,7 +22,7 @@ from scipy.spatial import cKDTree
 
 BASE, SIM, H, L = "https://www.tng-project.org/api", "TNG50-1", 0.6774, 35000.0
 Z = {99: 0.0, 91: 0.1, 84: 0.2, 78: 0.3, 72: 0.4, 67: 0.5, 59: 0.7, 50: 1.0, 40: 1.5, 33: 2.0, 25: 3.0, 21: 4.0, 17: 5.0, 13: 6.0}
-MP = 1e10          # masse représentée par un point (Msun)
+MP = 2e9           # masse représentée par un point (Msun)
 MMIN = 10 ** 9.5   # halos plus légers ignorés
 DEMI_TRANCHE = 10000.0
 
