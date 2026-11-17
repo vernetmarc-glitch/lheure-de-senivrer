@@ -15,7 +15,7 @@ RES = []
 
 
 def note(nom, ok, mesure, retour):
-    RES.append(ok)
+    ok = bool(ok); RES.append(ok)
     print(f"{'OK ' if ok else 'ÉCHEC'}  {nom:<38} {mesure:<34} ← {retour}")
 
 
@@ -25,7 +25,7 @@ async def main(url):
         pg = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=1)
         err = []; pg.on("pageerror", lambda e: err.append(str(e)))
         await pg.goto(url); await pg.wait_for_timeout(5000)
-        await pg.evaluate("document.getElementById('modale').classList.remove('ouverte')")
+        await pg.evaluate("HDS.demarrerLibre()")
 
         async def vue(W, t, att=900):
             await pg.evaluate(f"(()=>{{const z=document.getElementById('zoom');z.value={u(W)};z.dispatchEvent(new Event('input'));HDS.aller({t})}})()")
@@ -64,7 +64,7 @@ async def main(url):
         # 3 ter. pas de dallage au grand champ (univers observable), sur un écran de téléphone (densité 3)
         pg3 = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=3)
         await pg3.goto(url); await pg3.wait_for_timeout(5000)
-        await pg3.evaluate("document.getElementById('modale').classList.remove('ouverte'); HDS.grille = false")   # le fond seul
+        await pg3.evaluate("HDS.demarrerLibre(); HDS.grille = false")   # le fond seul
         rs = []
         for Wd in (46, 90):
             await pg3.evaluate(f"(()=>{{const z=document.getElementById('zoom');z.value={u(Wd)};z.dispatchEvent(new Event('input'));HDS.aller(13.787)}})()")
@@ -139,7 +139,7 @@ async def main(url):
         colore = ((im.max(-1) - im.min(-1)) > 40) & (im.mean(-1) > 30)      # la matière est colorée, les textes sont gris
         note("pas de matière dans le futur lointain", colore.mean() < 0.001, f"{colore.mean():.2%} colorés", "« toile à 100 milliards d'années, peu crédible »")
         # 9 quater. scénario Hubble : une photographie, le temps ne bouge pas
-        await pg.click("[data-scen=hubble]"); await pg.wait_for_timeout(2500)
+        await pg.evaluate("HDS.recit(\'hubble\')"); await pg.wait_for_timeout(2500)
         vis_h = await pg.evaluate("!document.getElementById('intro').hidden")
         txt_h = await pg.evaluate("document.getElementById('intro').textContent")
         el_h = await pg.evaluate("HDS.el")
@@ -152,8 +152,8 @@ async def main(url):
         # 9 quinquies. un second appui arrête le scénario, retire ses ajouts, garde l'instant
         # (scénario du passé : l'instant est gardé ; sortir de l'horizon dans le futur ramène à
         #  aujourd'hui depuis la décision du 17/11, la frise libre s'arrêtant à aujourd'hui)
-        await pg.click("[data-scen=observable]"); await pg.wait_for_timeout(1500); await pg.click("#cestParti"); await pg.wait_for_timeout(9000)
-        avant = await pg.evaluate("HDS.t"); await pg.click("[data-scen=observable]"); await pg.wait_for_timeout(600)
+        await pg.evaluate("HDS.recit(\'observable\')"); await pg.wait_for_timeout(1500); await pg.click("#cestParti"); await pg.wait_for_timeout(9000)
+        avant = await pg.evaluate("HDS.t"); await pg.evaluate("HDS.recit(\'observable\')"); await pg.wait_for_timeout(600)
         e = await pg.evaluate("HDS.etat"); apres = await pg.evaluate("HDS.t")
         note("second appui : retour à l'exploration", e["scen"] is None and e["fronts"] == 0 and abs(apres - avant) < 0.5,
              f"scénario {e['scen']}, {e['fronts']} lumière(s), t {avant:.1f} → {apres:.1f} Ga", "« je ne sais pas revenir à la vue par défaut »")
@@ -162,7 +162,7 @@ async def main(url):
         ta = await pg.evaluate("HDS.t")
         note("bouton « aujourd'hui »", abs(ta - 13.787) < 0.05, f"t = {ta:.2f} Ga", "« appuyer sur aujourd'hui pour explorer »")
         # 9 septies. Promenade : plongée jusqu'à la galaxie plein écran, retour à ~1 Ga, curseurs qui pulsent
-        await vue(0.15, 13.787, 300); await pg.click("[data-scen=promenade]"); await pg.wait_for_timeout(1200)
+        await vue(0.15, 13.787, 300); await pg.evaluate("HDS.recit(\'promenade\')"); await pg.wait_for_timeout(1200)
         await pg.wait_for_timeout(1500); W0 = await pg.evaluate("HDS.W")
         await pg.evaluate("HDS.el = 7"); await pg.wait_for_timeout(900)
         z_pulse = await pg.evaluate("document.getElementById('zoom').classList.contains('bouge')")
@@ -194,25 +194,32 @@ async def main(url):
         note("curseurs qui bougent : pulsation", z_pulse and t_pulse, f"zoom {z_pulse}, temps {t_pulse}", "« repérer ceux qui bougent »")
         # fin de la Promenade : retour fluide à aujourd'hui, au champ Millennium, scénario désactivé
         suite = []
+        await pg.evaluate("HDS.vitesse = 3")                  # le grand recul est long : scénario accéléré pour le contrôle
         for _ in range(200):                                   # jusqu'à la fin réelle du scénario (60 s au plus)
-            await pg.wait_for_timeout(300); suite.append(await pg.evaluate("[HDS.t, HDS.W, HDS.etat.scen]"))
+            await pg.wait_for_timeout(300); suite.append(await pg.evaluate("[HDS.t, HDS.W, HDS.etat.scen, HDS.el]"))
             if suite[-1][2] is None: break
+        await pg.evaluate("HDS.vitesse = 1")
         actif = await pg.evaluate("!!document.querySelector('.scen button.actif')")
         ts = [x[0] for x in suite if x[2] == "promenade"]; Wf = suite[-1][1]
-        saut = max(abs(b_ - a_) for a_, b_ in zip(ts, ts[1:])) if len(ts) > 1 else 99
-        note("Promenade : retour fluide au présent", suite[-1][2] is None and not actif and abs(suite[-1][0] - 13.787) < 0.02 and 0.15 <= Wf <= 0.3 and saut < 1.6,
-             f"fin t = {suite[-1][0]:.2f} Ga, champ {Wf:.2f} Gal, plus grand pas {saut:.2f} Ga/0,3 s, scénario {suite[-1][2]}, bouton actif {actif}",
-             "« revenir de manière fluide au temps présent, zoom superamas, désactiver Promenade »")
+        # pas mesuré par seconde de scénario (le contrôle l'accélère) : Ga par seconde de récit
+        ps = [x for x in suite if x[2] == "promenade"]
+        saut = max(abs(q[0] - p_[0]) / max(q[3] - p_[3], 1e-3) for p_, q in zip(ps, ps[1:])) if len(ps) > 1 else 99
+        note("Promenade : retour fluide au présent, grand recul", suite[-1][2] is None and not actif and abs(suite[-1][0] - 13.787) < 0.02 and 40 <= Wf <= 60 and saut < 4,
+             f"fin t = {suite[-1][0]:.2f} Ga, champ {Wf:.1f} Gal, plus grand pas {saut:.2f} Ga par seconde de récit, scénario {suite[-1][2]}, bouton actif {actif}",
+             "« revenir de manière fluide au présent, désactiver Promenade » ; 17/11 15 h 54 : fin sur le grand recul (D1), remplace la fin aux superamas")
         # 9 octies. Univers observable : d'abord l'explication, le départ au bouton « C'est parti »
-        await pg.click("[data-scen=observable]"); await pg.wait_for_timeout(3000)
+        await pg.evaluate("HDS.recit(\'observable\')"); await pg.wait_for_timeout(3000)
         ta = await pg.evaluate("HDS.t"); vis = await pg.evaluate("!document.getElementById('intro').hidden")
         await pg.click("#cestParti"); await pg.wait_for_timeout(6000); tb = await pg.evaluate("HDS.t")
         note("Observable : explication puis départ", vis and ta < 0.0004 and tb > ta * 1.5, f"attente à {ta * 1e6:.0f}000 ans, puis {tb:.3f} Ga", "« un message, puis un bouton c'est parti »")
-        await pg.evaluate("HDS.aller(13.7)"); await pg.wait_for_timeout(9000)
+        await pg.evaluate("HDS.aller(13.7)")
+        for _ in range(8):                                   # les étapes attendent « Suite »
+            await pg.wait_for_timeout(1200); await pg.evaluate("HDS.suite()")
+        await pg.wait_for_timeout(3000)
         fin_vis = await pg.evaluate("!document.getElementById('finObs').hidden")
         intro_txt = await pg.evaluate("document.getElementById('intro').textContent")
         note("Observable : tapis roulant annoncé, 46 Gal à la fin", fin_vis and "tapis roulant" in intro_txt, f"fourmis {'tapis roulant' in intro_txt}, fenêtre de fin {fin_vis}", "« fourmis sur un tapis roulant » ; « 46 milliards à la fin »")
-        await pg.click("[data-scen=observable]"); await pg.wait_for_timeout(300)
+        await pg.evaluate("HDS.recit(\'observable\')"); await pg.wait_for_timeout(300)
         # 9 nonies. Voie lactée : basse résolution pendant le mouvement (budget de remplissage),
         #    pleine résolution reconstruite en arrière-plan à l'arrêt, identique au rendu direct
         await vue(0.0003, 13.787, 300)
@@ -235,14 +242,14 @@ async def main(url):
              f"pleine {fin['pleine']}, écart au rendu direct {ecart:.2f}/255", "« la haute résolution s'affiche dès qu'elle est disponible »")
         # 10. pas de gel quand la Voie lactée se charge (on recharge la page, on zoome tout de suite)
         await pg.goto(url); await pg.wait_for_timeout(5000)
-        await pg.evaluate("document.getElementById('modale').classList.remove('ouverte')")
+        await pg.evaluate("HDS.demarrerLibre()")
         gel = await pg.evaluate("""new Promise(res => { let p = performance.now(), mx = 0, t0 = p;
           const z = document.getElementById('zoom'); z.value = 40; z.dispatchEvent(new Event('input'));
           const f = () => { const n = performance.now(); mx = Math.max(mx, n - p); p = n; if (n - t0 < 9000) requestAnimationFrame(f); else res(mx); };
           requestAnimationFrame(f); })""")
         note("pas de gel au chargement de la galaxie", gel < max(600, 1.2 * d0), f"plus longue image {gel:.0f} ms", "« ça rame énormément »")
         # 10 quinquies bis. Horizon : une explication avant l'acte 1, une autre avant l'acte 2
-        await pg.click("[data-scen=evenements]"); await pg.wait_for_timeout(2500)
+        await pg.evaluate("HDS.recit(\'evenements\')"); await pg.wait_for_timeout(2500)
         vis1 = await pg.evaluate("!document.getElementById('intro').hidden")
         txt1 = await pg.evaluate("document.getElementById('intro').textContent"); t1 = await pg.evaluate("HDS.t")
         await pg.evaluate("document.getElementById('cestParti').click()"); await pg.wait_for_timeout(5000); t1b = await pg.evaluate("HDS.t")
@@ -251,17 +258,17 @@ async def main(url):
         txt2 = await pg.evaluate("document.getElementById('intro').textContent"); t2 = await pg.evaluate("HDS.t")
         await pg.wait_for_timeout(2000); t2a = await pg.evaluate("HDS.t")
         await pg.evaluate("document.getElementById('cestParti').click()"); await pg.wait_for_timeout(5000); t2b = await pg.evaluate("HDS.t")
-        ok = (vis1 and "acte 1" in txt1 and abs(t1 - 13.787) < 0.02 and t1b > 14.5
-              and e2.get("acte") == 2 and vis2 and "acte 2" in txt2 and abs(t2a - 13.787) < 0.02 and t2b > 14.5)
+        ok = (vis1 and "acte 1" in txt1.lower() and abs(t1 - 13.787) < 0.02 and t1b > 14.5
+              and e2.get("acte") == 2 and vis2 and "acte 2" in txt2.lower() and abs(t2a - 13.787) < 0.02 and t2b > 14.5)
         note("Horizon : une explication par acte", ok,
              f"acte 1 : fenêtre {vis1}, t {t1:.2f} → {t1b:.1f} Ga ; acte 2 : acte {e2.get('acte')}, fenêtre {vis2}, t {t2a:.2f} → {t2b:.1f} Ga",
              "« une modale pour l'acte 1 et une autre pour l'acte 2 »")
-        await pg.click("[data-scen=evenements]"); await pg.wait_for_timeout(800)
+        await pg.evaluate("HDS.recit(\'evenements\')"); await pg.wait_for_timeout(800)
         # 10 quater. frise du temps : jusqu'à aujourd'hui en libre, futur seulement pendant l'horizon
         libre_max = await pg.evaluate("+document.getElementById('temps').max")
-        await pg.click("[data-scen=evenements]"); await pg.wait_for_timeout(1200)
+        await pg.evaluate("HDS.recit(\'evenements\')"); await pg.wait_for_timeout(1200)
         hor_max = await pg.evaluate("+document.getElementById('temps').max")
-        await pg.click("[data-scen=evenements]"); await pg.wait_for_timeout(800)
+        await pg.evaluate("HDS.recit(\'evenements\')"); await pg.wait_for_timeout(800)
         apres_max = await pg.evaluate("+document.getElementById('temps').max"); ta = await pg.evaluate("HDS.t")
         note("futur seulement pendant l'horizon", libre_max < 900 and hor_max == 1000 and apres_max == libre_max and ta <= 13.79,
              f"max libre {libre_max}, horizon {hor_max}, après {apres_max}, t {ta:.2f}", "« le curseur libre s'arrête à aujourd'hui »")
@@ -273,28 +280,100 @@ async def main(url):
         await pg.wait_for_timeout(6000)
         d = await pg.evaluate("HDS.dispo"); bd = await pg.evaluate("HDS.bandes")
         note("zones prêtes visibles, tout chargé", min(d) >= 1 and bd > 50, f"disponibilité {[round(x, 2) for x in d]}", "« rendre visibles les zones accessibles »")
-        # 10 quinquies. l'accueil propose la Promenade, qui se lance ; son bouton est le premier
-        await pg.goto(url); await pg.wait_for_timeout(2500)
-        lab = await pg.evaluate("document.getElementById('fermer').textContent")
-        premier = await pg.evaluate("document.querySelector('.scen button').dataset.scen")
-        await pg.click("#fermer"); await pg.wait_for_timeout(800)
-        e = await pg.evaluate("HDS.etat")
-        note("accueil → Promenade", "promenade" in lab.lower() and e["scen"] == "promenade" and premier == "promenade", f"« {lab} », scénario {e['scen']}, premier bouton {premier}", "« commençons par une promenade »")
-        # 10 sexies. accueil : le premier paragraphe du texte, « plus… » pour le reste, un seul bouton pleine largeur
-        await pg.goto(url); await pg.wait_for_timeout(1500)
-        g = await pg.evaluate("""(() => { const f = document.getElementById('fermer').getBoundingClientRect(),
-          c = document.querySelector('#modale > div').getBoundingClientRect(),
-          ps = [...document.querySelectorAll('#modaleCorps p')].filter(p => p.offsetParent !== null),
-          lien = document.querySelector('#modaleCorps .lirePlus');
-          return { lf: f.width, lc: c.width, vus: ps.length, lien: !!lien && lien.offsetParent !== null,
-                   boutons: document.querySelectorAll('#modaleBoutons button').length,
-                   premier: ps.length ? ps[0].textContent : '' }; })()""")
-        await pg.evaluate("document.querySelector('#modaleCorps .lirePlus') && document.querySelector('#modaleCorps .lirePlus').click()"); await pg.wait_for_timeout(300)
-        tous = await pg.evaluate("[...document.querySelectorAll('#modaleCorps p')].filter(p => p.offsetParent !== null).length")
-        cle = all(m in g["premier"] for m in ("univers observable", "sphère de Hubble", "horizon des événements", "temps"))
-        note("accueil : premier paragraphe, « plus… », un bouton", g["lf"] > 0.8 * g["lc"] and g["vus"] == 1 and g["lien"] and g["boutons"] == 1 and tous >= 3 and cle,
-             f"{g['vus']} paragraphe visible puis {tous}, lien {g['lien']}, {g['boutons']} bouton(s) de {g['lf']:.0f}/{g['lc']:.0f} px, notions clés {cle}",
-             "« premier paragraphe avec l'information clé, plus… pour agrandir, plus de bouton en savoir plus »")
+        # 12. la découverte (décisions du 17/11, 15 h 54 : tableau « Choix à valider », tout « oui »)
+        #     un visiteur neuf, du noir jusqu'à l'exploration libre
+        pd = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=1)
+        perr = []; pd.on("pageerror", lambda e: perr.append(str(e)))
+        MOTS = """(() => { const exclus = el => el.closest('#zoomBloc, .piste, template, #chargement');
+          const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n, mots = 0;
+          while ((n = w.nextNode())) { const el = n.parentElement; if (!el || !n.textContent.trim() || exclus(el)) continue;
+            const r = el.getBoundingClientRect(); let v = r.width > 0 && r.bottom > 0 && r.top < innerHeight;
+            for (let a = el; a && v; a = a.parentElement) { const st = getComputedStyle(a); if (a.hidden || st.display === 'none' || st.visibility === 'hidden' || +st.opacity < 0.3) v = false; }
+            if (v) mots += n.textContent.trim().split(/\\s+/).length; }
+          const vis = el => { if (!el) return false; if (getComputedStyle(el).pointerEvents === 'none') return false; for (let a = el; a; a = a.parentElement) { const st = getComputedStyle(a); if (a.hidden || st.display === 'none' || st.visibility === 'hidden' || +st.opacity < 0.3) return false; } const r = el.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < innerHeight; };
+          const actifs = [...document.querySelectorAll('button, input')].filter(vis);
+          return { mots, commandes: actifs.map(e => e.id || e.dataset.scen || e.textContent.trim().slice(0, 12)), principales: actifs.filter(e => e.classList.contains('principal')).length }; })()"""
+        async def ecran(): return np.asarray(Image.open(io.BytesIO(await pd.screenshot())).convert("RGB")).astype(float)
+        budget = []
+        await pd.goto(url); await pd.wait_for_timeout(700)
+        noir = (await ecran()).mean(); ligne = await pd.evaluate("(document.getElementById('ouverture') || {}).textContent || ''")
+        await pd.wait_for_timeout(5500)
+        im = await ecran(); toile = (((im.max(-1) - im.min(-1)) > 25) & (im.mean(-1) > 20)).mean()
+        m = await pd.evaluate(MOTS); budget.append(("ouverture", m["mots"]))
+        note("ouverture : le noir, puis la toile (A1)", noir < 12 and "enivrer" in ligne and toile > 0.01 and m["commandes"] == ["partir"] and m["principales"] == 1,
+             f"luminance à 0,7 s {noir:.1f}, toile {toile:.1%} à 6 s, commandes {m['commandes']}, {m['mots']} mots", "« effet waouh dès l'ouverture, un seul bouton »")
+        await pd.click("#partir"); await pd.wait_for_timeout(1500)
+        e0 = await pd.evaluate("HDS.etat")
+        ph = {}
+        for e_ in (1.5, 8, 16.5, 21):
+            await pd.evaluate(f"HDS.el = {e_}"); await pd.wait_for_timeout(1300)
+            mm = await pd.evaluate(MOTS); lg = await pd.evaluate("(() => { const p = document.getElementById('phrase'); return { txt: getComputedStyle(p).opacity > 0.3 ? p.textContent.trim() : '', h: p.getBoundingClientRect().height, lh: parseFloat(getComputedStyle(p).lineHeight) }; })()")
+            ph[e_] = (mm, lg); budget.append((f"promenade {e_} s", mm["mots"]))
+            if e_ == 16.5: ici = await pd.evaluate("HDS.ici")
+        cmd = [ph[k][0]["commandes"] for k in ph]
+        note("Promenade plein écran, légende d'une ligne (B1)", e0["scen"] == "promenade" and all(c == ["passer"] for c in cmd) and all(ph[k][1]["h"] <= 2.2 * ph[k][1]["lh"] for k in ph) and ph[1.5][1]["txt"],
+             f"commandes {cmd[0]} ; hauteurs de légende {[round(ph[k][1]['h'] / ph[k][1]['lh'], 1) for k in ph]} lignes", "« trop de choses à lire »")
+        note("silence pendant la plongée (B2)", ph[8][1]["txt"] == "", f"légende à 8 s : « {ph[8][1]['txt']} »", "« le mot arrive quand l'image se pose »")
+        note("repère « nous sommes ici » sur le Soleil", bool(ici), f"repère dessiné {ici}", "« qu'on comprenne bien ce qu'on voit »")
+        # grand recul (D1) : les trois cercles s'allument l'un après l'autre
+        await pd.evaluate("HDS.vitesse = 3; HDS.el = 22; HDS.aller(1.25)"); ordre = []
+        for _ in range(240):
+            await pd.wait_for_timeout(250); st = await pd.evaluate("[HDS.etat.scen, HDS.cercles.join(''), HDS.W]")
+            if st[1] and (not ordre or ordre[-1] != st[1]): ordre.append(st[1])
+            if st[0] is None: break
+        await pd.evaluate("HDS.vitesse = 1")
+        note("grand recul : les trois frontières une à une (D1)", st[0] is None and ordre[:3] == ["p", "ph", "phe"] and 40 <= st[2] <= 60,
+             f"cercles allumés dans l'ordre {ordre}, champ final {st[2]:.0f} Gal", "« le dernier moment waouh dévoile les trois frontières »")
+        # passer la main (C1) : le zoom seul, puis le temps, puis le reste
+        await pd.wait_for_timeout(800)
+        z1 = await pd.evaluate(MOTS); budget.append(("main : zoom", z1["mots"]))
+        ind1 = await pd.evaluate("(document.getElementById('indice') || {}).textContent || ''")
+        await pd.evaluate("(() => { const z = document.getElementById('zoom'); z.value = +z.value - 120; z.dispatchEvent(new Event('input')); })()"); await pd.wait_for_timeout(800)
+        z2 = await pd.evaluate(MOTS); ind2 = await pd.evaluate("(document.getElementById('indice') || {}).textContent || ''")
+        await pd.evaluate("(() => { const z = document.getElementById('temps'); z.value = +z.value - 80; z.dispatchEvent(new Event('input')); })()"); await pd.wait_for_timeout(800)
+        z3 = await pd.evaluate(MOTS); budget.append(("libre", z3["mots"]))
+        note("passer la main, un geste après l'autre (C1)", z1["commandes"] == ["zoom"] and "Glissez" in ind1 and set(z2["commandes"]) == {"zoom", "temps"} and "temps" in ind2 and "recits" in z3["commandes"],
+             f"{z1['commandes']} → {z2['commandes']} → {z3['commandes']}", "« découverte graduelle »")
+        # l'interface au repos (E1)
+        rep = await pd.evaluate("[...document.querySelectorAll('#reperesZoom span')].filter(s => +getComputedStyle(s).opacity > 0.5).length")
+        await pd.wait_for_timeout(7000); op1 = await pd.evaluate("+getComputedStyle(document.getElementById('phrase')).opacity")
+        await pd.mouse.click(150, 300); await pd.wait_for_timeout(700); op2 = await pd.evaluate("+getComputedStyle(document.getElementById('phrase')).opacity")
+        await pd.click("#recits"); await pd.wait_for_timeout(500)
+        entrees = await pd.evaluate("[...document.querySelectorAll('#panneauRecits button[data-scen]')].filter(b => b.offsetParent).map(b => b.dataset.scen)")
+        await pd.click("#panneauRecits button[data-scen=hubble]"); await pd.wait_for_timeout(1500)
+        e1 = await pd.evaluate("HDS.etat"); panneau = await pd.evaluate("!!document.getElementById('panneauRecits').offsetParent")
+        note("récits derrière un bouton (E1)", entrees == ["promenade", "observable", "hubble", "evenements"] and e1["scen"] == "hubble" and not panneau,
+             f"panneau {entrees}, lancé {e1['scen']}, panneau refermé {not panneau}", "« moins de choses à la fois »")
+        note("un seul repère sur le curseur du zoom (E1)", rep == 1, f"{rep} repère(s) visibles", "« hiérarchie »")
+        note("légende qui s'efface, rappelée au toucher (E1)", op1 < 0.2 and op2 > 0.8, f"opacité après 7 s {op1:.2f}, après un toucher {op2:.2f}", "« moins de texte à la fois »")
+        # récits en étapes (F1)
+        c1 = await pd.evaluate(MOTS); budget.append(("récit : introduction", c1["mots"]))
+        await pd.click("#cestParti"); await pd.wait_for_timeout(1500)
+        r1 = await pd.evaluate(MOTS); budget.append(("récit : étape", r1["mots"]))
+        el_a = None
+        for _ in range(40):
+            await pd.wait_for_timeout(500)
+            if await pd.evaluate("!!document.getElementById('suite') && !!document.getElementById('suite').offsetParent"): break
+        el_a = await pd.evaluate("HDS.el"); await pd.wait_for_timeout(1500); el_b = await pd.evaluate("HDS.el")
+        points = await pd.evaluate("document.querySelectorAll('#points i').length")
+        await pd.click("#suite"); await pd.wait_for_timeout(1500); el_c = await pd.evaluate("HDS.el")
+        note("récits en étapes, toucher pour continuer (F1)", abs(el_b - el_a) < 0.05 and el_c > el_b + 0.5 and points >= 3,
+             f"arrêt à {el_a:.1f} s (puis {el_b:.1f}), reprise {el_c:.1f} s, {points} étapes", "« récits en étapes »")
+        await pd.evaluate("HDS.recit('hubble')"); await pd.wait_for_timeout(500)
+        # le « i » garde le texte complet
+        await pd.click("#apropos"); await pd.wait_for_timeout(500)
+        nps = await pd.evaluate("[...document.querySelectorAll('#modaleCorps p')].filter(p => p.offsetParent).length")
+        note("le « i » garde le texte complet", nps >= 5, f"{nps} paragraphes", "« tout le texte disponible »")
+        await pd.click("#fermer"); await pd.wait_for_timeout(300)
+        # budget de mots, à chaque écran
+        note("25 mots à l'écran au plus", max(n for _, n in budget) <= 25, " ; ".join(f"{k} {n}" for k, n in budget), "« minimiser la quantité de texte à la fois »")
+        # visiteur qui revient : « Passer » mène droit à l'exploration libre
+        await pd.goto(url); await pd.wait_for_selector("#partir", state="visible", timeout=15000); await pd.click("#partir"); await pd.wait_for_timeout(800)
+        await pd.click("#passer"); await pd.wait_for_timeout(800)
+        z4 = await pd.evaluate(MOTS)
+        note("visiteur qui revient : tout de suite libre", "recits" in z4["commandes"] and "temps" in z4["commandes"], f"commandes {z4['commandes']}", "découverte faite une fois")
+        note("découverte sans erreur JavaScript", not perr, f"{len(perr)} erreur(s) {perr[:1]}", "—")
+        await pd.close()
         # 10 septies. réseau capricieux : une tuile qui ne vient pas ne fige pas la Promenade
         pg2 = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=1)
         coups = {"n": 0}
@@ -307,8 +386,8 @@ async def main(url):
             if ratee_une["n"] == 1: await route.abort()
             else: await route.continue_()
         await pg2.route("**/tuiles/petite-a0.5000.jpg*", une_fois)              # échec passager
-        await pg2.goto(url); await pg2.wait_for_timeout(1500)
-        await pg2.click("#fermer"); await pg2.wait_for_timeout(16000)
+        await pg2.goto(url); await pg2.wait_for_selector("#partir", state="visible", timeout=20000)
+        await pg2.click("#partir"); await pg2.wait_for_timeout(16000)
         e_p = await pg2.evaluate("HDS.el"); sc = await pg2.evaluate("HDS.etat"); dsp = await pg2.evaluate("HDS.dispo")
         note("tuile manquante : la Promenade avance", sc["scen"] == "promenade" and e_p > 3 and min(dsp[3:]) >= 1,
              f"{e_p:.1f} s de scénario après 16 s ; {coups['n']} essais sur la tuile coupée, {ratee_une['n']} sur la passagère", "« la promenade ne se lance pas, écran figé à 95 % »")
