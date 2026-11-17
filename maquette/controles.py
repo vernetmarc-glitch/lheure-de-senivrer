@@ -113,8 +113,10 @@ async def main(url):
         th = await pg.evaluate("HDS.t")
         note("Hubble : temps figé", abs(th - 13.787) < 0.05, f"t = {th:.2f} Ga après 12 s", "« une photographie à l'instant t »")
         # 9 quinquies. un second appui arrête le scénario, retire ses ajouts, garde l'instant
-        await pg.click("[data-scen=evenements]"); await pg.wait_for_timeout(9000)
-        avant = await pg.evaluate("HDS.t"); await pg.click("[data-scen=evenements]"); await pg.wait_for_timeout(600)
+        # (scénario du passé : l'instant est gardé ; sortir de l'horizon dans le futur ramène à
+        #  aujourd'hui depuis la décision du 17/11, la frise libre s'arrêtant à aujourd'hui)
+        await pg.click("[data-scen=observable]"); await pg.wait_for_timeout(1500); await pg.click("#cestParti"); await pg.wait_for_timeout(9000)
+        avant = await pg.evaluate("HDS.t"); await pg.click("[data-scen=observable]"); await pg.wait_for_timeout(600)
         e = await pg.evaluate("HDS.etat"); apres = await pg.evaluate("HDS.t")
         note("second appui : retour à l'exploration", e["scen"] is None and e["fronts"] == 0 and abs(apres - avant) < 0.5,
              f"scénario {e['scen']}, {e['fronts']} lumière(s), t {avant:.1f} → {apres:.1f} Ga", "« je ne sais pas revenir à la vue par défaut »")
@@ -124,18 +126,23 @@ async def main(url):
         note("bouton « aujourd'hui »", abs(ta - 13.787) < 0.05, f"t = {ta:.2f} Ga", "« appuyer sur aujourd'hui pour explorer »")
         # 9 septies. Promenade : plongée jusqu'à la galaxie plein écran, retour à ~1 Ga, curseurs qui pulsent
         await vue(0.15, 13.787, 300); await pg.click("[data-scen=promenade]"); await pg.wait_for_timeout(1200)
-        W0 = await pg.evaluate("HDS.W")
+        await pg.wait_for_timeout(1500); W0 = await pg.evaluate("HDS.W")
         await pg.evaluate("HDS.el = 7"); await pg.wait_for_timeout(900)
         z_pulse = await pg.evaluate("document.getElementById('zoom').classList.contains('bouge')")
         await pg.evaluate("HDS.el = 16"); await pg.wait_for_timeout(900); W14 = await pg.evaluate("HDS.W")
         await pg.evaluate("HDS.el = 21"); await pg.wait_for_timeout(1500)
         t_pulse = await pg.evaluate("document.getElementById('temps').classList.contains('bouge')")
-        t1 = await pg.evaluate("HDS.t"); await pg.wait_for_timeout(2500); t2 = await pg.evaluate("HDS.t")
-        v = (t1 - t2) / 2.5                                     # Ga par seconde (ralenti par la machine de test)
+        async def vitesse(t0):
+            await pg.evaluate(f"HDS.aller({t0})"); await pg.wait_for_timeout(400)
+            a, ea = await pg.evaluate("[HDS.t, HDS.el]"); await pg.wait_for_timeout(2500); b, eb = await pg.evaluate("[HDS.t, HDS.el]")
+            return (a - b) / max(eb - ea, 1e-6)                 # Ga par seconde de scénario (indépendant de la machine)
+        v_vite, v_collision = await vitesse(11.0), await vitesse(6.0)
+        Wrecul = await pg.evaluate("HDS.W")
         await pg.evaluate("HDS.aller(1.25)"); await pg.wait_for_timeout(2500)
         fin = await pg.evaluate("HDS.t")
-        note("Promenade : plongée, puis on remonte lentement", W14 <= 7e-5 and 0 < v <= 0.2 and t1 < 13.787 and fin <= 1.21,
-             f"champ {W14:.1e} Gal ; recul {v:.2f} Ga/s ; arrêt à {fin:.2f} Ga", "« remonter lentement, la galaxie se délite »")
+        note("Promenade : plongée, puis on remonte le temps", W14 <= 7e-5 and v_collision > 0 and v_vite >= 2.5 * v_collision and fin <= 1.21 and Wrecul >= 2.5e-4,
+             f"champ {W14:.1e} Gal ; recul ×{v_vite / max(v_collision, 1e-9):.1f} plus vite avant les collisions ; champ en remontant {Wrecul:.1e} ; arrêt à {fin:.2f} Ga",
+             "« se délite petit à petit » ; « accélérer jusqu'à 7 Ga, ralentir aux collisions, voir les environs »")
         note("Promenade : départ à l'échelle de la toile cosmique", W0 >= 1.0, f"champ de départ {W0:.2f} Gal", "« commencer à la toile cosmique, pas aux superamas »")
         note("curseurs qui bougent : pulsation", z_pulse and t_pulse, f"zoom {z_pulse}, temps {t_pulse}", "« repérer ceux qui bougent »")
         await pg.click("[data-scen=promenade]"); await pg.wait_for_timeout(300)
@@ -157,6 +164,14 @@ async def main(url):
           const f = () => { const n = performance.now(); mx = Math.max(mx, n - p); p = n; if (n - t0 < 9000) requestAnimationFrame(f); else res(mx); };
           requestAnimationFrame(f); })""")
         note("pas de gel au chargement de la galaxie", gel < max(600, 1.2 * d0), f"plus longue image {gel:.0f} ms", "« ça rame énormément »")
+        # 10 quater. frise du temps : jusqu'à aujourd'hui en libre, futur seulement pendant l'horizon
+        libre_max = await pg.evaluate("+document.getElementById('temps').max")
+        await pg.click("[data-scen=evenements]"); await pg.wait_for_timeout(1200)
+        hor_max = await pg.evaluate("+document.getElementById('temps').max")
+        await pg.click("[data-scen=evenements]"); await pg.wait_for_timeout(800)
+        apres_max = await pg.evaluate("+document.getElementById('temps').max"); ta = await pg.evaluate("HDS.t")
+        note("futur seulement pendant l'horizon", libre_max < 900 and hor_max == 1000 and apres_max == libre_max and ta <= 13.79,
+             f"max libre {libre_max}, horizon {hor_max}, après {apres_max}, t {ta:.2f}", "« le curseur libre s'arrête à aujourd'hui »")
         # 10 ter. axes lisibles : libellés « espace » et « temps », pas de redshift z
         lec = await pg.evaluate("document.getElementById('lectureTemps').textContent")
         esp = await pg.evaluate("document.getElementById('axeEspace').textContent")

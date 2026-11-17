@@ -72,7 +72,8 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 #tempsBloc { display: flex; align-items: center; gap: 10px; }
 .piste { flex: 1; position: relative; padding-top: 16px; padding-bottom: 22px; }
 #lectureTemps { position: absolute; top: 0; left: 0; right: 0; text-align: center; font-size: 12px; color: var(--texte); font-variant-numeric: tabular-nums; }
-#temps { width: 100%; }
+#temps { width: 100%; transition: width 0.7s ease; }
+#dispoTemps { transition: right 0.7s ease; }
 .reperes { position: absolute; left: 0; right: 0; bottom: 0; height: 20px; font-size: 10px; color: var(--doux); }
 .reperes span { position: absolute; white-space: nowrap; }
 #repAuj { transform: translateX(-50%); position: absolute; top: -3px; font: 500 10.5px var(--f-corps); color: var(--texte); padding: 2px 8px; border-radius: 999px; background: rgba(20,22,30,0.8); border: 1px solid var(--trait); white-space: nowrap; }
@@ -1315,7 +1316,17 @@ function etat(s) {
 // ---------------------------------------------------------------------------
 const elT = document.getElementById("temps"), elZ = document.getElementById("zoom"), elL = document.getElementById("lecture");
 elT.value = uFromT(t); elZ.value = uFromW(W);
-elT.addEventListener("input", () => { libre(); t = tFromU(+elT.value); sale = true; });
+// en exploration libre, la frise s'arrête à aujourd'hui (rien n'est simulé dans le futur) ;
+// elle s'allonge vers le futur seulement pendant le scénario de l'horizon des événements
+const futurOuvert = () => !!(scen && scen.cle === "evenements");
+function bornesTemps() {
+  const uMax = futurOuvert() ? 1000 : Math.round(uFromT(T0));
+  elT.max = uMax; elT.style.width = (uMax / 10) + "%";
+  const bt = document.getElementById("dispoTemps"); if (bt) bt.style.right = `calc(${100 - uMax / 10}% + 8px)`;
+  if (!futurOuvert() && t > T0) t = T0;
+  elT.value = uFromT(t);
+}
+elT.addEventListener("input", () => { libre(); t = Math.min(tFromU(+elT.value), futurOuvert() ? TMAX : T0); sale = true; });
 elZ.addEventListener("input", () => { zoomAnim = null; W = wFromU(+elZ.value); sale = true; });
 function bouton(mode) { // lecture | pause | rejouer
   elL.textContent = { lecture: "▶", pause: "❚❚", rejouer: "↻" }[mode];
@@ -1324,7 +1335,7 @@ function bouton(mode) { // lecture | pause | rejouer
 function joue(on) { lecture = on; bouton(on ? "pause" : "lecture"); }
 elL.addEventListener("click", () => {
   if (scen) { if (scen.fin) { lanceScenario(scen.cle); return; } if (scen.attente) { depart(); return; } scen.pause = !scen.pause; bouton(scen.pause ? "lecture" : "pause"); return; }
-  if (t >= TMAX * 0.999) t = TMIN; joue(!lecture);
+  if (t >= (futurOuvert() ? TMAX : T0) * 0.999) t = TMIN; joue(!lecture);
 });
 // « aujourd'hui » : revenir au présent, en exploration libre, au même champ
 document.getElementById("repAuj").addEventListener("click", () => { libre(); t = T0; elT.value = uFromT(t); sale = true; });
@@ -1373,7 +1384,14 @@ const SCEN = {
       else if (e < 15) W = lW(1.2, 0.00006, lis(3, 15));                 // plongée vers la Voie lactée
       else if (e < 17) W = 0.00006;
       else if (e < 20) W = lW(0.00006, 0.00011, lis(17, 20));            // un peu de recul
-      else if (e >= 20.5) t = Math.max(1.2, t - dts * (t > 9 ? 0.15 : 0.35));   // on remonte le temps, lentement : la galaxie se défait
+      else if (e >= 20.5) {
+        // on remonte le temps : vite jusqu'à ~7 Ga, lentement pendant les collisions avec les
+        // galaxies naines (7 → 4,3 Ga), un peu plus vite ensuite jusqu'à l'embryon
+        const v = 0.6 - 0.45 * lisse(7.6, 6.8, t) * lisse(3.8, 4.6, t) - 0.2 * (1 - lisse(3.8, 4.6, t));
+        t = Math.max(1.2, t - dts * v);
+        // et l'on recule encore un peu pour voir les environs de la galaxie
+        W = lW(0.00011, 0.00028, lisse(13.787, 8, t));
+      }
       if (W !== this.Wv) { elZ.value = uFromW(W); this.Wv = W; }
       return e > 20.5 && t <= 1.2;                                        // arrêt quand il ne reste presque rien
     },
@@ -1384,8 +1402,8 @@ const SCEN = {
       if (e < 11) return "Plongée vers l'un de ces nœuds : notre superamas, puis notre groupe de galaxies.";
       if (e < 17) return "La Voie lactée, telle que la simule TNG50 : une jumelle de notre galaxie, vue de biais. Nous sommes dans son disque, à 27 000 années-lumière du centre.";
       if (e < 20.5) return "Un peu de recul pour l'embrasser tout entière, puis remontons lentement le temps.";
-      if (t > 10) return "Les bras spiraux s'effacent : ils sont faits d'étoiles jeunes et de gaz, qui disparaissent quand on recule.";
-      if (t > 7.5) return "Le disque se défait : il y a 6 à 8 milliards d'années, il était plus petit et plus agité.";
+      if (t > 10) return "On recule pour voir ses environs. Les bras spiraux s'effacent : ils sont faits d'étoiles jeunes et de gaz.";
+      if (t > 7.2) return "Le disque se défait : il y a 6 à 8 milliards d'années, il était plus petit et plus agité.";
       if (t > 4.5) return "Une galaxie voisine ressort de la nôtre : la Voie lactée l'avait avalée après plusieurs passages.";
       return "Il ne reste que de petits amas d'étoiles et de gaz qui tombent les uns sur les autres : l'embryon de notre galaxie.";
     },
@@ -1478,7 +1496,7 @@ function lanceScenario(cle) {
   joue(false);
   scen = Object.assign(Object.create(SCEN[cle]), { cle, el: 0, fin: false, pause: false });
   const W0z = W; W = scen.W; scen.init(); const Wc = W; W = W0z; zoomVers(Wc, 900); elT.value = uFromT(t);
-  document.getElementById("intro").hidden = !scen.attente; document.getElementById("finObs").hidden = true;
+  document.getElementById("intro").hidden = !scen.attente; document.getElementById("finObs").hidden = true; bornesTemps();
   document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.toggle("actif", x.dataset.scen === cle));
   bouton(scen.attente ? "lecture" : "pause"); sale = true;
 }
@@ -1489,7 +1507,7 @@ function libre() {
   if (!scen) { sale = true; return; }
   scen = null; document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.remove("actif"));
   cibles.forEach(g => g.allume = -1); COURANT.forEach(g => g.tn = -1);
-  if (W > WMAX) { W = WMAX; } elZ.value = uFromW(W); elT.value = uFromT(t);
+  if (W > WMAX) { W = WMAX; } elZ.value = uFromW(W); bornesTemps();
   bouton("lecture"); sale = true;
 }
 // un deuxième appui sur le scénario en cours le désactive
@@ -1560,10 +1578,10 @@ function boucle(now) {
   } else if (lecture) {
     // à l'échelle de la Voie lactée, le temps ralentit (0,12 Ga/s) pour que la rotation reste lisible
     const aG = 1 - lisse(0.0006, 0.003, W), tExp = t * Math.exp(0.32 * dts);
-    t = Math.min(TMAX, aG > 0 ? t + (tExp - t) * (1 - aG) + 0.12 * dts * aG : tExp);
+    t = Math.min(T0, aG > 0 ? t + (tExp - t) * (1 - aG) + 0.12 * dts * aG : tExp);   // la lecture libre s'arrête aujourd'hui
     // la lumière qui vient vers nous s'arrête en arrivant, aujourd'hui
     if (fronts.length && fronts[0].sens === "in" && t >= T0) { t = T0; joue(false); }
-    if (t >= TMAX) joue(false);
+    if (t >= T0) joue(false);
     elT.value = uFromT(t); sale = true;
   }
   if (zoomAnim) {
@@ -1596,9 +1614,9 @@ taille(); tailleZoom(); requestAnimationFrame(boucle);
 window.HDS = { get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
   aller(v) { t = v; if (scen && scen.cadre) scen.cadre(); sale = true; }, get t() { return t; }, get W() { return W; },
   get etat() { return { scen: scen ? scen.cle : null, fronts: fronts.length }; },
-  set el(v) { if (scen) { scen.el = v; sale = true; } } };
+  set el(v) { if (scen) { scen.el = v; sale = true; } }, get el() { return scen ? scen.el : 0; } };
 const elCh = document.getElementById("chargement");
-majDispo();
+majDispo(); bornesTemps();
 matiere.charge("matiere", suivi("matiere"))
   .then(fini("matiere"), rate("matiere"))
   .then(() => chargeEnvirons())
