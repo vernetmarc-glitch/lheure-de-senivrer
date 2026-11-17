@@ -121,10 +121,10 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 <div id="bas">
   <div id="phrase"></div>
   <div class="scenarios" role="group" aria-label="Scénarios">
+    <div class="scen"><button data-scen="promenade">Promenade</button><span>de la toile cosmique à la Voie lactée naissante</span></div>
     <div class="scen"><button data-scen="observable">Univers observable</button><span>passé : jusqu'où la lumière a déjà pu venir</span></div>
     <div class="scen"><button data-scen="hubble">Sphère de Hubble</button><span>présent : l'espace y fuit à la vitesse de la lumière</span></div>
     <div class="scen"><button data-scen="evenements">Horizon des événements</button><span>futur : les galaxies que notre message atteindra</span></div>
-    <div class="scen"><button data-scen="promenade">Promenade</button><span>de la toile cosmique à la Voie lactée naissante</span></div>
   </div>
   <div id="tempsBloc">
     <button id="lecture" class="rond" aria-label="Lecture">▶</button>
@@ -1382,17 +1382,16 @@ const SCEN = {
       const e = this.el, lis = (a, b) => lisse(a, b, e), lW = (w0, w1, f) => Math.exp(Math.log(w0) + (Math.log(w1) - Math.log(w0)) * f);
       if (e < 3) { W = 1.2; }
       else if (e < 14.5) W = lW(1.2, 0.00006, lis(3, 14.5));             // plongée vers la Voie lactée…
-      else if (e < 17.5) W = lW(0.00006, 0.00011, lis(14.5, 17.5));      // …et, d'un même mouvement, un peu de recul
-      if (e >= 17.5) {
-        // on remonte le temps : vite jusqu'à ~7 Ga, lentement pendant les collisions avec les
-        // galaxies naines (7 → 4,3 Ga), un peu plus vite ensuite jusqu'à l'embryon
+      else if (e < 18.5) W = lW(0.00006, 0.00028, lis(14.5, 18.5));      // …et, d'un même mouvement, le recul vers ses environs
+      else W = 0.00028;
+      if (e >= 19.5) {
+        // le zoom est arrêté : on remonte le temps, d'abord doucement, puis vite jusqu'à ~7 Ga,
+        // lentement pendant les collisions avec les galaxies naines, un peu plus vite ensuite
         const v = 0.6 - 0.45 * lisse(7.6, 6.8, t) * lisse(3.8, 4.6, t) - 0.2 * (1 - lisse(3.8, 4.6, t));
-        t = Math.max(1.2, t - dts * v * lisse(17.5, 19.5, e));            // départ en douceur, sans à-coup
-        // et l'on recule encore un peu pour voir les environs de la galaxie
-        W = lW(0.00011, 0.00028, lisse(13.787, 8, t));
+        t = Math.max(1.2, t - dts * v * lisse(19.5, 23, e));
       }
       if (W !== this.Wv) { elZ.value = uFromW(W); this.Wv = W; }
-      return e > 17.5 && t <= 1.2;                                        // arrêt quand il ne reste presque rien
+      return e > 19.5 && t <= 1.2;                                        // arrêt quand il ne reste presque rien
     },
     legende() {
       const e = this.el;
@@ -1400,8 +1399,9 @@ const SCEN = {
       if (e < 3) return "La toile cosmique aujourd'hui, sur des milliards d'années-lumière : des filaments de matière, des nœuds où s'amassent les galaxies, de grands vides.";
       if (e < 11) return "Plongée vers l'un de ces nœuds : notre superamas, puis notre groupe de galaxies.";
       if (e < 15.5) return "La Voie lactée, telle que la simule TNG50 : une jumelle de notre galaxie, vue de biais. Nous sommes dans son disque, à 27 000 années-lumière du centre.";
-      if (e < 18.5) return "Un peu de recul pour l'embrasser tout entière, et remontons le temps.";
-      if (t > 10) return "On recule pour voir ses environs. Les bras spiraux s'effacent : ils sont faits d'étoiles jeunes et de gaz.";
+      if (e < 19.5) return "Un peu de recul pour l'embrasser tout entière, avec ses environs.";
+      if (t > 12.5) return "Et maintenant, remontons le temps.";
+      if (t > 10) return "Les bras spiraux s'effacent : ils sont faits d'étoiles jeunes et de gaz.";
       if (t > 7.2) return "Le disque se défait : il y a 6 à 8 milliards d'années, il était plus petit et plus agité.";
       if (t > 4.5) return "Une galaxie voisine ressort de la nôtre : la Voie lactée l'avait avalée après plusieurs passages.";
       return "Il ne reste que de petits amas d'étoiles et de gaz qui tombent les uns sur les autres : l'embryon de notre galaxie.";
@@ -1534,14 +1534,16 @@ let tPrec = performance.now(), dtsGlobal = 0, zoomAnim = null;
 function zoomVers(Wc, ms = 800) { zoomAnim = { W0: W, W1: Wc, t0: performance.now(), ms }; sale = true; }
 // fenêtre d'information
 const modale = document.getElementById("modale"), corps = document.getElementById("modaleCorps"), titreM = document.getElementById("modaleTitre"), boutonsM = document.getElementById("modaleBoutons");
-function ouvre(titre, gabarit, enPlus) {
+let actionPrincipale = null;
+function ouvre(titre, gabarit, enPlus, principal) {
   titreM.textContent = titre; corps.innerHTML = document.getElementById(gabarit).innerHTML;
+  const bf = document.getElementById("fermer"); bf.textContent = principal ? principal[0] : "Fermer"; actionPrincipale = principal ? principal[1] : null;
   boutonsM.querySelectorAll(".plus").forEach(b => b.remove());
   if (enPlus) { const b = document.createElement("button"); b.className = "plus"; b.textContent = enPlus[0]; b.onclick = enPlus[1]; boutonsM.prepend(b); }
   modale.classList.add("ouverte");
 }
 document.getElementById("apropos").addEventListener("click", () => ouvre("L'Heure de s'enivrer", "txtApropos"));
-document.getElementById("fermer").addEventListener("click", () => modale.classList.remove("ouverte"));
+document.getElementById("fermer").addEventListener("click", () => { modale.classList.remove("ouverte"); const a = actionPrincipale; actionPrincipale = null; if (a) a(); });
 modale.addEventListener("click", e => { if (e.target === modale) modale.classList.remove("ouverte"); });
 const INFOS = { p: ["L'univers observable", "txtObservable"], h: ["La sphère de Hubble", "txtHubble"], e: ["L'horizon des événements", "txtEvenements"] };
 // toucher court sur un libellé de sphère : son explication
@@ -1620,7 +1622,7 @@ matiere.charge("matiere", suivi("matiere"))
   .then(fini("matiere"), rate("matiere"))
   .then(() => chargeEnvirons())
   .then(() => chargeVoieLactee());
-ouvre("Bienvenue", "txtAccueil", ["En savoir plus", () => ouvre("L'Heure de s'enivrer", "txtApropos")]);
+ouvre("Bienvenue", "txtAccueil", ["En savoir plus", () => ouvre("L'Heure de s'enivrer", "txtApropos")], ["Commençons par une promenade", () => lanceScenario("promenade")]);
 document.getElementById("repAuj").style.left = (uFromT(T0) / 1000 * 100) + "%";
 
 })();
