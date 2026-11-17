@@ -7,10 +7,8 @@ name: Fond de carte — simulations N-corps
 # tuiles d'image, et une planche de comparaison avec Millennium.
 # Les sorties sont committées dans sim/sorties/ sur cette branche.
 
+# remplacé par fond-de-carte-v2.yml (17/11/2026) : lancement manuel seulement
 on:
-  push:
-    branches: [fond-de-carte]
-    paths: ['sim/pm.py', 'sim/post.py', '.github/workflows/fond-de-carte.yml']
   workflow_dispatch:
 
 jobs:

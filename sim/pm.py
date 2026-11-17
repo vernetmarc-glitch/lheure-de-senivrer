@@ -5,6 +5,13 @@ kick-drift-kick en facteur d'échelle, instantanés quantifiés en uint16 (sur d
 Unités : Mpc/h, H0 = 100 h km/s/Mpc. Cosmologie Planck 2018 (celle du projet).
 
 Usage : python pm.py NP NM L SORTIE [PAS] [GRAINE]
+
+Variables d'environnement (version 2, 17/11/2026, plan « fond de carte » P2/P5) :
+  NSORTIES=32  instantanés régulièrement espacés en facteur de croissance D entre z = 14 et
+               aujourd'hui (les particules bougent d'autant entre deux instantanés : une
+               interpolation régulière suffit) ; les pas de temps sont ces instantanés mêmes.
+  FOULE=8      on ne sauve qu'une particule sur FOULE (indices fixes, donc suivies d'un
+               instantané à l'autre), positions ET vitesses particulières (km/s, float16).
 """
 import numpy as np, scipy.fft as sfft, sys, time, os, json
 from scipy.integrate import quad
@@ -22,6 +29,7 @@ CH = 1 << 23                       # taille des paquets de particules (8 M)
 ZS = [14, 10, 7, 5, 3.5, 2.5, 1.7, 1.0, 0.5, 0.2, 0.0]
 SAVES = [1 / (1 + z) for z in ZS]
 AI = 0.02
+NSORTIES = int(os.environ.get("NSORTIES", "0")); FOULE = int(os.environ.get("FOULE", "1"))
 
 E = lambda a: np.sqrt(Om / a**3 + OL)
 Hf = lambda a: H0 * E(a)
@@ -124,11 +132,24 @@ def accel(a, acc):
         interp(g, c, acc); del g
 
 def sauve(a):
-    q = np.round(np.mod(x, L) / L * 65535).astype(np.uint16)
-    np.save(f"{OUT}/snap_a{a:.4f}.npy", q); del q
+    if FOULE > 1:
+        q = np.round(np.mod(x[::FOULE], L) / L * 65535).astype(np.uint16)
+        np.save(f"{OUT}/snap_a{a:.4f}.npy", q); del q
+        np.save(f"{OUT}/vit_a{a:.4f}.npy", (p[::FOULE] / np.float32(a)).astype(np.float16))   # v = p / a, en km/s
+    else:
+        q = np.round(np.mod(x, L) / L * 65535).astype(np.uint16)
+        np.save(f"{OUT}/snap_a{a:.4f}.npy", q); del q
     log("instantané a=%.4f (z=%.2f)" % (a, 1 / a - 1))
 
-agrid = np.unique(np.concatenate([np.exp(np.linspace(np.log(AI), 0.0, NSTEPS + 1)), SAVES]))
+if NSORTIES:
+    # instantanés réguliers en D de a = 1/15 à 1 ; avant, des pas réguliers en ln a
+    from scipy.optimize import brentq
+    Ds = np.linspace(D(1 / 15), 1.0, NSORTIES)
+    SAVES = [float(brentq(lambda a: D(a) - d, 1e-3, 1.0001)) for d in Ds]; SAVES[-1] = 1.0
+    ZS = [1 / a - 1 for a in SAVES]
+    agrid = np.unique(np.concatenate([np.exp(np.linspace(np.log(AI), np.log(SAVES[0]), 13)), SAVES]))
+else:
+  agrid = np.unique(np.concatenate([np.exp(np.linspace(np.log(AI), 0.0, NSTEPS + 1)), SAVES]))
 agrid = agrid[agrid >= AI]
 acc = np.empty_like(x)
 accel(AI, acc)
@@ -140,5 +161,5 @@ for n in range(len(agrid) - 1):
     p += acc * np.float32(quad(lambda a: 1 / (a * Hf(a)), ah, a1)[0])
     if any(abs(a1 - s) < 1e-9 for s in SAVES): sauve(a1)
     else: log("pas %d/%d a=%.4f" % (n + 1, len(agrid) - 1, a1))
-json.dump({"NP": NP, "NM": NM, "L": L, "saves": SAVES, "z": ZS, "graine": GRAINE}, open(f"{OUT}/meta.json", "w"))
+json.dump({"NP": NP, "NM": NM, "L": L, "saves": [float(v) for v in SAVES], "z": [float(v) for v in ZS], "graine": GRAINE, "foule": FOULE}, open(f"{OUT}/meta.json", "w"))
 log("FIN")
