@@ -9,7 +9,7 @@ Le passage d'un intervalle au suivant se fait en fondu (voir la page).
 Usage : python3 sim/tng/gaz.py DOSSIER_GAZ SUIVI.npz SORTIE.bin [Ng]
 Format : u32 longueur d'en-tête JSON, en-tête {n, t, rpas, w}, puis pour chaque
 intervalle e (E-1 blocs consécutifs) :
-  r0 r1 u16 [N] ×2 · q0 q1 u16 [N] ×2 · h0 h1 u8 [N] ×2 · k i8 [N]
+  r0 r1 u16 [N] ×2 · q0 q1 u16 [N] ×2 · h0 h1 u8 [N] ×2 · k i8 [N] (−128 = ligne droite) · z0 z1 i16 [N] ×2
 """
 import json, sys
 import h5py
@@ -37,7 +37,11 @@ def main():
         with h5py.File(f"{dos}/e{snaps[e]:03d}.hdf5") as f:
             a = float(f["Header"].attrs["Time"]); g = f["PartType0"]
             X = (phys(g["Coordinates"][:], a, POS[snaps[e]]) - C[e]) @ R.T
-            return X, g["Masses"][:], g["ParticleIDs"][:], g["StarFormationRate"][:]
+            V = (g["Velocities"][:] * np.sqrt(a)) @ R.T
+            sel = (X ** 2).sum(1) < 9
+            V -= np.average(V[sel], axis=0, weights=g["Masses"][:][sel]) if sel.sum() > 20 else 0
+            om = (X[:, 0] * V[:, 1] - X[:, 1] * V[:, 0]) / np.maximum(X[:, 0] ** 2 + X[:, 1] ** 2, 0.01) * 1.0227
+            return X, g["Masses"][:], g["ParticleIDs"][:], g["StarFormationRate"][:], om
 
     def omega(e, r):
         ok = np.isfinite(prof[e])
@@ -48,8 +52,8 @@ def main():
     blocs = []; poids = []
     suiv = lit(0)
     for e in range(E - 1):
-        X0, m0, id0, sf0 = suiv
-        X1, m1, id1, sf1 = lit(e + 1); suiv = (X1, m1, id1, sf1)
+        X0, m0, id0, sf0, w0 = suiv
+        X1, m1, id1, sf1, w1 = lit(e + 1); suiv = (X1, m1, id1, sf1, w1)
         cand = np.where((sf0 > 0) & ((X0 ** 2).sum(1) < 40 ** 2))[0]
         o = np.argsort(id1); s1 = id1[o]
         j = np.clip(np.searchsorted(s1, id0[cand]), 0, len(s1) - 1)
@@ -57,19 +61,25 @@ def main():
         cand, j = cand[ok], o[j[ok]]
         n = min(Ng, len(cand))
         r0 = np.full(Ng, np.nan); r1 = np.full(Ng, np.nan); q0 = np.zeros(Ng); q1 = np.zeros(Ng)
-        h0 = np.ones(Ng); h1 = np.ones(Ng); k = np.zeros(Ng, np.int8)
+        h0 = np.ones(Ng); h1 = np.ones(Ng); k = np.zeros(Ng, np.int8); z0 = np.zeros(Ng); z1 = np.zeros(Ng)
         if n > 20:
             pick = rng.choice(len(cand), n, replace=False, p=m0[cand] / m0[cand].sum())
             A, B = X0[cand[pick]], X1[j[pick]]
             r0[:n], r1[:n] = np.hypot(A[:, 0], A[:, 1]), np.hypot(B[:, 0], B[:, 1])
             q0[:n], q1[:n] = np.arctan2(A[:, 1], A[:, 0]), np.arctan2(B[:, 1], B[:, 0])
+            z0[:n], z1[:n] = A[:, 2], B[:, 2]
             for P, hh in ((A, h0), (B, h1)):
                 d, _ = cKDTree(P).query(P, k=min(9, n)); hh[:n] = np.maximum(d[:, -1] * 0.5, 0.04)
             d = q1[:n] - q0[:n]; d -= 2 * np.pi * np.round(d / (2 * np.pi))
-            pred = 0.5 * (omega(e, r0[:n]) + omega(e + 1, r1[:n])) * (ts[e + 1] - ts[e])
-            k[:n] = np.clip(np.round((pred - d) / (2 * np.pi)), -127, 127)
+            oa, ob = w0[cand[pick]], w1[j[pick]]
+            pred = 0.5 * (oa + ob) * (ts[e + 1] - ts[e])
+            kk = np.clip(np.round((pred - d) / (2 * np.pi)), -127, 127)
+            # hors du disque en rotation : ligne droite (k = -128), comme pour les étoiles
+            med = 0.5 * (omega(e, r0[:n]) + omega(e + 1, r1[:n]))
+            disque = (r0[:n] < 25) & (r1[:n] < 25) & (np.abs(A[:, 2]) < 3) & (np.abs(B[:, 2]) < 3) & (np.abs(0.5 * (oa + ob) - med) < 0.35 * np.abs(med) + 2)
+            k[:n] = np.where(disque, kk, -128)
         print(f"  {ts[e]:5.2f} Ga : {len(cand):7d} cellules froides suivies, {n} gardées", flush=True)
-        blocs.append((r0, r1, q0, q1, h0, h1, k)); poids.append(len(cand) / max(n, 1))
+        blocs.append((r0, r1, q0, q1, h0, h1, k, z0, z1)); poids.append(len(cand) / max(n, 1))
 
     # nombre de cellules représentées par point, rapporté à sa médiane (constante écrite dans l'en-tête)
     w = np.array(poids); w = w / np.median(w[w > 1]) if (w > 1).any() else w
@@ -78,7 +88,7 @@ def main():
     with open(sortie, "wb") as f:
         f.write(np.uint32(len(hdr)).tobytes()); f.write(hdr)
         if (4 + len(hdr)) % 2: f.write(b"\0")
-        for r0, r1, q0, q1, h0, h1, k in blocs:
+        for r0, r1, q0, q1, h0, h1, k, z0, z1 in blocs:
             for r in (r0, r1):
                 f.write(np.where(np.isfinite(r), np.clip(np.round(np.nan_to_num(r) / RPAS), 0, 65534), 65535).astype(np.uint16).tobytes())
             for q in (q0, q1):
@@ -86,7 +96,10 @@ def main():
             for h in (h0, h1):
                 f.write(np.clip(np.round((np.log2(h) + 6) * 16), 0, 255).astype(np.uint8).tobytes())
             f.write(k.tobytes())
-    np.savez_compressed(sortie.replace(".bin", ".npz"), blocs=np.array([np.stack([b[0], b[1], b[2], b[3], b[4], b[5], b[6].astype(float)]) for b in blocs]), t=ts)
+            if Ng % 2: f.write(b"\0")
+            for zq in (z0, z1):
+                f.write(np.clip(np.round(zq / RPAS), -32767, 32767).astype(np.int16).tobytes())
+    np.savez_compressed(sortie.replace(".bin", ".npz"), blocs=np.array([np.stack([b[0], b[1], b[2], b[3], b[4], b[5], b[6].astype(float), b[7], b[8]]) for b in blocs]), t=ts)
     print("écrit", sortie, flush=True)
 
 

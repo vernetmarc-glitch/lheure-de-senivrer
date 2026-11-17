@@ -61,9 +61,19 @@ async def main(url):
         im = await vue(0.00009, 13.79, 7000); L = im.mean(-1)
         note("Voie lactée visible au zoom max", (L > 60).mean() > 0.05, f"{(L > 60).mean():.1%} > 60", "« on ne peut pas zoomer jusqu'à la Voie lactée »")
         note("Voie lactée non saturée", (L > 250).mean() < 0.01, f"{(L > 250).mean():.2%} blanc", "centre saturé (planche TNG)")
-        # 6. bras spiraux : le gaz rose occupe des bras, pas un disque plein
-        rose = (im[..., 0] > im[..., 1] * 1.6) & (im[..., 0] > 70)
-        note("bras spiraux (gaz) présents", rose.mean() > 0.03, f"rose {rose.mean():.1%}", "« bras trop discrets »")
+        # 6. la Voie lactée en tons Millennium (pas de rose ni de bleu « photo ») et vue de biais
+        # chaque pixel coloré doit se trouver sur la courbe de la palette (noir → indigo → violet → corail → or → blanc)
+        B_ = [0, 0.22, 0.45, 0.65, 0.82, 0.93, 1.0]
+        C_ = np.array([[0, 0, 0], [0.06, 0.04, 0.26], [0.40, 0.10, 0.52], [0.90, 0.32, 0.30], [1.0, 0.70, 0.32], [1.0, 0.93, 0.70], [1, 1, 1]])
+        tq = np.linspace(0, 1, 400); courbe = np.stack([np.interp(tq, B_, C_[:, c]) for c in range(3)], -1) * 255
+        pix = im.reshape(-1, 3); pix = pix[(pix.max(1) - pix.min(1)) > 30]
+        if len(pix) > 2000: pix = pix[np.random.default_rng(1).choice(len(pix), 2000, replace=False)]
+        dist = np.sqrt(((pix[:, None, :] - courbe[None]) ** 2).sum(-1)).min(1) if len(pix) else np.zeros(1)
+        hors = (dist > 40).mean()
+        note("Voie lactée en tons Millennium", hors < 0.05, f"{hors:.1%} hors palette", "« rester dans les tons Millenium »")
+        ys, xs = np.where(L > 50)
+        allong = (np.percentile(xs, 95) - np.percentile(xs, 5)) / max(1, np.percentile(ys, 95) - np.percentile(ys, 5)) if len(xs) > 100 else 0
+        note("Voie lactée vue de biais", allong > 1.4, f"largeur/hauteur {allong:.2f}", "« un peu sur sa tranche »")
         # 7. danse continue : aucun saut entre deux époques simulées
         d = []; prev = None
         for k in range(24):

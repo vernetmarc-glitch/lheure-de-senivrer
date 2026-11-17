@@ -15,10 +15,10 @@ prédit la courbe de rotation médiane ω(r) de l'époque (vitesses des étoiles
 
 Usage : python3 sim/tng/suivi.py DOSSIER SORTIE.bin [N] [GRAINE]
 Format : u32 longueur d'en-tête JSON, en-tête, puis (alignés) :
-  r  u16 [E][N]  (pas 0,005 kpc ; 65535 = absente)
-  phi u16 [E][N] (2π/65536)
+  pos u16 [E][N][3] : r (pas 0,005 kpc ; 65535 = absente), φ (2π/65536),
+                      z + 32768 (hauteur au-dessus du disque d'aujourd'hui, pas 0,005 kpc)
   h  u8  [E][N]  (log2(h/kpc)+6)*16, lissage SPH (8 voisins, 3D)
-  k  i8  [E-1][N] tours supplémentaires
+  k  i8  [E-1][N] tours supplémentaires ; -128 = trajet en ligne droite (hors disque)
   tn u16 [N]     date de naissance en Ga × 4000
   w  u16 [N]     poids (masse représentée / moyenne) × 1000
 """
@@ -93,7 +93,8 @@ def main():
     naiss = tb[sel]
     print(f"{len(dans)} étoiles à < 35 kpc, {N} suivies", flush=True)
 
-    r = np.full((E, N), np.nan); phi = np.zeros((E, N)); hh = np.full((E, N), 1.0)
+    r = np.full((E, N), np.nan); phi = np.zeros((E, N)); zz = np.zeros((E, N)); hh = np.full((E, N), 1.0)
+    omp = np.full((E, N), np.nan)          # vitesse angulaire PROPRE de chaque étoile (rad/Ga)
     om = np.zeros((E, N)); ts = np.zeros(E); centres = np.zeros((E, 3)); profils = []
     for e, ep in enumerate(eps):
         a, st, ga = lit(f"{dos}/e{ep['snap']:03d}.hdf5")
@@ -111,8 +112,10 @@ def main():
         o = np.argsort(I); Is = I[o]
         j = np.clip(np.searchsorted(Is, ids), 0, len(Is) - 1)
         trouve = Is[j] == ids
-        p = X[o[j[trouve]]]
-        r[e, trouve] = np.hypot(p[:, 0], p[:, 1]); phi[e, trouve] = np.arctan2(p[:, 1], p[:, 0])
+        src = o[j[trouve]]; p = X[src]
+        r[e, trouve] = np.hypot(p[:, 0], p[:, 1]); phi[e, trouve] = np.arctan2(p[:, 1], p[:, 0]); zz[e, trouve] = p[:, 2]
+        etoile = src < len(xs); w = np.where(trouve)[0][etoile]; v = vs[src[etoile]]; q = p[etoile]
+        omp[e, w] = (q[:, 0] * v[:, 1] - q[:, 1] * v[:, 0]) / np.maximum(q[:, 0] ** 2 + q[:, 1] ** 2, 0.01) * 1.0227
         # lissage : 8 voisins parmi les points suivis présents (3D)
         if trouve.sum() > 20:
             d, _ = cKDTree(p).query(p, k=min(9, trouve.sum()))
@@ -128,15 +131,37 @@ def main():
               f"(dont étoiles {np.isin(ids[trouve], st['ParticleIDs']).mean()*100:4.0f} %), "
               f"nées avant : {(naiss <= ts[e]).mean()*100:4.0f} %", flush=True)
 
+    # trous : une étoile absente d'une découpe entre deux époques où elle est présente (le
+    # satellite qui la porte sort un moment du groupe) ; on comble le trou en ligne droite
+    # au lieu de la faire disparaître puis réapparaître
+    for i in range(N):
+        pres = np.where(np.isfinite(r[:, i]))[0]
+        if len(pres) < 2: continue
+        for e0, e1 in zip(pres[:-1], pres[1:]):
+            if 1 < e1 - e0 <= 6:
+                A = np.array([r[e0, i] * np.cos(phi[e0, i]), r[e0, i] * np.sin(phi[e0, i]), zz[e0, i]])
+                B = np.array([r[e1, i] * np.cos(phi[e1, i]), r[e1, i] * np.sin(phi[e1, i]), zz[e1, i]])
+                for e in range(e0 + 1, e1):
+                    f = (ts[e] - ts[e0]) / (ts[e1] - ts[e0]); P = A + (B - A) * f
+                    r[e, i] = np.hypot(P[0], P[1]); phi[e, i] = np.arctan2(P[1], P[0]); zz[e, i] = P[2]
+                    hh[e, i] = hh[e0, i] + (hh[e1, i] - hh[e0, i]) * f
+                    omp[e, i] = np.nan; om[e, i] = 0
     # tours supplémentaires par intervalle
     k = np.zeros((E - 1, N), np.int8)
     for e in range(E - 1):
         dt = ts[e + 1] - ts[e]
         d = phi[e + 1] - phi[e]; d -= 2 * np.pi * np.round(d / (2 * np.pi))
-        pred = 0.5 * (om[e] + om[e + 1]) * dt
+        # rotation prédite par la vitesse angulaire propre de l'étoile (cohérente pour un
+        # satellite entier), à défaut par la courbe de rotation médiane
+        o0 = np.where(np.isfinite(omp[e]), omp[e], om[e]); o1 = np.where(np.isfinite(omp[e + 1]), omp[e + 1], om[e + 1])
+        pred = 0.5 * (o0 + o1) * dt
         kk = np.round((pred - d) / (2 * np.pi))
         both = np.isfinite(r[e]) & np.isfinite(r[e + 1])
-        k[e] = np.where(both, np.clip(kk, -127, 127), 0)
+        # hors du disque en rotation (satellites, gerbes de marée, halo) : trajet en ligne droite
+        # entre les deux positions (k = -128), pour que les voisins restent voisins
+        disque = both & (np.nan_to_num(r[e]) < 25) & (np.nan_to_num(r[e + 1]) < 25) & (np.abs(zz[e]) < 3) & (np.abs(zz[e + 1]) < 3)
+        conf = disque & np.isfinite(omp[e]) & np.isfinite(omp[e + 1]) & (np.abs(o0 - om[e]) < 0.35 * np.abs(om[e]) + 2)
+        k[e] = np.where(conf, np.clip(kk, -127, 127), np.where(both, -128, 0))
 
     hdr = json.dumps({"n": N, "t": [round(float(x), 4) for x in ts], "rpas": RPAS,
                       "subhalo": meta["subhalo"]}).encode()
@@ -147,10 +172,13 @@ def main():
     with open(sortie, "wb") as f:
         f.write(np.uint32(len(hdr)).tobytes()); f.write(hdr)
         if (4 + len(hdr)) % 2: f.write(b"\0")
-        f.write(ru.tobytes()); f.write(pu.astype(np.uint16).tobytes())
+        # positions entrelacées par époque : (r, φ, z + 32768) en u16, pour qu'un seul attribut
+        # vec3 lise une époque (la page en lit quatre pour lisser les trajets droits)
+        zu = (np.clip(np.round(zz / RPAS), -32767, 32767).astype(np.int32) + 32768).astype(np.uint16)
+        f.write(np.stack([ru, pu.astype(np.uint16), zu], -1).tobytes())
         f.write(hu.tobytes()); f.write(k.tobytes()); f.write(tn.tobytes())
         f.write(np.clip(np.round(poids * 1000), 1, 65535).astype(np.uint16).tobytes())
-    np.savez_compressed(sortie.replace(".bin", ".npz"), r=r, phi=phi, h=hh, k=k, t=ts, naiss=naiss, om=om, poids=poids,
+    np.savez_compressed(sortie.replace(".bin", ".npz"), r=r, phi=phi, z=zz, omp=omp, h=hh, k=k, t=ts, naiss=naiss, om=om, poids=poids,
                         centres=centres, R=R, profils=np.array(profils), rprof=cb, snaps=[e["snap"] for e in eps])
     print("écrit", sortie, flush=True)
 

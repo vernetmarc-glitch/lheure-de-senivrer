@@ -302,6 +302,8 @@ async function octets(nom, progres) {
   return deBase64(new TextDecoder().decode(brut));
 }
 const deBase64 = async txt => new Uint8Array(await (await fetch("data:application/octet-stream;base64," + txt.trim())).arrayBuffer());
+// la Voie lactée est montrée de biais (inclinaison de 62°), pas vue de dessus
+const INCL = { deg: 62, c: Math.cos(62 * Math.PI / 180), s: Math.sin(62 * Math.PI / 180) };
 const lisse = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
 const matiere = (() => {
   const cvm = document.getElementById("matiere");
@@ -529,27 +531,38 @@ const matiere = (() => {
   // brillant, ancienne = dorée. Ton à bornes FIXES en étoiles par kpc².
   // -------------------------------------------------------------------------
   const pGal = prog(`#version 300 es
-    in float r0; in float r1; in float q0; in float q1; in float h0; in float h1; in float kk; in float tn; in float pw;
-    uniform float f, t, ppk, smin, smax, rpas, wk; uniform vec2 centre, res;
+    in vec3 pm; in vec3 pa; in vec3 pb; in vec3 pp; in float h0; in float h1; in float kk; in float tn; in float pw;
+    uniform float f, t, ppk, smin, smax, rpas, wk, ci, si; uniform vec2 centre, res;
+    vec3 cart(vec3 q) { float ph = q.y / 65536.0 * 6.28319; return vec3(q.x * cos(ph), q.x * sin(ph), q.z - 32768.0) * rpas; }
     out vec3 vc; out float vw;
     void main() {
+      float r0 = pa.x, r1 = pb.x;
       bool a = r0 < 65534.5, b = r1 < 65534.5;
       float fc = min(f, 1.0), al = (a && b) ? 1.0 : (b ? fc : (a ? 1.0 - fc : 0.0));
       float age = t - tn / 4000.0;
       if (al < 0.002 || age < -0.02) { gl_Position = vec4(2.0, 2.0, 0.0, 1.0); gl_PointSize = 0.0; return; }
-      float p0 = q0 / 65536.0 * 6.28319, p1 = q1 / 65536.0 * 6.28319;
+      float p0 = pa.y / 65536.0 * 6.28319, p1 = pb.y / 65536.0 * 6.28319;
       float d = p1 - p0; d -= 6.28319 * floor(d / 6.28319 + 0.5); d += 6.28319 * kk;
-      float rr = (a && b) ? mix(r0, r1, fc) : (b ? r1 : r0);
-      float ph = (a && b) ? p0 + d * f : (b ? p1 : p0);
-      rr *= rpas;
-      vec2 px = centre + vec2(cos(ph), -sin(ph)) * rr * ppk;
+      vec3 P0 = cart(pa), P1 = cart(pb), P;
+      if (a && b && kk < -127.5) {
+        // hors disque : courbe de Catmull-Rom par les époques voisines (pas de coudes à chaque époque)
+        float L = length(P1 - P0);
+        vec3 Pm = pm.x < 65534.5 ? cart(pm) : 2.0 * P0 - P1, Pp = pp.x < 65534.5 ? cart(pp) : 2.0 * P1 - P0;
+        if (length(P0 - Pm) > 3.0 * L + 5.0) Pm = 2.0 * P0 - P1;
+        if (length(Pp - P1) > 3.0 * L + 5.0) Pp = 2.0 * P1 - P0;
+        float u = fc, u2 = u * u, u3 = u2 * u;
+        P = 0.5 * (2.0 * P0 + (P1 - Pm) * u + (2.0 * Pm - 5.0 * P0 + 4.0 * P1 - Pp) * u2 + (3.0 * P0 - Pm - 3.0 * P1 + Pp) * u3);
+      }
+      else if (a && b) { float rr = mix(r0, r1, fc) * rpas, ph = p0 + d * f; P = vec3(rr * cos(ph), rr * sin(ph), mix(P0.z, P1.z, fc)); }
+      else P = b ? P1 : P0;
+      vec2 px = centre + vec2(P.x, -(P.y * ci + P.z * si)) * ppk;      // disque vu incliné
       gl_Position = vec4(px.x / res.x * 2.0 - 1.0, 1.0 - px.y / res.y * 2.0, 0.0, 1.0);
       float hp = exp2(mix(h0, h1, fc) / 16.0 - 6.0);
       float sig = clamp(0.5 * hp * ppk, smin, smax);
       gl_PointSize = 6.0 * sig;
       vw = al * pw / 1000.0 * wk / (6.2832 * sig * sig);
       float j = exp(-max(age, 0.0) / 0.25);
-      vc = vec3(0.95 - 0.40 * j, 0.78 - 0.02 * j, 0.52 + 0.48 * j) * (1.0 + 14.0 * j);
+      vc = vec3(1.0 + 14.0 * j);                                       // luminance : les jeunes étoiles brillent
     }`, `#version 300 es
     precision highp float; in vec3 vc; in float vw; out vec4 o;
     void main() {
@@ -561,31 +574,39 @@ const matiere = (() => {
     out vec2 uv; void main() { vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); uv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`,
     `#version 300 es
     precision highp float; in vec2 uv; uniform sampler2D acc; uniform float ppk2, wk, alpha; out vec4 o;
+    vec3 palette(float t) {
+      vec3 c0 = vec3(0.0), c1 = vec3(0.06, 0.04, 0.26), c2 = vec3(0.40, 0.10, 0.52), c3 = vec3(0.90, 0.32, 0.30), c4 = vec3(1.0, 0.70, 0.32), c5 = vec3(1.0, 0.93, 0.70), c6 = vec3(1.0);
+      if (t < 0.22) return mix(c0, c1, t / 0.22);
+      if (t < 0.45) return mix(c1, c2, (t - 0.22) / 0.23);
+      if (t < 0.65) return mix(c2, c3, (t - 0.45) / 0.20);
+      if (t < 0.82) return mix(c3, c4, (t - 0.65) / 0.17);
+      if (t < 0.93) return mix(c4, c5, (t - 0.82) / 0.11);
+      return mix(c5, c6, (t - 0.93) / 0.07);
+    }
     void main() {
-      vec3 c = texture(acc, uv).rgb / wk;
-      float lum = (c.r + c.g + c.b) / 2.25 * ppk2;
-      float tt = clamp((log(lum + 1e-9) / 2.302585 - 0.6) / 3.6, 0.0, 1.0);
-      tt = (1.0 - exp(-2.6 * tt)) / (1.0 - exp(-2.6));
-      vec3 ch = c / max(max(c.r, max(c.g, c.b)), 1e-12);
-      o = vec4(ch * tt * alpha, 1.0);
+      float lum = texture(acc, uv).r / wk * ppk2;                     // « étoiles » par kpc² (pondérées)
+      float tt = clamp((log(lum + 1e-9) / 2.302585 - 0.0) / 3.5, 0.0, 1.0);
+      o = vec4(palette(tt) * alpha, 1.0);
     }`);
   // gaz froid (formant des étoiles) : un échantillon par intervalle, fondu aux raccords
   const pGaz = prog(`#version 300 es
-    in float r0; in float r1; in float q0; in float q1; in float h0; in float h1; in float kk;
-    uniform float f, ppk, smin, smax, rpas, wk, al; uniform vec2 centre, res;
+    in float r0; in float r1; in float q0; in float q1; in float z0; in float z1; in float h0; in float h1; in float kk;
+    uniform float f, ppk, smin, smax, rpas, wk, al, ci, si; uniform vec2 centre, res;
     out vec3 vc; out float vw;
     void main() {
       if (r0 > 65534.5 || r1 > 65534.5) { gl_Position = vec4(2.0, 2.0, 0.0, 1.0); gl_PointSize = 0.0; return; }
       float fc = clamp(f, 0.0, 1.0);
       float p0 = q0 / 65536.0 * 6.28319, p1 = q1 / 65536.0 * 6.28319;
       float d = p1 - p0; d -= 6.28319 * floor(d / 6.28319 + 0.5); d += 6.28319 * kk;
-      float rr = mix(r0, r1, fc) * rpas, ph = p0 + d * f;
-      vec2 px = centre + vec2(cos(ph), -sin(ph)) * rr * ppk;
+      vec3 P;
+      if (kk < -127.5) P = mix(vec3(r0 * cos(p0), r0 * sin(p0), z0), vec3(r1 * cos(p1), r1 * sin(p1), z1), fc) * rpas;
+      else { float rr = mix(r0, r1, fc) * rpas, ph = p0 + d * f; P = vec3(rr * cos(ph), rr * sin(ph), mix(z0, z1, fc) * rpas); }
+      vec2 px = centre + vec2(P.x, -(P.y * ci + P.z * si)) * ppk;
       gl_Position = vec4(px.x / res.x * 2.0 - 1.0, 1.0 - px.y / res.y * 2.0, 0.0, 1.0);
       float sig = clamp(0.5 * exp2(mix(h0, h1, fc) / 16.0 - 6.0) * ppk, smin, smax);
       gl_PointSize = 6.0 * sig;
       vw = al * wk / (6.2832 * sig * sig);
-      vc = vec3(1.0, 0.34, 0.50) * 1.4;
+      vc = vec3(1.15);
     }`, `#version 300 es
     precision highp float; in vec3 vc; in float vw; out vec4 o;
     void main() {
@@ -594,7 +615,7 @@ const matiere = (() => {
       o = vec4(vc * vw * exp(-0.5 * r2), 1.0);
     }`);
   const Z = { pret: false, n: 0, ts: [], rpas: 0.005, base: 0 };
-  let bZ = null; const LZ = {}; for (const nm of ["r0", "r1", "q0", "q1", "h0", "h1", "kk"]) LZ[nm] = gl.getAttribLocation(pGaz, nm);
+  let bZ = null; const LZ = {}; for (const nm of ["r0", "r1", "q0", "q1", "z0", "z1", "h0", "h1", "kk"]) LZ[nm] = gl.getAttribLocation(pGaz, nm);
   const UZ = n => gl.getUniformLocation(pGaz, n);
   M.chargeGaz = async url => {
     const bin = await octets(url);
@@ -605,12 +626,14 @@ const matiere = (() => {
     Object.assign(Z, { n: tete.n, ts: tete.t, rpas: tete.rpas, w: tete.w, pret: true });
   };
   function dessineGaz(e, f, al, cx, cy, ppk, wk) {
-    const N = Z.n, B = 11 * N, o = e * B;
+    const N = Z.n, B = 15 * N, o = e * B;
     gl.useProgram(pGaz); gl.bindVertexArray(vaoG); gl.bindBuffer(gl.ARRAY_BUFFER, bZ);
     const att = (nom, n, type, off) => { gl.enableVertexAttribArray(LZ[nom]); gl.vertexAttribPointer(LZ[nom], n, type, false, 0, off); };
     att("r0", 1, gl.UNSIGNED_SHORT, o); att("r1", 1, gl.UNSIGNED_SHORT, o + 2 * N);
     att("q0", 1, gl.UNSIGNED_SHORT, o + 4 * N); att("q1", 1, gl.UNSIGNED_SHORT, o + 6 * N);
     att("h0", 1, gl.UNSIGNED_BYTE, o + 8 * N); att("h1", 1, gl.UNSIGNED_BYTE, o + 9 * N); att("kk", 1, gl.BYTE, o + 10 * N);
+    att("z0", 1, gl.SHORT, o + 11 * N); att("z1", 1, gl.SHORT, o + 13 * N);
+    gl.uniform1f(UZ("ci"), INCL.c); gl.uniform1f(UZ("si"), INCL.s);
     gl.uniform1f(UZ("f"), f); gl.uniform1f(UZ("ppk"), ppk); gl.uniform1f(UZ("rpas"), Z.rpas); gl.uniform1f(UZ("al"), al * Z.w[e]);
     gl.uniform1f(UZ("smin"), 0.6 * DPR); gl.uniform1f(UZ("smax"), 40 * DPR); gl.uniform1f(UZ("wk"), wk);
     gl.uniform2f(UZ("centre"), cx, cy); gl.uniform2f(UZ("res"), tw, th);
@@ -648,7 +671,8 @@ const matiere = (() => {
       gl_PointSize = 6.0 * sig;
       float centrale = length(xy) * kpcU < 25.0 ? 1.0 - aGal : 1.0;   // la Voie lactée elle-même : relayée par TNG50 détaillé
       vb = al * centrale * clamp(0.25 + 0.30 * (m - 8.0), 0.18, 1.0);
-      vc = sf > 0.5 ? vec3(0.62, 0.76, 1.0) : vec3(1.0, 0.80, 0.52);
+      float q = clamp((m - 8.0) / 3.5, 0.0, 1.0);                   // tons Millennium : corail → or → blanc
+      vc = q < 0.5 ? mix(vec3(0.90, 0.32, 0.30), vec3(1.0, 0.70, 0.32), q * 2.0) : mix(vec3(1.0, 0.70, 0.32), vec3(1.0, 0.93, 0.70), q * 2.0 - 1.0);
     }`, `#version 300 es
     precision highp float; in vec3 vc; in float vb; out vec4 o;
     void main() {
@@ -700,7 +724,7 @@ const matiere = (() => {
   };
   const G = { pret: false, n: 0, ts: [], rpas: 0.005 };
   let bG = {}, texG = null, fboG = null, gw = 0, gh = 0;
-  const LG = {}; for (const nm of ["r0", "r1", "q0", "q1", "h0", "h1", "kk", "tn", "pw"]) LG[nm] = gl.getAttribLocation(pGal, nm);
+  const LG = {}; for (const nm of ["pm", "pa", "pb", "pp", "h0", "h1", "kk", "tn", "pw"]) LG[nm] = gl.getAttribLocation(pGal, nm);
   const UG = n => gl.getUniformLocation(pGal, n), UGT = n => gl.getUniformLocation(pGalTon, n);
   const vaoG = gl.createVertexArray();
   M.galaxie = G;
@@ -712,7 +736,7 @@ const matiere = (() => {
     const N = tete.n, E = tete.t.length;
     const tranche = (nb) => { const v = bin.slice(o, o + nb); o += nb; return v; };
     const tampon = v => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, v, gl.STATIC_DRAW); return b; };
-    bG.r = tampon(tranche(N * E * 2)); bG.q = tampon(tranche(N * E * 2)); bG.h = tampon(tranche(N * E));
+    bG.p = tampon(tranche(N * E * 6)); bG.h = tampon(tranche(N * E));
     bG.k = tampon(tranche(N * (E - 1))); bG.tn = tampon(tranche(N * 2)); bG.w = tampon(tranche(N * 2));
     Object.assign(G, { n: N, ts: tete.t, rpas: tete.rpas, pret: true });
   };
@@ -739,8 +763,10 @@ const matiere = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fboG); gl.viewport(0, 0, tw, th); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(pGal); gl.bindVertexArray(vaoG);
     const att = (nom, buf, n, type, off) => { gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(LG[nom]); gl.vertexAttribPointer(LG[nom], n, type, false, 0, off); };
-    att("r0", bG.r, 1, gl.UNSIGNED_SHORT, i * N * 2); att("r1", bG.r, 1, gl.UNSIGNED_SHORT, j * N * 2);
-    att("q0", bG.q, 1, gl.UNSIGNED_SHORT, i * N * 2); att("q1", bG.q, 1, gl.UNSIGNED_SHORT, j * N * 2);
+    const em = Math.max(0, i - 1), ep = Math.min(E - 1, j + 1);
+    att("pm", bG.p, 3, gl.UNSIGNED_SHORT, em * N * 6); att("pa", bG.p, 3, gl.UNSIGNED_SHORT, i * N * 6);
+    att("pb", bG.p, 3, gl.UNSIGNED_SHORT, j * N * 6); att("pp", bG.p, 3, gl.UNSIGNED_SHORT, ep * N * 6);
+    gl.uniform1f(UG("ci"), INCL.c); gl.uniform1f(UG("si"), INCL.s);
     att("h0", bG.h, 1, gl.UNSIGNED_BYTE, i * N); att("h1", bG.h, 1, gl.UNSIGNED_BYTE, j * N);
     att("kk", bG.k, 1, gl.BYTE, i * N); att("tn", bG.tn, 1, gl.UNSIGNED_SHORT, 0); att("pw", bG.w, 1, gl.UNSIGNED_SHORT, 0);
     gl.uniform1f(UG("f"), f); gl.uniform1f(UG("t"), tt); gl.uniform1f(UG("ppk"), ppk); gl.uniform1f(UG("rpas"), G.rpas);
@@ -795,7 +821,7 @@ function dessine() {
   if (aCat > 0 && !halosDemandes) { halosDemandes = true; matiere.chargeHalos("halos").then(() => { sale = true; }).catch(console.error); }
   matiere.dessineHalos(s.a, cx, cy, boiteTNG * ppg, aCat * (1 - 0.85 * aGal) * futur);
   matiere.dessineCatalogue(s.a, cx, cy, ppg, aCat * futur, aGal);
-  const gx = cx, gy = cy - 8.2 * ppk;   // le Soleil est à 8,2 kpc du centre
+  const gx = cx, gy = cy - 8.2 * INCL.c * ppk;   // le Soleil est à 8,2 kpc du centre (projeté, disque incliné)
   if (aGal > 0) matiere.dessineGalaxie(t, gx, gy, ppk, aGal);
   const loupe = scen && scen.loupe && fronts[0] ? scen.loupe : null;
 

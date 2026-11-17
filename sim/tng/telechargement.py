@@ -62,7 +62,7 @@ def main():
     prm = {"stars": "Coordinates,Velocities,Masses,GFM_StellarFormationTime,ParticleIDs",
            "gas": "Coordinates,Masses,ParticleIDs"}
     if os.environ.get("CHAMPS") == "gaz":          # gaz seul, avec le taux de formation d'étoiles
-        prm = {"gas": "Coordinates,Masses,ParticleIDs,StarFormationRate"}
+        prm = {"gas": "Coordinates,Masses,ParticleIDs,StarFormationRate,Velocities"}
 
     def une(sn):
         sid = int(mid[msn.index(sn)])
