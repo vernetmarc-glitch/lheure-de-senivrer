@@ -53,6 +53,9 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 #zoomBloc { position: fixed; right: max(4px, env(safe-area-inset-right)); top: calc(env(safe-area-inset-top) + 56px); bottom: calc(env(safe-area-inset-bottom) + 300px); width: 44px; touch-action: none; }
 #zoom { position: absolute; top: 50%; left: 50%; height: 30px; transform: translate(-50%, -50%) rotate(90deg); touch-action: none; }
 #reperesZoom { position: absolute; inset: 0; pointer-events: none; }
+/* zones prêtes le long des curseurs */
+#dispoZoom { position: absolute; top: 0; bottom: 0; left: calc(50% + 12px); width: 3px; border-radius: 2px; pointer-events: none; }
+#dispoTemps { position: absolute; left: 0; right: 0; top: 40px; height: 3px; border-radius: 2px; pointer-events: none; }
 #reperesZoom span { position: absolute; right: 40px; transform: translateY(-50%); font-size: 9.5px; color: rgba(154,159,171,0.8); white-space: nowrap; text-shadow: 0 1px 3px #000; }
 #reperesZoom span::after { content: ""; display: inline-block; width: 6px; height: 1px; background: var(--doux); vertical-align: middle; margin-left: 4px; }
 /* bas : légende, actions, temps */
@@ -79,10 +82,12 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 #modale h2 { font-family: var(--f-titre); font-weight: 500; font-size: 17px; margin: 0 0 10px; }
 #modaleBoutons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
 #intro { position: fixed; left: 14px; right: 62px; top: calc(env(safe-area-inset-top) + 92px); background: rgba(12,14,21,0.92); border: 1px solid var(--trait); border-radius: 12px; padding: 12px 14px; z-index: 4; font-size: 14px; line-height: 1.5; }
-#intro[hidden] { display: none; }
+#intro[hidden], .carteInfo[hidden] { display: none; }
+.carteInfo { position: fixed; left: 14px; right: 62px; top: calc(env(safe-area-inset-top) + 92px); background: rgba(12,14,21,0.92); border: 1px solid var(--trait); border-radius: 12px; padding: 12px 14px; z-index: 4; font-size: 14px; line-height: 1.5; }
+.carteInfo p { margin: 0 0 10px; }
 #intro p { margin: 0 0 10px; }
 #intro button { background: var(--accent); color: #0a0f18; border-color: var(--accent); font-weight: 600; }
-#chargement { position: fixed; top: calc(env(safe-area-inset-top) + 40px); left: 14px; font-size: 11px; color: var(--doux); }
+#chargement { position: fixed; top: calc(env(safe-area-inset-top) + 74px); left: 14px; font-size: 11px; color: var(--doux); }
 #phrase { cursor: pointer; }
 #phrase .suite { color: var(--doux); }
 @media (min-width: 900px) and (min-height: 650px) { #bas, #titre, #reperesZoom, #chargement { zoom: 1.3; } }
@@ -97,11 +102,17 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 </div>
 <div id="zoomBloc">
   <input id="zoom" type="range" min="0" max="1000" step="1" aria-label="Champ de vue">
+  <div id="dispoZoom" aria-hidden="true"></div>
   <div id="reperesZoom"></div>
 </div>
 <div id="intro" hidden>
   <p>380 000 ans après le Big Bang, l'univers, assez refroidi et dilué, devient enfin transparent : la lumière peut voyager librement. À 41 millions d'années-lumière de nous, des photons commencent un voyage de 13,8 milliards d'années.</p>
+  <p>Mais ils remontent un espace en expansion : au début, ils s'éloignent même de nous, comme des fourmis qui marchent à contre-sens sur un tapis roulant plus rapide qu'elles.</p>
   <button id="cestParti">C'est parti</button>
+</div>
+<div id="finObs" class="carteInfo" hidden>
+  <p>Le point de l'espace qui a émis cette lumière est aujourd'hui à 45 milliards d'années-lumière de nous, tout près de la frontière de notre univers observable, à 46 milliards. Au-delà, aucune lumière n'a encore eu le temps de nous parvenir.</p>
+  <button id="fermeFinObs">Fermer</button>
 </div>
 <div id="bas">
   <div id="phrase"></div>
@@ -116,6 +127,7 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
     <div class="piste">
       <div id="lectureTemps"></div>
       <input id="temps" type="range" min="0" max="1000" step="1" aria-label="Temps">
+      <div id="dispoTemps" aria-hidden="true"></div>
       <div class="reperes"><span style="left:0">Big Bang</span><button id="repAuj" aria-label="Revenir à aujourd'hui">aujourd'hui</button></div>
     </div>
   </div>
@@ -210,6 +222,7 @@ imgs.forEach(o => o.im.onload = () => {
   for (let k = 0; k < d.length; k += 4) { r += d[k]; g += d[k + 1]; b += d[k + 2]; }
   o.moy = `rgb(${Math.round(r / 256)},${Math.round(g / 256)},${Math.round(b / 256)})`;
   o.motif = true; pretes++; sale = true;
+  CH.tuiles = pretes / imgs.length; if (typeof majDispo === "function") majDispo();
 });
 // Pavage sans répétition visible : chaque copie de la boîte est tournée d'un quart
 // de tour et/ou retournée selon un tirage fixe (la copie qui nous contient reste
@@ -464,8 +477,8 @@ const matiere = (() => {
   // chaque halo réel) : même dépôt et même ton que la toile, entre 1 et 60 Mal.
   // -------------------------------------------------------------------------
   const HL = { pret: false, ep: [], off: [], bxy: null, bh: null, nRef: 1 };
-  M.chargeHalos = async nom => {
-    const bin = await octets(nom);
+  M.chargeHalos = async (nom, progres) => {
+    const bin = await octets(nom, progres);
     const lh = new DataView(bin.buffer).getUint32(0, true);
     const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
     let o = 4 + lh; o += o % 2;
@@ -641,8 +654,8 @@ const matiere = (() => {
   const Z = { pret: false, n: 0, ts: [], rpas: 0.005, base: 0 };
   let bZ = null; const LZ = {}; for (const nm of ["r0", "r1", "q0", "q1", "z0", "z1", "h0", "h1", "kk"]) LZ[nm] = gl.getAttribLocation(pGaz, nm);
   const UZ = n => gl.getUniformLocation(pGaz, n);
-  M.chargeGaz = async url => {
-    const bin = await octets(url);
+  M.chargeGaz = async (url, progres) => {
+    const bin = await octets(url, progres);
     const lh = new DataView(bin.buffer).getUint32(0, true);
     const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
     let o = 4 + lh; o += o % 2;
@@ -709,8 +722,8 @@ const matiere = (() => {
   const LK = { gx: gl.getAttribLocation(pCat, "gx"), gy: gl.getAttribLocation(pCat, "gy"), lm: gl.getAttribLocation(pCat, "lm"), sf: gl.getAttribLocation(pCat, "sf") };
   const UK = n => gl.getUniformLocation(pCat, n);
   M.catalogue = K;
-  M.chargeCatalogue = async url => {
-    const bin = await octets(url);
+  M.chargeCatalogue = async (url, progres) => {
+    const bin = await octets(url, progres);
     const lh = new DataView(bin.buffer).getUint32(0, true);
     const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
     let o = 4 + lh; o += o % 2; const base = o;
@@ -752,8 +765,8 @@ const matiere = (() => {
   const UG = n => gl.getUniformLocation(pGal, n), UGT = n => gl.getUniformLocation(pGalTon, n);
   const vaoG = gl.createVertexArray();
   M.galaxie = G;
-  M.chargeGalaxie = async url => {
-    const bin = await octets(url);
+  M.chargeGalaxie = async (url, progres) => {
+    const bin = await octets(url, progres);
     const lh = new DataView(bin.buffer).getUint32(0, true);
     const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
     let o = 4 + lh; o += o % 2;
@@ -812,10 +825,54 @@ const matiere = (() => {
 })();
 let zonesInfo = [], pulsation = -1e9, galDemandee = false, catDemande = false, halosDemandes = false;
 // la Voie lactée se charge au repos, une fois la toile prête (pas pendant un zoom)
+// ce qui est chargé, de 0 à 1 (−1 : échec) ; sert à montrer sur les curseurs les zones prêtes
+const CH = { tuiles: 0, matiere: 0, halos: 0, galaxies: 0, voie: 0, gaz: 0 };
+const suivi = cle => q => { CH[cle] = Math.min(0.99, q); majDispo(); };
+const fini = cle => () => { CH[cle] = 1; majDispo(); sale = true; };
+const rate = cle => err => { CH[cle] = -1; majDispo(); console.error(err); };
 function chargeVoieLactee() {
   if (galDemandee) return; galDemandee = true;
-  matiere.chargeGalaxie("voie-lactee").then(() => { sale = true; }).catch(console.error);
-  matiere.chargeGaz("voie-lactee-gaz").then(() => { sale = true; }).catch(console.error);
+  return Promise.all([
+    matiere.chargeGalaxie("voie-lactee", suivi("voie")).then(fini("voie"), rate("voie")),
+    matiere.chargeGaz("voie-lactee-gaz", suivi("gaz")).then(fini("gaz"), rate("gaz"))]);
+}
+function chargeEnvirons() {
+  if (catDemande) return Promise.resolve(); catDemande = halosDemandes = true;
+  return Promise.all([
+    matiere.chargeCatalogue("galaxies", suivi("galaxies")).then(fini("galaxies"), rate("galaxies")),
+    matiere.chargeHalos("halos", suivi("halos")).then(fini("halos"), rate("halos"))]);
+}
+// part disponible pour un champ W (Gal) : la plus petite des sources dont ce champ a besoin
+function dispoW(w) {
+  const q = [];
+  if (w >= 0.1) q.push(CH.tuiles);
+  if (w < 0.6 && w >= 0.004) q.push(CH.matiere);
+  if (w < 0.025 && w >= 0.0006) q.push(CH.halos, CH.galaxies);
+  if (w < 0.003) q.push(CH.voie, CH.gaz);
+  return Math.min(...q.map(v => v < 0 ? 1 : v));      // un échec ne bloque pas : on montre ce qu'on a
+}
+function nomManquant(w) {
+  if (w < 0.003 && Math.min(CH.voie, CH.gaz) < 1) return "la Voie lactée";
+  if (w < 0.025 && w >= 0.0006 && Math.min(CH.halos, CH.galaxies) < 1) return "les galaxies voisines";
+  if (w < 0.6 && w >= 0.004 && CH.matiere < 1) return "la toile cosmique";
+  if (w >= 0.1 && CH.tuiles < 1) return "les grandes échelles";
+  return "";
+}
+// bandes de disponibilité le long des curseurs : prêt = clair, en cours = sombre hachuré
+function majDispo() {
+  const bz = document.getElementById("dispoZoom"), bt = document.getElementById("dispoTemps");
+  if (!bz || !bt) return;
+  const pas = 50, arr = [];
+  for (let k = 0; k <= pas; k++) {
+    const d = dispoW(wFromU(1000 * k / pas)), pc = (100 * k / pas).toFixed(1);
+    arr.push(`${d >= 1 ? "rgba(150,195,255,0.85)" : `rgba(120,130,150,${(0.15 + 0.25 * d).toFixed(2)})`} ${pc}%`);
+  }
+  bz.style.background = `linear-gradient(to bottom, ${arr.join(", ")})`;
+  const dt = Math.min(CH.tuiles, CH.matiere < 0 ? 1 : CH.matiere);
+  bt.style.background = dt >= 1 ? "rgba(150,195,255,0.85)" : `linear-gradient(to right, rgba(150,195,255,0.85) ${(100 * dt).toFixed(0)}%, rgba(120,130,150,0.25) ${(100 * dt).toFixed(0)}%)`;
+  const tout = Object.values(CH).map(v => v < 0 ? 1 : v), moy = tout.reduce((a, b) => a + b, 0) / tout.length;
+  const el = document.getElementById("chargement");
+  if (el) { if (moy >= 1) el.remove(); else el.textContent = `chargement ${Math.round(100 * moy)} %`; }
 }
 
 // ---------------------------------------------------------------------------
@@ -841,9 +898,8 @@ function dessine() {
   const aCat = lisse(0.0005, 0.0016, W) * (1 - lisse(0.32, 0.48, W / boiteTNG));
   // la toile simulée ne s'efface que là où les halos TNG50 prennent effectivement le relais
   const aPM = 1 - (1 - lisse(0.004, 0.025, W)) * Math.min(1, aCat * 1.2 * matiere.couvertureHalos(s.a));
-  if (aCat > 0 && !catDemande) { catDemande = true; matiere.chargeCatalogue("galaxies").then(() => { sale = true; }).catch(console.error); }
+  if (aCat > 0) chargeEnvirons();
   matiere.dessine(s.a, cx, cy, boitePx, aPts * (1 - aGal) * aPM * futur);
-  if (aCat > 0 && !halosDemandes) { halosDemandes = true; matiere.chargeHalos("halos").then(() => { sale = true; }).catch(console.error); }
   matiere.dessineHalos(s.a, cx, cy, boiteTNG * ppg, aCat * (1 - 0.85 * aGal) * futur);
   matiere.dessineCatalogue(s.a, cx, cy, ppg, aCat * futur, aGal);
   const gx = cx, gy = cy - 8.2 * INCL.c * ppk;   // le Soleil est à 8,2 kpc du centre (projeté, disque incliné)
@@ -975,6 +1031,9 @@ function dessine() {
   });
   ctx.globalCompositeOperation = "source-over";
   if (loupe) dessineLoupe(cx, cy, ppg, s);
+  // ce champ n'a pas encore ses images : on le dit clairement plutôt que de montrer un flou
+  const dsp = dispoW(W);
+  if (dsp < 1) dessineAttente(cx, cy, dsp, nomManquant(W));
   etat(s); phrase();
 }
 // ---------------------------------------------------------------------------
@@ -1116,6 +1175,15 @@ function dessineLegendeGalaxie(gx, gy, ppk, al) {
   ctx.fillText("une jumelle de la Voie lactée, simulée par TNG50", 16 * DPR, yb);
   if (t > G.ts[G.ts.length - 1] + 0.05) ctx.fillText("après aujourd'hui : rotation prolongée (sans la fusion avec Andromède)", 16 * DPR, yb - 15 * DPR * US);
   ctx.globalAlpha = 1;
+}
+function dessineAttente(cx, cy, q, nom) {
+  const y = cy - 70 * DPR, R = 16 * DPR, a0 = -Math.PI / 2;
+  ctx.fillStyle = "rgba(6,8,14,0.78)"; ctx.beginPath(); ctx.roundRect(cx - 130 * DPR, y - 30 * DPR, 260 * DPR, 84 * DPR, 12 * DPR); ctx.fill();
+  ctx.lineWidth = 3 * DPR; ctx.strokeStyle = "rgba(120,130,150,0.4)"; ctx.beginPath(); ctx.arc(cx, y, R, 0, 2 * Math.PI); ctx.stroke();
+  ctx.strokeStyle = "rgba(150,195,255,0.95)"; ctx.beginPath(); ctx.arc(cx, y, R, a0, a0 + 2 * Math.PI * Math.max(0.03, q)); ctx.stroke();
+  ctx.font = `${11.5 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "center"; ctx.fillStyle = "rgba(225,232,245,0.95)";
+  ctx.fillText(`chargement : ${nom || "la carte"} · ${Math.round(100 * q)} %`, cx, y + 38 * DPR);
+  sale = true;
 }
 function dessineGrille(cx, cy, ppg) {
   const lw = Math.log10(W), k = Math.floor(lw) - 1, f = lw - Math.floor(lw);
@@ -1263,6 +1331,7 @@ const SCEN = {
   observable: {
     W: 52, cercles: [], cerclesFin: ["p"],
     init() { t = TREC; fronts = [{ sens: "in", te: TREC, etiquette: "la matière qui a émis cette lumière" }]; this.cadre(); this.pause = true; this.attente = true; },
+    alaFin() { setTimeout(() => { if (scen && scen.cle === "observable" && scen.fin) document.getElementById("finObs").hidden = false; }, 1200); },
     cadre() { const mk = marqueurs(fronts[0], t); const Wc = Math.min(WMAX, Math.max(WMIN, mk.r * 1.3)); if (zoomAnim) zoomAnim.W1 = Wc; else { W = Wc; elZ.value = uFromW(W); } },
     avance(dts) { if (this.el < 2.5) return false; t = Math.min(T0, t * Math.exp(0.7 * dts)); this.cadre(); return t >= T0; },
     legende() {
@@ -1292,7 +1361,7 @@ const SCEN = {
   // promenade : de la toile cosmique jusqu'à notre galaxie, puis sa formation
   promenade: {
     W: 0.15, cercles: [],
-    init() { t = T0; fronts = []; chargeVoieLactee(); },
+    init() { t = T0; fronts = []; },
     avance(dts) {
       const e = this.el, lis = (a, b) => lisse(a, b, e), lW = (w0, w1, f) => Math.exp(Math.log(w0) + (Math.log(w1) - Math.log(w0)) * f);
       if (e < 3) { W = 0.15; }
@@ -1399,18 +1468,19 @@ function depart() {
   scen.attente = false; scen.pause = false; scen.el = 0; document.getElementById("intro").hidden = true; bouton("pause"); sale = true;
 }
 document.getElementById("cestParti").addEventListener("click", depart);
+document.getElementById("fermeFinObs").addEventListener("click", () => { document.getElementById("finObs").hidden = true; });
 function lanceScenario(cle) {
   joue(false);
   scen = Object.assign(Object.create(SCEN[cle]), { cle, el: 0, fin: false, pause: false });
   const W0z = W; W = scen.W; scen.init(); const Wc = W; W = W0z; zoomVers(Wc, 900); elT.value = uFromT(t);
-  document.getElementById("intro").hidden = !scen.attente;
+  document.getElementById("intro").hidden = !scen.attente; document.getElementById("finObs").hidden = true;
   document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.toggle("actif", x.dataset.scen === cle));
   bouton(scen.attente ? "lecture" : "pause"); sale = true;
 }
 // sortir d'un scénario : on garde l'instant et le champ, on retire tout ce que le scénario
 // avait ajouté (lumière, galaxies-témoins, courant), et l'on revient aux trois sphères
 function libre() {
-  joue(false); fronts = []; zoomAnim = null; document.getElementById("intro").hidden = true;
+  joue(false); fronts = []; zoomAnim = null; document.getElementById("intro").hidden = true; document.getElementById("finObs").hidden = true;
   if (!scen) { sale = true; return; }
   scen = null; document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.remove("actif"));
   cibles.forEach(g => g.allume = -1); COURANT.forEach(g => g.tn = -1);
@@ -1476,9 +1546,11 @@ function marqueMouvement(now) {
 }
 function boucle(now) {
   const dts = Math.min(0.05, (now - tPrec) / 1000); tPrec = now; dtsGlobal = dts;
-  if (scen && !scen.pause && !scen.fin) {
+  if (scen && !scen.pause && !scen.fin && dispoW(W) < 1 && scen.el > 0.5) {
+    sale = true;                                         // on attend les images de ce champ
+  } else if (scen && !scen.pause && !scen.fin) {
     scen.el += dts;
-    if (scen.avance(dts)) { scen.fin = true; bouton("rejouer"); }
+    if (scen.avance(dts)) { scen.fin = true; bouton("rejouer"); if (scen.alaFin) scen.alaFin(); }
     elT.value = uFromT(t); sale = true;
   } else if (lecture) {
     // à l'échelle de la Voie lactée, le temps ralentit (0,12 Ga/s) pour que la rotation reste lisible
@@ -1516,13 +1588,16 @@ function boucle(now) {
 }
 taille(); tailleZoom(); requestAnimationFrame(boucle);
 // point d'entrée pour les vérifications automatiques
-window.HDS = { aller(v) { t = v; if (scen && scen.cadre) scen.cadre(); sale = true; }, get t() { return t; }, get W() { return W; },
+window.HDS = { get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
+  aller(v) { t = v; if (scen && scen.cadre) scen.cadre(); sale = true; }, get t() { return t; }, get W() { return W; },
   get etat() { return { scen: scen ? scen.cle : null, fronts: fronts.length }; },
   set el(v) { if (scen) { scen.el = v; sale = true; } } };
 const elCh = document.getElementById("chargement");
-matiere.charge("matiere", q => { elCh.textContent = `matière : chargement ${Math.round(100 * q)} %`; })
-  .then(() => { elCh.remove(); sale = true; setTimeout(chargeVoieLactee, 1500); })
-  .catch(err => { elCh.textContent = "matière : non chargée"; console.error(err); });
+majDispo();
+matiere.charge("matiere", suivi("matiere"))
+  .then(fini("matiere"), rate("matiere"))
+  .then(() => chargeEnvirons())
+  .then(() => chargeVoieLactee());
 ouvre("Bienvenue", "txtAccueil", ["En savoir plus", () => ouvre("L'Heure de s'enivrer", "txtApropos")]);
 document.getElementById("repAuj").style.left = (uFromT(T0) / 1000 * 100) + "%";
 
