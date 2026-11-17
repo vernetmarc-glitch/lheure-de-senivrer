@@ -40,13 +40,20 @@ async def main(url):
         # 2. la matière agrégée est visible dès 3 Ga
         im = await vue(0.15, 3.3); L = im.mean(-1)
         note("matière agrégée visible à 3,3 Ga", (L > 60).mean() > 0.002, f"{(L > 60).mean():.2%} > 60", "« ne passe jamais par … matière agrégée »")
-        # 3. pas de dallage : à la période de la boîte, l'image ne doit pas se ressembler
-        #    davantage qu'à un décalage quelconque (la grille de la carte est commune aux deux)
-        W = 1.5; im = await vue(W, 13.79, 1500); L = im.mean(-1); L -= L.mean()
-        ppg = (min(390 - 44, 844 * 0.8) / 2) / W; T = int(round(0.96782 * ppg))
-        cor = lambda s: ((L[:, :-s] * L[:, s:]).mean() + (L[:-s] * L[s:]).mean()) / 2 / (L.var() + 1e-9)
-        exces = cor(T) - np.mean([cor(int(T * q)) for q in (0.61, 0.73, 1.37)])
-        note("pas de dallage (autocorr. à 1 boîte)", exces < 0.08, f"excès {exces:.2f} à {T} px", "« dallage plus que toile »")
+        # 3. pas de dallage : on empile les cases de la taille d'une boîte, centrées comme
+        #    les copies. Copies indépendantes → la moyenne empilée s'aplatit (rapport ≈ 1) ;
+        #    copies identiques ou au même nœud central → elle garde du contraste (≈ √n).
+        W = 1.5; im = await vue(W, 13.79, 1500); L = im.mean(-1)
+        ppg = (min(390 - 44, 844 * 0.8) / 2) / W; T = 0.96782 * ppg
+        cx, cy = (390 - 44) / 2, 844 * 0.44 - 70
+        cases = []
+        for i in range(-3, 4):
+            for j in range(-6, 7):
+                x0, y0 = int(round(cx + (i - 0.5) * T)), int(round(cy + (j - 0.5) * T)); n = int(T)
+                if x0 >= 0 and y0 >= 0 and x0 + n <= L.shape[1] and y0 + n <= L.shape[0] and (i, j) != (0, 0):
+                    cases.append(L[y0:y0 + n, x0:x0 + n])
+        C = np.array(cases); r = C.mean(0).std() * math.sqrt(len(C)) / C.std(axis=(1, 2)).mean()
+        note("pas de dallage (cases empilées)", r < 1.6, f"rapport {r:.2f} sur {len(C)} cases", "« dallage plus que toile »")
         # 4. lisibilité des sphères au plus grand champ : fond sombre
         im = await vue(55, 13.79); Lm = im.mean()
         note("sphères lisibles au grand champ", Lm < 28, f"luminance moyenne {Lm:.1f}", "lisibilité > beauté")
@@ -65,7 +72,29 @@ async def main(url):
             prev = a
         d = np.array(d); r = d.max() / np.median(d)
         note("danse continue (pas de saut)", r < 1.8, f"max/médiane {r:.2f}", "« danse des particules »")
-        # 8. aucune erreur JavaScript
+        # 8. entre 1 et 60 Mal : de la structure (halos TNG50), pas des points rouges isolés
+        im = await vue(0.02, 13.79, 2500); L = im.mean(-1); br = L > 90
+        note("structure visible à 20 Mal", br.mean() > 0.004, f"brillant {br.mean():.1%}", "« plus aucun aspect filamenteux »")
+        sel = L > 50
+        bleu = (im[..., 2][sel] / (im[..., 0][sel] + 1)).mean() if sel.any() else 0
+        note("palette non monochrome rouge", bleu > 0.35, f"bleu/rouge {bleu:.2f}", "« pourquoi cette couleur rouge ? »")
+        # 9. fluidité : temps d'une image à 1 Mal comparé à celui de la toile (même machine)
+        async def duree(W):
+            await vue(W, 13.79, 2500)
+            return await pg.evaluate("""new Promise(res => { let n = 0, t0 = performance.now();
+              const pas = () => { HDS.aller(13.79 - 0.0001 * (n % 2)); if (++n < 30) requestAnimationFrame(pas); else res((performance.now() - t0) / 30); };
+              requestAnimationFrame(pas); })""")
+        d0, d1 = await duree(0.15), await duree(0.002)
+        note("fluidité à 1 Mal (vs toile)", d1 < 2.0 * d0 + 4, f"{d1:.0f} ms contre {d0:.0f} ms", "« ça rame énormément »")
+        # 10. pas de gel quand la Voie lactée se charge (on recharge la page, on zoome tout de suite)
+        await pg.goto(url); await pg.wait_for_timeout(5000)
+        await pg.evaluate("document.getElementById('fermer').click()")
+        gel = await pg.evaluate("""new Promise(res => { let p = performance.now(), mx = 0, t0 = p;
+          const z = document.getElementById('zoom'); z.value = 40; z.dispatchEvent(new Event('input'));
+          const f = () => { const n = performance.now(); mx = Math.max(mx, n - p); p = n; if (n - t0 < 9000) requestAnimationFrame(f); else res(mx); };
+          requestAnimationFrame(f); })""")
+        note("pas de gel au chargement de la galaxie", gel < max(600, 1.2 * d0), f"plus longue image {gel:.0f} ms", "« ça rame énormément »")
+        # 11. aucune erreur JavaScript
         note("aucune erreur JavaScript", not err, f"{len(err)} erreur(s)", "—")
         await b.close()
     print(f"\n{sum(RES)} contrôles passés, {len(RES) - sum(RES)} en échec")

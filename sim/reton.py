@@ -8,6 +8,11 @@ from PIL import Image
 LO0, HI = 0.14, 2.0
 LO = float(sys.argv[3]) if len(sys.argv) > 3 else 0.42
 os.makedirs(sys.argv[2], exist_ok=True)
+# palette inspirée de Millennium (identique au shader de la page)
+BORNES = [0, 0.22, 0.45, 0.65, 0.82, 0.93, 1.0]
+COUL = np.array([[0, 0, 0], [0.06, 0.04, 0.26], [0.40, 0.10, 0.52], [0.90, 0.32, 0.30], [1.0, 0.70, 0.32], [1.0, 0.93, 0.70], [1, 1, 1]])
+def palette(t):
+    return np.stack([np.interp(t, BORNES, COUL[:, k]) for k in range(3)], -1)
 for f in sorted(glob.glob(f"{sys.argv[1]}/*.jpg")):
     c = np.asarray(Image.open(f).convert("RGB")).astype(float) / 255
     R, G, B = c[..., 0], c[..., 1], c[..., 2]
@@ -26,6 +31,6 @@ for f in sorted(glob.glob(f"{sys.argv[1]}/*.jpg")):
     poids = np.clip((lisse - 0.45) / 0.35, 0, 1)          # 0 dans les vides, 1 dans les structures
     dl = lisse + (dl - lisse) * poids
     t2 = np.clip((dl - LO) / (HI - LO), 0, 1)
-    rgb = np.stack([np.clip(t2 * 1.75, 0, 1), np.clip((t2 - 0.4) * 1.75, 0, 1) ** 1.1, np.clip((t2 - 0.8) * 3.5, 0, 1)], -1)
+    rgb = palette(t2)
     Image.fromarray((rgb * 255).astype(np.uint8)).save(f"{sys.argv[2]}/{os.path.basename(f)}", quality=88)
 print("ok")

@@ -206,6 +206,16 @@ const orient = (i, j) => (i === 0 && j === 0) ? 0 : ((Math.imul(i * 73856093 ^ j
 function placeCopie(c, o, x, y, T) {
   c.translate(x, y); c.rotate((o & 3) * Math.PI / 2); if (o & 4) c.scale(-1, 1);
 }
+// décalage périodique propre à chaque copie : sans lui, toutes les copies gardent au
+// centre le même gros nœud (notre superamas) et le pavage réapparaît en réseau de points
+const decale = (i, j) => (i === 0 && j === 0) ? [0, 0] : [((Math.imul(i * 2246822519 ^ j * 3266489917, 668265263) >>> 8) & 1023) / 1024, ((Math.imul(i * 374761393 ^ j * 1103515245, 2654435761) >>> 8) & 1023) / 1024];
+// dessine une copie (déjà placée au centre de sa case) : contenu décalé, raccordé par périodicité
+function copieDecalee(c, src, T, [ox, oy]) {
+  if (ox === 0 && oy === 0) { c.drawImage(src, -T / 2, -T / 2, T, T); return; }
+  c.save(); c.beginPath(); c.rect(-T / 2, -T / 2, T, T); c.clip();
+  for (const a of [0, 1]) for (const b of [0, 1]) c.drawImage(src, -T / 2 - ox * T + a * T, -T / 2 - oy * T + b * T, T, T);
+  c.restore();
+}
 const superTuiles = new Map();
 function superTuile(o) {
   let st = superTuiles.get(o.im.src); if (st) return st;
@@ -217,7 +227,7 @@ function superTuile(o) {
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
     const ii = i >= n / 2 ? i - n : i, jj = j >= n / 2 ? j - n : j;   // la cellule 0 reste droite
     x.setTransform(1, 0, 0, 1, 0, 0); placeCopie(x, orient(ii, jj), (i + 0.5) * T, (j + 0.5) * T, T);
-    x.drawImage(src, -T / 2, -T / 2, T, T);
+    copieDecalee(x, src, T, decale(ii, jj));
   }
   st = ctx.createPattern(c, "repeat"); st.cote = n * T;
   if (superTuiles.size > 6) superTuiles.delete(superTuiles.keys().next().value);
@@ -277,6 +287,21 @@ function marqueurs(f, tt) { // galaxies associées au front
 // palette feu donnent l'image. Positions interpolées entre 5 instantanés,
 // multipliées par le facteur d'échelle : la matière se resserre en remontant.
 // ---------------------------------------------------------------------------
+// base64 → octets par le décodeur natif du navigateur (bien plus rapide que atob + map)
+// Données : en base64 (.txt) dans l'artefact, en binaire compressé (.bin.gz) sur GitHub Pages
+const SUR_GITHUB = /github\.io$/.test(location.hostname) || new URLSearchParams(location.search).has("gz");
+async function octets(nom, progres) {
+  const url = SUR_GITHUB ? `donnees/${nom}.bin.gz` : `${nom}.txt`;
+  const r = await fetch(url); if (!r.ok) throw new Error(`${url} : ${r.status}`);
+  const tot = +r.headers.get("content-length") || 0, lect = r.body.getReader(), morceaux = []; let lu = 0;
+  for (;;) { const { done, value } = await lect.read(); if (done) break; morceaux.push(value); lu += value.length; if (progres) progres(tot ? Math.min(1, lu / tot) : 0); }
+  const brut = new Uint8Array(await new Blob(morceaux).arrayBuffer());
+  if (brut[0] === 0x1f && brut[1] === 0x8b)   // gzip (si le serveur ne l'a pas déjà décompressé)
+    return new Uint8Array(await new Response(new Blob([brut]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+  if (url.endsWith(".gz")) return brut;
+  return deBase64(new TextDecoder().decode(brut));
+}
+const deBase64 = async txt => new Uint8Array(await (await fetch("data:application/octet-stream;base64," + txt.trim())).arrayBuffer());
 const lisse = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
 const matiere = (() => {
   const cvm = document.getElementById("matiere");
@@ -316,15 +341,25 @@ const matiere = (() => {
   const pTon = prog(`#version 300 es
     out vec2 uv; void main() { vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); uv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`,
     `#version 300 es
-    precision highp float; in vec2 uv; uniform sampler2D acc; uniform float m, wk, contraste, gain, rond; out vec4 o;
+    precision highp float; in vec2 uv; uniform sampler2D acc; uniform float m, wk, contraste, gain, rond, fond; out vec4 o;
+    // palette inspirée de Millennium : vides noirs, filaments indigo-violet, nœuds or puis blancs
+    vec3 palette(float t) {
+      vec3 c0 = vec3(0.0), c1 = vec3(0.06, 0.04, 0.26), c2 = vec3(0.40, 0.10, 0.52), c3 = vec3(0.90, 0.32, 0.30), c4 = vec3(1.0, 0.70, 0.32), c5 = vec3(1.0, 0.93, 0.70), c6 = vec3(1.0);
+      if (t < 0.22) return mix(c0, c1, t / 0.22);
+      if (t < 0.45) return mix(c1, c2, (t - 0.22) / 0.23);
+      if (t < 0.65) return mix(c2, c3, (t - 0.45) / 0.20);
+      if (t < 0.82) return mix(c3, c4, (t - 0.65) / 0.17);
+      if (t < 0.93) return mix(c4, c5, (t - 0.82) / 0.11);
+      return mix(c5, c6, (t - 0.93) / 0.07);
+    }
     void main() {
       if (rond > 0.5 && length(uv - 0.5) > 0.5) discard;
       float D = texture(acc, uv).r / wk, G = textureLod(acc, uv, 3.0).r / wk;
       float dl = log(1.0 + D / m) / 2.302585 + 0.25 * log(1.0 + G / m) / 2.302585;
       dl = 0.30103 + (dl - 0.30103) * contraste;
       float t = clamp((dl - 0.30) / (2.0 - 0.30), 0.0, 1.0);
-      vec3 c = vec3(clamp(t * 1.75, 0.0, 1.0), pow(clamp((t - 0.40) * 1.75, 0.0, 1.0), 1.1), clamp((t - 0.80) * 3.5, 0.0, 1.0));
-      o = vec4(mix(vec3(0.016, 0.02, 0.04), c, gain), 1.0);
+      vec3 c = palette(t);
+      o = vec4(mix(vec3(0.016, 0.02, 0.04) * fond, c, gain), 1.0);
     }`);
   let N = 0, AS = [], bufXY, bufH, tex, fbo, tw = 0, th = 0;
   const L = { p0: gl.getAttribLocation(pPts, "p0"), p1: gl.getAttribLocation(pPts, "p1"), h0: gl.getAttribLocation(pPts, "h0"), h1: gl.getAttribLocation(pPts, "h1") };
@@ -342,12 +377,8 @@ const matiere = (() => {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   };
-  M.charge = async (url, progres) => {
-    const r = await fetch(url); const tot = +r.headers.get("content-length") || 0;
-    const lect = r.body.getReader(); const morceaux = []; let lu = 0;
-    for (;;) { const { done, value } = await lect.read(); if (done) break; morceaux.push(value); lu += value.length; progres(tot ? lu / tot : 0); }
-    const brut = new Uint8Array(await new Blob(morceaux).arrayBuffer());
-    const bin = url.endsWith(".txt") ? Uint8Array.from(atob(new TextDecoder().decode(brut)), c => c.charCodeAt(0)) : brut;
+  M.charge = async (nom, progres) => {
+    const bin = await octets(nom, progres);
     const lh = new DataView(bin.buffer).getUint32(0, true);
     const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
     let o = 4 + lh; o += o % 2;
@@ -396,15 +427,72 @@ const matiere = (() => {
     gl.disable(gl.BLEND);
   }
   // ton logarithmique à bornes fixes + palette feu, vers une zone de l'écran
-  function ton(t, vx, vy, vw, vh, a, m, wk, alpha, rond) {
+  function ton(t, vx, vy, vw, vh, a, m, wk, alpha, rond, ajout) {
     gl.bindTexture(gl.TEXTURE_2D, t); gl.generateMipmap(gl.TEXTURE_2D);
+    gl.uniform1f(UT("fond"), 1);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(vx, vy, vw, vh);
     gl.useProgram(pTon); gl.bindVertexArray(null);
     gl.uniform1i(UT("acc"), 0); gl.uniform1f(UT("m"), m); gl.uniform1f(UT("wk"), wk); gl.uniform1f(UT("rond"), rond ? 1 : 0);
     gl.uniform1f(UT("contraste"), a < AS[0] ? Math.max(0, a / AS[0]) : 1);
     gl.uniform1f(UT("gain"), 1.0 * alpha * (a < AS[0] ? Math.max(0.15, a / AS[0]) : 1));
+    gl.uniform1f(UT("fond"), ajout ? 0 : 1);
+    if (ajout) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.disable(gl.BLEND);
   }
+  // -------------------------------------------------------------------------
+  // Halos de matière noire de TNG50 (points tirés selon un profil NFW autour de
+  // chaque halo réel) : même dépôt et même ton que la toile, entre 1 et 60 Mal.
+  // -------------------------------------------------------------------------
+  const HL = { pret: false, ep: [], off: [], bxy: null, bh: null, nRef: 1 };
+  M.chargeHalos = async nom => {
+    const bin = await octets(nom);
+    const lh = new DataView(bin.buffer).getUint32(0, true);
+    const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
+    let o = 4 + lh; o += o % 2;
+    const xy = [], hh = []; HL.ep = tete.epoques.slice().sort((p, q) => p.a - q.a); HL.off = [];
+    const parSnap = {};
+    for (const e of tete.epoques) { const n = e.n; parSnap[e.snap] = [o, n]; o += 5 * n + (n % 2); }
+    let q = 0;
+    const total = HL.ep.reduce((s, e) => s + e.n, 0), XY = new Int16Array(2 * total), H8 = new Uint8Array(total);
+    for (const e of HL.ep) {
+      const [o0, n] = parSnap[e.snap];
+      XY.set(new Int16Array(bin.buffer.slice(o0, o0 + 4 * n)), 2 * q); H8.set(bin.subarray(o0 + 4 * n, o0 + 5 * n), q);
+      HL.off.push(q); q += n;
+    }
+    HL.bxy = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, HL.bxy); gl.bufferData(gl.ARRAY_BUFFER, XY, gl.STATIC_DRAW);
+    HL.bh = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, HL.bh); gl.bufferData(gl.ARRAY_BUFFER, H8, gl.STATIC_DRAW);
+    HL.nRef = HL.ep[HL.ep.length - 1].n; HL.pret = true;
+  };
+  M.dessineHalos = (a, cx, cy, boxPx, alpha) => {
+    if (!HL.pret || alpha < 0.002 || !flottant) return;
+    const E = HL.ep, A = E.map(e => e.a);
+    if (a < A[0] * 0.8) return;
+    let j = A.findIndex(v => v >= a); if (j < 0) j = E.length - 1; const i = Math.max(0, j - 1);
+    const f = j === i ? 1 : Math.min(1, Math.max(0, (a - A[i]) / (A[j] - A[i])));
+    const debut = Math.min(1, Math.max(0, (a - A[0] * 0.8) / (A[0] * 0.2)));
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.viewport(0, 0, tw, th); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(pPts); gl.bindVertexArray(vao); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    gl.uniform1f(U("ech"), boxPx); gl.uniform2f(U("centre"), cx, cy); gl.uniform2f(U("res"), tw, th);
+    // comme pour la toile : zoomé au-delà de l'échantillonnage, les points restent des points
+    const smaxPx = DPR * Math.max(1.1, 14 * Math.min(1, 6 * tw / boxPx));
+    gl.uniform1f(U("smin"), 0.7 * DPR); gl.uniform1f(U("smax"), smaxPx); gl.uniform2f(U("dec"), 0, 0); gl.uniform1f(U("f"), 0);
+    for (const [k, w] of [[i, j === i ? 1 : 1 - f], [j, j === i ? 0 : f]]) {
+      if (w < 0.002) continue;
+      const o = HL.off[k], n = E[k].n;
+      gl.bindBuffer(gl.ARRAY_BUFFER, HL.bxy);
+      gl.enableVertexAttribArray(L.p0); gl.vertexAttribPointer(L.p0, 2, gl.SHORT, false, 0, 4 * o);
+      gl.enableVertexAttribArray(L.p1); gl.vertexAttribPointer(L.p1, 2, gl.SHORT, false, 0, 4 * o);
+      gl.bindBuffer(gl.ARRAY_BUFFER, HL.bh);
+      gl.enableVertexAttribArray(L.h0); gl.vertexAttribPointer(L.h0, 1, gl.UNSIGNED_BYTE, false, 0, o);
+      gl.enableVertexAttribArray(L.h1); gl.vertexAttribPointer(L.h1, 1, gl.UNSIGNED_BYTE, false, 0, o);
+      gl.uniform1f(U("wk"), w); gl.drawArrays(gl.POINTS, 0, n);
+    }
+    gl.disable(gl.BLEND);
+    // densité de référence : celle des points d'aujourd'hui (masse par point constante)
+    const mEff = Math.max(HL.nRef / (boxPx * boxPx), 0.1 / (6.2832 * smaxPx * smaxPx));
+    ton(tex, 0, 0, tw, th, Math.max(a, AS[0]), mEff, 1, alpha * debut, false, true);
+  };
   M.dessine = (a, cx, cy, boitePx, alpha) => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, tw, th);
     if (!M.prete || alpha < 0.002) { gl.clearColor(0.016, 0.02, 0.04, 1); gl.clear(gl.COLOR_BUFFER_BIT); return; }
@@ -509,8 +597,7 @@ const matiere = (() => {
   let bZ = null; const LZ = {}; for (const nm of ["r0", "r1", "q0", "q1", "h0", "h1", "kk"]) LZ[nm] = gl.getAttribLocation(pGaz, nm);
   const UZ = n => gl.getUniformLocation(pGaz, n);
   M.chargeGaz = async url => {
-    const r = await fetch(url); const txt = await r.text();
-    const bin = Uint8Array.from(atob(txt), c => c.charCodeAt(0));
+    const bin = await octets(url);
     const lh = new DataView(bin.buffer).getUint32(0, true);
     const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
     let o = 4 + lh; o += o % 2;
@@ -542,6 +629,75 @@ const matiere = (() => {
     if (f < 0.3 && e > 0) { const s = lis(f / 0.3); ac -= 0.5 * (1 - s); dessineGaz(e - 1, fr(e - 1), 0.5 * (1 - s), cx, cy, ppk, wk); }
     dessineGaz(e, f, ac, cx, cy, ppk, wk);
   }
+  // -------------------------------------------------------------------------
+  // Les galaxies de TNG50 autour de la Voie lactée (catalogue, tranche de ±10 Mpc/h),
+  // entre 1 et 60 millions d'années-lumière : de vraies galaxies à leur vraie place,
+  // bleutées si elles forment des étoiles, dorées si elles sont éteintes.
+  // -------------------------------------------------------------------------
+  const pCat = prog(`#version 300 es
+    in float gx; in float gy; in float lm; in float sf;
+    uniform float ech, al, aGal, ppk, kpcU; uniform vec2 centre, res;
+    out vec3 vc; out float vb;
+    void main() {
+      vec2 xy = vec2(gx, gy);
+      vec2 px = centre + vec2(xy.x, -xy.y) * ech;
+      gl_Position = vec4(px.x / res.x * 2.0 - 1.0, 1.0 - px.y / res.y * 2.0, 0.0, 1.0);
+      float m = lm / 20.0;                                     // log10 M*/Msun
+      float rk = 6.0 * pow(10.0, 0.28 * (m - 10.5));           // rayon visuel ≈ taille du disque (kpc)
+      float sig = clamp(rk * ppk * 0.5, 0.9, 7.0);
+      gl_PointSize = 6.0 * sig;
+      float centrale = length(xy) * kpcU < 25.0 ? 1.0 - aGal : 1.0;   // la Voie lactée elle-même : relayée par TNG50 détaillé
+      vb = al * centrale * clamp(0.25 + 0.30 * (m - 8.0), 0.18, 1.0);
+      vc = sf > 0.5 ? vec3(0.62, 0.76, 1.0) : vec3(1.0, 0.80, 0.52);
+    }`, `#version 300 es
+    precision highp float; in vec3 vc; in float vb; out vec4 o;
+    void main() {
+      vec2 d = gl_PointCoord * 2.0 - 1.0; float r2 = 9.0 * dot(d, d);
+      if (r2 > 9.0) discard;
+      float c = exp(-0.5 * r2), coeur = exp(-4.0 * r2);
+      o = vec4((vc * c * 0.75 + vec3(1.0) * coeur * 0.55) * vb, 1.0);
+    }`);
+  const K = { pret: false, ep: [], buf: null, off: [] };
+  const LK = { gx: gl.getAttribLocation(pCat, "gx"), gy: gl.getAttribLocation(pCat, "gy"), lm: gl.getAttribLocation(pCat, "lm"), sf: gl.getAttribLocation(pCat, "sf") };
+  const UK = n => gl.getUniformLocation(pCat, n);
+  M.catalogue = K;
+  M.chargeCatalogue = async url => {
+    const bin = await octets(url);
+    const lh = new DataView(bin.buffer).getUint32(0, true);
+    const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
+    let o = 4 + lh; o += o % 2; const base = o;
+    K.ep = tete.epoques; K.off = []; let q = 0;
+    for (const e of K.ep) { K.off.push(q); q += 6 * e.n; }
+    K.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, K.buf); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(base, base + q), gl.STATIC_DRAW);
+    K.pret = true;
+  };
+  // a : facteur d'échelle ; ppg : pixels par Gal ; dessin direct, additif, sur l'image
+  M.dessineCatalogue = (a, cx, cy, ppg, al, aGal) => {
+    if (!K.pret || al < 0.002) return;
+    const E = K.ep, A = E.map(e => e.a);
+    if (a < A[0] * 0.85) return;
+    let j = A.findIndex(v => v >= a); if (j < 0) j = E.length - 1; const i = Math.max(0, j - 1);
+    const f = j === i ? 1 : Math.min(1, Math.max(0, (a - A[i]) / (A[j] - A[i])));
+    const debut = a < A[0] ? (a - A[0] * 0.85) / (A[0] * 0.15) : 1;
+    const kpcU = a / 0.6774, ech = kpcU * 3.26156e-6 * ppg;   // 1 ckpc/h → pixels
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, tw, th);
+    gl.useProgram(pCat); gl.bindVertexArray(vaoG); gl.bindBuffer(gl.ARRAY_BUFFER, K.buf);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    gl.uniform1f(UK("ech"), ech); gl.uniform1f(UK("ppk"), ppg * 3.26156e-6); gl.uniform1f(UK("kpcU"), kpcU); gl.uniform1f(UK("aGal"), aGal);
+    gl.uniform2f(UK("centre"), cx, cy); gl.uniform2f(UK("res"), tw, th);
+    for (const [k, w] of [[i, j === i ? 1 : 1 - f], [j, j === i ? 0 : f]]) {
+      if (w < 0.002) continue;
+      const n = E[k].n, o = K.off[k];
+      gl.enableVertexAttribArray(LK.gx); gl.vertexAttribPointer(LK.gx, 1, gl.SHORT, false, 0, o);
+      gl.enableVertexAttribArray(LK.gy); gl.vertexAttribPointer(LK.gy, 1, gl.SHORT, false, 0, o + 2 * n);
+      gl.enableVertexAttribArray(LK.lm); gl.vertexAttribPointer(LK.lm, 1, gl.UNSIGNED_BYTE, false, 0, o + 4 * n);
+      gl.enableVertexAttribArray(LK.sf); gl.vertexAttribPointer(LK.sf, 1, gl.UNSIGNED_BYTE, false, 0, o + 5 * n);
+      gl.uniform1f(UK("al"), al * w * Math.max(0, debut));
+      gl.drawArrays(gl.POINTS, 0, n);
+    }
+    for (const nm in LK) gl.disableVertexAttribArray(LK[nm]);
+    gl.disable(gl.BLEND);
+  };
   const G = { pret: false, n: 0, ts: [], rpas: 0.005 };
   let bG = {}, texG = null, fboG = null, gw = 0, gh = 0;
   const LG = {}; for (const nm of ["r0", "r1", "q0", "q1", "h0", "h1", "kk", "tn", "pw"]) LG[nm] = gl.getAttribLocation(pGal, nm);
@@ -549,8 +705,7 @@ const matiere = (() => {
   const vaoG = gl.createVertexArray();
   M.galaxie = G;
   M.chargeGalaxie = async url => {
-    const r = await fetch(url); const txt = await r.text();
-    const bin = Uint8Array.from(atob(txt), c => c.charCodeAt(0));
+    const bin = await octets(url);
     const lh = new DataView(bin.buffer).getUint32(0, true);
     const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
     let o = 4 + lh; o += o % 2;
@@ -605,7 +760,13 @@ const matiere = (() => {
   };
   return M;
 })();
-let zonesInfo = [], pulsation = -1e9, galDemandee = false;
+let zonesInfo = [], pulsation = -1e9, galDemandee = false, catDemande = false, halosDemandes = false;
+// la Voie lactée se charge au repos, une fois la toile prête (pas pendant un zoom)
+function chargeVoieLactee() {
+  if (galDemandee) return; galDemandee = true;
+  matiere.chargeGalaxie("voie-lactee").then(() => { sale = true; }).catch(console.error);
+  matiere.chargeGaz("voie-lactee-gaz").then(() => { sale = true; }).catch(console.error);
+}
 
 // ---------------------------------------------------------------------------
 // Dessin
@@ -621,8 +782,16 @@ function dessine() {
   const boitePx = s.a * TUILE_GAL * ppg;
   const aPts = matiere.prete ? lisse(0.6 * Wpx, 1.0 * Wpx, boitePx) : 0;
   const aGal = 1 - lisse(0.0006, 0.003, W), KPC = 3.26156e-6, ppk = ppg * KPC;
-  if (aGal > 0 && !galDemandee) { galDemandee = true; matiere.chargeGalaxie("voie-lactee.txt").then(() => { sale = true; }).catch(console.error); matiere.chargeGaz("voie-lactee-gaz.txt").then(() => { sale = true; }).catch(console.error); }
-  matiere.dessine(s.a, cx, cy, boitePx, aPts * (1 - aGal));
+  if (aGal > 0) chargeVoieLactee();
+  // relais d'échelles : toile simulée (≥ 20 Mal) → galaxies TNG50 (1–60 Mal) → Voie lactée détaillée
+  const boiteTNG = s.a * 0.16904;                                   // la boîte TNG50 en Gal propres
+  const aCat = lisse(0.0005, 0.0016, W) * (1 - lisse(0.32, 0.48, W / boiteTNG));
+  const aPM = 1 - (1 - lisse(0.004, 0.025, W)) * Math.min(1, aCat * 1.2);
+  if (aCat > 0 && !catDemande) { catDemande = true; matiere.chargeCatalogue("galaxies").then(() => { sale = true; }).catch(console.error); }
+  matiere.dessine(s.a, cx, cy, boitePx, aPts * (1 - aGal) * aPM);
+  if (aCat > 0 && !halosDemandes) { halosDemandes = true; matiere.chargeHalos("halos").then(() => { sale = true; }).catch(console.error); }
+  matiere.dessineHalos(s.a, cx, cy, boiteTNG * ppg, aCat * (1 - 0.85 * aGal));
+  matiere.dessineCatalogue(s.a, cx, cy, ppg, aCat, aGal);
   const gx = cx, gy = cy - 8.2 * ppk;   // le Soleil est à 8,2 kpc du centre
   if (aGal > 0) matiere.dessineGalaxie(t, gx, gy, ppk, aGal);
   const loupe = scen && scen.loupe && fronts[0] ? scen.loupe : null;
@@ -649,7 +818,7 @@ function dessine() {
           const j0 = Math.floor(-cy / tuilePx - 0.5), j1 = Math.ceil((Hpx - cy) / tuilePx + 0.5);
           for (let a1 = i0; a1 <= i1; a1++) for (let b1 = j0; b1 <= j1; b1++) {
             ctx.setTransform(1, 0, 0, 1, 0, 0); placeCopie(ctx, orient(a1, b1), cx + a1 * tuilePx, cy + b1 * tuilePx, tuilePx);
-            ctx.drawImage(o.im, -tuilePx / 2, -tuilePx / 2, tuilePx, tuilePx);
+            copieDecalee(ctx, o.im, tuilePx, decale(a1, b1));
           }
           ctx.setTransform(1, 0, 0, 1, 0, 0);
         } else {
@@ -1010,8 +1179,8 @@ const SCEN = {
     cadre() { const mk = marqueurs(fronts[0], t); const Wc = Math.min(WMAX, Math.max(WMIN, mk.r * 1.3)); if (zoomAnim) zoomAnim.W1 = Wc; else { W = Wc; elZ.value = uFromW(W); } },
     avance(dts) { if (this.el < 2.5) return false; t = Math.min(T0, t * Math.exp(0.7 * dts)); this.cadre(); return t >= T0; },
     legende() {
-      if (this.fin) return "Aujourd'hui, cette lumière nous atteint : c'est le fond diffus cosmologique. Sa source est maintenant à 45 milliards d'années-lumière. Ce cercle, à 46, est l'univers observable : au-delà, aucune lumière n'a encore eu le temps de nous parvenir.";
-      if (t < 0.002) return "380 000 ans après le Big Bang, l'univers devient transparent. De la matière à 41 millions d'années-lumière de nous, une lumière part vers nous.";
+      if (this.fin) return "Aujourd'hui, cette lumière nous atteint : c'est le fond diffus cosmologique. Sa source est maintenant à 45 milliards d'années-lumière. Ce cercle, à 46, est l'univers observable : au-delà, aucune lumière n'a encore eu le temps de nous parvenir. Au moment où cette lumière est partie, toute cette région ne mesurait que 42 millions d'années-lumière de rayon.";
+      if (t < 0.002) return "380 000 ans après le Big Bang, l'univers devient transparent. De la matière à 41 millions d'années-lumière de nous, une lumière part vers nous. Toute la région qui forme aujourd'hui notre univers observable tient alors dans 42 millions d'années-lumière de rayon (une dizaine d'années-lumière à 1 seconde, quelques mètres à la fin de l'inflation).";
       if (t < 3.6) return "L'expansion l'emporte : cette lumière s'éloigne de nous, et sa source bien plus vite encore.";
       if (t < 4.6) return "Demi-tour : la lumière cesse de reculer.";
       return "Elle revient vers nous. Sa source, elle, continue de s'éloigner.";
@@ -1149,8 +1318,8 @@ taille(); tailleZoom(); requestAnimationFrame(boucle);
 // point d'entrée pour les vérifications automatiques
 window.HDS = { aller(v) { t = v; if (scen && scen.cadre) scen.cadre(); sale = true; }, get t() { return t; } };
 const elCh = document.getElementById("chargement");
-matiere.charge("matiere.txt", q => { elCh.textContent = `matière : chargement ${Math.round(100 * q)} %`; })
-  .then(() => { elCh.remove(); sale = true; })
+matiere.charge("matiere", q => { elCh.textContent = `matière : chargement ${Math.round(100 * q)} %`; })
+  .then(() => { elCh.remove(); sale = true; setTimeout(chargeVoieLactee, 1500); })
   .catch(err => { elCh.textContent = "matière : non chargée"; console.error(err); });
 ouvre("Bienvenue", "txtAccueil", ["En savoir plus", () => ouvre("L'Heure de s'enivrer", "txtApropos")]);
 document.getElementById("repAuj").style.left = (uFromT(T0) / 1000 * 100) + "%";
