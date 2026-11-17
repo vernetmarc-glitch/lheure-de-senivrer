@@ -1,12 +1,17 @@
 """Re-tonalise les tuiles : la densité moyenne devient noire (vides noirs,
 seules les surdensités brillent, comme Millennium). On inverse la palette feu
 pour retrouver dl, puis on applique la nouvelle borne basse (constante).
-Usage : python3 sim/reton.py ENTREE_DIR SORTIE_DIR [LO]"""
+Usage : python3 sim/reton.py ENTREE_DIR SORTIE_DIR [LO] [HI_SORTIE]
+HI_SORTIE (facultatif) : borne haute propre au jeu de tuiles. La grande boîte (cellules
+de 14 Mal) a des contrastes bien plus faibles que la petite : avec les bornes de la
+petite, elle sortait presque noire (max 12/255). Bornes constantes, mêmes pour toutes
+les époques : jamais de percentile de l'image courante."""
 import glob, os, sys
 import numpy as np
 from PIL import Image
 LO0, HI = 0.14, 2.0
 LO = float(sys.argv[3]) if len(sys.argv) > 3 else 0.42
+HO = float(sys.argv[4]) if len(sys.argv) > 4 else None     # borne haute de sortie (sinon HI)
 os.makedirs(sys.argv[2], exist_ok=True)
 # palette inspirée de Millennium (identique au shader de la page)
 BORNES = [0, 0.22, 0.45, 0.65, 0.82, 0.93, 1.0]
@@ -28,9 +33,12 @@ for f in sorted(glob.glob(f"{sys.argv[1]}/*.jpg")):
     # résidu de grille déformée dans les zones peu denses : lissage là seulement
     from scipy.ndimage import gaussian_filter
     lisse = gaussian_filter(dl, 4.0, mode="wrap")
-    poids = np.clip((lisse - 0.45) / 0.35, 0, 1)          # 0 dans les vides, 1 dans les structures
+    if HO is None:
+        poids = np.clip((lisse - 0.45) / 0.35, 0, 1)      # 0 dans les vides, 1 dans les structures
+    else:
+        poids = np.clip((lisse - LO) / (0.25 * (HO - LO)), 0, 1)
     dl = lisse + (dl - lisse) * poids
-    t2 = np.clip((dl - LO) / (HI - LO), 0, 1)
+    t2 = np.clip((dl - LO) / ((HO or HI) - LO), 0, 1)
     rgb = palette(t2)
     Image.fromarray((rgb * 255).astype(np.uint8)).save(f"{sys.argv[2]}/{os.path.basename(f)}", quality=88)
 print("ok")

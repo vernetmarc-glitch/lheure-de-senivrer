@@ -54,6 +54,13 @@ async def main(url):
                     cases.append(L[y0:y0 + n, x0:x0 + n])
         C = np.array(cases); r = C.mean(0).std() * math.sqrt(len(C)) / C.std(axis=(1, 2)).mean()
         note("pas de dallage (cases empilées)", r < 1.6, f"rapport {r:.2f} sur {len(C)} cases", "« dallage plus que toile »")
+        # 3 bis. au-delà de la toile cosmique, la matière reste visible comme un grain jusqu'à l'univers observable
+        fr = []
+        for Wg in (4, 15, 50):
+            im = await vue(Wg, 13.787, 1500)
+            fr.append((((im.max(-1) - im.min(-1)) > 25) & (im.mean(-1) > 20)).mean())   # la matière est colorée, cercles et textes gris
+        note("grain de matière aux très grandes échelles", min(fr) > 0.02, " ; ".join(f"{w} Gal {x:.1%}" for w, x in zip((4, 15, 50), fr)),
+             "« au-delà de la toile cosmique, continuer à voir des structures, pas un fond noir »")
         # 4. lisibilité des sphères au plus grand champ : fond sombre
         im = await vue(55, 13.79); Lm = im.mean()
         note("sphères lisibles au grand champ", Lm < 28, f"luminance moyenne {Lm:.1f}", "lisibilité > beauté")
@@ -157,9 +164,9 @@ async def main(url):
         await pg.evaluate("HDS.aller(1.25)"); fin = 99
         for _ in range(10):
             await pg.wait_for_timeout(250); fin = min(fin, await pg.evaluate("HDS.t"))
-        note("Promenade : plongée, puis on remonte le temps", W14 <= 7e-5 and v_collision > 0 and v_vite >= 2.5 * v_collision and fin <= 1.21 and Wrecul >= 2.5e-4,
+        note("Promenade : plongée, puis on remonte le temps", W14 <= 7e-5 and v_collision > 0 and v_vite >= 2.5 * v_collision and fin <= 1.21 and 1.3e-4 <= Wrecul <= 2.0e-4,
              f"champ {W14:.1e} Gal ; recul ×{v_vite / max(v_collision, 1e-9):.1f} plus vite avant les collisions ; champ en remontant {Wrecul:.1e} ; arrêt à {fin:.2f} Ga",
-             "« se délite petit à petit » ; « accélérer jusqu'à 7 Ga, ralentir aux collisions, voir les environs »")
+             "« se délite petit à petit » ; « accélérer jusqu'à 7 Ga, ralentir aux collisions » ; « dézoomer un peu moins, galaxie plus grosse » (17/11 : remplace « voir les environs », champ ≥ 2,5e-4)")
         note("Promenade : départ à l'échelle de la toile cosmique", W0 >= 1.0, f"champ de départ {W0:.2f} Gal", "« commencer à la toile cosmique, pas aux superamas »")
         note("curseurs qui bougent : pulsation", z_pulse and t_pulse, f"zoom {z_pulse}, temps {t_pulse}", "« repérer ceux qui bougent »")
         # fin de la Promenade : retour fluide à aujourd'hui, au champ Millennium, scénario désactivé
@@ -230,14 +237,21 @@ async def main(url):
         await pg.click("#fermer"); await pg.wait_for_timeout(800)
         e = await pg.evaluate("HDS.etat")
         note("accueil → Promenade", "promenade" in lab.lower() and e["scen"] == "promenade" and premier == "promenade", f"« {lab} », scénario {e['scen']}, premier bouton {premier}", "« commençons par une promenade »")
-        # 10 sexies. accueil : l'action principale sur toute la largeur, « En savoir plus » dessous
+        # 10 sexies. accueil : le premier paragraphe du texte, « plus… » pour le reste, un seul bouton pleine largeur
         await pg.goto(url); await pg.wait_for_timeout(1500)
         g = await pg.evaluate("""(() => { const f = document.getElementById('fermer').getBoundingClientRect(),
-          p = document.querySelector('#modaleBoutons .plus').getBoundingClientRect(),
-          c = document.querySelector('#modale > div').getBoundingClientRect();
-          return { lf: f.width, lc: c.width, sous: p.top >= f.bottom - 1 }; })()""")
-        note("accueil : bouton principal pleine largeur", g["lf"] > 0.8 * g["lc"] and g["sous"],
-             f"largeur {g['lf']:.0f}/{g['lc']:.0f} px, « en savoir plus » dessous {g['sous']}", "« bouton d'action principal sur toute la largeur »")
+          c = document.querySelector('#modale > div').getBoundingClientRect(),
+          ps = [...document.querySelectorAll('#modaleCorps p')].filter(p => p.offsetParent !== null),
+          lien = document.querySelector('#modaleCorps .lirePlus');
+          return { lf: f.width, lc: c.width, vus: ps.length, lien: !!lien && lien.offsetParent !== null,
+                   boutons: document.querySelectorAll('#modaleBoutons button').length,
+                   premier: ps.length ? ps[0].textContent : '' }; })()""")
+        await pg.evaluate("document.querySelector('#modaleCorps .lirePlus') && document.querySelector('#modaleCorps .lirePlus').click()"); await pg.wait_for_timeout(300)
+        tous = await pg.evaluate("[...document.querySelectorAll('#modaleCorps p')].filter(p => p.offsetParent !== null).length")
+        cle = all(m in g["premier"] for m in ("univers observable", "sphère de Hubble", "horizon des événements", "temps"))
+        note("accueil : premier paragraphe, « plus… », un bouton", g["lf"] > 0.8 * g["lc"] and g["vus"] == 1 and g["lien"] and g["boutons"] == 1 and tous >= 3 and cle,
+             f"{g['vus']} paragraphe visible puis {tous}, lien {g['lien']}, {g['boutons']} bouton(s) de {g['lf']:.0f}/{g['lc']:.0f} px, notions clés {cle}",
+             "« premier paragraphe avec l'information clé, plus… pour agrandir, plus de bouton en savoir plus »")
         # 10 septies. réseau capricieux : une tuile qui ne vient pas ne fige pas la Promenade
         pg2 = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=1)
         coups = {"n": 0}
