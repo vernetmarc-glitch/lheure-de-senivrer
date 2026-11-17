@@ -79,7 +79,9 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 #modale h2 { font-family: var(--f-titre); font-weight: 500; font-size: 17px; margin: 0 0 10px; }
 #modaleBoutons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
 #intro { position: fixed; left: 14px; right: 62px; top: calc(env(safe-area-inset-top) + 92px); background: rgba(12,14,21,0.92); border: 1px solid var(--trait); border-radius: 12px; padding: 12px 14px; z-index: 4; font-size: 14px; line-height: 1.5; }
-#intro[hidden] { display: none; }
+#intro[hidden], .carteInfo[hidden] { display: none; }
+.carteInfo { position: fixed; left: 14px; right: 62px; top: calc(env(safe-area-inset-top) + 92px); background: rgba(12,14,21,0.92); border: 1px solid var(--trait); border-radius: 12px; padding: 12px 14px; z-index: 4; font-size: 14px; line-height: 1.5; }
+.carteInfo p { margin: 0 0 10px; }
 #intro p { margin: 0 0 10px; }
 #intro button { background: var(--accent); color: #0a0f18; border-color: var(--accent); font-weight: 600; }
 #chargement { position: fixed; top: calc(env(safe-area-inset-top) + 40px); left: 14px; font-size: 11px; color: var(--doux); }
@@ -101,7 +103,12 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 </div>
 <div id="intro" hidden>
   <p>380 000 ans après le Big Bang, l'univers, assez refroidi et dilué, devient enfin transparent : la lumière peut voyager librement. À 41 millions d'années-lumière de nous, des photons commencent un voyage de 13,8 milliards d'années.</p>
+  <p>Mais ils remontent un espace en expansion : au début, ils s'éloignent même de nous, comme des fourmis qui marchent à contre-sens sur un tapis roulant plus rapide qu'elles.</p>
   <button id="cestParti">C'est parti</button>
+</div>
+<div id="finObs" class="carteInfo" hidden>
+  <p>Le point de l'espace qui a émis cette lumière est aujourd'hui à 45 milliards d'années-lumière de nous, tout près de la frontière de notre univers observable, à 46 milliards. Au-delà, aucune lumière n'a encore eu le temps de nous parvenir.</p>
+  <button id="fermeFinObs">Fermer</button>
 </div>
 <div id="bas">
   <div id="phrase"></div>
@@ -1263,6 +1270,7 @@ const SCEN = {
   observable: {
     W: 52, cercles: [], cerclesFin: ["p"],
     init() { t = TREC; fronts = [{ sens: "in", te: TREC, etiquette: "la matière qui a émis cette lumière" }]; this.cadre(); this.pause = true; this.attente = true; },
+    alaFin() { setTimeout(() => { if (scen && scen.cle === "observable" && scen.fin) document.getElementById("finObs").hidden = false; }, 1200); },
     cadre() { const mk = marqueurs(fronts[0], t); const Wc = Math.min(WMAX, Math.max(WMIN, mk.r * 1.3)); if (zoomAnim) zoomAnim.W1 = Wc; else { W = Wc; elZ.value = uFromW(W); } },
     avance(dts) { if (this.el < 2.5) return false; t = Math.min(T0, t * Math.exp(0.7 * dts)); this.cadre(); return t >= T0; },
     legende() {
@@ -1399,18 +1407,19 @@ function depart() {
   scen.attente = false; scen.pause = false; scen.el = 0; document.getElementById("intro").hidden = true; bouton("pause"); sale = true;
 }
 document.getElementById("cestParti").addEventListener("click", depart);
+document.getElementById("fermeFinObs").addEventListener("click", () => { document.getElementById("finObs").hidden = true; });
 function lanceScenario(cle) {
   joue(false);
   scen = Object.assign(Object.create(SCEN[cle]), { cle, el: 0, fin: false, pause: false });
   const W0z = W; W = scen.W; scen.init(); const Wc = W; W = W0z; zoomVers(Wc, 900); elT.value = uFromT(t);
-  document.getElementById("intro").hidden = !scen.attente;
+  document.getElementById("intro").hidden = !scen.attente; document.getElementById("finObs").hidden = true;
   document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.toggle("actif", x.dataset.scen === cle));
   bouton(scen.attente ? "lecture" : "pause"); sale = true;
 }
 // sortir d'un scénario : on garde l'instant et le champ, on retire tout ce que le scénario
 // avait ajouté (lumière, galaxies-témoins, courant), et l'on revient aux trois sphères
 function libre() {
-  joue(false); fronts = []; zoomAnim = null; document.getElementById("intro").hidden = true;
+  joue(false); fronts = []; zoomAnim = null; document.getElementById("intro").hidden = true; document.getElementById("finObs").hidden = true;
   if (!scen) { sale = true; return; }
   scen = null; document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.remove("actif"));
   cibles.forEach(g => g.allume = -1); COURANT.forEach(g => g.tn = -1);
@@ -1478,7 +1487,7 @@ function boucle(now) {
   const dts = Math.min(0.05, (now - tPrec) / 1000); tPrec = now; dtsGlobal = dts;
   if (scen && !scen.pause && !scen.fin) {
     scen.el += dts;
-    if (scen.avance(dts)) { scen.fin = true; bouton("rejouer"); }
+    if (scen.avance(dts)) { scen.fin = true; bouton("rejouer"); if (scen.alaFin) scen.alaFin(); }
     elT.value = uFromT(t); sale = true;
   } else if (lecture) {
     // à l'échelle de la Voie lactée, le temps ralentit (0,12 Ga/s) pour que la rotation reste lisible
