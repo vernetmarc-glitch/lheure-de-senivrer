@@ -288,7 +288,7 @@ function superTuile(o, T = 256) {
   if (o.crete && w > T) {
     const f = w / T, seuil = { 32: 0.19, 64: 0.12, 128: 0.06, 256: 0.04 }[T] || 0.04, a = document.createElement("canvas"); a.width = a.height = w;
     const ax = a.getContext("2d"); ax.drawImage(o.im, 0, 0); const d = ax.getImageData(0, 0, w, w).data;
-    const h = document.createElement("canvas"); h.width = h.height = T; const hx = h.getContext("2d"), r = hx.createImageData(T, T);
+    const r = new ImageData(T, T);
     for (let y = 0; y < T; y++) for (let x0 = 0; x0 < T; x0++) {
       let s0 = 0, s1 = 0, s2 = 0;
       for (let v = 0; v < f; v++) { let q = ((y * f + v) * w + x0 * f) * 4; for (let u = 0; u < f; u++, q += 4) { const r0 = d[q] / 255, g0 = d[q + 1] / 255, b0 = d[q + 2] / 255; s0 += r0 * r0 * r0 * r0; s1 += g0 * g0 * g0 * g0; s2 += b0 * b0 * b0 * b0; } }
@@ -298,7 +298,28 @@ function superTuile(o, T = 256) {
       const L = (R0 + G0 + B0) / 3, m = 2.6 * Math.min(1, Math.max(0, (L - seuil) / (0.8 * seuil)));
       r.data[k] = 255 * Math.min(1, R0 * m); r.data[k + 1] = 255 * Math.min(1, G0 * m); r.data[k + 2] = 255 * Math.min(1, B0 * m); r.data[k + 3] = 255;
     }
-    hx.putImageData(r, 0, 0); src = h; w = T;
+    // assemblage au pixel près, sans couture : chaque copie est tournée, retournée et décalée
+    // par indices entiers (aucun rééchantillonnage, donc aucun liseré aux bords), et le motif
+    // couvre n × n copies (2048 px : jusqu'à 64 × 64 copies, soit 460 milliards d'années-lumière) avant de se répéter
+    const n = Math.max(8, Math.min(64, 2048 / T)), N = n * T, P = r.data;
+    const big = document.createElement("canvas"); big.width = big.height = N;
+    const bx = big.getContext("2d"), B = bx.createImageData(N, N), D = B.data;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const ii = i >= n / 2 ? i - n : i, jj = j >= n / 2 ? j - n : j;   // la cellule 0 reste droite
+      const o2 = orient(ii, jj), [dx, dy] = decale(ii, jj), ox = Math.floor(dx * T), oy = Math.floor(dy * T);
+      for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+        let u = x, v = y;
+        if (o2 & 4) u = T - 1 - u;
+        for (let q = 0; q < (o2 & 3); q++) { const t2 = u; u = v; v = T - 1 - t2; }
+        u = (u + ox) % T; v = (v + oy) % T;
+        const ks = (v * T + u) * 4, kd = ((j * T + y) * N + i * T + x) * 4;
+        D[kd] = P[ks]; D[kd + 1] = P[ks + 1]; D[kd + 2] = P[ks + 2]; D[kd + 3] = 255;
+      }
+    }
+    bx.putImageData(B, 0, 0);
+    st = ctx.createPattern(big, "repeat"); st.cote = N;
+    if (superTuiles.size > 6) superTuiles.delete(superTuiles.keys().next().value);   // 16 Mo par motif : mémoire du téléphone
+    superTuiles.set(cle, st); return st;
   }
   while (w / 2 >= T) { const h = document.createElement("canvas"); h.width = h.height = w / 2; const hx = h.getContext("2d"); hx.imageSmoothingQuality = "high"; hx.drawImage(src, 0, 0, w / 2, w / 2); src = h; w /= 2; }
   const x = c.getContext("2d"); x.imageSmoothingQuality = "high";
@@ -714,32 +735,33 @@ const matiere = (() => {
     bZ = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, bZ); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(o), gl.STATIC_DRAW);
     Object.assign(Z, { n: tete.n, ts: tete.t, rpas: tete.rpas, w: tete.w, pret: true });
   };
-  function dessineGaz(e, f, al, cx, cy, ppk, wk) {
+  function dessineGaz(e, f, al, cx, cy, ppk, wk, cible, debut, n) {
     const N = Z.n, B = 15 * N, o = e * B;
     gl.useProgram(pGaz); gl.bindVertexArray(vaoG); gl.bindBuffer(gl.ARRAY_BUFFER, bZ);
-    const att = (nom, n, type, off) => { gl.enableVertexAttribArray(LZ[nom]); gl.vertexAttribPointer(LZ[nom], n, type, false, 0, off); };
+    const att = (nom, n2, type, off) => { gl.enableVertexAttribArray(LZ[nom]); gl.vertexAttribPointer(LZ[nom], n2, type, false, 0, off); };
     att("r0", 1, gl.UNSIGNED_SHORT, o); att("r1", 1, gl.UNSIGNED_SHORT, o + 2 * N);
     att("q0", 1, gl.UNSIGNED_SHORT, o + 4 * N); att("q1", 1, gl.UNSIGNED_SHORT, o + 6 * N);
     att("h0", 1, gl.UNSIGNED_BYTE, o + 8 * N); att("h1", 1, gl.UNSIGNED_BYTE, o + 9 * N); att("kk", 1, gl.BYTE, o + 10 * N);
     att("z0", 1, gl.SHORT, o + 11 * N); att("z1", 1, gl.SHORT, o + 13 * N);
     gl.uniform1f(UZ("ci"), INCL.c); gl.uniform1f(UZ("si"), INCL.s);
-    gl.uniform1f(UZ("f"), f); gl.uniform1f(UZ("ppk"), ppk); gl.uniform1f(UZ("rpas"), Z.rpas); gl.uniform1f(UZ("al"), al * Z.w[e]);
-    gl.uniform1f(UZ("smin"), 0.6 * DPR); gl.uniform1f(UZ("smax"), 40 * DPR); gl.uniform1f(UZ("wk"), wk);
-    gl.uniform2f(UZ("centre"), cx, cy); gl.uniform2f(UZ("res"), tw, th);
-    gl.drawArrays(gl.POINTS, 0, N);
+    gl.uniform1f(UZ("f"), f); gl.uniform1f(UZ("ppk"), ppk * cible.q); gl.uniform1f(UZ("rpas"), Z.rpas); gl.uniform1f(UZ("al"), al * Z.w[e]);
+    gl.uniform1f(UZ("smin"), Math.max(0.5, 0.6 * DPR * cible.q)); gl.uniform1f(UZ("smax"), 40 * DPR * cible.q); gl.uniform1f(UZ("wk"), wk);
+    gl.uniform2f(UZ("centre"), cx * cible.q, cy * cible.q); gl.uniform2f(UZ("res"), cible.w, cible.h);
+    gl.drawArrays(gl.POINTS, debut, n);
     for (const nm in LZ) gl.disableVertexAttribArray(LZ[nm]);
   }
   // à l'instant tt : l'échantillon de l'intervalle courant, et en fondu celui d'à côté
-  function gazA(tt, cx, cy, ppk, wk) {
-    if (!Z.pret) return;
+  function passesGaz(tt) {
+    if (!Z.pret) return [];
     const ts = Z.ts, E = ts.length;
-    let e = ts.findIndex(v => v > tt) - 1; if (e < 0) e = tt < ts[0] ? -1 : E - 2; if (e < 0) return;
+    let e = ts.findIndex(v => v > tt) - 1; if (e < 0) e = tt < ts[0] ? -1 : E - 2; if (e < 0) return [];
     e = Math.min(e, E - 2);
     const fr = k => (tt - ts[k]) / (ts[k + 1] - ts[k]), f = fr(e), lis = u => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u); };
-    let ac = 1;
-    if (f > 0.7 && e + 1 <= E - 2) { const s = lis((f - 0.7) / 0.3); ac -= 0.5 * s; dessineGaz(e + 1, fr(e + 1), 0.5 * s, cx, cy, ppk, wk); }
-    if (f < 0.3 && e > 0) { const s = lis(f / 0.3); ac -= 0.5 * (1 - s); dessineGaz(e - 1, fr(e - 1), 0.5 * (1 - s), cx, cy, ppk, wk); }
-    dessineGaz(e, f, ac, cx, cy, ppk, wk);
+    let ac = 1; const L = [];
+    if (f > 0.7 && e + 1 <= E - 2) { const s = lis((f - 0.7) / 0.3); ac -= 0.5 * s; L.push({ gaz: true, e: e + 1, f: fr(e + 1), al: 0.5 * s, n: Z.n }); }
+    if (f < 0.3 && e > 0) { const s = lis(f / 0.3); ac -= 0.5 * (1 - s); L.push({ gaz: true, e: e - 1, f: fr(e - 1), al: 0.5 * (1 - s), n: Z.n }); }
+    L.push({ gaz: true, e, f, al: ac, n: Z.n });
+    return L;
   }
   // -------------------------------------------------------------------------
   // Les galaxies de TNG50 autour de la Voie lactée (catalogue, tranche de ±10 Mpc/h),
@@ -812,7 +834,7 @@ const matiere = (() => {
     gl.disable(gl.BLEND);
   };
   const G = { pret: false, n: 0, ts: [], rpas: 0.005 };
-  let bG = {}, texG = null, fboG = null, gw = 0, gh = 0;
+  let bG = {};
   const LG = {}; for (const nm of ["pm", "pa", "pb", "pp", "h0", "h1", "kk", "tn", "pw"]) LG[nm] = gl.getAttribLocation(pGal, nm);
   const UG = n => gl.getUniformLocation(pGal, n), UGT = n => gl.getUniformLocation(pGalTon, n);
   const vaoG = gl.createVertexArray();
@@ -829,47 +851,105 @@ const matiere = (() => {
     bG.k = tampon(tranche(N * (E - 1))); bG.tn = tampon(tranche(N * 2)); bG.w = tampon(tranche(N * 2));
     Object.assign(G, { n: N, ts: tete.t, rpas: tete.rpas, pret: true });
   };
-  function cibleG() {
-    if (gw === tw && gh === th && texG) return;
-    if (texG) { gl.deleteTexture(texG); gl.deleteFramebuffer(fboG); }
-    texG = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texG);
-    gl.texImage2D(gl.TEXTURE_2D, 0, flottant ? gl.RGBA16F : gl.RGBA8, tw, th, 0, gl.RGBA, flottant ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+  // La Voie lactée peint jusqu'à 130 fois la surface de l'écran par image (étoiles et gaz,
+  // taches qui grossissent avec le zoom) : intenable sur un téléphone. Pendant le mouvement,
+  // on l'accumule dans une image réduite (budget ≈ 3 écrans) ; à l'arrêt, la pleine
+  // résolution se construit par tranches, en arrière-plan, et la remplace une fois complète.
+  // Remplissage (écrans) selon le grossissement, mesuré une fois sur les données : constantes.
+  const REMP = [[0.188, 3.5], [0.564, 4.5], [1.128, 7.5], [2.015, 15.4], [3.319, 31.9], [5.643, 69.7], [9.404, 130]];
+  function remplissage(pk) {                                         // pk : pixels CSS par kpc
+    const R = REMP, m = R.length;
+    if (pk <= R[0][0]) return R[0][1];
+    let k = 1; while (k < m - 1 && pk > R[k][0]) k++;
+    const [a0, b0] = R[k - 1], [a1, b1] = R[k];
+    return b0 * Math.pow(b1 / b0, Math.log(pk / a0) / Math.log(a1 / a0));
+  }
+  const NIV = [1, 0.7, 0.5, 0.35, 0.25], BUDGET = 3;
+  const ciblesG = NIV.map(q => ({ q, w: 0, h: 0, tex: null, fbo: null }));
+  const pleine = { cle: "", fait: 0, pret: false, depuis: 0 }, basse = { cle: "", niv: -1 };
+  M.etat = { q: 1, remplissage: 0, pleine: false }; M.directe = false;
+  function cibleG(c) {
+    const w = Math.max(1, Math.round(tw * c.q)), h = Math.max(1, Math.round(th * c.q));
+    if (c.w === w && c.h === h && c.tex) return c;
+    if (c.tex) { gl.deleteTexture(c.tex); gl.deleteFramebuffer(c.fbo); }
+    c.tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, c.tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, flottant ? gl.RGBA16F : gl.RGBA8, w, h, 0, gl.RGBA, flottant ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    fboG = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fboG);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texG, 0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gw = tw; gh = th;
+    c.fbo = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, c.fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, c.tex, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); c.w = w; c.h = h;
+    if (c === ciblesG[0]) pleine.cle = ""; if (basse.niv === NIV.indexOf(c.q)) basse.cle = "";
+    return c;
+  }
+  // accumule, dans la cible, les éléments [debut, fin) de la liste : étoiles puis passes de gaz
+  function accumule(c, P, debut, fin, efface) {
+    const { tt, cx, cy, ppk, wk, i, j, f, passes } = P, N = G.n;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, c.fbo); gl.viewport(0, 0, c.w, c.h);
+    if (efface) { gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); }
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    let base = 0;
+    for (const pa of passes) {
+      const a = Math.max(debut, base), b = Math.min(fin, base + pa.n);
+      if (b > a) {
+        if (pa.gaz) dessineGaz(pa.e, pa.f, pa.al, cx, cy, ppk, wk, c, a - base, b - a);
+        else {
+          gl.useProgram(pGal); gl.bindVertexArray(vaoG);
+          const att = (nom, buf, n, type, off) => { gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(LG[nom]); gl.vertexAttribPointer(LG[nom], n, type, false, 0, off); };
+          const E = G.ts.length, em = Math.max(0, i - 1), ep = Math.min(E - 1, j + 1);
+          att("pm", bG.p, 3, gl.UNSIGNED_SHORT, em * N * 6); att("pa", bG.p, 3, gl.UNSIGNED_SHORT, i * N * 6);
+          att("pb", bG.p, 3, gl.UNSIGNED_SHORT, j * N * 6); att("pp", bG.p, 3, gl.UNSIGNED_SHORT, ep * N * 6);
+          gl.uniform1f(UG("ci"), INCL.c); gl.uniform1f(UG("si"), INCL.s);
+          att("h0", bG.h, 1, gl.UNSIGNED_BYTE, i * N); att("h1", bG.h, 1, gl.UNSIGNED_BYTE, j * N);
+          att("kk", bG.k, 1, gl.BYTE, i * N); att("tn", bG.tn, 1, gl.UNSIGNED_SHORT, 0); att("pw", bG.w, 1, gl.UNSIGNED_SHORT, 0);
+          gl.uniform1f(UG("f"), f); gl.uniform1f(UG("t"), tt); gl.uniform1f(UG("ppk"), ppk * c.q); gl.uniform1f(UG("rpas"), G.rpas);
+          gl.uniform1f(UG("smin"), Math.max(0.5, 0.6 * DPR * c.q)); gl.uniform1f(UG("smax"), 40 * DPR * c.q); gl.uniform1f(UG("wk"), wk);
+          gl.uniform2f(UG("centre"), cx * c.q, cy * c.q); gl.uniform2f(UG("res"), c.w, c.h);
+          gl.drawArrays(gl.POINTS, a - base, b - a);
+          for (const nm in LG) gl.disableVertexAttribArray(LG[nm]);
+        }
+      }
+      base += pa.n;
+    }
+    gl.disable(gl.BLEND); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
   // (cx, cy) : centre de la galaxie à l'écran ; ppk : pixels par kpc
   M.dessineGalaxie = (tt, cx, cy, ppk, alpha) => {
     if (!G.pret || alpha < 0.002 || tt < G.ts[0] * 0.8) return;
-    cibleG();
-    const ts = G.ts, E = ts.length, N = G.n;
+    const ts = G.ts, E = ts.length;
     let i, j, f;
     if (tt >= ts[E - 1]) { i = E - 2; j = E - 1; f = 1 + (tt - ts[E - 1]) / (ts[E - 1] - ts[E - 2]); }
     else { j = Math.max(1, ts.findIndex(v => v >= tt)); i = j - 1; f = Math.max(0, (tt - ts[i]) / (ts[j] - ts[i])); }
     const wk = flottant ? 0.05 : 0.002;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fboG); gl.viewport(0, 0, tw, th); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.useProgram(pGal); gl.bindVertexArray(vaoG);
-    const att = (nom, buf, n, type, off) => { gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(LG[nom]); gl.vertexAttribPointer(LG[nom], n, type, false, 0, off); };
-    const em = Math.max(0, i - 1), ep = Math.min(E - 1, j + 1);
-    att("pm", bG.p, 3, gl.UNSIGNED_SHORT, em * N * 6); att("pa", bG.p, 3, gl.UNSIGNED_SHORT, i * N * 6);
-    att("pb", bG.p, 3, gl.UNSIGNED_SHORT, j * N * 6); att("pp", bG.p, 3, gl.UNSIGNED_SHORT, ep * N * 6);
-    gl.uniform1f(UG("ci"), INCL.c); gl.uniform1f(UG("si"), INCL.s);
-    att("h0", bG.h, 1, gl.UNSIGNED_BYTE, i * N); att("h1", bG.h, 1, gl.UNSIGNED_BYTE, j * N);
-    att("kk", bG.k, 1, gl.BYTE, i * N); att("tn", bG.tn, 1, gl.UNSIGNED_SHORT, 0); att("pw", bG.w, 1, gl.UNSIGNED_SHORT, 0);
-    gl.uniform1f(UG("f"), f); gl.uniform1f(UG("t"), tt); gl.uniform1f(UG("ppk"), ppk); gl.uniform1f(UG("rpas"), G.rpas);
-    gl.uniform1f(UG("smin"), 0.6 * DPR); gl.uniform1f(UG("smax"), 40 * DPR); gl.uniform1f(UG("wk"), wk);
-    gl.uniform2f(UG("centre"), cx, cy); gl.uniform2f(UG("res"), tw, th);
-    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
-    gl.drawArrays(gl.POINTS, 0, N);
-    for (const nm in LG) gl.disableVertexAttribArray(LG[nm]);
-    gazA(tt, cx, cy, ppk, wk);
+    const passes = [{ gaz: false, n: G.n }, ...passesGaz(tt)], total = passes.reduce((a, p) => a + p.n, 0);
+    const P = { tt, cx, cy, ppk, wk, i, j, f, passes };
+    const cle = `${tt}|${cx}|${cy}|${ppk}|${tw}x${th}`, now = performance.now();
+    const F = remplissage(ppk / DPR);
+    let niv = 0; if (!M.directe) while (niv < NIV.length - 1 && F * NIV[niv] * NIV[niv] > BUDGET) niv++;
+    const c0 = cibleG(ciblesG[0]);
+    if (pleine.cle !== cle) { pleine.cle = cle; pleine.fait = 0; pleine.pret = false; pleine.depuis = now; }
+    let src = c0, q = 1;
+    if (niv === 0) {                                               // bon marché : tout, tout de suite
+      if (!pleine.pret) { accumule(c0, P, 0, total, true); pleine.pret = true; }
+      M.etat = { q: 1, remplissage: F, pleine: true };
+    } else if (!pleine.pret) {
+      const c = cibleG(ciblesG[niv]); src = c; q = c.q;
+      if (basse.cle !== cle || basse.niv !== niv) { accumule(c, P, 0, total, true); basse.cle = cle; basse.niv = niv; }
+      // à l'arrêt depuis 0,2 s : la pleine résolution, une tranche par image, en arrière-plan
+      if (now - pleine.depuis > 200) {
+        const tranche = Math.max(1000, Math.floor(total * BUDGET / F));
+        accumule(c0, P, pleine.fait, Math.min(total, pleine.fait + tranche), pleine.fait === 0);
+        pleine.fait += tranche; if (pleine.fait >= total) { pleine.pret = true; src = c0; q = 1; }
+      }
+      if (!pleine.pret) sale = true;                               // on redemande des images jusqu'à la fin
+      M.etat = { q, remplissage: F * NIV[niv] * NIV[niv], pleine: pleine.pret };
+    } else M.etat = { q: 1, remplissage: 0, pleine: true };
     // ton, ajouté par-dessus le fond
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, tw, th);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     gl.useProgram(pGalTon); gl.bindVertexArray(null);
-    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texG);
-    gl.uniform1i(UGT("acc"), 0); gl.uniform1f(UGT("ppk2"), ppk * ppk); gl.uniform1f(UGT("wk"), wk); gl.uniform1f(UGT("alpha"), alpha);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src.tex);
+    gl.uniform1i(UGT("acc"), 0); gl.uniform1f(UGT("ppk2"), ppk * q * ppk * q); gl.uniform1f(UGT("wk"), wk); gl.uniform1f(UGT("alpha"), alpha);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.disable(gl.BLEND);
   };
@@ -1006,7 +1086,7 @@ function dessine() {
 
   // les sphères : toutes en mode libre, seulement celle du scénario sinon
   // grille d'échelle, centrée sur nous
-  ctx.globalAlpha = 1 - 0.6 * aGal; dessineGrille(cx, cy, ppg); ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1 - 0.6 * aGal; if (!sansGrille) dessineGrille(cx, cy, ppg); ctx.globalAlpha = 1;
   zonesInfo = [];
   const vis = scen ? (scen.cerclesVus ?? (scen.fin && scen.cerclesFin ? scen.cerclesFin : scen.cercles)) : ["p", "e", "h"];
   if (vis.length) {
@@ -1700,7 +1780,8 @@ function boucle(now) {
 }
 taille(); tailleZoom(); requestAnimationFrame(boucle);
 // point d'entrée pour les vérifications automatiques
-window.HDS = { get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
+let sansGrille = false;                                   // contrôles seulement : mesurer le fond sans la grille
+window.HDS = { set grille(v) { sansGrille = !v; sale = true; }, get galaxie() { return matiere.etat; }, set galaxieDirecte(v) { matiere.directe = !!v; sale = true; }, get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
   aller(v) { t = v; if (scen && scen.cadre) scen.cadre(); sale = true; }, get t() { return t; }, get W() { return W; },
   get etat() { return { scen: scen ? scen.cle : null, fronts: fronts.length, acte: scen ? scen.acte || 0 : 0, attente: !!(scen && scen.attente) }; },
   set el(v) { if (scen) { scen.el = v; sale = true; } }, get el() { return scen ? scen.el : 0; } };

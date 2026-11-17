@@ -61,6 +61,29 @@ async def main(url):
             fr.append((((im.max(-1) - im.min(-1)) > 25) & (im.mean(-1) > 20)).mean())   # la matière est colorée, cercles et textes gris
         note("grain de matière aux très grandes échelles", min(fr) > 0.02, " ; ".join(f"{w} Gal {x:.1%}" for w, x in zip((4, 15, 50), fr)),
              "« au-delà de la toile cosmique, continuer à voir des structures, pas un fond noir »")
+        # 3 ter. pas de dallage au grand champ (univers observable), sur un écran de téléphone (densité 3)
+        pg3 = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=3)
+        await pg3.goto(url); await pg3.wait_for_timeout(5000)
+        await pg3.evaluate("document.getElementById('modale').classList.remove('ouverte'); HDS.grille = false")   # le fond seul
+        rs = []
+        for Wd in (46, 90):
+            await pg3.evaluate(f"(()=>{{const z=document.getElementById('zoom');z.value={u(Wd)};z.dispatchEvent(new Event('input'));HDS.aller(13.787)}})()")
+            await pg3.wait_for_timeout(2000)
+            L3 = np.asarray(Image.open(io.BytesIO(await pg3.screenshot())).convert("L")).astype(float)
+            ppg3 = 3 * (min(390 - 44, 844 * 0.8) / 2) / Wd; T3 = 7.25866 * ppg3; n3 = int(T3)
+            cx3, cy3 = 3 * (390 - 44) / 2, 3 * (844 * 0.44 - 70)
+            cs = []
+            for i in range(-12, 13):
+                for j in range(-20, 21):
+                    x0, y0 = int(round(cx3 + (i - 0.5) * T3)), int(round(cy3 + (j - 0.5) * T3))
+                    if x0 >= 0 and y0 >= 3 * 60 and x0 + n3 <= 3 * 340 and y0 + n3 <= 3 * 600 and (i, j) != (0, 0):
+                        cs.append(L3[y0:y0 + n3, x0:x0 + n3])
+            # médiane des cases empilées : une répétition la garde contrastée, les textes et cercles
+            # (présents dans quelques cases seulement) ne la faussent pas ; cases indépendantes → ≈ 1,25
+            C3 = np.array(cs); rs.append(np.median(C3, 0).std() * math.sqrt(len(C3)) / C3.std(axis=(1, 2)).mean())
+        await pg3.close()
+        note("pas de dallage à l'échelle de l'univers observable", max(rs) < 1.6, " ; ".join(f"{w} Gal : rapport {r:.2f}" for w, r in zip((46, 90), rs)),
+             "« un dallage régulier qui fait un peu moche »")
         # 4. lisibilité des sphères au plus grand champ : fond sombre
         im = await vue(55, 13.79); Lm = im.mean()
         note("sphères lisibles au grand champ", Lm < 28, f"luminance moyenne {Lm:.1f}", "lisibilité > beauté")
@@ -148,8 +171,8 @@ async def main(url):
             await pg.evaluate(f"HDS.el = {e_}"); await pg.wait_for_timeout(500); tz.append(await pg.evaluate("HDS.t"))
         note("Promenade : le temps attend la fin du zoom", max(tz) >= 13.77, f"t pendant le recul : {[round(x, 2) for x in tz]}", "« ne remonte pas le temps pendant le dézoom final »")
         Ws = []
-        for e_ in (13.6, 14.5, 15.4):
-            await pg.evaluate(f"HDS.el = {e_}"); await pg.wait_for_timeout(700); Ws.append(await pg.evaluate("HDS.W"))
+        for e_ in (13.6, 14.5, 15.4):                       # lecture deux images après, indépendante de la vitesse de la machine
+            Ws.append(await pg.evaluate(f"new Promise(r => {{ HDS.el = {e_}; requestAnimationFrame(() => requestAnimationFrame(() => r(HDS.W))); }})"))
         W14 = Ws[1]
         note("Promenade : plongée et recul d'un seul mouvement", Ws[0] > 1.03 * Ws[1] and Ws[2] > 1.03 * Ws[1],
              f"champ {Ws[0]:.2e} → {Ws[1]:.2e} → {Ws[2]:.2e} Gal (à ±0,9 s du fond)", "« pas de pause entre le zoom et le dézoom »")
@@ -190,6 +213,26 @@ async def main(url):
         intro_txt = await pg.evaluate("document.getElementById('intro').textContent")
         note("Observable : tapis roulant annoncé, 46 Gal à la fin", fin_vis and "tapis roulant" in intro_txt, f"fourmis {'tapis roulant' in intro_txt}, fenêtre de fin {fin_vis}", "« fourmis sur un tapis roulant » ; « 46 milliards à la fin »")
         await pg.click("[data-scen=observable]"); await pg.wait_for_timeout(300)
+        # 9 nonies. Voie lactée : basse résolution pendant le mouvement (budget de remplissage),
+        #    pleine résolution reconstruite en arrière-plan à l'arrêt, identique au rendu direct
+        await vue(0.0003, 13.787, 300)
+        bouge = await pg.evaluate(f"""new Promise(r => {{ const z = document.getElementById('zoom'); const u0 = {u(0.0004)}, u1 = {u(0.00017)}; let k = 0, mx = 0, qs = [];
+          const f = () => {{ k++; z.value = u0 + (u1 - u0) * k / 30; z.dispatchEvent(new Event('input'));
+            const g = HDS.galaxie || {{ q: 1, remplissage: 99 }}; qs.push(g.q); mx = Math.max(mx, g.remplissage);
+            if (k < 30) requestAnimationFrame(f); else r({{ qmax: Math.max(...qs.slice(3)), rmax: mx }}); }}; requestAnimationFrame(f); }})""")
+        fin = None
+        for _ in range(60):
+            await pg.wait_for_timeout(250); fin = await pg.evaluate("HDS.galaxie || { pleine: false }")
+            if fin["pleine"]: break
+        a1 = np.asarray(Image.open(io.BytesIO(await pg.screenshot())).convert("RGB")).astype(float)[70:560, 0:340]
+        await pg.evaluate("HDS.galaxieDirecte = true"); await pg.wait_for_timeout(1500)
+        a2 = np.asarray(Image.open(io.BytesIO(await pg.screenshot())).convert("RGB")).astype(float)[70:560, 0:340]
+        await pg.evaluate("HDS.galaxieDirecte = false")
+        ecart = np.abs(a1 - a2).mean()
+        note("Voie lactée : basse résolution en mouvement", bouge["qmax"] <= 0.5 and bouge["rmax"] <= 4,
+             f"résolution ≤ {bouge['qmax']:.2f}, remplissage ≤ {bouge['rmax']:.1f} écrans par image", "« ça rame quand la Voie lactée apparaît »")
+        note("Voie lactée : pleine résolution à l'arrêt", fin["pleine"] and ecart < 1.5,
+             f"pleine {fin['pleine']}, écart au rendu direct {ecart:.2f}/255", "« la haute résolution s'affiche dès qu'elle est disponible »")
         # 10. pas de gel quand la Voie lactée se charge (on recharge la page, on zoome tout de suite)
         await pg.goto(url); await pg.wait_for_timeout(5000)
         await pg.evaluate("document.getElementById('modale').classList.remove('ouverte')")
