@@ -187,13 +187,31 @@ async def main(url):
         await pg.evaluate("HDS.aller(1.25)"); fin = 99
         for _ in range(10):
             await pg.wait_for_timeout(250); fin = min(fin, await pg.evaluate("HDS.t"))
-        note("Promenade : plongée, puis on remonte le temps", W14 <= 7e-5 and v_collision > 0 and v_vite >= 2.5 * v_collision and fin <= 1.21 and 1.3e-4 <= Wrecul <= 2.0e-4,
+        note("Promenade : plongée, puis on remonte le temps", W14 <= 7e-5 and v_collision > 0 and v_vite >= 2.5 * v_collision and fin <= 1.81 and 1.3e-4 <= Wrecul <= 2.0e-4,
              f"champ {W14:.1e} Gal ; recul ×{v_vite / max(v_collision, 1e-9):.1f} plus vite avant les collisions ; champ en remontant {Wrecul:.1e} ; arrêt à {fin:.2f} Ga",
              "« se délite petit à petit » ; « accélérer jusqu'à 7 Ga, ralentir aux collisions » ; « dézoomer un peu moins, galaxie plus grosse » (17/11 : remplace « voir les environs », champ ≥ 2,5e-4)")
         note("Promenade : départ à l'échelle de la toile cosmique", W0 >= 1.0, f"champ de départ {W0:.2f} Gal", "« commencer à la toile cosmique, pas aux superamas »")
         note("curseurs qui bougent : pulsation", z_pulse and t_pulse, f"zoom {z_pulse}, temps {t_pulse}", "« repérer ceux qui bougent »")
         # fin de la Promenade : retour fluide à aujourd'hui, au champ Millennium, scénario désactivé
         suite = []
+        # fin de la remontée : la jeune galaxie reste visible, et le retour repart vite (17/11, 18 h 59)
+        await pg.evaluate("HDS.recit('promenade'); HDS.recit('promenade')"); await pg.wait_for_timeout(1500)   # une Promenade neuve
+        await pg.evaluate("HDS.el = 22; HDS.aller(3.4)"); fil = []
+        for _ in range(120):
+            await pg.wait_for_timeout(200); fil.append(await pg.evaluate("[HDS.el, HDS.t, HDS.W]"))
+            if len(fil) > 5 and fil[-1][2] > 1.6 * min(x[2] for x in fil): break
+        e3 = next((x[0] for x in fil if x[1] <= 3.0), None)
+        k0 = min(range(len(fil)), key=lambda k: (fil[k][1], k))         # le point le plus ancien atteint
+        eR = next((x[0] for x in fil[k0:] if x[2] > 1.15 * fil[k0][2]), None)   # le champ repart (retour)
+        attente = (eR - e3) if (e3 is not None and eR is not None) else 99
+        # à l'arrêt, l'embryon de galaxie occupe encore une part visible de l'écran
+        await pg.evaluate("HDS.recit('promenade'); HDS.recit('promenade')"); await pg.wait_for_timeout(1200)
+        await pg.evaluate("HDS.el = 22; HDS.aller(1.81)"); await pg.wait_for_timeout(1200)
+        img = np.asarray(Image.open(io.BytesIO(await pg.screenshot())).convert("RGB")).astype(float)[100:600, 0:340]
+        vu = (((img.max(-1) - img.min(-1)) > 25) & (img.mean(-1) > 25)).mean()
+        note("fin de la remontée : rien d'interminable, l'embryon visible", attente <= 6 and vu >= 0.01,
+             f"{attente:.1f} s de récit entre 3 milliards d'années et le départ du retour ; à l'arrêt, {vu:.1%} de l'écran éclairé", "« on reste au moins 10 s sur " + "« elle naissait », il ne se passe rien »")
+        await pg.evaluate("HDS.recit('promenade'); HDS.recit('promenade')"); await pg.wait_for_timeout(800)
         await pg.evaluate("HDS.vitesse = 3")                  # le grand recul est long : scénario accéléré pour le contrôle
         for _ in range(200):                                   # jusqu'à la fin réelle du scénario (60 s au plus)
             await pg.wait_for_timeout(300); suite.append(await pg.evaluate("[HDS.t, HDS.W, HDS.etat.scen, HDS.el]"))
@@ -350,6 +368,8 @@ async def main(url):
         entrees = await pd.evaluate("[...document.querySelectorAll('#panneauRecits button[data-scen]')].filter(b => b.offsetParent).map(b => b.dataset.scen)")
         await pd.click("#panneauRecits button[data-scen=hubble]"); await pd.wait_for_timeout(1500)
         e1 = await pd.evaluate("HDS.etat"); panneau = await pd.evaluate("!!document.getElementById('panneauRecits').offsetParent")
+        nomP = await pd.evaluate("document.querySelector('#panneauRecits button[data-scen=promenade]').textContent.trim()")
+        note("la Promenade s'appelle « Formation de la Voie lactée »", nomP == "Formation de la Voie lactée", f"« {nomP} »", "« le bouton promenade pourrait être renommé formation de la Voie lactée »")
         note("récits derrière un bouton (E1)", entrees == ["promenade", "observable", "hubble", "evenements"] and e1["scen"] == "hubble" and not panneau,
              f"panneau {entrees}, lancé {e1['scen']}, panneau refermé {not panneau}", "« moins de choses à la fois »")
         note("un seul repère sur le curseur du zoom (E1)", rep == 1, f"{rep} repère(s) visibles", "« hiérarchie »")
