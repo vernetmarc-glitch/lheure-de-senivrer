@@ -47,7 +47,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 button.actif { background: var(--accent); color: #0a0f18; border-color: var(--accent); }
 input[type=range] { accent-color: var(--accent); margin: 0; }
 /* zoom vertical, bord droit */
-#zoomBloc { position: fixed; right: max(4px, env(safe-area-inset-right)); top: calc(env(safe-area-inset-top) + 56px); bottom: calc(env(safe-area-inset-bottom) + 205px); width: 44px; touch-action: none; }
+#zoomBloc { position: fixed; right: max(4px, env(safe-area-inset-right)); top: calc(env(safe-area-inset-top) + 56px); bottom: calc(env(safe-area-inset-bottom) + 262px); width: 44px; touch-action: none; }
 #zoom { position: absolute; top: 50%; left: 50%; height: 30px; transform: translate(-50%, -50%) rotate(90deg); touch-action: none; }
 #reperesZoom { position: absolute; inset: 0; pointer-events: none; }
 #reperesZoom span { position: absolute; right: 40px; transform: translateY(-50%); font-size: 9.5px; color: rgba(154,159,171,0.8); white-space: nowrap; text-shadow: 0 1px 3px #000; }
@@ -57,31 +57,28 @@ input[type=range] { accent-color: var(--accent); margin: 0; }
   background: linear-gradient(to top, var(--voile) 65%, rgba(6,8,14,0)); }
 #bas > * { min-width: 0; }
 #phrase { font-size: 13px; line-height: 1.4; min-height: 18px; text-shadow: 0 1px 3px #000; }
-.puces { display: flex; gap: 6px; flex-wrap: wrap; }
-.puces button { flex: 0 0 auto; font-size: 12px; padding: 5px 10px; }
-.puces .sep { flex: 0 0 100%; height: 0; }
+.scenarios { display: grid; gap: 6px; }
+.scen { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.scen button { flex: 0 0 auto; width: 162px; font-size: 11.5px; padding: 6px 8px; text-align: center; white-space: nowrap; }
+.scen span { font-size: 11px; line-height: 1.3; color: var(--doux); min-width: 0; text-shadow: 0 1px 3px #000; }
 #tempsBloc { display: flex; align-items: center; gap: 10px; }
-.piste { flex: 1; position: relative; padding-top: 16px; padding-bottom: 14px; }
+.piste { flex: 1; position: relative; padding-top: 16px; padding-bottom: 22px; }
 #lectureTemps { position: absolute; top: 0; left: 0; right: 0; text-align: center; font-size: 12px; color: var(--texte); font-variant-numeric: tabular-nums; }
 #temps { width: 100%; }
-.reperes { position: absolute; left: 0; right: 0; bottom: 0; height: 13px; font-size: 10px; color: var(--doux); }
+.reperes { position: absolute; left: 0; right: 0; bottom: 0; height: 20px; font-size: 10px; color: var(--doux); }
 .reperes span { position: absolute; white-space: nowrap; }
-#repAuj { transform: translateX(-50%); }
-#repAuj::before { content: ""; position: absolute; left: 50%; top: -9px; width: 1px; height: 6px; background: var(--doux); }
+#repAuj { transform: translateX(-50%); position: absolute; top: -3px; font: 500 10.5px var(--f-corps); color: var(--texte); padding: 2px 8px; border-radius: 999px; background: rgba(20,22,30,0.8); border: 1px solid var(--trait); white-space: nowrap; }
+#repAuj::before { content: ""; position: absolute; left: 50%; top: -7px; width: 1px; height: 6px; background: var(--doux); }
 /* fenêtre « à propos » */
 #modale { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; padding: 20px; }
 #modale.ouverte { display: flex; }
 #modale > div { max-width: 520px; max-height: 80%; overflow: auto; background: #0c0e15; border: 1px solid var(--trait); border-radius: 12px; padding: 18px 20px; font-size: 14.5px; line-height: 1.55; }
 #modale h2 { font-family: var(--f-titre); font-weight: 500; font-size: 17px; margin: 0 0 10px; }
 #modaleBoutons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
-#menuLumiere { position: fixed; display: none; flex-direction: column; gap: 6px; padding: 8px; background: #0c0e15; border: 1px solid var(--trait); border-radius: 12px; z-index: 5; }
-#menuLumiere.ouvert { display: flex; }
-#menuLumiere button { text-align: left; border-radius: 10px; }
-#menuLumiere small { display: block; color: var(--doux); font-weight: 400; font-size: 11px; }
 #chargement { position: fixed; top: calc(env(safe-area-inset-top) + 40px); left: 14px; font-size: 11px; color: var(--doux); }
 #phrase { cursor: pointer; }
 #phrase .suite { color: var(--doux); }
-@media (min-width: 900px) and (min-height: 650px) { #bas, #titre, #reperesZoom, #chargement, #menuLumiere { zoom: 1.3; } }
+@media (min-width: 900px) and (min-height: 650px) { #bas, #titre, #reperesZoom, #chargement { zoom: 1.3; } }
 </style>
 </head>
 <body>
@@ -97,26 +94,19 @@ input[type=range] { accent-color: var(--accent); margin: 0; }
 </div>
 <div id="bas">
   <div id="phrase"></div>
-  <div class="puces" role="group" aria-label="Scénarios et lumière">
-    <button data-scen="observable" aria-label="Scénario : univers observable">Observable</button>
-    <button data-scen="hubble" aria-label="Scénario : sphère de Hubble">Hubble</button>
-    <button data-scen="evenements" aria-label="Scénario : horizon des événements">Horizon</button>
-    <span class="sep"></span>
-    <button id="lumiere" aria-haspopup="true" aria-expanded="false">Lumière ▾</button>
-    <button id="spheres" class="actif" aria-pressed="true">Sphères</button>
+  <div class="scenarios" role="group" aria-label="Scénarios">
+    <div class="scen"><button data-scen="observable">Univers observable</button><span>passé : jusqu'où la lumière a déjà pu venir</span></div>
+    <div class="scen"><button data-scen="hubble">Sphère de Hubble</button><span>présent : l'espace y fuit à la vitesse de la lumière</span></div>
+    <div class="scen"><button data-scen="evenements">Horizon des événements</button><span>futur : les galaxies que notre message atteindra</span></div>
   </div>
   <div id="tempsBloc">
     <button id="lecture" class="rond" aria-label="Lecture">▶</button>
     <div class="piste">
       <div id="lectureTemps"></div>
       <input id="temps" type="range" min="0" max="1000" step="1" aria-label="Temps">
-      <div class="reperes"><span style="left:0">Big Bang</span><span id="repAuj">aujourd'hui</span></div>
+      <div class="reperes"><span style="left:0">Big Bang</span><button id="repAuj" aria-label="Revenir à aujourd'hui">aujourd'hui</button></div>
     </div>
   </div>
-</div>
-<div id="menuLumiere" role="menu">
-  <button id="versNous" role="menuitem">Vers nous <small>elle arrive aujourd'hui</small></button>
-  <button id="depuisNous" role="menuitem">Depuis nous <small>un éclair part d'ici</small></button>
 </div>
 <div id="chargement">matière : chargement…</div>
 <div id="modale" role="dialog" aria-modal="true" aria-labelledby="modaleTitre">
@@ -133,7 +123,7 @@ input[type=range] { accent-color: var(--accent); margin: 0; }
 </template>
 <template id="txtAccueil">
     <p>Depuis la toile cosmique jusqu'aux confins de ce que la lumière a jamais pu nous révéler — 93 milliards d'années-lumière d'univers observable tiennent entre vos doigts. Zoomez avec le curseur de droite, voyagez dans le temps avec celui du bas, et laissez-vous porter.</p>
-    <p>Les trois boutons Observable, Hubble et Horizon racontent chacun l'une des trois limites de l'univers.</p>
+    <p>Les trois boutons du bas racontent chacun l'une des trois limites de l'univers. Un second appui arrête le scénario et vous rend la main là où vous êtes ; « aujourd'hui », sous la frise du temps, vous ramène au présent.</p>
 </template>
 <template id="txtObservable">
     <p>L'univers observable marque la limite de ce qu'il est physiquement possible d'observer aujourd'hui : la distance parcourue par la lumière la plus ancienne qui ait jamais pu nous atteindre, depuis les tout premiers instants de l'univers.</p>
@@ -895,7 +885,7 @@ function dessine() {
   // grille d'échelle, centrée sur nous
   ctx.globalAlpha = 1 - 0.6 * aGal; dessineGrille(cx, cy, ppg); ctx.globalAlpha = 1;
   zonesInfo = [];
-  const vis = scen ? (scen.cerclesVus ?? (scen.fin && scen.cerclesFin ? scen.cerclesFin : scen.cercles)) : (voirSpheres ? ["p", "e", "h"] : []);
+  const vis = scen ? (scen.cerclesVus ?? (scen.fin && scen.cerclesFin ? scen.cerclesFin : scen.cercles)) : ["p", "e", "h"];
   if (vis.length) {
     const rp = s.a * s.eta, rh = DH / E(s.a), re = s.a * (ETA_INF - s.eta);
     const sph = [[rp, "#dfe4ee", [], "univers observable", "p"], [re, "#dfe4ee", [10, 6], "horizon des événements", "e"], [rh, "#dfe4ee", [2, 5], "sphère de Hubble", "h"]].filter(x => vis.includes(x[4]));
@@ -1225,7 +1215,7 @@ function phrase() {
     }
     else txt = "L'éclair ne rattrapera jamais les galaxies en pointillé, même en un temps infini.";
     if (p) txt += ` (à ${fmt(p.r)} de nous, étirée ×${p.s.toFixed(1).replace(".", ",")})`;
-  } else txt = "Choisissez un scénario, ou lancez une lumière.";
+  } else txt = "Choisissez un scénario, ou explorez librement : zoom à droite, temps en bas.";
   montrePhrase(txt);
 }
 function etat(s) {
@@ -1251,30 +1241,15 @@ elL.addEventListener("click", () => {
   if (scen) { if (scen.fin) { lanceScenario(scen.cle); return; } scen.pause = !scen.pause; bouton(scen.pause ? "lecture" : "pause"); return; }
   if (t >= TMAX * 0.999) t = TMIN; joue(!lecture);
 });
-const menuL = document.getElementById("menuLumiere"), bLum = document.getElementById("lumiere");
-bLum.addEventListener("click", () => {
-  const ouvert = !menuL.classList.contains("ouvert");
-  if (ouvert) { const r = bLum.getBoundingClientRect(); menuL.style.left = r.left + "px"; menuL.style.bottom = (innerHeight - r.top + 6) + "px"; }
-  menuL.classList.toggle("ouvert", ouvert); bLum.setAttribute("aria-expanded", ouvert);
-});
-const fermeMenu = () => { menuL.classList.remove("ouvert"); bLum.setAttribute("aria-expanded", "false"); };
-document.getElementById("versNous").addEventListener("click", () => {
-  fermeMenu(); libre();
-  if (t >= T0) { t = 0.9; elT.value = uFromT(t); }
-  fronts = [{ sens: "in", te: t }]; cadrer(); joue(true); sale = true;  // cadrage automatique sur le trajet
-});
-document.getElementById("depuisNous").addEventListener("click", () => {
-  fermeMenu(); libre(); fronts = [{ sens: "out", te: t }];
-  const mk = marqueurs(fronts[0], t); zoomVers(Math.min(WMAX, Math.max(WMIN, mk.r * 1.25)));
-  joue(true); sale = true;
-});
+// « aujourd'hui » : revenir au présent, en exploration libre, au même champ
+document.getElementById("repAuj").addEventListener("click", () => { libre(); t = T0; elT.value = uFromT(t); sale = true; });
 // ---------------------------------------------------------------------------
 // Scénarios : chacun montre une seule limite, à sa taille d'aujourd'hui
 // ---------------------------------------------------------------------------
 const SCEN = {
   // passé : champ fixe, le temps court du Big Bang à aujourd'hui
   observable: {
-    W: 52, cercles: [], cerclesFin: ["p"], loupe: true,
+    W: 52, cercles: [], cerclesFin: ["p"],
     init() { t = TREC; fronts = [{ sens: "in", te: TREC, etiquette: "la matière qui a émis cette lumière" }]; this.cadre(); },
     cadre() { const mk = marqueurs(fronts[0], t); const Wc = Math.min(WMAX, Math.max(WMIN, mk.r * 1.3)); if (zoomAnim) zoomAnim.W1 = Wc; else { W = Wc; elZ.value = uFromW(W); } },
     avance(dts) { if (this.el < 2.5) return false; t = Math.min(T0, t * Math.exp(0.7 * dts)); this.cadre(); return t >= T0; },
@@ -1382,17 +1357,21 @@ function lanceScenario(cle) {
   joue(false);
   scen = Object.assign(Object.create(SCEN[cle]), { cle, el: 0, fin: false, pause: false });
   const W0z = W; W = scen.W; scen.init(); const Wc = W; W = W0z; zoomVers(Wc, 900); elT.value = uFromT(t);
-  document.querySelectorAll(".puces button[data-scen]").forEach(x => x.classList.toggle("actif", x.dataset.scen === cle));
+  document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.toggle("actif", x.dataset.scen === cle));
   bouton("pause"); sale = true;
 }
+// sortir d'un scénario : on garde l'instant et le champ, on retire tout ce que le scénario
+// avait ajouté (lumière, galaxies-témoins, courant), et l'on revient aux trois sphères
 function libre() {
-  if (!scen) return;
-  scen = null; document.querySelectorAll(".puces button[data-scen]").forEach(x => x.classList.remove("actif"));
+  joue(false); fronts = []; zoomAnim = null;
+  if (!scen) { sale = true; return; }
+  scen = null; document.querySelectorAll(".scen button[data-scen]").forEach(x => x.classList.remove("actif"));
+  cibles.forEach(g => g.allume = -1); COURANT.forEach(g => g.tn = -1);
+  if (W > WMAX) { W = WMAX; } elZ.value = uFromW(W); elT.value = uFromT(t);
   bouton("lecture"); sale = true;
 }
-document.querySelectorAll(".puces button[data-scen]").forEach(b => b.addEventListener("click", () => lanceScenario(b.dataset.scen)));
-const bS = document.getElementById("spheres");
-bS.addEventListener("click", () => { libre(); voirSpheres = !voirSpheres; bS.classList.toggle("actif", voirSpheres); bS.setAttribute("aria-pressed", voirSpheres); sale = true; });
+// un deuxième appui sur le scénario en cours le désactive
+document.querySelectorAll(".scen button[data-scen]").forEach(b => b.addEventListener("click", () => { if (scen && scen.cle === b.dataset.scen) libre(); else lanceScenario(b.dataset.scen); }));
 function cadrer() {
   // champ qui contient la lumière tout au long de son trajet
   let m = 0;
@@ -1434,7 +1413,6 @@ cv.addEventListener("pointerup", e => {
   const x = e.clientX * DPR, y = e.clientY * DPR;
   const z = zonesInfo.find(z => x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1);
   if (z) ouvre(...INFOS[z.cle]);
-  fermeMenu();
 });
 // légende courte : une phrase, la suite au toucher
 let phraseLongue = false, phraseDerniere = "";
@@ -1465,12 +1443,23 @@ function boucle(now) {
     f.vivant = vivant;
   }
   if (!reduit && (fronts.length || scen)) { phase += dts; sale = true; }
-  if (sale) { dessine(); sale = false; }
+  // une erreur de dessin ne doit jamais arrêter la boucle (sinon la carte se fige) ; on
+  // l'affiche discrètement pour pouvoir la signaler
+  if (sale) {
+    sale = false;
+    try { dessine(); } catch (err) {
+      console.error(err);
+      let el = document.getElementById("erreur");
+      if (!el) { el = document.createElement("div"); el.id = "erreur"; el.style.cssText = "position:fixed;left:8px;bottom:4px;font:11px Jost,sans-serif;color:#ffb070;z-index:9;pointer-events:none"; document.body.appendChild(el); }
+      el.textContent = "erreur de dessin : " + (err && err.message ? err.message : err);
+    }
+  }
   requestAnimationFrame(boucle);
 }
 taille(); tailleZoom(); requestAnimationFrame(boucle);
 // point d'entrée pour les vérifications automatiques
-window.HDS = { aller(v) { t = v; if (scen && scen.cadre) scen.cadre(); sale = true; }, get t() { return t; } };
+window.HDS = { aller(v) { t = v; if (scen && scen.cadre) scen.cadre(); sale = true; }, get t() { return t; }, get W() { return W; },
+  get etat() { return { scen: scen ? scen.cle : null, fronts: fronts.length }; } };
 const elCh = document.getElementById("chargement");
 matiere.charge("matiere", q => { elCh.textContent = `matière : chargement ${Math.round(100 * q)} %`; })
   .then(() => { elCh.remove(); sale = true; setTimeout(chargeVoieLactee, 1500); })
