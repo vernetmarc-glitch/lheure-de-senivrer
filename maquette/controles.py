@@ -317,13 +317,21 @@ async def main(url):
         note("repère « nous sommes ici » sur le Soleil", bool(ici), f"repère dessiné {ici}", "« qu'on comprenne bien ce qu'on voit »")
         # grand recul (D1) : les trois cercles s'allument l'un après l'autre
         await pd.evaluate("HDS.vitesse = 3; HDS.el = 22; HDS.aller(1.25)"); ordre = []
+        legs, etiqs = [], set()
         for _ in range(240):
-            await pd.wait_for_timeout(250); st = await pd.evaluate("[HDS.etat.scen, HDS.cercles.join(''), HDS.W]")
+            await pd.wait_for_timeout(250); st = await pd.evaluate("[HDS.etat.scen, HDS.cercles.join(''), HDS.W, document.getElementById('phrase').textContent.trim(), (HDS.etiquettes || []).join('|')]")
             if st[1] and (not ordre or ordre[-1] != st[1]): ordre.append(st[1])
+            if st[1] and st[3] and (not legs or legs[-1] != st[3]): legs.append(st[3])
+            if st[4]: etiqs.update(st[4].split('|'))
             if st[0] is None: break
         await pd.evaluate("HDS.vitesse = 1")
         note("grand recul : les trois frontières une à une (D1)", st[0] is None and ordre[:3] == ["p", "ph", "phe"] and 40 <= st[2] <= 60,
              f"cercles allumés dans l'ordre {ordre}, champ final {st[2]:.0f} Gal", "« le dernier moment waouh dévoile les trois frontières »")
+        noms = [l for l in legs if "milliards d'années-lumière" in l]
+        definit = [l for l in legs if any(m in l for m in ("au-delà", "tout ce que", "parviendra", "plus vite"))]
+        invite = [l for l in legs if "Récits" in l and "curseurs" in l]
+        note("les frontières nommées, leur rayon, puis une invitation", len(noms) >= 3 and not definit and invite and etiqs and not any("Gal" in e for e in etiqs),
+             f"légendes {legs} ; étiquettes {sorted(etiqs)}", "« nommer, donner le rayon ; pour comprendre, Récits ou les curseurs ; sinon on décroche »")
         # passer la main (C1) : le zoom seul, puis le temps, puis le reste
         await pd.wait_for_timeout(800)
         z1 = await pd.evaluate(MOTS); budget.append(("main : zoom", z1["mots"]))
@@ -372,6 +380,26 @@ async def main(url):
         await pd.click("#passer"); await pd.wait_for_timeout(800)
         z4 = await pd.evaluate(MOTS)
         note("visiteur qui revient : tout de suite libre", "recits" in z4["commandes"] and "temps" in z4["commandes"], f"commandes {z4['commandes']}", "découverte faite une fois")
+        # un vrai doigt sur les curseurs (écran tactile simulé) : ils doivent avoir leur longueur et répondre
+        tc = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=3, has_touch=True, is_mobile=True)
+        pt = await tc.new_page(); await pt.goto(url); await pt.wait_for_selector("#partir", state="visible", timeout=20000)
+        await pt.tap("#partir"); await pt.wait_for_timeout(1000); await pt.tap("#passer"); await pt.wait_for_timeout(800)
+        cdp = await tc.new_cdp_session(pt)
+        async def glisse(sel, vertical):
+            r = await pt.evaluate(f"(() => {{ const z = document.querySelector('{sel}').getBoundingClientRect(); return [z.left, z.top, z.width, z.height]; }})()")
+            lg = r[3] if vertical else r[2]
+            pts = [(r[0] + r[2] / 2, r[1] + r[3] * (0.6 - 0.04 * k)) if vertical else (r[0] + r[2] * (0.8 - 0.05 * k), r[1] + r[3] / 2) for k in range(9)]
+            await cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": pts[0][0], "y": pts[0][1]}]})
+            for x_, y_ in pts[1:]:
+                await cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x_, "y": y_}]}); await pt.wait_for_timeout(30)
+            await cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []}); await pt.wait_for_timeout(500)
+            return lg
+        W0 = await pt.evaluate("HDS.W"); lz = await glisse("#zoom", True); W1 = await pt.evaluate("HDS.W")
+        t0_ = await pt.evaluate("HDS.t"); lt = await glisse("#temps", False); t1_ = await pt.evaluate("HDS.t")
+        await tc.close()
+        rz = W0 / W1 if W1 > 0 else 0
+        note("curseurs au doigt : longueur et réponse", lz > 250 and lt > 150 and 1.5 < rz < 1e4 and t1_ < t0_ - 0.5,
+             f"zoom {lz:.0f} px, champ ×1/{rz:.1f} ; temps {lt:.0f} px, {t0_:.2f} → {t1_:.2f} Ga", "« le curseur de navigation dans l'espace ne fonctionne plus »")
         note("découverte sans erreur JavaScript", not perr, f"{len(perr)} erreur(s) {perr[:1]}", "—")
         await pd.close()
         # 10 septies. réseau capricieux : une tuile qui ne vient pas ne fige pas la Promenade

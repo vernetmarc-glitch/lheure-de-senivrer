@@ -1066,7 +1066,15 @@ function majDispo() {
 // Dessin
 // ---------------------------------------------------------------------------
 function cercle(cx, cy, r) { ctx.beginPath(); ctx.arc(cx, cy, Math.max(r, 0.1), 0, 2 * Math.PI); }
-let marqueurIci = false;
+let marqueurIci = false, etiquettes = [];
+function rayons(s) { return { p: s.a * s.eta, h: DH / E(s.a), e: s.a * (ETA_INF - s.eta) }; }
+// une distance en toutes lettres (pas d'abréviation) : « 46 milliards d'années-lumière »
+function enMots(g) {
+  const v = (x, d) => x.toFixed(d).replace(".", ",").replace(/,0$/, "");
+  if (g >= 1) return `${v(g, g >= 20 ? 0 : 1)} milliards d'années-lumière`;
+  if (g >= 0.001) return `${v(g * 1000, g >= 0.02 ? 0 : 1)} millions d'années-lumière`;
+  return `${Math.round(g * 1e6).toLocaleString("fr-FR")} années-lumière`;
+}
 function cerclesVisibles() { return scen ? (scen.cerclesVus ?? (scen.fin && scen.cerclesFin ? scen.cerclesFin : scen.cercles)) : ["p", "e", "h"]; }
 // le curseur du zoom ne nomme que le repère le plus proche
 function majReperes() {
@@ -1075,7 +1083,7 @@ function majReperes() {
   sp.forEach(x => x.classList.toggle("proche", x === best));
 }
 function dessine() {
-  majReperes();
+  majReperes(); etiquettes = [];
   const cx = (Wpx - 44 * DPR) / 2, cy = Hpx * 0.44, ppg = Math.min(Wpx - 44 * DPR, Hpx * 0.8) / 2 / W;
   const s = at(t);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1154,7 +1162,7 @@ function dessine() {
   zonesInfo = [];
   const vis = cerclesVisibles();
   if (vis.length) {
-    const rp = s.a * s.eta, rh = DH / E(s.a), re = s.a * (ETA_INF - s.eta);
+    const { p: rp, h: rh, e: re } = rayons(s);
     const sph = [[rp, "#dfe4ee", [], "univers observable", "p"], [re, "#dfe4ee", [10, 6], "horizon des événements", "e"], [rh, "#dfe4ee", [2, 5], "sphère de Hubble", "h"]].filter(x => vis.includes(x[4]));
     ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "center";
     sph.forEach(([r, c, d, txt], k) => {
@@ -1167,10 +1175,20 @@ function dessine() {
       const dehors = sph[k][4] === "h" ? 22 : 12;
       let x = cx + (R + dehors * DPR) * Math.cos(ang), y = cy + (R + dehors * DPR) * Math.sin(ang);
       if (y < 78 * DPR || y > Hpx * 0.6) { x = cx + (R - 14 * DPR) * Math.cos(ang); y = cy + (R - 14 * DPR) * Math.sin(ang); }
-      if (y < Hpx * 0.62) {
-        const lab = `${txt} · ${fmt(r)}  ⓘ`, xx = Math.min(Math.max(x, 90 * DPR), Wpx - 90 * DPR), lw = ctx.measureText(lab).width;
-        ctx.globalAlpha = 0.8 * fa; ctx.fillStyle = c; ctx.fillText(lab, xx, y);
-        zonesInfo.push({ x0: xx - lw / 2 - 8 * DPR, x1: xx + lw / 2 + 8 * DPR, y0: y - 16 * DPR, y1: y + 8 * DPR, cle: sph[k][4] });
+      // cercle qui déborde en haut : le nom passe en bas, ou n'est pas écrit (jamais sur la barre d'échelle)
+      if (y < 84 * DPR) { x = cx; y = cy + R - 14 * DPR; }
+      if (y >= 84 * DPR && y < Hpx * 0.62) {
+        // le nom, et dessous le rayon en toutes lettres
+        const lab = `${txt}  ⓘ`, ray = enMots(r), xx = Math.min(Math.max(x, 100 * DPR), Wpx - 100 * DPR);
+        ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; const lw = Math.max(ctx.measureText(lab).width, ctx.measureText(ray).width);
+        // un liseré sombre sous les lettres : lisibles sur le grain de matière
+        ctx.lineJoin = "round"; ctx.strokeStyle = "rgba(4,5,10,0.9)"; ctx.lineWidth = 3 * DPR;
+        ctx.globalAlpha = fa; ctx.strokeText(lab, xx, y);
+        ctx.globalAlpha = 0.85 * fa; ctx.fillStyle = c; ctx.fillText(lab, xx, y);
+        ctx.font = `${9.5 * DPR * US}px Jost, sans-serif`; ctx.globalAlpha = fa; ctx.strokeText(ray, xx, y + 12 * DPR * US);
+        ctx.globalAlpha = 0.75 * fa; ctx.fillText(ray, xx, y + 12 * DPR * US);
+        if (fa > 0.5) etiquettes.push(`${txt} · ${ray}`);
+        zonesInfo.push({ x0: xx - lw / 2 - 8 * DPR, x1: xx + lw / 2 + 8 * DPR, y0: y - 16 * DPR, y1: y + 16 * DPR * US, cle: sph[k][4] });
       }
     });
     ctx.globalAlpha = 1;
@@ -1410,7 +1428,7 @@ function dessineGrille(cx, cy, ppg) {
   ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + L, y0);
   ctx.moveTo(x0, y0 - 4 * DPR); ctx.lineTo(x0, y0 + 4 * DPR); ctx.moveTo(x0 + L, y0 - 4 * DPR); ctx.lineTo(x0 + L, y0 + 4 * DPR); ctx.stroke();
   ctx.font = `${11 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "left"; ctx.fillStyle = "rgba(225,232,245,0.9)";
-  ctx.fillText(fmtCourt(g), x0 + L + 6 * DPR, y0 + 4 * DPR);
+  ctx.fillText(enMots(g), x0 + L + 6 * DPR, y0 + 4 * DPR);          // en toutes lettres, sans « Gal »
 }
 function fmtCourt(g) { return g >= 1 ? `${g.toFixed(0)} Gal` : g >= 0.001 ? `${(g * 1000).toFixed(0)} Mal` : `${(g * 1e6).toFixed(0)} 000 al`; }
 function fmtLong(g) {
@@ -1616,7 +1634,7 @@ const SCEN = {
     // fin (décision du 17/11, 15 h 54) : retour au présent puis grand recul jusqu'à l'univers
     // observable entier, où les trois frontières s'allument l'une après l'autre
     WRECUL: 0.00017,      // champ pendant la remontée du temps : la galaxie assez grande pour ses détails
-    WFIN: 52, ALLUME: { p: 18.5, h: 21.5, e: 24.5 }, FIN: 28.5,
+    WFIN: 52, ALLUME: { p: 18.5, h: 21.5, e: 24.5 }, INVITE: 27.5, FIN: 32,
     alaFin() { libre(); mainAuVisiteur(); },
     get cerclesVus() { const r = this.retour; return r < 0 ? [] : ["p", "h", "e"].filter(c => r >= this.ALLUME[c]); },
     fondu(c) { return lisse(this.ALLUME[c], this.ALLUME[c] + 1.2, this.retour); },
@@ -1651,9 +1669,12 @@ const SCEN = {
         if (r < 3) return "Il y a douze milliards d'années, elle naissait.";
         if (r < 6) return "Revenons à aujourd'hui.";
         if (r < this.ALLUME.p) return "";
-        if (r < this.ALLUME.h) return "L'univers observable : tout ce que la lumière a pu nous apporter.";
-        if (r < this.ALLUME.e) return "La sphère de Hubble : au-delà, l'espace nous fuit plus vite que la lumière.";
-        return "L'horizon des événements : ce qui s'y passe aujourd'hui ne nous parviendra jamais.";
+        // chaque frontière est seulement nommée, avec son rayon : les définitions sont dans les Récits
+        const R = rayons(at(T0));
+        if (r < this.ALLUME.h) return `L'univers observable : ${enMots(R.p)}.`;
+        if (r < this.ALLUME.e) return `La sphère de Hubble : ${enMots(R.h)}.`;
+        if (r < this.INVITE) return `L'horizon des événements : ${enMots(R.e)}.`;
+        return "Pour comprendre ce qui les définit, ouvrez « Récits ». Ou promenez-vous avec les curseurs.";
       }
       if (e < 3) return "Chaque lueur est un amas de galaxies.";
       if (e < 5) return "Plongeons vers l'un d'eux.";
@@ -1800,6 +1821,7 @@ function marqueDecouverte() { try { localStorage.setItem(CLE_DECOUVERTE, "faite"
 const indice = document.getElementById("indice");
 function mode(m) {
   document.body.dataset.mode = m; sale = true;
+  tailleZoom();                    // le curseur prend la hauteur de son bloc, masqué pendant l'ouverture (0 px sinon)
   const ph = document.getElementById("phrase");
   if (m === "libre") rappelPhrase(); else { clearTimeout(minuteurPhrase); ph.classList.remove("estompe"); }
   majRecits();
@@ -1965,7 +1987,7 @@ let sansGrille = false;                                   // contrôles seulemen
 let vitesseTest = 1;                                      // contrôles seulement : accélère un scénario
 window.HDS = { set grille(v) { sansGrille = !v; sale = true; },
   demarrerLibre() { marqueDecouverte(); libre(); zoomAnim = null; mode("libre"); }, recit(cle) { recit(cle); }, suite() { suite(); },
-  set vitesse(v) { vitesseTest = v; }, get cercles() { return cerclesVisibles(); }, get ici() { return marqueurIci; }, get galaxie() { return matiere.etat; }, set galaxieDirecte(v) { matiere.directe = !!v; sale = true; }, get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
+  set vitesse(v) { vitesseTest = v; }, get cercles() { return cerclesVisibles(); }, get ici() { return marqueurIci; }, get etiquettes() { return etiquettes; }, get galaxie() { return matiere.etat; }, set galaxieDirecte(v) { matiere.directe = !!v; sale = true; }, get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
   aller(v) {
     t = v; if (scen && scen.cadre) scen.cadre(); sale = true;
     const E = scen && scen.etapes;                          // un saut dans le temps saute les étapes déjà passées
