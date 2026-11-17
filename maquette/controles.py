@@ -86,6 +86,21 @@ async def main(url):
               requestAnimationFrame(pas); })""")
         d0, d1 = await duree(0.15), await duree(0.002)
         note("fluidité à 1 Mal (vs toile)", d1 < 2.0 * d0 + 4, f"{d1:.0f} ms contre {d0:.0f} ms", "« ça rame énormément »")
+        # 9 bis. netteté à 1 Mal : des points fins, pas de grosses taches floues
+        im = await vue(0.003, 13.79, 2500); L = im.mean(-1)
+        lap = np.abs(4 * L[1:-1, 1:-1] - L[:-2, 1:-1] - L[2:, 1:-1] - L[1:-1, :-2] - L[1:-1, 2:])
+        zone = L[1:-1, 1:-1] > 40
+        net = lap[zone].mean() / (L[1:-1, 1:-1][zone].mean() + 1) if zone.any() else 0
+        note("netteté à 1 Mal", net > 0.25, f"laplacien relatif {net:.2f}", "« grosses taches floues »")
+        # 9 ter. futur lointain : pas de structures figées grossies (la matière n'est pas simulée)
+        im = await vue(0.15, 60, 1500)
+        colore = ((im.max(-1) - im.min(-1)) > 40) & (im.mean(-1) > 30)      # la matière est colorée, les textes sont gris
+        note("pas de matière dans le futur lointain", colore.mean() < 0.001, f"{colore.mean():.2%} colorés", "« toile à 100 milliards d'années, peu crédible »")
+        # 9 quater. scénario Hubble : une photographie, le temps ne bouge pas
+        await pg.click("[data-scen=hubble]"); await pg.wait_for_timeout(12000)
+        th = await pg.evaluate("HDS.t")
+        note("Hubble : temps figé", abs(th - 13.787) < 0.05, f"t = {th:.2f} Ga après 12 s", "« une photographie à l'instant t »")
+        await pg.click("[data-scen=hubble]"); await pg.evaluate("document.querySelector('[data-scen=hubble]').click()")
         # 10. pas de gel quand la Voie lactée se charge (on recharge la page, on zoome tout de suite)
         await pg.goto(url); await pg.wait_for_timeout(5000)
         await pg.evaluate("document.getElementById('fermer').click()")
