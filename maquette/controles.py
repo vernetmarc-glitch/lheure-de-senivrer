@@ -77,6 +77,22 @@ async def main(url):
                 jeunes.append((Wj, tj, (((im.max(-1) - im.min(-1)) > 25) & (Lj > 25)).mean(), (Lj < 18).mean()))
         note("époques jeunes : la toile visible, les vides sombres", all(c >= 0.04 and d >= 0.45 for _, _, c, d in jeunes),
              " ; ".join(f"{w} Gal {t} Ga : {c:.1%} colorés, {d:.0%} sombres" for w, t, c, d in jeunes), "« éviter le noir aux époques jeunes de l'univers »")
+        # 3 quinquies. pas de traits droits aux époques jeunes (17/11, données v2) : le sous-échantillon tiré
+        #    pour l'écran gardait des plans entiers de la grille de départ, alignés près des bords des
+        #    boîtes. Profil moyen le long de chaque bord de la case centrale contre ses voisins à 25-45 px.
+        bords = []
+        for Wc, tc in ((0.15, 1.2), (0.15, 3.3), (0.3, 2.0)):
+            await vue(Wc, tc, 2500); ac = await pg.evaluate(f"HDS.facteur({tc})")
+            Lc = np.asarray(Image.open(io.BytesIO(await pg.screenshot())).convert("L")).astype(float)
+            ppg = (min(390 - 44, 844 * 0.8) / 2) / Wc; cxc, cyc = (390 - 44) / 2, 844 * 0.44; dc = ac * 0.96782 * ppg / 2
+            for sg in (-1, 1):
+                for axe, c0, lim in ((1, cxc, 346), (0, cyc, 844)):
+                    e = c0 + sg * dc
+                    if not 50 < e < lim - 50: continue
+                    prof = Lc[100:560, :].mean(0) if axe == 1 else Lc[:, 10:330].mean(1); i = int(round(e))
+                    bande = max(prof[i + o - 2:i + o + 3].mean() for o in range(-12, 13)); vois = np.r_[prof[i - 45:i - 25], prof[i + 25:i + 45]].mean()
+                    bords.append(bande / max(vois, 1))
+        note("pas de traits droits aux époques jeunes", max(bords) < 2.5, f"bord/voisins max {max(bords):.2f} ({len(bords)} bords)", "image du 17/11 : traits brillants aux bords des boîtes")
         # 3 ter. pas de dallage au grand champ (univers observable), sur un écran de téléphone (densité 3)
         pg3 = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=3)
         await pg3.goto(url); await pg3.wait_for_timeout(5000)
@@ -403,7 +419,7 @@ async def main(url):
         e1 = await pd.evaluate("HDS.etat"); panneau = await pd.evaluate("!!document.getElementById('panneauRecits').offsetParent")
         nomP = await pd.evaluate("document.querySelector('#panneauRecits button[data-scen=promenade]').textContent.trim()")
         note("la Promenade s'appelle « Formation de la Voie lactée »", nomP == "Formation de la Voie lactée", f"« {nomP} »", "« le bouton promenade pourrait être renommé formation de la Voie lactée »")
-        note("récits derrière un bouton (E1)", entrees == ["promenade", "toile", "observable", "hubble", "evenements"] and e1["scen"] == "hubble" and not panneau,
+        note("récits derrière un bouton (E1)", entrees == ["observable", "hubble", "evenements", "promenade", "toile"] and e1["scen"] == "hubble" and not panneau,
              f"panneau {entrees}, lancé {e1['scen']}, panneau refermé {not panneau}", "« moins de choses à la fois »")
         note("un seul repère sur le curseur du zoom (E1)", rep == 1, f"{rep} repère(s) visibles", "« hiérarchie »")
         note("légende qui s'efface, rappelée au toucher (E1)", op1 < 0.2 and op2 > 0.8, f"opacité après 7 s {op1:.2f}, après un toucher {op2:.2f}", "« moins de texte à la fois »")
@@ -466,6 +482,55 @@ async def main(url):
         note("boutons à la taille du doigt (≥ 40 px)", not petits, f"trop petits : {petits}" if petits else f"{len(t_libre)} + {len(t_pan)} boutons mesurés", "« tout est aussi petit »")
         note("panneau des récits : le titre seul, gros boutons", ferme and pan["sous"] == 0 and all(l >= 0.85 and h >= 48 and f >= 16 for l, h, f in pan["bs"]),
              f"refermable {ferme} ; {pan['sous']} sous-titres visibles ; boutons {[(round(l, 2), round(h), round(f)) for l, h, f in pan['bs']]}", "« les récits peuvent n'avoir que le texte du bouton »")
+        # ordre, annonce et un seul espace de récit (17/11, 22 h 43) : les trois frontières d'abord ; après
+        # l'appui, on sait ce qu'on va voir (la définition courte) ; tout le texte du récit au même endroit, en bas
+        ordreR = await pd.evaluate("[...document.querySelectorAll('#panneauRecits button[data-scen]')].map(b => b.dataset.scen)")
+        note("récits : les trois frontières d'abord", ordreR == ["observable", "hubble", "evenements", "promenade", "toile"], f"{ordreR}",
+             "« l'univers observable en premier, puis Hubble, l'horizon, la Voie lactée, la toile »")
+        ESPACE = """(() => { const i = document.getElementById('intro'), p = document.getElementById('phrase'), H = innerHeight;
+          const vis = el => { for (let a = el; a; a = a.parentElement) { const st = getComputedStyle(a); if (a.hidden || st.display === 'none' || st.visibility === 'hidden' || +st.opacity < 0.3) return false; } return el.getBoundingClientRect().height > 0; };
+          return { intro: vis(i), txt: i.textContent.replace(/\\s+/g, ' ').trim(), haut: i.getBoundingClientRect().top / H, phrase: vis(p) && p.textContent.trim() ? p.getBoundingClientRect().top / H : null }; })()"""
+        annonces, budgetR = [], []
+        for cle, mot in (("observable", "passé"), ("hubble", "présent"), ("evenements", "futur"), ("promenade", "galaxie"), ("toile", "filaments")):
+            await pd.evaluate("HDS.demarrerLibre()"); await pd.wait_for_timeout(300)
+            await pd.click("#recits"); await pd.wait_for_timeout(400)
+            await pd.click(f"#panneauRecits button[data-scen={cle}]"); await pd.wait_for_timeout(1200)
+            av = await pd.evaluate(ESPACE); budgetR.append((cle, (await pd.evaluate(MOTS))["mots"]))
+            if av["intro"]: await pd.evaluate("document.getElementById('cestParti').click()")
+            await pd.wait_for_timeout(2500); ap = await pd.evaluate(ESPACE)
+            annonces.append((cle, mot, av, ap))
+            await pd.evaluate(f"HDS.recit('{cle}')"); await pd.wait_for_timeout(500)
+        fin = await pd.evaluate("(() => { const f = document.getElementById('finObs'); f.hidden = false; const h = f.getBoundingClientRect().top / innerHeight; f.hidden = true; return h; })()")
+        mauvais = [c for c, m, av, ap in annonces if not (av["intro"] and m in av["txt"].lower() and av["haut"] > 0.5 and not ap["intro"] and (ap["phrase"] is None or ap["phrase"] > 0.5))]
+        note("récit annoncé, puis raconté au même endroit (en bas)", not mauvais and fin > 0.5 and max(n for _, n in budgetR) <= 25,
+             f"en défaut {mauvais} ; annonce en haut de l'écran à {[round(av['haut'], 2) for _, _, av, _ in annonces]} ; fin d'observable à {fin:.2f} ; mots {budgetR}",
+             "« une idée de ce qu'on va voir » ; « un seul espace de récit, soit en haut soit en bas »")
+        # couleur des photons selon leur vitesse par rapport à nous (17/11, 23 h 30) : rouges s'ils s'éloignent,
+        # blancs immobiles, bleus ou violets s'ils approchent ; mesuré sur la couleur dessinée et sur l'image
+        await pd.evaluate("HDS.demarrerLibre(); HDS.recit('observable')"); await pd.wait_for_timeout(1500)
+        await pd.evaluate("document.getElementById('cestParti').click()"); await pd.wait_for_timeout(1500)
+        await pd.evaluate("HDS.vitesse = 0")
+        coul = []
+        for tc in (0.05, 1.0, 6.0, 12.5):
+            await pd.evaluate(f"HDS.aller({tc})"); await pd.wait_for_timeout(2500)
+            ph = await pd.evaluate("HDS.photons"); Wc = await pd.evaluate("HDS.W")
+            Lc = np.asarray(Image.open(io.BytesIO(await pd.screenshot())).convert("RGB")).astype(float)
+            if not ph or ph[0] is None: coul.append((tc, None, None, None)); continue
+            R = ph[0]["r"] * 173 / Wc; yy, xx = np.mgrid[0:844, 0:390]; d = np.hypot(xx - 173, yy - 844 * 0.44)
+            zone = (yy < 560) & (xx < 340)
+            def teinte(m):
+                px = Lc[m & zone]; px = px[(px.max(1) > 110) & (px.max(1) - px.min(1) > 35)]
+                return float((px[:, 0] - px[:, 2]).mean()) if len(px) > 20 else 0.0
+            coul.append((tc, ph[0]["v"], ph[0]["rgb"], teinte((d > R - 6) & (d < R + 32)) - teinte((d > R + 60) & (d < R + 98))))
+        await pd.evaluate("HDS.vitesse = 1; HDS.recit('observable')"); await pd.wait_for_timeout(400)
+        def accord(v, rgb, dt):
+            if v is None: return False
+            if v > 0.1: return rgb[0] - rgb[2] > 60 and dt > 20
+            if v < -0.1: return rgb[2] - rgb[0] > 60 and dt < -20
+            return min(rgb) > 190
+        note("photons : rouges s'ils s'éloignent, blancs immobiles, bleus s'ils approchent", all(accord(v, c, dt) for _, v, c, dt in coul) and any(v is not None and v > 0.1 for _, v, _, _ in coul) and any(v is not None and v < -0.1 for _, v, _, _ in coul),
+             " ; ".join(f"{tc} Ga : v {v if v is None else round(v, 2)} c, {c}, image {dt if dt is None else round(dt)}" for tc, v, c, dt in coul),
+             "« rouge s'ils s'éloignent, blanc statiques, bleu ou violet s'ils se rapprochent »")
         # un vrai doigt sur les curseurs (écran tactile simulé) : ils doivent avoir leur longueur et répondre
         tc = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=3, has_touch=True, is_mobile=True)
         pt = await tc.new_page(); await pt.goto(url); await pt.wait_for_selector("#partir", state="visible", timeout=20000)
