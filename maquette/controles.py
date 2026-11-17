@@ -155,6 +155,10 @@ async def main(url):
           const f = () => { const n = performance.now(); mx = Math.max(mx, n - p); p = n; if (n - t0 < 9000) requestAnimationFrame(f); else res(mx); };
           requestAnimationFrame(f); })""")
         note("pas de gel au chargement de la galaxie", gel < max(600, 1.2 * d0), f"plus longue image {gel:.0f} ms", "« ça rame énormément »")
+        # 10 bis. chargement : zones prêtes affichées sur le curseur, tout prêt une fois chargé
+        await pg.wait_for_timeout(6000)
+        d = await pg.evaluate("HDS.dispo"); bd = await pg.evaluate("HDS.bandes")
+        note("zones prêtes visibles, tout chargé", min(d) >= 1 and bd > 50, f"disponibilité {[round(x, 2) for x in d]}", "« rendre visibles les zones accessibles »")
         # 11. aucune erreur JavaScript
         note("aucune erreur JavaScript", not err, f"{len(err)} erreur(s)", "—")
         await b.close()
