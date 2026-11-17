@@ -458,6 +458,15 @@ async function octets(nom, progres) {
 const deBase64 = async txt => new Uint8Array(await (await fetch("data:application/octet-stream;base64," + txt.trim())).arrayBuffer());
 // la Voie lactée est montrée de biais (inclinaison de 62°), pas vue de dessus
 const INCL = { deg: 62, c: Math.cos(62 * Math.PI / 180), s: Math.sin(62 * Math.PI / 180) };
+// facteur de croissance des structures D(a) (approximation de Carroll, Press et Turner),
+// D(1) = 1 ; sert au contraste des époques jeunes : les rides y sont 1/D fois plus faibles
+function croissance(a) {
+  const g = x => { const om = 0.315 / (0.315 + 0.685 * x * x * x), ol = 1 - om; return 2.5 * om / (Math.pow(om, 4 / 7) - ol + (1 + om / 2) * (1 + ol / 70)); };
+  return a * g(a) / g(1);
+}
+// rehaussement du contraste aux époques jeunes (17/11, 19 h 25 : « éviter le noir ») : une fonction
+// connue du temps, pas une statistique de l'image ; pivot à la densité moyenne, les vides restent noirs
+const rehausse = a => Math.min(3, Math.pow(1 / Math.max(croissance(a), 1e-3), 0.6));
 const lisse = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
 const matiere = (() => {
   const cvm = document.getElementById("matiere");
@@ -481,14 +490,14 @@ const matiere = (() => {
   };
   const pPts = prog(`#version 300 es
     in vec2 p0; in vec2 p1; in float h0; in float h1;
-    uniform float f, ech, smin, smax; uniform vec2 dec, centre, res;
+    uniform float f, ech, smin, smax, doux; uniform vec2 dec, centre, res;
     out float vw;
     void main() {
       vec2 u = mix(p0, p1, f) / 60000.0 + dec;
       vec2 px = centre + u * ech;
       gl_Position = vec4(px.x / res.x * 2.0 - 1.0, 1.0 - px.y / res.y * 2.0, 0.0, 1.0);
       float h = mix(exp2(h0 / 16.0 - 14.0), exp2(h1 / 16.0 - 14.0), f);
-      float sig = clamp(0.5 * h * ech, smin, smax);
+      float sig = clamp(0.5 * h * ech * doux, smin, smax);
       gl_PointSize = 6.0 * sig;
       vw = 1.0 / (6.2832 * sig * sig);
     }`, `#version 300 es
@@ -577,6 +586,7 @@ const matiere = (() => {
     gl.enableVertexAttribArray(L.h1); gl.vertexAttribPointer(L.h1, 1, gl.UNSIGNED_BYTE, false, 0, j * N);
     gl.uniform1f(U("f"), f); gl.uniform1f(U("ech"), ech);
     gl.uniform1f(U("smin"), 0.7 * DPR); gl.uniform1f(U("smax"), smaxPx ?? 14 * DPR);
+    gl.uniform1f(U("doux"), Math.sqrt(rehausse(a)));   // époques jeunes : noyaux élargis, pas d'anneaux une fois le contraste rehaussé
     gl.uniform2f(U("centre"), cx, cy); gl.uniform2f(U("res"), w, h);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     // budget de points par image : les particules sont dans un ordre aléatoire,
@@ -593,7 +603,7 @@ const matiere = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(vx, vy, vw, vh);
     gl.useProgram(pTon); gl.bindVertexArray(null);
     gl.uniform1i(UT("acc"), 0); gl.uniform1f(UT("m"), m); gl.uniform1f(UT("wk"), wk); gl.uniform1f(UT("rond"), rond ? 1 : 0);
-    gl.uniform1f(UT("contraste"), (a < AS[0] ? Math.max(0, a / AS[0]) : 1) * (contr ?? 1));
+    gl.uniform1f(UT("contraste"), (a < AS[0] ? Math.max(0, a / AS[0]) : 1) * (contr ?? 1) * Math.min(2, rehausse(a)));   // plafond 2 : au-delà, des anneaux autour des grumeaux
     gl.uniform1f(UT("gain"), 1.0 * alpha * (a < AS[0] ? Math.max(0.15, a / AS[0]) : 1));
     gl.uniform1f(UT("fond"), ajout ? 0 : 1);
     if (ajout) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); }
@@ -643,7 +653,7 @@ const matiere = (() => {
     gl.uniform1f(U("ech"), boxPx); gl.uniform2f(U("centre"), cx, cy); gl.uniform2f(U("res"), tw, th);
     // comme pour la toile : zoomé au-delà de l'échantillonnage, les points restent des points
     const smaxPx = DPR * Math.max(0.9, 14 * Math.min(1, 1.2 * tw / boxPx));
-    gl.uniform1f(U("smin"), 0.7 * DPR); gl.uniform1f(U("smax"), smaxPx); gl.uniform2f(U("dec"), 0, 0); gl.uniform1f(U("f"), 0);
+    gl.uniform1f(U("smin"), 0.7 * DPR); gl.uniform1f(U("smax"), smaxPx); gl.uniform1f(U("doux"), 1); gl.uniform2f(U("dec"), 0, 0); gl.uniform1f(U("f"), 0);
     for (const [k, w] of [[i, j === i ? 1 : 1 - f], [j, j === i ? 0 : f]]) {
       if (w < 0.002) continue;
       const o = HL.off[k], n = E[k].n;
@@ -1146,6 +1156,7 @@ function dessine() {
       };
       // fondu enchaîné entre deux époques : addition pondérée (le noir n'ajoute rien)
       ctx.globalCompositeOperation = "lighter";
+      // (époques jeunes : le rehaussement est déjà dans les tuiles, sim/reton.py)
       couche(jeuT[i], j === i ? 1 : 1 - f);
       if (j !== i) couche(jeuT[j], f);
       ctx.globalCompositeOperation = "source-over";
