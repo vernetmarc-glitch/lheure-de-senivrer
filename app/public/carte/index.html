@@ -276,7 +276,7 @@ function marqueurs(f, tt) { // galaxies associées au front
   const s = at(tt), e = at(f.te);
   if (tt < f.te) return null;
   if (f.sens === "in") return { r: s.a * (f.chi0 ?? (ETA0 - e.eta)), txt: f.etiquette ?? "galaxies qui ont émis cette lumière" };
-  return { r: s.a * (ETA_INF - e.eta), txt: "galaxies que l'éclair n'atteindra jamais" };
+  return { r: s.a * (ETA_INF - e.eta), txt: f.etiquetteMarq ?? "galaxies que l'éclair n'atteindra jamais" };
 }
 
 // ---------------------------------------------------------------------------
@@ -843,7 +843,7 @@ function dessine() {
   // grille d'échelle, centrée sur nous
   ctx.globalAlpha = 1 - 0.6 * aGal; dessineGrille(cx, cy, ppg); ctx.globalAlpha = 1;
   zonesInfo = [];
-  const vis = scen ? (scen.fin && scen.cerclesFin ? scen.cerclesFin : scen.cercles) : (voirSpheres ? ["p", "e", "h"] : []);
+  const vis = scen ? (scen.cerclesVus ?? (scen.fin && scen.cerclesFin ? scen.cerclesFin : scen.cercles)) : (voirSpheres ? ["p", "e", "h"] : []);
   if (vis.length) {
     const rp = s.a * s.eta, rh = DH / E(s.a), re = s.a * (ETA_INF - s.eta);
     const sph = [[rp, "#dfe4ee", [], "univers observable", "p"], [re, "#dfe4ee", [10, 6], "horizon des événements", "e"], [rh, "#dfe4ee", [2, 5], "sphère de Hubble", "h"]].filter(x => vis.includes(x[4]));
@@ -883,6 +883,7 @@ function dessine() {
 
   // flèches de vitesse (scénario de la sphère de Hubble)
   if (scen && scen.tapis) dessineTapis(cx, cy, ppg, s);
+  if (scen && scen.cle === "evenements" && scen.acte === 1) dessineCibles(cx, cy, ppg, s);
 
   // galaxies associées, puis la lumière
   fronts.forEach((f, fi) => {
@@ -1206,24 +1207,65 @@ const SCEN = {
     },
   },
   // futur : émission figée à aujourd'hui, le temps court vers le futur, champ fixe
+  // futur, en deux actes. 1) Notre message : un éclair part de nous aujourd'hui ; la
+  // carte dézoome au rythme de l'expansion (champ ∝ a), si bien que les galaxies restent
+  // immobiles à l'écran et que le front se fige sur un cercle : l'horizon des événements.
+  // 2) Dans l'autre sens : de la lumière part aujourd'hui de ce cercle vers nous, à zoom
+  // fixe ; elle finit immobile, à 17,5 Gal, sans jamais arriver.
   evenements: {
-    W: 24, cercles: ["e"],
+    W: 22, cercles: [], acte: 1,
     init() {
-      t = T0;
-      fronts = [{ sens: "in", te: T0, chi0: 8, secteur: [-2.44, -0.70], etiquette: "8 Gal : arrivera dans 11 Ga", arrivee: "" },
-                { sens: "in", te: T0, chi0: 15.5, secteur: [-0.17, 1.57], etiquette: "15,5 Gal : dans 46 Ga" },
-                { sens: "in", te: T0, chi0: 18, secteur: [1.92, 3.66], etiquette: "18 Gal : jamais" }];
+      this.acte = 1; this.pauseActe = 0; t = T0;
+      fronts = [{ sens: "out", te: T0, etiquetteMarq: "horizon : les galaxies qui étaient à 16,7 Gal aujourd'hui" }];
+      cibles.forEach(g => g.allume = -1);
     },
-    avance(dts) { if (this.el < 3) return false; t = Math.min(62, t * Math.exp(0.11 * dts)); return t >= 62; },
+    get cerclesVus() { return this.acte === 1 ? [] : ["e"]; },
+    avance(dts) {
+      if (this.acte === 1) {
+        if (this.el < 3) return false;
+        t = Math.min(100, t * Math.exp(0.10 * dts));
+        W = 22 * at(t).a; elZ.value = uFromW(Math.min(W, WMAX));      // dézoom au rythme de l'expansion
+        const chi = at(t).eta - ETA0;                                    // rayon comobile du message
+        for (const g of cibles) if (g.allume < 0 && g.chi <= chi) g.allume = performance.now();
+        if (t >= 100) { this.pauseActe += dts; if (this.pauseActe > 4) { this.acte = 2; this.el2 = 0; t = T0; zoomVers(24, 1200);
+          fronts = [{ sens: "in", te: T0, chi0: 15.5, secteur: [-2.44, -0.70], etiquette: "partie de 15,5 Gal" },
+                    { sens: "in", te: T0, chi0: ETA_INF - ETA0, secteur: [-0.17, 1.57], etiquette: "partie de l'horizon" },
+                    { sens: "in", te: T0, chi0: 18, secteur: [1.92, 3.66], etiquette: "partie de 18 Gal" }]; } }
+        return false;
+      }
+      this.el2 += dts; if (this.el2 < 3) return false;
+      t = Math.min(100, t * Math.exp(0.10 * dts)); return t >= 100;
+    },
     legende() {
-      if (this.fin) return "La deuxième arrive enfin, 46 milliards d'années après son départ. Ce qui se passe aujourd'hui au-delà de 16,7 milliards d'années-lumière ne nous parviendra jamais : c'est l'horizon des événements.";
-      if (this.el < 3) return "Aujourd'hui, trois galaxies lancent un éclair vers nous.";
-      if (t < 25) return "La plus proche est à 8 milliards d'années-lumière : sa lumière avance vers nous.";
-      if (t < 42) return "Elle est arrivée, onze milliards d'années plus tard. La deuxième, partie juste en deçà de l'horizon, avance à peine.";
-      return "La troisième, partie au-delà de l'horizon des événements, est emportée pour toujours.";
+      if (this.acte === 1) {
+        const n = cibles.filter(g => g.allume >= 0).length;
+        if (this.el < 3) return "Aujourd'hui, nous envoyons un message lumineux dans toutes les directions.";
+        if (t < 25) return "Pour que les galaxies restent immobiles à l'écran, la carte dézoome au rythme de l'expansion : regardez l'échelle grandir. Le message atteint les galaxies proches.";
+        if (t < 60) return `Il ralentit à l'écran : les galaxies lointaines fuient presque aussi vite qu'il avance. ${n} galaxies sur ${cibles.length} atteintes.`;
+        return `Il se fige sur ce cercle : les galaxies qui étaient aujourd'hui à 16,7 milliards d'années-lumière. Au-delà, il ne les rattrapera jamais. C'est l'horizon des événements. ${n} galaxies sur ${cibles.length} atteintes, pour toujours.`;
+      }
+      if (this.fin) return "La lumière partie de l'horizon reste à jamais à 17,5 milliards d'années-lumière : elle avance vers nous exactement aussi vite que l'espace l'emporte. Ce qui se passe aujourd'hui au-delà de 16,7 milliards d'années-lumière ne nous parviendra jamais.";
+      if (this.el2 < 3) return "Dans l'autre sens : aujourd'hui, de la lumière part vers nous depuis trois distances, dont l'horizon lui-même. Ici, la carte ne bouge plus.";
+      if (t < 40) return "Partie de 15,5 milliards d'années-lumière, en deçà de l'horizon, elle finira par arriver. Partie de 18, au-delà, elle recule.";
+      return "Partie exactement de l'horizon, elle avance sans jamais gagner de terrain : elle s'immobilise à 17,5 milliards d'années-lumière.";
     },
   },
 };
+// galaxies-témoins du scénario « horizon » : 70 positions comobiles fixes, jusqu'à 1,35 × l'horizon
+const alea = k => { const x = Math.sin(k * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+const cibles = Array.from({ length: 70 }, (_, k) => ({ chi: 16.7 * 1.35 * Math.sqrt(alea(k) * 0.96 + 0.04), th: 2 * Math.PI * alea(k + 500), allume: -1 }));
+function dessineCibles(cx, cy, ppg, s) {
+  const now = performance.now(); let n = 0;
+  for (const g of cibles) {
+    const R = s.a * g.chi * ppg, x = cx + R * Math.cos(g.th), y = cy + R * Math.sin(g.th);
+    if (g.allume < 0) { ctx.fillStyle = "rgba(150,160,185,0.55)"; cercle(x, y, 1.8 * DPR); ctx.fill(); continue; }
+    n++; const e = Math.max(0, 1 - (now - g.allume) / 700);
+    if (e > 0) { ctx.fillStyle = `rgba(255,230,170,${0.45 * e})`; cercle(x, y, (4 + 10 * e) * DPR); ctx.fill(); sale = true; }
+    ctx.fillStyle = "#ffd98a"; cercle(x, y, 2.6 * DPR); ctx.fill();
+  }
+  ctx.font = `${11 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,217,138,0.95)";
+  ctx.fillText(`galaxies atteintes par notre message : ${n} / ${cibles.length}`, 16 * DPR, 92 * DPR);
+}
 function lanceScenario(cle) {
   joue(false);
   scen = Object.assign(Object.create(SCEN[cle]), { cle, el: 0, fin: false, pause: false });
