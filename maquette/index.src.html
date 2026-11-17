@@ -1299,24 +1299,21 @@ const SCEN = {
       else if (e < 13) W = lW(0.15, 0.00006, lis(3, 13));                // plongée vers la Voie lactée
       else if (e < 15) W = 0.00006;
       else if (e < 18) W = lW(0.00006, 0.00011, lis(15, 18));            // un peu de recul
-      else if (e < 21) t = T0 + (1.0 - T0) * lis(18, 21);                // retour en arrière : 13,8 → 1 Ga
-      else if (e < 23) t = 1.0;
-      else { t = Math.min(T0, t + dts * (t < 9 ? 0.4 : 0.15)); }        // la formation, au ralenti à la fin
+      else if (e >= 18.5) t = Math.max(1.2, t - dts * (t > 9 ? 0.15 : 0.35));   // on remonte le temps, lentement : la galaxie se défait
       if (W !== this.Wv) { elZ.value = uFromW(W); this.Wv = W; }
-      return e > 23 && t >= T0;
+      return e > 18.5 && t <= 1.2;                                        // arrêt quand il ne reste presque rien
     },
     legende() {
       const e = this.el;
-      if (this.fin) return "Aujourd'hui : une spirale de cent mille années-lumière, faite d'étoiles nées sur place et de galaxies avalées. Nous sommes dans son disque, à 27 000 années-lumière du centre.";
+      if (this.fin) return "Il y a 12,6 milliards d'années, la Voie lactée n'était qu'un petit amas d'étoiles naissantes, nourri par le gaz et les petites galaxies alentour. Tout le reste s'est construit depuis.";
       if (e < 3) return "La toile cosmique aujourd'hui : des filaments de matière, des nœuds où s'amassent les galaxies, de grands vides.";
       if (e < 9) return "Plongée vers l'un de ces nœuds : notre groupe de galaxies.";
-      if (e < 15) return "La Voie lactée, telle que la simule TNG50 : une jumelle de notre galaxie, vue de biais.";
-      if (e < 18) return "Un peu de recul pour l'embrasser tout entière.";
-      if (e < 23) return "Remontons le temps : il y a 12,8 milliards d'années, elle n'était qu'un petit amas d'étoiles naissantes.";
-      if (t < 4.5) return "Des nuages de gaz et de petites galaxies tombent les uns sur les autres ; chaque étoile s'allume là où elle naît.";
-      if (t < 7.5) return "Une galaxie voisine plonge, traverse, revient et se dissout : la Voie lactée grandit en avalant ses voisines.";
-      if (t < 10) return "Le calme revient : le gaz s'aplatit en un disque qui tourne.";
-      return "Les bras spiraux se dessinent, nourris par le gaz froid qui forme encore des étoiles.";
+      if (e < 15) return "La Voie lactée, telle que la simule TNG50 : une jumelle de notre galaxie, vue de biais. Nous sommes dans son disque, à 27 000 années-lumière du centre.";
+      if (e < 18.5) return "Un peu de recul pour l'embrasser tout entière, puis remontons lentement le temps.";
+      if (t > 10) return "Les bras spiraux s'effacent : ils sont faits d'étoiles jeunes et de gaz, qui disparaissent quand on recule.";
+      if (t > 7.5) return "Le disque se défait : il y a 6 à 8 milliards d'années, il était plus petit et plus agité.";
+      if (t > 4.5) return "Une galaxie voisine ressort de la nôtre : la Voie lactée l'avait avalée après plusieurs passages.";
+      return "Il ne reste que de petits amas d'étoiles et de gaz qui tombent les uns sur les autres : l'embryon de notre galaxie.";
     },
   },
   // futur : émission figée à aujourd'hui, le temps court vers le futur, champ fixe

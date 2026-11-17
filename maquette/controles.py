@@ -127,10 +127,14 @@ async def main(url):
         await pg.evaluate("HDS.el = 6"); await pg.wait_for_timeout(900)
         z_pulse = await pg.evaluate("document.getElementById('zoom').classList.contains('bouge')")
         await pg.evaluate("HDS.el = 14"); await pg.wait_for_timeout(900); W14 = await pg.evaluate("HDS.W")
-        await pg.evaluate("HDS.el = 19.5"); await pg.wait_for_timeout(900)
+        await pg.evaluate("HDS.el = 19"); await pg.wait_for_timeout(1500)
         t_pulse = await pg.evaluate("document.getElementById('temps').classList.contains('bouge')")
-        await pg.evaluate("HDS.el = 22"); await pg.wait_for_timeout(900); t22 = await pg.evaluate("HDS.t")
-        note("Promenade : galaxie plein écran puis passé", W14 <= 7e-5 and t22 < 1.3, f"champ {W14:.1e} Gal, puis {t22:.2f} Ga", "« zoomer jusqu'à notre galaxie, remonter le temps »")
+        t1 = await pg.evaluate("HDS.t"); await pg.wait_for_timeout(2500); t2 = await pg.evaluate("HDS.t")
+        v = (t1 - t2) / 2.5                                     # Ga par seconde (ralenti par la machine de test)
+        await pg.evaluate("HDS.aller(1.25)"); await pg.wait_for_timeout(2500)
+        fin = await pg.evaluate("HDS.t")
+        note("Promenade : plongée, puis on remonte lentement", W14 <= 7e-5 and 0 < v <= 0.2 and t1 < 13.787 and fin <= 1.21,
+             f"champ {W14:.1e} Gal ; recul {v:.2f} Ga/s ; arrêt à {fin:.2f} Ga", "« remonter lentement, la galaxie se délite »")
         note("curseurs qui bougent : pulsation", z_pulse and t_pulse, f"zoom {z_pulse}, temps {t_pulse}", "« repérer ceux qui bougent »")
         await pg.click("[data-scen=promenade]"); await pg.wait_for_timeout(300)
         # 9 octies. Univers observable : d'abord l'explication, le départ au bouton « C'est parti »
