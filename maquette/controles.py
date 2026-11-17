@@ -25,7 +25,7 @@ async def main(url):
         pg = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=1)
         err = []; pg.on("pageerror", lambda e: err.append(str(e)))
         await pg.goto(url); await pg.wait_for_timeout(5000)
-        await pg.evaluate("document.getElementById('fermer').click()")
+        await pg.evaluate("document.getElementById('modale').classList.remove('ouverte')")
 
         async def vue(W, t, att=900):
             await pg.evaluate(f"(()=>{{const z=document.getElementById('zoom');z.value={u(W)};z.dispatchEvent(new Event('input'));HDS.aller({t})}})()")
@@ -129,13 +129,17 @@ async def main(url):
         await pg.wait_for_timeout(1500); W0 = await pg.evaluate("HDS.W")
         await pg.evaluate("HDS.el = 7"); await pg.wait_for_timeout(900)
         z_pulse = await pg.evaluate("document.getElementById('zoom').classList.contains('bouge')")
+        tz = []
+        for e_ in (15.5, 17.5, 19.2):
+            await pg.evaluate(f"HDS.el = {e_}"); await pg.wait_for_timeout(500); tz.append(await pg.evaluate("HDS.t"))
+        note("Promenade : le temps attend la fin du zoom", max(tz) >= 13.77, f"t pendant le recul : {[round(x, 2) for x in tz]}", "« ne remonte pas le temps pendant le dézoom final »")
         Ws = []
         for e_ in (13.6, 14.5, 15.4):
             await pg.evaluate(f"HDS.el = {e_}"); await pg.wait_for_timeout(700); Ws.append(await pg.evaluate("HDS.W"))
         W14 = Ws[1]
         note("Promenade : plongée et recul d'un seul mouvement", Ws[0] > 1.03 * Ws[1] and Ws[2] > 1.03 * Ws[1],
              f"champ {Ws[0]:.2e} → {Ws[1]:.2e} → {Ws[2]:.2e} Gal (à ±0,9 s du fond)", "« pas de pause entre le zoom et le dézoom »")
-        await pg.evaluate("HDS.el = 18"); await pg.wait_for_timeout(1500)
+        await pg.evaluate("HDS.el = 22"); await pg.wait_for_timeout(1500)
         t_pulse = await pg.evaluate("document.getElementById('temps').classList.contains('bouge')")
         async def vitesse(t0):
             await pg.evaluate(f"HDS.aller({t0})"); await pg.wait_for_timeout(400)
@@ -163,7 +167,7 @@ async def main(url):
         await pg.click("[data-scen=observable]"); await pg.wait_for_timeout(300)
         # 10. pas de gel quand la Voie lactée se charge (on recharge la page, on zoome tout de suite)
         await pg.goto(url); await pg.wait_for_timeout(5000)
-        await pg.evaluate("document.getElementById('fermer').click()")
+        await pg.evaluate("document.getElementById('modale').classList.remove('ouverte')")
         gel = await pg.evaluate("""new Promise(res => { let p = performance.now(), mx = 0, t0 = p;
           const z = document.getElementById('zoom'); z.value = 40; z.dispatchEvent(new Event('input'));
           const f = () => { const n = performance.now(); mx = Math.max(mx, n - p); p = n; if (n - t0 < 9000) requestAnimationFrame(f); else res(mx); };
@@ -185,6 +189,13 @@ async def main(url):
         await pg.wait_for_timeout(6000)
         d = await pg.evaluate("HDS.dispo"); bd = await pg.evaluate("HDS.bandes")
         note("zones prêtes visibles, tout chargé", min(d) >= 1 and bd > 50, f"disponibilité {[round(x, 2) for x in d]}", "« rendre visibles les zones accessibles »")
+        # 10 quinquies. l'accueil propose la Promenade, qui se lance ; son bouton est le premier
+        await pg.goto(url); await pg.wait_for_timeout(2500)
+        lab = await pg.evaluate("document.getElementById('fermer').textContent")
+        premier = await pg.evaluate("document.querySelector('.scen button').dataset.scen")
+        await pg.click("#fermer"); await pg.wait_for_timeout(800)
+        e = await pg.evaluate("HDS.etat")
+        note("accueil → Promenade", "promenade" in lab.lower() and e["scen"] == "promenade" and premier == "promenade", f"« {lab} », scénario {e['scen']}, premier bouton {premier}", "« commençons par une promenade »")
         # 11. aucune erreur JavaScript
         note("aucune erreur JavaScript", not err, f"{len(err)} erreur(s)", "—")
         await b.close()
