@@ -177,6 +177,9 @@ body[data-mode=recit] #titre { display: none; }
 <template id="introObservable">
   <p>380 000 ans après le Big Bang, la lumière part. L'espace l'emporte, tel un tapis roulant trop rapide.</p>
 </template>
+<template id="introToile">
+  <p>La carte grandit avec l'univers : les structures restent en place et se forment sous vos yeux.</p>
+</template>
 <template id="introHubble">
   <p>Sphère de Hubble, une photographie de l'instant. Plus une galaxie est loin, plus elle nous fuit vite.</p>
 </template>
@@ -212,6 +215,7 @@ body[data-mode=recit] #titre { display: none; }
 <div id="chargement">matière : chargement…</div>
 <div id="panneauRecits" class="scenarios" role="group" aria-label="Récits" hidden>
   <div class="scen"><button data-scen="promenade">Formation de la Voie lactée</button><span>de la toile cosmique à notre galaxie naissante</span></div>
+  <div class="scen"><button data-scen="toile">Formation de la toile cosmique</button><span>de presque rien aux filaments et aux amas</span></div>
   <div class="scen"><button data-scen="observable">Univers observable</button><span>passé : jusqu'où la lumière a pu venir</span></div>
   <div class="scen"><button data-scen="hubble">Sphère de Hubble</button><span>présent : là où l'espace fuit à la vitesse de la lumière</span></div>
   <div class="scen"><button data-scen="evenements">Horizon des événements</button><span>futur : ce que notre message atteindra</span></div>
@@ -227,7 +231,7 @@ body[data-mode=recit] #titre { display: none; }
     <p>Ici, l'univers tient entre vos doigts. Le curseur de droite vous emporte d'une échelle à l'autre, de notre galaxie jusqu'aux confins de l'univers observable ; celui du bas remonte le temps, jusqu'à l'aube du monde. Et sur cette carte se dessinent trois frontières que nul œil ne voit : l'univers observable, tout ce que la lumière a eu le temps de nous apporter ; la sphère de Hubble, au-delà de laquelle l'espace nous fuit plus vite que la lumière ; l'horizon des événements, au-delà duquel rien de ce qui advient aujourd'hui ne nous parviendra jamais.</p>
     <p>La lumière qui vous atteint ce soir a parfois quitté sa source avant que la Terre n'existe. Entre chaque point que vous voyez, l'espace lui-même s'étire, en silence. Et ce halo de 93 milliards d'années-lumière qui nous enveloppe n'est peut-être qu'une parcelle infime de ce qui existe, au-delà de ce que la lumière a pu nous confier.</p>
     <p>Zoomez, et vous franchirez d'un geste des distances que la lumière met des milliards d'années à parcourir. Remontez le temps, et vous verrez la matière se resserrer, jusqu'au seuil où l'univers, trop dense et trop jeune, ne laissait encore s'échapper aucune lumière.</p>
-    <p>Le bouton « Récits » ouvre quatre histoires : la formation de la Voie lactée, depuis la toile cosmique, puis une pour chacune des trois frontières. La croix vous rend la liberté, là où vous êtes ; « aujourd'hui », sous la frise du temps, vous ramène au présent.</p>
+    <p>Le bouton « Récits » ouvre cinq histoires : la formation de la Voie lactée, celle de la toile cosmique, puis une pour chacune des trois frontières. La croix vous rend la liberté, là où vous êtes ; « aujourd'hui », sous la frise du temps, vous ramène au présent.</p>
     <p>Il n'y a pas de centre à cette carte : seulement le point d'où nous regardons, comme n'importe quel autre point de l'univers pourrait le faire.</p>
 </template>
 <template id="txtObservable">
@@ -458,6 +462,15 @@ async function octets(nom, progres) {
 const deBase64 = async txt => new Uint8Array(await (await fetch("data:application/octet-stream;base64," + txt.trim())).arrayBuffer());
 // la Voie lactée est montrée de biais (inclinaison de 62°), pas vue de dessus
 const INCL = { deg: 62, c: Math.cos(62 * Math.PI / 180), s: Math.sin(62 * Math.PI / 180) };
+// facteur de croissance des structures D(a) (approximation de Carroll, Press et Turner),
+// D(1) = 1 ; sert au contraste des époques jeunes : les rides y sont 1/D fois plus faibles
+function croissance(a) {
+  const g = x => { const om = 0.315 / (0.315 + 0.685 * x * x * x), ol = 1 - om; return 2.5 * om / (Math.pow(om, 4 / 7) - ol + (1 + om / 2) * (1 + ol / 70)); };
+  return a * g(a) / g(1);
+}
+// rehaussement du contraste aux époques jeunes (17/11, 19 h 25 : « éviter le noir ») : une fonction
+// connue du temps, pas une statistique de l'image ; pivot à la densité moyenne, les vides restent noirs
+const rehausse = a => Math.min(3, Math.pow(1 / Math.max(croissance(a), 1e-3), 0.6));
 const lisse = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
 const matiere = (() => {
   const cvm = document.getElementById("matiere");
@@ -481,14 +494,22 @@ const matiere = (() => {
   };
   const pPts = prog(`#version 300 es
     in vec2 p0; in vec2 p1; in float h0; in float h1;
-    uniform float f, ech, smin, smax; uniform vec2 dec, centre, res;
+    uniform float f, ech, smin, smax, doux, ori, enroule; uniform vec2 dec, dcl, centre, res;
     out float vw;
     void main() {
-      vec2 u = mix(p0, p1, f) / 60000.0 + dec;
+      vec2 u = mix(p0, p1, f) / 60000.0;
+      if (enroule > 0.5) {
+        // copie voisine : contenu décalé périodiquement, puis tourné d'un quart de tour (×n) et retourné
+        u = fract(u + dcl + 0.5) - 0.5;
+        float q = mod(ori, 4.0);
+        if (ori >= 4.0) u.x = -u.x;
+        for (int k = 0; k < 3; k++) if (float(k) < q) u = vec2(-u.y, u.x);
+      }
+      u += dec;
       vec2 px = centre + u * ech;
       gl_Position = vec4(px.x / res.x * 2.0 - 1.0, 1.0 - px.y / res.y * 2.0, 0.0, 1.0);
       float h = mix(exp2(h0 / 16.0 - 14.0), exp2(h1 / 16.0 - 14.0), f);
-      float sig = clamp(0.5 * h * ech, smin, smax);
+      float sig = clamp(0.5 * h * ech * doux, smin, smax);
       gl_PointSize = 6.0 * sig;
       vw = 1.0 / (6.2832 * sig * sig);
     }`, `#version 300 es
@@ -498,10 +519,45 @@ const matiere = (() => {
       if (r2 > 9.0) discard;
       o = vec4(vw * exp(-0.5 * r2) * wk, 0.0, 0.0, 1.0);
     }`);
+  // ---- données v2 (17/11, P2/P5) : un fichier par époque (32, réguliers en facteur de croissance),
+  // trajectoires de Catmull-Rom sur 4 époques, agitation des vitesses voisines pour la couleur
+  const pPts2 = prog(`#version 300 es
+    in vec2 pm; in vec2 p0; in vec2 p1; in vec2 pp; in float h0; in float h1; in float s0; in float s1;
+    uniform float f, ech, smin, smax, doux, ori, enroule; uniform vec2 dec, dcl, centre, res;
+    out float vw; out float va;
+    void main() {
+      float u2 = f * f, u3 = u2 * f;
+      vec2 P = 0.5 * (2.0 * p0 + (p1 - pm) * f + (2.0 * pm - 5.0 * p0 + 4.0 * p1 - pp) * u2 + (3.0 * p0 - pm - 3.0 * p1 + pp) * u3);
+      vec2 u = P / 60000.0;
+      if (enroule > 0.5) {
+        u = fract(u + dcl + 0.5) - 0.5;
+        float q = mod(ori, 4.0);
+        if (ori >= 4.0) u.x = -u.x;
+        for (int k = 0; k < 3; k++) if (float(k) < q) u = vec2(-u.y, u.x);
+      }
+      u += dec;
+      vec2 px = centre + u * ech;
+      gl_Position = vec4(px.x / res.x * 2.0 - 1.0, 1.0 - px.y / res.y * 2.0, 0.0, 1.0);
+      float h = mix(exp2(h0 / 16.0 - 14.0), exp2(h1 / 16.0 - 14.0), f);
+      float sig = clamp(0.5 * h * ech * doux, smin, smax);
+      gl_PointSize = 6.0 * sig;
+      vw = 1.0 / (6.2832 * sig * sig);
+      // agitation : log10 σ = s / 80 + 1 ; 0 sous 180 km/s, 1 au-delà de 1 000 km/s (amas)
+      va = clamp((mix(s0, s1, f) / 80.0 + 1.0 - 2.25) / 0.75, 0.0, 1.0);
+    }`, `#version 300 es
+    precision highp float; in float vw; in float va; uniform float wk; out vec4 o;
+    void main() {
+      vec2 d = gl_PointCoord * 2.0 - 1.0; float r2 = 9.0 * dot(d, d);
+      if (r2 > 9.0) discard;
+      float g = vw * exp(-0.5 * r2) * wk;
+      o = vec4(g, g * va, 0.0, 1.0);
+    }`);
+  const L2 = {}; for (const nm of ["pm", "p0", "p1", "pp", "h0", "h1", "s0", "s1"]) L2[nm] = gl.getAttribLocation(pPts2, nm);
+  const U2 = n => gl.getUniformLocation(pPts2, n);
   const pTon = prog(`#version 300 es
     out vec2 uv; void main() { vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); uv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`,
     `#version 300 es
-    precision highp float; in vec2 uv; uniform sampler2D acc; uniform float m, wk, contraste, gain, rond, fond; out vec4 o;
+    precision highp float; in vec2 uv; uniform sampler2D acc; uniform float m, wk, contraste, gain, rond, fond, agit, lodGlow; out vec4 o;
     // palette inspirée de Millennium : vides noirs, filaments indigo-violet, nœuds or puis blancs
     vec3 palette(float t) {
       vec3 c0 = vec3(0.0), c1 = vec3(0.06, 0.04, 0.26), c2 = vec3(0.40, 0.10, 0.52), c3 = vec3(0.90, 0.32, 0.30), c4 = vec3(1.0, 0.70, 0.32), c5 = vec3(1.0, 0.93, 0.70), c6 = vec3(1.0);
@@ -514,14 +570,50 @@ const matiere = (() => {
     }
     void main() {
       if (rond > 0.5 && length(uv - 0.5) > 0.5) discard;
-      float D = texture(acc, uv).r / wk, G = textureLod(acc, uv, 3.0).r / wk;
+      float D = texture(acc, uv).r / wk, G = textureLod(acc, uv, lodGlow).r / wk;
       float dl = log(1.0 + D / m) / 2.302585 + 0.25 * log(1.0 + G / m) / 2.302585;
       dl = 0.30103 + (dl - 0.30103) * contraste;
       float t = clamp((dl - 0.30) / (2.0 - 0.30), 0.0, 1.0);
+      if (agit > 0.5) {
+        vec4 A = texture(acc, uv); float q = A.r > 0.0 ? A.g / A.r : 0.0;
+        t = clamp(t + 0.25 * q * smoothstep(0.30, 0.65, t), 0.0, 1.0);
+      }
       vec3 c = palette(t);
       o = vec4(mix(vec3(0.016, 0.02, 0.04) * fond, c, gain), 1.0);
     }`);
-  let N = 0, AS = [], bufXY, bufH, tex, fbo, tw = 0, th = 0;
+  let N = 0, AS = [], bufXY, bufH, tex, fbo, tw = 0, th = 0, agitTon = false, lodTon = 3, texQ = null, fboQ = null, twq = 0, thq = 0;
+  // ---- chargement v2 : l'index, puis les époques à la demande (les plus proches d'abord) ----
+  const V2 = { pret: false, A: [], n: 0, ep: [], ix: null, ordre: null };
+  M.chargeV2 = async etq => {
+    try {
+      const r = await fetch(SUR_GITHUB ? `donnees/matiere2-${etq}.json` : `matiere2-${etq}.json`); if (!r.ok) return false;
+      const ix = await r.json(); V2.ix = ix; V2.A = ix.a; V2.n = ix.n; V2.ep = ix.a.map(() => null);
+      // ordre de tirage aléatoire fixe : n'importe quel début de liste est un sous-échantillon honnête
+      const ordre = new Uint32Array(ix.n); for (let k = 0; k < ix.n; k++) ordre[k] = k;
+      let g = 12345; for (let k = ix.n - 1; k > 0; k--) { g = (Math.imul(g, 1103515245) + 12345) >>> 0; const j = g % (k + 1); const tmp = ordre[k]; ordre[k] = ordre[j]; ordre[j] = tmp; }
+      V2.ordre = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, V2.ordre); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ordre, gl.STATIC_DRAW);
+      V2.pret = true; M.prete = true;
+      // prêt quand les deux époques d'aujourd'hui sont là
+      const k = ix.a.length - 2; await new Promise(res => { const v = () => (epoqueV2(k) && epoqueV2(k + 1)) ? res() : setTimeout(v, 150); v(); });
+      return true;
+    } catch (e) { return false; }
+  };
+  function epoqueV2(k) {
+    if (k < 0 || k >= V2.A.length) return null;
+    const e = V2.ep[k]; if (e && e.buf) { e.vu = performance.now(); return e; }
+    if (e) return null;                                                  // en cours
+    V2.ep[k] = { charge: true };
+    octets(V2.ix.fichiers[k].replace(/\.bin$/, "")).then(bin => {
+      const lh = new DataView(bin.buffer, bin.byteOffset).getUint32(0, true); let o = 4 + lh; o += o % 2;
+      const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(o), gl.STATIC_DRAW);
+      V2.ep[k] = { buf, vu: performance.now() }; sale = true;
+      // pas plus de 12 époques sur la carte graphique : on libère les plus anciennement vues
+      const pretes = V2.ep.map((x, j) => [x, j]).filter(([x]) => x && x.buf);
+      if (pretes.length > 12) { pretes.sort((p, q) => p[0].vu - q[0].vu); const [x, j] = pretes[0]; gl.deleteBuffer(x.buf); V2.ep[j] = null; }
+    }).catch(() => { V2.ep[k] = null; });
+    return null;
+  }
+  M.v2 = V2;
   const L = { p0: gl.getAttribLocation(pPts, "p0"), p1: gl.getAttribLocation(pPts, "p1"), h0: gl.getAttribLocation(pPts, "h0"), h1: gl.getAttribLocation(pPts, "h1") };
   const U = n => gl.getUniformLocation(pPts, n), UT = n => gl.getUniformLocation(pTon, n);
   const vao = gl.createVertexArray();
@@ -535,6 +627,16 @@ const matiere = (() => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     fbo = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    // la toile, champ doux, se calcule à 1,5 pixel par point d'écran au plus (4 fois moins de travail
+    // à la densité 3 d'un téléphone) ; le ton l'agrandit en lissant
+    const q = Math.min(1, 1.5 / DPR); twq = Math.max(1, Math.round(w * q)); thq = Math.max(1, Math.round(h * q));
+    if (texQ) { gl.deleteTexture(texQ); gl.deleteFramebuffer(fboQ); }
+    texQ = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texQ);
+    gl.texImage2D(gl.TEXTURE_2D, 0, flottant ? gl.RGBA16F : gl.RGBA8, twq, thq, 0, gl.RGBA, flottant ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    fboQ = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fboQ);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texQ, 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   };
   M.charge = async (nom, progres) => {
@@ -563,7 +665,36 @@ const matiere = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); tl = w;
   }
   // dépose les particules (copies périodiques `decs`) dans un tampon d'accumulation
-  function depose(fb, w, h, a, cx, cy, ech, decs, wk, smaxPx) {
+  function depose2(fb, w, h, a, cx, cy, ech, decs, wk, smaxPx, sminPx = 0.7 * DPR) {
+    if (!V2.pret) return false;
+    const A = V2.A, n = V2.n; let k = A.findIndex(v => v > a) - 1; if (k < 0) k = a < A[0] ? 0 : A.length - 2;
+    const f = Math.min(1, Math.max(0, (a - A[k]) / (A[k + 1] - A[k])));
+    for (const j of [k - 2, k + 3]) epoqueV2(j);                        // préchargement des voisines
+    const e0 = epoqueV2(k), e1 = epoqueV2(k + 1); if (!e0 || !e1) return false;
+    const em = epoqueV2(k - 1) || e0, ep = epoqueV2(k + 2) || e1;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(pPts2); gl.bindVertexArray(vao);
+    const att = (nom, e, cnt, type, off) => { gl.bindBuffer(gl.ARRAY_BUFFER, e.buf); gl.enableVertexAttribArray(L2[nom]); gl.vertexAttribPointer(L2[nom], cnt, type, false, 0, off); };
+    att("pm", em, 2, gl.SHORT, 0); att("p0", e0, 2, gl.SHORT, 0); att("p1", e1, 2, gl.SHORT, 0); att("pp", ep, 2, gl.SHORT, 0);
+    att("h0", e0, 1, gl.UNSIGNED_BYTE, 4 * n); att("h1", e1, 1, gl.UNSIGNED_BYTE, 4 * n);
+    att("s0", e0, 1, gl.UNSIGNED_BYTE, 5 * n); att("s1", e1, 1, gl.UNSIGNED_BYTE, 5 * n);
+    gl.uniform1f(U2("f"), f); gl.uniform1f(U2("ech"), ech);
+    gl.uniform1f(U2("smin"), sminPx); gl.uniform1f(U2("smax"), smaxPx ?? 14 * DPR);
+    gl.uniform2f(U2("centre"), cx, cy); gl.uniform2f(U2("res"), w, h);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    const par = Math.min(n, Math.floor(Math.min(1.4e6, tw * th / (DPR * DPR)) / decs.length));
+    gl.uniform1f(U2("wk"), wk * n / par); gl.uniform1f(U2("doux"), Math.sqrt(rehausse(a)) * Math.sqrt(n / par));
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, V2.ordre);
+    for (const [dx, dy] of decs) {
+      const centrale = dx === 0 && dy === 0, [ox, oy] = decale(dx, dy);
+      gl.uniform1f(U2("enroule"), centrale ? 0 : 1); gl.uniform1f(U2("ori"), orient(dx, dy)); gl.uniform2f(U2("dcl"), ox, oy);
+      gl.uniform2f(U2("dec"), dx, dy); gl.drawElements(gl.POINTS, par, gl.UNSIGNED_INT, 0);
+    }
+    for (const nm in L2) gl.disableVertexAttribArray(L2[nm]);
+    gl.disable(gl.BLEND); agitTon = true;
+    return true;
+  }
+  function depose(fb, w, h, a, cx, cy, ech, decs, wk, smaxPx, sminPx = 0.7 * DPR) {
     let i = AS.findIndex(v => v >= a); if (i < 0) i = AS.length - 1;
     let j = i; i = Math.max(0, i - 1); if (a <= AS[0]) { i = 0; j = 0; } else if (a >= AS[AS.length - 1]) { i = j = AS.length - 1; }
     const f = j === i ? 0 : (a - AS[i]) / (AS[j] - AS[i]);
@@ -576,14 +707,20 @@ const matiere = (() => {
     gl.enableVertexAttribArray(L.h0); gl.vertexAttribPointer(L.h0, 1, gl.UNSIGNED_BYTE, false, 0, i * N);
     gl.enableVertexAttribArray(L.h1); gl.vertexAttribPointer(L.h1, 1, gl.UNSIGNED_BYTE, false, 0, j * N);
     gl.uniform1f(U("f"), f); gl.uniform1f(U("ech"), ech);
-    gl.uniform1f(U("smin"), 0.7 * DPR); gl.uniform1f(U("smax"), smaxPx ?? 14 * DPR);
+    gl.uniform1f(U("smin"), sminPx); gl.uniform1f(U("smax"), smaxPx ?? 14 * DPR);
     gl.uniform2f(U("centre"), cx, cy); gl.uniform2f(U("res"), w, h);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     // budget de points par image : les particules sont dans un ordre aléatoire,
     // en garder une partie revient à sous-échantillonner (compensé par le poids)
-    const par = Math.min(N, Math.floor(1.4e6 / decs.length));
+    const par = Math.min(N, Math.floor(Math.min(1.4e6, tw * th / (DPR * DPR)) / decs.length));
     gl.uniform1f(U("wk"), wk * N / par);
-    for (const [dx, dy] of decs) { gl.uniform2f(U("dec"), dx, dy); gl.drawArrays(gl.POINTS, 0, par); }
+    // sous-échantillonné, chaque point représente plus de matière : noyau élargi d'autant (√(N/par))
+    gl.uniform1f(U("doux"), Math.sqrt(rehausse(a)) * Math.sqrt(N / par));
+    for (const [dx, dy] of decs) {
+      const centrale = dx === 0 && dy === 0, [ox, oy] = decale(dx, dy);
+      gl.uniform1f(U("enroule"), centrale ? 0 : 1); gl.uniform1f(U("ori"), orient(dx, dy)); gl.uniform2f(U("dcl"), ox, oy);
+      gl.uniform2f(U("dec"), dx, dy); gl.drawArrays(gl.POINTS, 0, par);
+    }
     gl.disable(gl.BLEND);
   }
   // ton logarithmique à bornes fixes + palette feu, vers une zone de l'écran
@@ -593,9 +730,10 @@ const matiere = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(vx, vy, vw, vh);
     gl.useProgram(pTon); gl.bindVertexArray(null);
     gl.uniform1i(UT("acc"), 0); gl.uniform1f(UT("m"), m); gl.uniform1f(UT("wk"), wk); gl.uniform1f(UT("rond"), rond ? 1 : 0);
-    gl.uniform1f(UT("contraste"), (a < AS[0] ? Math.max(0, a / AS[0]) : 1) * (contr ?? 1));
+    gl.uniform1f(UT("lodGlow"), lodTon); lodTon = 3;
+    gl.uniform1f(UT("contraste"), (a < AS[0] ? Math.max(0, a / AS[0]) : 1) * (contr ?? 1) * Math.min(2, rehausse(a)));   // plafond 2 : au-delà, des anneaux autour des grumeaux
     gl.uniform1f(UT("gain"), 1.0 * alpha * (a < AS[0] ? Math.max(0.15, a / AS[0]) : 1));
-    gl.uniform1f(UT("fond"), ajout ? 0 : 1);
+    gl.uniform1f(UT("fond"), ajout ? 0 : 1); gl.uniform1f(UT("agit"), agitTon ? 1 : 0); agitTon = false;
     if (ajout) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.disable(gl.BLEND);
@@ -627,11 +765,122 @@ const matiere = (() => {
   // part réellement couverte par les halos à ce facteur d'échelle : 0 tant qu'ils ne sont pas
   // chargés, si le rendu flottant manque, ou avant leur première époque disponible
   M.couvertureHalos = a => {
+    if (HI.pret && flottant) return lisse(HI.A[0], HI.A[0] * 1.15, a);
     if (!HL.pret || !flottant) return 0;
     const a0 = Math.min(...HL.ep.map(e => e.a));
     return Math.min(1, Math.max(0, (a - a0 * 0.8) / (a0 * 0.2)));
   };
-  M.dessineHalos = (a, cx, cy, boxPx, alpha) => {
+  // ---- P3 (17/11) : chaque halo de TNG50 suit sa propre histoire (branche principale SubLink) ----
+  // une texture « halo × instantané » (position, masse relative, masse stellaire) ; ses points et sa
+  // galaxie le suivent, grandissent (rayon ∝ M^1/3) et s'allument (éclat ∝ M) au fil du temps
+  const HI = { pret: false };
+  const pHalo = prog(`#version 300 es
+    in float idx; in vec2 off; in float hk;
+    uniform highp sampler2D tH; uniform highp sampler2D tR; uniform int RE, k0; uniform float f, ech, smin, smax, galaxie;
+    uniform vec2 centre, res;
+    out float vw; out vec3 vc;
+    vec4 lit(int i, int k) { return texelFetch(tH, ivec2(i % 2048, i / 2048 + k * RE), 0); }
+    void main() {
+      int i = int(idx + 0.5);
+      vec4 qm = lit(i, k0 - 1), q0 = lit(i, k0), q1 = lit(i, k0 + 1), qp = lit(i, k0 + 2);
+      float u2 = f * f, u3 = u2 * f;
+      vec2 P = 0.5 * (2.0 * q0.xy + (q1.xy - qm.xy) * f + (2.0 * qm.xy - 5.0 * q0.xy + 4.0 * q1.xy - qp.xy) * u2 + (3.0 * q0.xy - qm.xy - 3.0 * q1.xy + qp.xy) * u3);
+      float mf = mix(q0.z, q1.z, f), R = texelFetch(tR, ivec2(i % 2048, i / 2048), 0).r * pow(max(mf, 1e-4), 1.0 / 3.0);
+      if (galaxie > 0.5) {
+        // la galaxie du halo : un point de lumière, sa taille et sa couleur selon sa masse d'étoiles
+        float ms = mix(mod(q0.w, 1000.0), mod(q1.w, 1000.0), f) / 20.0;
+        if (ms < 7.5 || mf < 0.003) { gl_Position = vec4(2.0, 2.0, 0.0, 1.0); gl_PointSize = 0.0; vw = 0.0; vc = vec3(0.0); return; }
+        vec2 px = centre + vec2(P.x, -P.y) * ech;
+        gl_Position = vec4(px.x / res.x * 2.0 - 1.0, 1.0 - px.y / res.y * 2.0, 0.0, 1.0);
+        float rk = 6.0 * pow(10.0, 0.28 * (ms - 10.5)) * 0.6774;           // rayon visuel (ckpc/h)
+        float sig = clamp(rk * ech * 0.5, 0.9, 7.0); gl_PointSize = 6.0 * sig;
+        vw = clamp(0.25 + 0.30 * (ms - 8.0), 0.18, 1.0);
+        float q = clamp((ms - 8.0) / 3.5, 0.0, 1.0);
+        vc = q < 0.5 ? mix(vec3(0.90, 0.32, 0.30), vec3(1.0, 0.70, 0.32), q * 2.0) : mix(vec3(1.0, 0.70, 0.32), vec3(1.0, 0.93, 0.70), q * 2.0 - 1.0);
+        return;
+      }
+      vec2 xy = P + off / 100.0 * R;
+      vec2 px = centre + vec2(xy.x, -xy.y) * ech;
+      gl_Position = vec4(px.x / res.x * 2.0 - 1.0, 1.0 - px.y / res.y * 2.0, 0.0, 1.0);
+      float sig = clamp(0.5 * hk / 100.0 * R * ech, smin, smax);
+      gl_PointSize = 6.0 * sig;
+      vw = min(mf, 1.5) / (6.2832 * sig * sig); vc = vec3(1.0);
+    }`, `#version 300 es
+    precision highp float; in float vw; in vec3 vc; uniform float galaxie, al; out vec4 o;
+    void main() {
+      vec2 d = gl_PointCoord * 2.0 - 1.0; float r2 = 9.0 * dot(d, d);
+      if (r2 > 9.0) discard;
+      if (galaxie > 0.5) { float c = exp(-0.5 * r2), coeur = exp(-4.0 * r2); o = vec4((vc * c * 0.75 + vec3(1.0) * coeur * 0.55) * vw * al, 1.0); return; }
+      o = vec4(vw * exp(-0.5 * r2), 0.0, 0.0, 1.0);
+    }`);
+  const LH = { idx: gl.getAttribLocation(pHalo, "idx"), off: gl.getAttribLocation(pHalo, "off"), hk: gl.getAttribLocation(pHalo, "hk") };
+  const UH = n => gl.getUniformLocation(pHalo, n);
+  M.chargeHistoriques = async (nom, progres) => {
+    const bin = await octets(nom, progres);
+    const dv = new DataView(bin.buffer, bin.byteOffset); const lh = dv.getUint32(0, true);
+    const tete = JSON.parse(new TextDecoder().decode(bin.subarray(4, 4 + lh)));
+    let o = 4 + lh; o += (4 - o % 4) % 4;
+    const Hn = tete.H, E = tete.snaps.length, RE = Math.ceil(Hn / 2048);
+    const R0 = new Float32Array(bin.buffer.slice(bin.byteOffset + o, bin.byteOffset + o + 4 * Hn)); o += 4 * Hn;
+    const T = new Float32Array(2048 * RE * E * 4);
+    for (let e = 0; e < E; e++) {
+      const X = new Int16Array(bin.buffer.slice(bin.byteOffset + o, bin.byteOffset + o + 2 * Hn)); o += 2 * Hn;
+      const Y = new Int16Array(bin.buffer.slice(bin.byteOffset + o, bin.byteOffset + o + 2 * Hn)); o += 2 * Hn;
+      const MF = bin.subarray(o, o + Hn); o += Hn; const MSt = bin.subarray(o, o + Hn); o += Hn; const SF = bin.subarray(o, o + Hn); o += Hn;
+      for (let h = 0; h < Hn; h++) { const t0 = 4 * ((Math.floor(h / 2048) + e * RE) * 2048 + h % 2048); T[t0] = X[h]; T[t0 + 1] = Y[h]; T[t0 + 2] = MF[h] / 100; T[t0 + 3] = MSt[h] + 1000 * SF[h]; }
+    }
+    o += o % 2;
+    const P = tete.P;
+    const tex2 = (w, h, data, interne, fmt) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, interne, w, h, 0, fmt, gl.FLOAT, data);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); return t; };
+    const R0p = new Float32Array(2048 * RE); R0p.set(R0);
+    HI.tH = tex2(2048, RE * E, T, gl.RGBA32F, gl.RGBA); HI.tR = tex2(2048, RE, R0p, gl.R32F, gl.RED);
+    HI.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, HI.buf); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(o, o + 5 * P), gl.STATIC_DRAW);
+    Object.assign(HI, { pret: true, H: Hn, E, RE, P, A: tete.a });
+  };
+  // instantané flottant (k, f) pour un facteur d'échelle ; null avant le premier
+  const instantH = a => { const A = HI.A; if (a < A[0]) return null; let k = A.findIndex(v => v > a) - 1; if (k < 0) k = A.length - 2; return [Math.min(k, A.length - 2), Math.min(1, (a - A[k]) / (A[k + 1] - A[k]))]; };
+  function dessineHI(a, cx, cy, ppg, alpha, galaxies) {
+    const kf = instantH(a); if (!kf) return;
+    const [k, f] = kf, ech = a / 0.6774 * 3.26156e-6 * ppg;               // 1 ckpc/h → pixels
+    gl.useProgram(pHalo); gl.bindVertexArray(vao);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, HI.tH); gl.uniform1i(UH("tH"), 1);
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, HI.tR); gl.uniform1i(UH("tR"), 2); gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(UH("RE"), HI.RE); gl.uniform1i(UH("k0"), k); gl.uniform1f(UH("f"), f); gl.uniform1f(UH("ech"), ech);
+    gl.uniform2f(UH("centre"), cx, cy); gl.uniform2f(UH("res"), tw, th); gl.uniform1f(UH("al"), alpha);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    if (galaxies) {
+      gl.uniform1f(UH("galaxie"), 1); gl.bindBuffer(gl.ARRAY_BUFFER, null);
+      // un sommet par halo : son indice vient d'un petit tampon 0..H-1
+      if (!HI.bufI) { HI.bufI = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, HI.bufI); gl.bufferData(gl.ARRAY_BUFFER, new Uint16Array(HI.H).map((_, j) => j), gl.STATIC_DRAW); }
+      gl.bindBuffer(gl.ARRAY_BUFFER, HI.bufI); gl.enableVertexAttribArray(LH.idx); gl.vertexAttribPointer(LH.idx, 1, gl.UNSIGNED_SHORT, false, 0, 0);
+      gl.disableVertexAttribArray(LH.off); gl.disableVertexAttribArray(LH.hk); gl.vertexAttrib2f(LH.off, 0, 0); gl.vertexAttrib1f(LH.hk, 0);
+      gl.drawArrays(gl.POINTS, 0, HI.H);
+    } else {
+      gl.uniform1f(UH("galaxie"), 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, HI.buf);
+      gl.enableVertexAttribArray(LH.idx); gl.vertexAttribPointer(LH.idx, 1, gl.UNSIGNED_SHORT, false, 0, 0);
+      gl.enableVertexAttribArray(LH.off); gl.vertexAttribPointer(LH.off, 2, gl.BYTE, false, 0, 2 * HI.P);
+      gl.enableVertexAttribArray(LH.hk); gl.vertexAttribPointer(LH.hk, 1, gl.UNSIGNED_BYTE, false, 0, 4 * HI.P);
+      gl.drawArrays(gl.POINTS, 0, HI.P);
+    }
+    for (const nm in LH) gl.disableVertexAttribArray(LH[nm]);
+    gl.disable(gl.BLEND);
+  }
+  M.historiques = HI;
+  M.dessineHalos = (a, cx, cy, boxPx, alpha, ppg) => {
+    if (HI.pret && flottant && ppg) {
+      if (alpha < 0.002) return;
+      const kf = instantH(a); if (!kf) return;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.viewport(0, 0, tw, th); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+      const smaxPx = DPR * Math.max(0.9, 14 * Math.min(1, 1.2 * tw / boxPx));
+      gl.useProgram(pHalo); gl.uniform1f(UH("smin"), 0.7 * DPR); gl.uniform1f(UH("smax"), smaxPx);
+      dessineHI(a, cx, cy, ppg, 1, false);
+      const debut = lisse(HI.A[0], HI.A[0] * 1.15, a);
+      const mEff = Math.max(HI.P / (boxPx * boxPx), 0.1 / (6.2832 * smaxPx * smaxPx));
+      ton(tex, 0, 0, tw, th, Math.max(a, AS[0] || a), mEff, 1, alpha * debut, false, true, 0.8);
+      return;
+    }
     if (!HL.pret || alpha < 0.002 || !flottant) return;
     const E = HL.ep, A = E.map(e => e.a);
     if (a < A[0] * 0.8) return;
@@ -643,7 +892,7 @@ const matiere = (() => {
     gl.uniform1f(U("ech"), boxPx); gl.uniform2f(U("centre"), cx, cy); gl.uniform2f(U("res"), tw, th);
     // comme pour la toile : zoomé au-delà de l'échantillonnage, les points restent des points
     const smaxPx = DPR * Math.max(0.9, 14 * Math.min(1, 1.2 * tw / boxPx));
-    gl.uniform1f(U("smin"), 0.7 * DPR); gl.uniform1f(U("smax"), smaxPx); gl.uniform2f(U("dec"), 0, 0); gl.uniform1f(U("f"), 0);
+    gl.uniform1f(U("smin"), 0.7 * DPR); gl.uniform1f(U("smax"), smaxPx); gl.uniform1f(U("doux"), 1); gl.uniform1f(U("enroule"), 0); gl.uniform2f(U("dec"), 0, 0); gl.uniform1f(U("f"), 0);
     for (const [k, w] of [[i, j === i ? 1 : 1 - f], [j, j === i ? 0 : f]]) {
       if (w < 0.002) continue;
       const o = HL.off[k], n = E[k].n;
@@ -669,12 +918,18 @@ const matiere = (() => {
     const y0 = Math.ceil(-cy / boitePx - 0.56), y1 = Math.floor((th - cy) / boitePx + 0.56);
     const decs = []; for (let a1 = x0; a1 <= x1; a1++) for (let b1 = y0; b1 <= y1; b1++) decs.push([a1, b1]);
     // zoomé au-delà de la résolution de la simulation, le noyau de lissage ne grossit plus
-    const smaxPx = DPR * Math.max(1.1, 14 * Math.min(1, 1.2 * tw / boitePx));
-    depose(fbo, tw, th, a, cx, cy, boitePx, decs, wk, smaxPx);
+    const q = twq / tw, bq = boitePx * q;
+    const smaxPx = q * DPR * Math.max(1.1, 14 * Math.min(1, 1.2 * tw / boitePx)), sminPx = q * 0.7 * DPR;
+    const nV = V2.pret ? V2.n : N, mV = nV / (bq * bq), wkV = flottant ? 1 : 1 / (mV * 60), mQ = N / (bq * bq), wkQ = flottant ? 1 : 1 / (mQ * 60);
+    lodTon = 3 + Math.log2(q);
+    if (depose2(fboQ, twq, thq, a, cx * q, cy * q, bq, decs, wkV, smaxPx, sminPx)) {
+      ton(texQ, 0, 0, tw, th, a, Math.max(mV, 0.1 / (6.2832 * smaxPx * smaxPx)), wkV, alpha, false); return;
+    }
+    depose(fboQ, twq, thq, a, cx * q, cy * q, bq, decs, wkQ, smaxPx, sminPx);
     // une particule isolée (noyau plafonné) doit rester un point moyen, pas saturer :
     // la densité de référence ne descend pas sous le dixième de son pic
-    const mEff = Math.max(m, 0.1 / (6.2832 * smaxPx * smaxPx));
-    ton(tex, 0, 0, tw, th, a, mEff, wk, alpha, false);
+    lodTon = 3 + Math.log2(q);
+    ton(texQ, 0, 0, tw, th, a, Math.max(mQ, 0.1 / (6.2832 * smaxPx * smaxPx)), wkQ, alpha, false);
   };
   // loupe : un disque qui montre la MÊME région de matière (champ comobile fixe),
   // centrée en (ux, uy) en unités de boîte ; x, y, d en pixels écran (haut-gauche)
@@ -863,6 +1118,12 @@ const matiere = (() => {
   };
   // a : facteur d'échelle ; ppg : pixels par Gal ; dessin direct, additif, sur l'image
   M.dessineCatalogue = (a, cx, cy, ppg, al, aGal) => {
+    if (HI.pret) {
+      if (al < 0.002) return;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, tw, th);
+      dessineHI(a, cx, cy, ppg, al * lisse(HI.A[0], HI.A[0] * 1.15, a), true);
+      return;
+    }
     if (!K.pret || al < 0.002) return;
     const E = K.ep, A = E.map(e => e.a);
     if (a < A[0] * 0.85) return;
@@ -1025,9 +1286,12 @@ function chargeVoieLactee() {
 }
 function chargeEnvirons() {
   if (catDemande) return Promise.resolve(); catDemande = halosDemandes = true;
-  return Promise.all([
-    matiere.chargeCatalogue("galaxies", suivi("galaxies")).then(fini("galaxies"), rate("galaxies")),
-    matiere.chargeHalos("halos", suivi("halos")).then(fini("halos"), rate("halos"))]);
+  // P3 : les historiques des halos (un seul fichier sert aux halos et aux galaxies) ; sinon l'ancien catalogue figé
+  return matiere.chargeHistoriques("historiques", q => { suivi("halos")(q); suivi("galaxies")(q); })
+    .then(() => { fini("halos")(); fini("galaxies")(); })
+    .catch(() => Promise.all([
+      matiere.chargeCatalogue("galaxies", suivi("galaxies")).then(fini("galaxies"), rate("galaxies")),
+      matiere.chargeHalos("halos", suivi("halos")).then(fini("halos"), rate("halos"))]));
 }
 // part disponible pour un champ W (Gal) : la plus petite des sources dont ce champ a besoin
 function dispoW(w) {
@@ -1066,7 +1330,7 @@ function majDispo() {
 // Dessin
 // ---------------------------------------------------------------------------
 function cercle(cx, cy, r) { ctx.beginPath(); ctx.arc(cx, cy, Math.max(r, 0.1), 0, 2 * Math.PI); }
-let marqueurIci = false, etiquettes = [];
+let marqueurIci = false, etiquettes = [], couches = {};
 function rayons(s) { return { p: s.a * s.eta, h: DH / E(s.a), e: s.a * (ETA_INF - s.eta) }; }
 // une distance en toutes lettres (pas d'abréviation) : « 46 milliards d'années-lumière »
 function enMots(g) {
@@ -1091,7 +1355,11 @@ function dessine() {
   ctx.globalAlpha = 1; ctx.clearRect(0, 0, Wpx, Hpx);
   // la matière en points (WebGL) quand la boîte simulée couvre l'écran ; au-delà, la tuile
   const boitePx = s.a * TUILE_GAL * ppg;
-  const aPts = matiere.prete ? lisse(0.6 * Wpx, 1.0 * Wpx, boitePx) : 0;
+  // P1 (17/11) : la petite boîte en points partout où elle sert (plus de fondu d'images, plus de
+  // structures en double) ; au-delà, quand elle devient trop petite à l'écran, la grande boîte
+  const aG = 1 - lisse(0.10 * Wpx, 0.30 * Wpx, boitePx);
+  const aPts = matiere.prete ? 1 - aG : 0;
+  couches = { points: aPts, tuilesPetite: (1 - aG) * (matiere.prete ? 0 : 1), tuilesGrande: aG };
   // les simulations s'arrêtent aujourd'hui : on ne grossit pas des structures figées vers un
   // futur où elles auront changé ; la matière s'efface entre 16 et 22 milliards d'années
   const futur = 1 - lisse(16, 22, t);
@@ -1103,8 +1371,8 @@ function dessine() {
   // la toile simulée ne s'efface que là où les halos TNG50 prennent effectivement le relais
   const aPM = 1 - (1 - lisse(0.004, 0.025, W)) * Math.min(1, aCat * 1.2 * matiere.couvertureHalos(s.a));
   if (aCat > 0) chargeEnvirons();
-  matiere.dessine(s.a, cx, cy, boitePx, aPts * (1 - aGal) * aPM * futur);
-  matiere.dessineHalos(s.a, cx, cy, boiteTNG * ppg, aCat * (1 - 0.85 * aGal) * futur);
+  matiere.dessine(s.a, cx, cy, boitePx, aPts * (1 - aGal) * aPM * futur);   // (le poids des points est ici 1 - aG)
+  matiere.dessineHalos(s.a, cx, cy, boiteTNG * ppg, aCat * (1 - 0.85 * aGal) * futur, ppg);
   matiere.dessineCatalogue(s.a, cx, cy, ppg, aCat * futur, aGal);
   const gx = cx, gy = cy - 8.2 * INCL.c * ppk;   // le Soleil est à 8,2 kpc du centre (projeté, disque incliné)
   if (aGal > 0) matiere.dessineGalaxie(t, gx, gy, ppk, aGal);
@@ -1113,9 +1381,8 @@ function dessine() {
   // fond : la matière, à échelle propre fixe (elle se resserre en remontant le temps).
   // Trois relais : les points (petite boîte), la tuile de la petite boîte, puis celle de la grande
   // quand la petite deviendrait un carrelage trop serré.
-  if (pretes > 0 && aPts < 0.999 && futur > 0.002) {
+  if (pretes > 0 && futur > 0.002 && (aG > 0.002 || !matiere.prete)) {
     const dim = (s.a < AT[0] ? Math.max(0.15, s.a / AT[0]) : 1) * futur;
-    const aG = 1 - lisse(0.10 * Wpx, 0.30 * Wpx, boitePx);
     const tuiles = (jeuT, Lgal, poids) => {
       if (poids < 0.002) return;
       let j = jeuT.findIndex(o => o.a >= s.a); if (j < 0) j = jeuT.length - 1;
@@ -1124,7 +1391,7 @@ function dessine() {
       const tuilePx = s.a * Lgal * ppg;
       const couche = (o, al) => {
         if (!o.motif || al < 0.002) return;
-        ctx.globalAlpha = Math.min(1, al * 0.95 * dim * (1 - aPts) * poids);
+        ctx.globalAlpha = Math.min(1, al * 0.95 * dim * poids);
         if (tuilePx < 6) { ctx.fillStyle = o.moy; ctx.fillRect(0, 0, Wpx, Hpx); return; }
         ctx.imageSmoothingQuality = "high";
         if (tuilePx >= 256) {
@@ -1146,11 +1413,12 @@ function dessine() {
       };
       // fondu enchaîné entre deux époques : addition pondérée (le noir n'ajoute rien)
       ctx.globalCompositeOperation = "lighter";
+      // (époques jeunes : le rehaussement est déjà dans les tuiles, sim/reton.py)
       couche(jeuT[i], j === i ? 1 : 1 - f);
       if (j !== i) couche(jeuT[j], f);
       ctx.globalCompositeOperation = "source-over";
     };
-    tuiles(imgsP, TUILE_GAL, 1 - aG);
+    tuiles(imgsP, TUILE_GAL, (1 - aG) * (matiere.prete ? 0 : 1));       // sans WebGL seulement
     // la grande boîte, plus homogène, est rehaussée ; au très grand champ on l'atténue pour garder les sphères lisibles
     tuiles(imgsG, GRANDE_GAL, aG * 1.4 * (1 - 0.25 * lisse(8, 40, W)));
     ctx.globalAlpha = 1;
@@ -1609,6 +1877,27 @@ const SCEN = {
   // présent, et seulement le présent : la sphère de Hubble est une photographie des
   // vitesses à un instant. Le temps reste figé ; on lit les vitesses de recul, puis la
   // vitesse nette, vers nous, de la lumière en trois endroits.
+  // P6 (17/11) : la formation de la toile cosmique. Champ comobile fixe (≈ 150 millions
+  // d'années-lumière aujourd'hui), qui grandit avec le facteur d'échelle : chaque structure
+  // reste à sa place à l'écran pendant que le temps file de 300 millions d'années à aujourd'hui.
+  toile: {
+    W: 0.25, cercles: [], intro: "introToile",
+    W0: 0.25,
+    init() { t = 0.3; fronts = []; W = this.W0 * at(t).a; this.pause = true; this.attente = true; },
+    avance(dts) {
+      if (this.el < 1) return false;
+      t = Math.min(T0, t * Math.exp(0.30 * dts));
+      W = this.W0 * at(t).a; elZ.value = uFromW(W);
+      return t >= T0;
+    },
+    etapes: [
+      { txt: "300 millions d'années : la matière est presque uniforme, à peine ridée.", fin() { return t >= 1.0; } },
+      { txt: "La gravité creuse les rides : la matière quitte les vides.", fin() { return t >= 3.0; } },
+      { txt: "Elle coule le long des filaments vers les nœuds, où naissent les amas.", fin() { return t >= 7.0; } },
+      { txt: "Aujourd'hui : des vides immenses, bordés de filaments et d'amas.", fin() { return t >= T0; } }],
+    texteFin: "La toile cosmique : des milliards de galaxies le long de ses filaments.",
+    legende() { return ""; },
+  },
   hubble: {
     W: 25, cercles: ["h"], tapis: true, pause: false,
     intro: "introHubble",
@@ -1989,7 +2278,7 @@ let sansGrille = false;                                   // contrôles seulemen
 let vitesseTest = 1;                                      // contrôles seulement : accélère un scénario
 window.HDS = { set grille(v) { sansGrille = !v; sale = true; },
   demarrerLibre() { marqueDecouverte(); libre(); zoomAnim = null; mode("libre"); }, recit(cle) { recit(cle); }, suite() { suite(); },
-  set vitesse(v) { vitesseTest = v; }, get cercles() { return cerclesVisibles(); }, get ici() { return marqueurIci; }, get etiquettes() { return etiquettes; }, get galaxie() { return matiere.etat; }, set galaxieDirecte(v) { matiere.directe = !!v; sale = true; }, get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
+  set vitesse(v) { vitesseTest = v; }, get cercles() { return cerclesVisibles(); }, get ici() { return marqueurIci; }, get etiquettes() { return etiquettes; }, get couches() { return couches; }, facteur(tt) { return at(tt).a; }, get v2() { const V = matiere.v2; return V ? { pret: V.pret, chargees: V.ep.map((e, j) => e && e.buf ? j : -1).filter(j => j >= 0), n: V.n } : null; }, get galaxie() { return matiere.etat; }, set galaxieDirecte(v) { matiere.directe = !!v; sale = true; }, get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
   aller(v) {
     t = v; if (scen && scen.cadre) scen.cadre(); sale = true;
     const E = scen && scen.etapes;                          // un saut dans le temps saute les étapes déjà passées
@@ -1999,8 +2288,8 @@ window.HDS = { set grille(v) { sansGrille = !v; sale = true; },
   set el(v) { if (scen) { scen.el = v; sale = true; } }, get el() { return scen ? scen.el : 0; } };
 const elCh = document.getElementById("chargement");
 majDispo(); bornesTemps();
-matiere.charge("matiere", suivi("matiere"))
-  .then(fini("matiere"), rate("matiere"))
+// données v2 (un fichier par époque) si elles sont publiées ; sinon les anciennes
+matiere.chargeV2("petite").then(ok => ok ? fini("matiere")() : matiere.charge("matiere", suivi("matiere")).then(fini("matiere"), rate("matiere")))
   .then(() => chargeEnvirons())
   .then(() => chargeVoieLactee());
 ouverture();

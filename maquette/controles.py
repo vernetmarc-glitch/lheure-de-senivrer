@@ -61,6 +61,13 @@ async def main(url):
             fr.append((((im.max(-1) - im.min(-1)) > 25) & (im.mean(-1) > 20)).mean())   # la matière est colorée, cercles et textes gris
         note("grain de matière aux très grandes échelles", min(fr) > 0.02, " ; ".join(f"{w} Gal {x:.1%}" for w, x in zip((4, 15, 50), fr)),
              "« au-delà de la toile cosmique, continuer à voir des structures, pas un fond noir »")
+        # 3 quinquies. P1 (17/11) : de 0,1 à 1 milliard d'a.-l., la toile en points qui bougent, plus de fondu
+        #    d'images entre époques (les structures n'apparaissent plus deux fois)
+        cp = []
+        for Wc in (0.3, 0.8):
+            await vue(Wc, 9.0, 800); cp.append(await pg.evaluate("HDS.couches") or {})
+        note("toile en points, sans fondu d'images (P1)", all(c.get("tuilesPetite", 1) < 0.01 and c.get("points", 0) > 0.99 for c in cp),
+             " ; ".join(f"{w} Gal : points {c.get('points', 0):.2f}, tuiles {c.get('tuilesPetite', 1):.2f}" for w, c in zip((0.3, 0.8), cp)), "« galaxies fantômes, mouvements non fluides »")
         # 3 quater. époques jeunes : pas de noir (17/11, 19 h 25 : « une augmentation de contraste pour
         #    éviter le noir aux époques jeunes »), mais les vides restent sombres (sphères lisibles)
         jeunes = []
@@ -291,6 +298,20 @@ async def main(url):
              f"acte 1 : fenêtre {vis1}, t {t1:.2f} → {t1b:.1f} Ga ; acte 2 : acte {e2.get('acte')}, fenêtre {vis2}, t {t2a:.2f} → {t2b:.1f} Ga",
              "« une modale pour l'acte 1 et une autre pour l'acte 2 »")
         await pg.evaluate("HDS.recit(\'evenements\')"); await pg.wait_for_timeout(800)
+        # 10 sexies bis. P6 (17/11) : formation de la toile cosmique, champ comobile (les structures restent en place)
+        await pg.evaluate("HDS.recit('toile')"); await pg.wait_for_timeout(1500)
+        t6 = await pg.evaluate("HDS.t"); vis6 = await pg.evaluate("!document.getElementById('intro').hidden")
+        await pg.evaluate("document.getElementById('cestParti').click()"); await pg.wait_for_timeout(1500)
+        ech = []
+        for _ in range(30):
+            await pg.wait_for_timeout(500); x = await pg.evaluate("[HDS.t, HDS.W]"); ech.append(x)
+            if await pg.evaluate("!!document.getElementById('suite') && !!document.getElementById('suite').offsetParent"): break
+        await pg.evaluate("HDS.aller(5.0)"); await pg.wait_for_timeout(1500); x5 = await pg.evaluate("[HDS.t, HDS.W, HDS.etat.scen]")
+        # W / a(t) doit rester constant : on le vérifie sur deux instants éloignés
+        r = await pg.evaluate(f"(() => {{ const a = t => HDS.facteur(t); return [{ech[-1][1]} / a({ech[-1][0]}), {x5[1]} / a({x5[0]})]; }})()")
+        note("formation de la toile cosmique : champ qui suit l'expansion (P6)", vis6 and t6 < 0.5 and abs(r[0] / r[1] - 1) < 0.03 and x5[2] == "toile",
+             f"départ {t6:.2f} Ga, carte d'intro {vis6}, champ/a : {r[0]:.3f} puis {r[1]:.3f}", "« la formation de filaments cosmiques comme récit à part entière »")
+        await pg.evaluate("HDS.recit('toile')"); await pg.wait_for_timeout(500)
         # 10 quater. frise du temps : jusqu'à aujourd'hui en libre, futur seulement pendant l'horizon
         libre_max = await pg.evaluate("+document.getElementById('temps').max")
         await pg.evaluate("HDS.recit(\'evenements\')"); await pg.wait_for_timeout(1200)
@@ -323,7 +344,10 @@ async def main(url):
         async def ecran(): return np.asarray(Image.open(io.BytesIO(await pd.screenshot())).convert("RGB")).astype(float)
         budget = []
         await pd.goto(url); await pd.wait_for_timeout(700)
-        noir = (await ecran()).mean(); ligne = await pd.evaluate("(document.getElementById('ouverture') || {}).textContent || ''")
+        # le voile noir lui-même (une capture d'écran attend une image : sur ce navigateur sans carte
+        # graphique, elle arrive plusieurs secondes plus tard et ne dit rien du noir à 0,7 s)
+        noir = 255 * (1 - await pd.evaluate("(() => { const v = document.querySelector('#ouverture .noir'); return v ? +getComputedStyle(v).opacity : 0; })()"))
+        ligne = await pd.evaluate("(document.getElementById('ouverture') || {}).textContent || ''")
         await pd.wait_for_timeout(5500)
         im = await ecran(); toile = (((im.max(-1) - im.min(-1)) > 25) & (im.mean(-1) > 20)).mean()
         m = await pd.evaluate(MOTS); budget.append(("ouverture", m["mots"]))
@@ -379,7 +403,7 @@ async def main(url):
         e1 = await pd.evaluate("HDS.etat"); panneau = await pd.evaluate("!!document.getElementById('panneauRecits').offsetParent")
         nomP = await pd.evaluate("document.querySelector('#panneauRecits button[data-scen=promenade]').textContent.trim()")
         note("la Promenade s'appelle « Formation de la Voie lactée »", nomP == "Formation de la Voie lactée", f"« {nomP} »", "« le bouton promenade pourrait être renommé formation de la Voie lactée »")
-        note("récits derrière un bouton (E1)", entrees == ["promenade", "observable", "hubble", "evenements"] and e1["scen"] == "hubble" and not panneau,
+        note("récits derrière un bouton (E1)", entrees == ["promenade", "toile", "observable", "hubble", "evenements"] and e1["scen"] == "hubble" and not panneau,
              f"panneau {entrees}, lancé {e1['scen']}, panneau refermé {not panneau}", "« moins de choses à la fois »")
         note("un seul repère sur le curseur du zoom (E1)", rep == 1, f"{rep} repère(s) visibles", "« hiérarchie »")
         note("légende qui s'efface, rappelée au toucher (E1)", op1 < 0.2 and op2 > 0.8, f"opacité après 7 s {op1:.2f}, après un toucher {op2:.2f}", "« moins de texte à la fois »")
@@ -412,7 +436,9 @@ async def main(url):
         # un vrai doigt sur les curseurs (écran tactile simulé) : ils doivent avoir leur longueur et répondre
         tc = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=3, has_touch=True, is_mobile=True)
         pt = await tc.new_page(); await pt.goto(url); await pt.wait_for_selector("#partir", state="visible", timeout=20000)
-        await pt.tap("#partir"); await pt.wait_for_timeout(1000); await pt.tap("#passer"); await pt.wait_for_timeout(800)
+        # les deux boutons d'ouverture par programme : ce contrôle-ci porte sur les curseurs, au doigt
+        await pt.evaluate("document.getElementById('partir').click()"); await pt.wait_for_timeout(1000)
+        await pt.evaluate("document.getElementById('passer').click()"); await pt.wait_for_timeout(1500)
         cdp = await tc.new_cdp_session(pt)
         async def glisse(sel, vertical):
             r = await pt.evaluate(f"(() => {{ const z = document.querySelector('{sel}').getBoundingClientRect(); return [z.left, z.top, z.width, z.height]; }})()")
@@ -446,7 +472,9 @@ async def main(url):
         await pg2.goto(url); await pg2.wait_for_selector("#partir", state="visible", timeout=20000)
         await pg2.click("#partir"); await pg2.wait_for_timeout(16000)
         e_p = await pg2.evaluate("HDS.el"); sc = await pg2.evaluate("HDS.etat"); dsp = await pg2.evaluate("HDS.dispo")
-        note("tuile manquante : la Promenade avance", sc["scen"] == "promenade" and e_p > 3 and min(dsp[3:]) >= 1,
+        # figée, la Promenade resterait à 0,5 s (elle attend la tuile) ; au-delà de 1 s, elle avance — ce
+        # navigateur sans carte graphique dessine lentement les points : on ne mesure pas sa vitesse ici
+        note("tuile manquante : la Promenade avance", sc["scen"] == "promenade" and e_p > 1 and min(dsp[3:]) >= 1,
              f"{e_p:.1f} s de scénario après 16 s ; {coups['n']} essais sur la tuile coupée, {ratee_une['n']} sur la passagère", "« la promenade ne se lance pas, écran figé à 95 % »")
         note("échec passager : la tuile est rechargée", ratee_une["n"] >= 2, f"{ratee_une['n']} requêtes", "« figé à 95 % »")
         await pg2.close()
