@@ -53,9 +53,11 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 #zoomBloc { position: fixed; right: max(4px, env(safe-area-inset-right)); top: calc(env(safe-area-inset-top) + 56px); bottom: calc(env(safe-area-inset-bottom) + 300px); width: 44px; touch-action: none; }
 #zoom { position: absolute; top: 50%; left: 50%; height: 30px; transform: translate(-50%, -50%) rotate(90deg); touch-action: none; }
 #reperesZoom { position: absolute; inset: 0; pointer-events: none; }
+.axe { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texte); text-align: center; line-height: 1.25; pointer-events: none; }
+#axeEspace { position: absolute; top: -30px; left: 0; right: 0; }
 /* zones prêtes le long des curseurs */
 #dispoZoom { position: absolute; top: 0; bottom: 0; left: calc(50% + 12px); width: 3px; border-radius: 2px; pointer-events: none; }
-#dispoTemps { position: absolute; left: 0; right: 0; top: 40px; height: 3px; border-radius: 2px; pointer-events: none; }
+#dispoTemps { position: absolute; left: 8px; right: 8px; top: 33px; height: 2px; border-radius: 2px; pointer-events: none; }
 #reperesZoom span { position: absolute; right: 40px; transform: translateY(-50%); font-size: 9.5px; color: rgba(154,159,171,0.8); white-space: nowrap; text-shadow: 0 1px 3px #000; }
 #reperesZoom span::after { content: ""; display: inline-block; width: 6px; height: 1px; background: var(--doux); vertical-align: middle; margin-left: 4px; }
 /* bas : légende, actions, temps */
@@ -101,6 +103,7 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
   <button id="apropos" class="rond" aria-label="À propos">i</button>
 </div>
 <div id="zoomBloc">
+  <div class="axe" id="axeEspace" aria-hidden="true">🔍<br>espace</div>
   <input id="zoom" type="range" min="0" max="1000" step="1" aria-label="Champ de vue">
   <div id="dispoZoom" aria-hidden="true"></div>
   <div id="reperesZoom"></div>
@@ -1298,11 +1301,13 @@ function phrase() {
   } else txt = "Choisissez un scénario, ou explorez librement : zoom à droite, temps en bas.";
   montrePhrase(txt);
 }
+// lecture du temps : l'âge de l'univers, et l'écart avec aujourd'hui en mots
+function fmtEcart(d) { return d >= 1 ? `${d.toFixed(d < 10 ? 1 : 0).replace(".", ",")} milliard${d >= 2 ? "s" : ""}` : `${Math.round(d * 1000)} million${d >= 0.002 ? "s" : ""}`; }
 function etat(s) {
   let z = "aujourd'hui";
-  if (t < T0 - 0.005) z = `z = ${(1 / s.a - 1).toFixed(s.a < 0.1 ? 0 : 2).replace(".", ",")}`;
-  else if (t > T0 + 0.005) z = `futur, univers ×${s.a.toFixed(2).replace(".", ",")}`;
-  document.getElementById("lectureTemps").textContent = `${fmtT(t)} · ${z}`;
+  if (t < T0 - 0.005) z = `il y a ${fmtEcart(T0 - t)}`;
+  else if (t > T0 + 0.005) z = `dans ${fmtEcart(t - T0)}`;
+  document.getElementById("lectureTemps").textContent = `⏳ ${fmtT(t)} · ${z}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1360,25 +1365,25 @@ const SCEN = {
   },
   // promenade : de la toile cosmique jusqu'à notre galaxie, puis sa formation
   promenade: {
-    W: 0.15, cercles: [],
+    W: 1.2, cercles: [],
     init() { t = T0; fronts = []; },
     avance(dts) {
       const e = this.el, lis = (a, b) => lisse(a, b, e), lW = (w0, w1, f) => Math.exp(Math.log(w0) + (Math.log(w1) - Math.log(w0)) * f);
-      if (e < 3) { W = 0.15; }
-      else if (e < 13) W = lW(0.15, 0.00006, lis(3, 13));                // plongée vers la Voie lactée
-      else if (e < 15) W = 0.00006;
-      else if (e < 18) W = lW(0.00006, 0.00011, lis(15, 18));            // un peu de recul
-      else if (e >= 18.5) t = Math.max(1.2, t - dts * (t > 9 ? 0.15 : 0.35));   // on remonte le temps, lentement : la galaxie se défait
+      if (e < 3) { W = 1.2; }
+      else if (e < 15) W = lW(1.2, 0.00006, lis(3, 15));                 // plongée vers la Voie lactée
+      else if (e < 17) W = 0.00006;
+      else if (e < 20) W = lW(0.00006, 0.00011, lis(17, 20));            // un peu de recul
+      else if (e >= 20.5) t = Math.max(1.2, t - dts * (t > 9 ? 0.15 : 0.35));   // on remonte le temps, lentement : la galaxie se défait
       if (W !== this.Wv) { elZ.value = uFromW(W); this.Wv = W; }
-      return e > 18.5 && t <= 1.2;                                        // arrêt quand il ne reste presque rien
+      return e > 20.5 && t <= 1.2;                                        // arrêt quand il ne reste presque rien
     },
     legende() {
       const e = this.el;
       if (this.fin) return "Il y a 12,6 milliards d'années, la Voie lactée n'était qu'un petit amas d'étoiles naissantes, nourri par le gaz et les petites galaxies alentour. Tout le reste s'est construit depuis.";
-      if (e < 3) return "La toile cosmique aujourd'hui : des filaments de matière, des nœuds où s'amassent les galaxies, de grands vides.";
-      if (e < 9) return "Plongée vers l'un de ces nœuds : notre groupe de galaxies.";
-      if (e < 15) return "La Voie lactée, telle que la simule TNG50 : une jumelle de notre galaxie, vue de biais. Nous sommes dans son disque, à 27 000 années-lumière du centre.";
-      if (e < 18.5) return "Un peu de recul pour l'embrasser tout entière, puis remontons lentement le temps.";
+      if (e < 3) return "La toile cosmique aujourd'hui, sur des milliards d'années-lumière : des filaments de matière, des nœuds où s'amassent les galaxies, de grands vides.";
+      if (e < 11) return "Plongée vers l'un de ces nœuds : notre superamas, puis notre groupe de galaxies.";
+      if (e < 17) return "La Voie lactée, telle que la simule TNG50 : une jumelle de notre galaxie, vue de biais. Nous sommes dans son disque, à 27 000 années-lumière du centre.";
+      if (e < 20.5) return "Un peu de recul pour l'embrasser tout entière, puis remontons lentement le temps.";
       if (t > 10) return "Les bras spiraux s'effacent : ils sont faits d'étoiles jeunes et de gaz, qui disparaissent quand on recule.";
       if (t > 7.5) return "Le disque se défait : il y a 6 à 8 milliards d'années, il était plus petit et plus agité.";
       if (t > 4.5) return "Une galaxie voisine ressort de la nôtre : la Voie lactée l'avait avalée après plusieurs passages.";

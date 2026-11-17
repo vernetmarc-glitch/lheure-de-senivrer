@@ -124,10 +124,11 @@ async def main(url):
         note("bouton « aujourd'hui »", abs(ta - 13.787) < 0.05, f"t = {ta:.2f} Ga", "« appuyer sur aujourd'hui pour explorer »")
         # 9 septies. Promenade : plongée jusqu'à la galaxie plein écran, retour à ~1 Ga, curseurs qui pulsent
         await vue(0.15, 13.787, 300); await pg.click("[data-scen=promenade]"); await pg.wait_for_timeout(1200)
-        await pg.evaluate("HDS.el = 6"); await pg.wait_for_timeout(900)
+        W0 = await pg.evaluate("HDS.W")
+        await pg.evaluate("HDS.el = 7"); await pg.wait_for_timeout(900)
         z_pulse = await pg.evaluate("document.getElementById('zoom').classList.contains('bouge')")
-        await pg.evaluate("HDS.el = 14"); await pg.wait_for_timeout(900); W14 = await pg.evaluate("HDS.W")
-        await pg.evaluate("HDS.el = 19"); await pg.wait_for_timeout(1500)
+        await pg.evaluate("HDS.el = 16"); await pg.wait_for_timeout(900); W14 = await pg.evaluate("HDS.W")
+        await pg.evaluate("HDS.el = 21"); await pg.wait_for_timeout(1500)
         t_pulse = await pg.evaluate("document.getElementById('temps').classList.contains('bouge')")
         t1 = await pg.evaluate("HDS.t"); await pg.wait_for_timeout(2500); t2 = await pg.evaluate("HDS.t")
         v = (t1 - t2) / 2.5                                     # Ga par seconde (ralenti par la machine de test)
@@ -135,6 +136,7 @@ async def main(url):
         fin = await pg.evaluate("HDS.t")
         note("Promenade : plongée, puis on remonte lentement", W14 <= 7e-5 and 0 < v <= 0.2 and t1 < 13.787 and fin <= 1.21,
              f"champ {W14:.1e} Gal ; recul {v:.2f} Ga/s ; arrêt à {fin:.2f} Ga", "« remonter lentement, la galaxie se délite »")
+        note("Promenade : départ à l'échelle de la toile cosmique", W0 >= 1.0, f"champ de départ {W0:.2f} Gal", "« commencer à la toile cosmique, pas aux superamas »")
         note("curseurs qui bougent : pulsation", z_pulse and t_pulse, f"zoom {z_pulse}, temps {t_pulse}", "« repérer ceux qui bougent »")
         await pg.click("[data-scen=promenade]"); await pg.wait_for_timeout(300)
         # 9 octies. Univers observable : d'abord l'explication, le départ au bouton « C'est parti »
@@ -155,6 +157,10 @@ async def main(url):
           const f = () => { const n = performance.now(); mx = Math.max(mx, n - p); p = n; if (n - t0 < 9000) requestAnimationFrame(f); else res(mx); };
           requestAnimationFrame(f); })""")
         note("pas de gel au chargement de la galaxie", gel < max(600, 1.2 * d0), f"plus longue image {gel:.0f} ms", "« ça rame énormément »")
+        # 10 ter. axes lisibles : libellés « espace » et « temps », pas de redshift z
+        lec = await pg.evaluate("document.getElementById('lectureTemps').textContent")
+        esp = await pg.evaluate("document.getElementById('axeEspace').textContent")
+        note("axes nommés, sans « z = »", "z =" not in lec and "⏳" in lec and "espace" in esp, f"« {lec} » ; « {esp} »", "« le z ne parle à personne »")
         # 10 bis. chargement : zones prêtes affichées sur le curseur, tout prêt une fois chargé
         await pg.wait_for_timeout(6000)
         d = await pg.evaluate("HDS.dispo"); bd = await pg.evaluate("HDS.bandes")
