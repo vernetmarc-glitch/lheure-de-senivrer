@@ -85,6 +85,8 @@ async def main(url):
         # 8. entre 1 et 60 Mal : de la structure (halos TNG50), pas des points rouges isolés
         im = await vue(0.02, 13.79, 2500); L = im.mean(-1); br = L > 90
         note("structure visible à 20 Mal", br.mean() > 0.004, f"brillant {br.mean():.1%}", "« plus aucun aspect filamenteux »")
+        im = await vue(0.015, 8.0, 2500); L8 = im.mean(-1)
+        note("structure visible à 15 Mal, il y a 6 Ga", (L8 > 90).mean() > 0.003, f"brillant {(L8 > 90).mean():.1%}", "« plus de structure sous les superamas »")
         sel = L > 50
         bleu = (im[..., 2][sel] / (im[..., 0][sel] + 1)).mean() if sel.any() else 0
         note("palette non monochrome rouge", bleu > 0.35, f"bleu/rouge {bleu:.2f}", "« pourquoi cette couleur rouge ? »")
