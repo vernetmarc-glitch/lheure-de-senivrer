@@ -1800,6 +1800,7 @@ function marqueDecouverte() { try { localStorage.setItem(CLE_DECOUVERTE, "faite"
 const indice = document.getElementById("indice");
 function mode(m) {
   document.body.dataset.mode = m; sale = true;
+  tailleZoom();                    // le curseur prend la hauteur de son bloc, masqué pendant l'ouverture (0 px sinon)
   const ph = document.getElementById("phrase");
   if (m === "libre") rappelPhrase(); else { clearTimeout(minuteurPhrase); ph.classList.remove("estompe"); }
   majRecits();
