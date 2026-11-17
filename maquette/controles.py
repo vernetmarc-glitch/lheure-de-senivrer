@@ -129,8 +129,13 @@ async def main(url):
         await pg.wait_for_timeout(1500); W0 = await pg.evaluate("HDS.W")
         await pg.evaluate("HDS.el = 7"); await pg.wait_for_timeout(900)
         z_pulse = await pg.evaluate("document.getElementById('zoom').classList.contains('bouge')")
-        await pg.evaluate("HDS.el = 16"); await pg.wait_for_timeout(900); W14 = await pg.evaluate("HDS.W")
-        await pg.evaluate("HDS.el = 21"); await pg.wait_for_timeout(1500)
+        Ws = []
+        for e_ in (13.6, 14.5, 15.4):
+            await pg.evaluate(f"HDS.el = {e_}"); await pg.wait_for_timeout(700); Ws.append(await pg.evaluate("HDS.W"))
+        W14 = Ws[1]
+        note("Promenade : plongée et recul d'un seul mouvement", Ws[0] > 1.03 * Ws[1] and Ws[2] > 1.03 * Ws[1],
+             f"champ {Ws[0]:.2e} → {Ws[1]:.2e} → {Ws[2]:.2e} Gal (à ±0,9 s du fond)", "« pas de pause entre le zoom et le dézoom »")
+        await pg.evaluate("HDS.el = 18"); await pg.wait_for_timeout(1500)
         t_pulse = await pg.evaluate("document.getElementById('temps').classList.contains('bouge')")
         async def vitesse(t0):
             await pg.evaluate(f"HDS.aller({t0})"); await pg.wait_for_timeout(400)
