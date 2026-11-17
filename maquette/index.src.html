@@ -892,6 +892,7 @@ function dessine() {
   // flèches de vitesse (scénario de la sphère de Hubble)
   if (scen && scen.tapis) { dessineTapis(cx, cy, ppg, s); if (scen.cle === "hubble") dessineVitesses(cx, cy, ppg, s); }
   if (scen && scen.cle === "evenements" && scen.acte === 1) dessineCibles(cx, cy, ppg, s);
+  if (scen && scen.cle === "evenements" && scen.acte === 2) dessineCourant(cx, cy, ppg, s);
 
   // galaxies associées, puis la lumière
   fronts.forEach((f, fi) => {
@@ -1290,15 +1291,32 @@ const SCEN = {
         return `Il se fige sur ce cercle : les galaxies qui étaient aujourd'hui à 16,7 milliards d'années-lumière. Au-delà, il ne les rattrapera jamais. C'est l'horizon des événements. ${n} galaxies sur ${cibles.length} atteintes, pour toujours.`;
       }
       if (this.fin) return "La lumière partie de l'horizon reste à jamais à 17,5 milliards d'années-lumière : elle avance vers nous exactement aussi vite que l'espace l'emporte. Ce qui se passe aujourd'hui au-delà de 16,7 milliards d'années-lumière ne nous parviendra jamais.";
-      if (this.el2 < 3) return "Dans l'autre sens : aujourd'hui, de la lumière part vers nous depuis trois distances, dont l'horizon lui-même. Ici, la carte ne bouge plus.";
+      if (this.el2 < 3) return "Dans l'autre sens. La carte est maintenant fixe : elle montre les vraies distances, et l'on voit l'espace lui-même s'écouler vers l'extérieur. Aujourd'hui, de la lumière part vers nous depuis trois distances, dont l'horizon.";
       if (t < 40) return "Partie de 15,5 milliards d'années-lumière, en deçà de l'horizon, elle finira par arriver. Partie de 18, au-delà, elle recule.";
-      return "Partie exactement de l'horizon, elle avance sans jamais gagner de terrain : elle s'immobilise à 17,5 milliards d'années-lumière.";
+      return "Partie exactement de l'horizon, elle avance vers nous à la vitesse de la lumière, mais sur un espace qui l'emporte, là où elle est, exactement aussi vite : comme un nageur face à un courant de sa propre vitesse, elle reste à 17,5 milliards d'années-lumière.";
     },
   },
 };
 // galaxies-témoins du scénario « horizon » : 70 positions comobiles fixes, jusqu'à 1,35 × l'horizon
 const alea = k => { const x = Math.sin(k * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
 const cibles = Array.from({ length: 70 }, (_, k) => ({ chi: 16.7 * 1.35 * Math.sqrt(alea(k) * 0.96 + 0.04), th: 2 * Math.PI * alea(k + 500), allume: -1 }));
+// acte 2 de l'horizon : le courant de l'espace, en vraies distances (carte fixe).
+// Chaque grain est un point d'espace (position comobile fixe) : sa distance à nous vaut
+// a(t)·χ et grandit avec l'expansion ; orange quand il nous fuit plus vite que la lumière.
+const COURANT = Array.from({ length: 260 }, (_, k) => ({ th: 2 * Math.PI * alea(k + 900), chi: 0, tn: -1, u: alea(k + 1300) }));
+function dessineCourant(cx, cy, ppg, s) {
+  const rh = DH / E(s.a);
+  for (const g of COURANT) {
+    if (g.tn < 0 || s.a * g.chi > 1.6 * W) { g.chi = (0.04 + 1.5 * g.u * g.u) * W / s.a; g.u = alea(g.u * 7919 + 13); g.tn = 1; }
+    const D = s.a * g.chi, R = D * ppg, x = cx + R * Math.cos(g.th), y = cy + R * Math.sin(g.th);
+    ctx.fillStyle = D < rh ? "rgba(215,222,236,0.55)" : "rgba(255,165,90,0.75)";
+    cercle(x, y, 1.3 * DPR); ctx.fill();
+  }
+  ctx.font = `${11 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "left";
+  ctx.fillStyle = "rgba(225,232,245,0.95)"; ctx.fillText("carte fixe : distances réelles", 16 * DPR, 92 * DPR);
+  ctx.fillStyle = "rgba(215,222,236,0.8)"; ctx.fillText("points : l'espace, emporté par l'expansion", 16 * DPR, 108 * DPR);
+  ctx.fillStyle = "rgba(255,165,90,0.95)"; ctx.fillText("orange : il nous fuit plus vite que la lumière", 16 * DPR, 124 * DPR);
+}
 function dessineCibles(cx, cy, ppg, s) {
   const now = performance.now(); let n = 0;
   for (const g of cibles) {
