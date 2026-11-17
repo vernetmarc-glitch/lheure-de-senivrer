@@ -133,6 +133,12 @@ async def main(url):
         note("Promenade : galaxie plein écran puis passé", W14 <= 7e-5 and t22 < 1.3, f"champ {W14:.1e} Gal, puis {t22:.2f} Ga", "« zoomer jusqu'à notre galaxie, remonter le temps »")
         note("curseurs qui bougent : pulsation", z_pulse and t_pulse, f"zoom {z_pulse}, temps {t_pulse}", "« repérer ceux qui bougent »")
         await pg.click("[data-scen=promenade]"); await pg.wait_for_timeout(300)
+        # 9 octies. Univers observable : d'abord l'explication, le départ au bouton « C'est parti »
+        await pg.click("[data-scen=observable]"); await pg.wait_for_timeout(3000)
+        ta = await pg.evaluate("HDS.t"); vis = await pg.evaluate("!document.getElementById('intro').hidden")
+        await pg.click("#cestParti"); await pg.wait_for_timeout(6000); tb = await pg.evaluate("HDS.t")
+        note("Observable : explication puis départ", vis and ta < 0.0004 and tb > ta * 1.5, f"attente à {ta * 1e6:.0f}000 ans, puis {tb:.3f} Ga", "« un message, puis un bouton c'est parti »")
+        await pg.click("[data-scen=observable]"); await pg.wait_for_timeout(300)
         # 10. pas de gel quand la Voie lactée se charge (on recharge la page, on zoome tout de suite)
         await pg.goto(url); await pg.wait_for_timeout(5000)
         await pg.evaluate("document.getElementById('fermer').click()")
