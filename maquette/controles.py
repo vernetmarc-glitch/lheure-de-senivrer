@@ -228,27 +228,38 @@ async def main(url):
              f"champ {Ws[0]:.2e} → {Ws[1]:.2e} → {Ws[2]:.2e} Gal (à ±0,9 s du fond)", "« pas de pause entre le zoom et le dézoom »")
         await pg.evaluate("HDS.el = 22"); await pg.wait_for_timeout(1500)
         t_pulse = await pg.evaluate("document.getElementById('temps').classList.contains('bouge')")
-        async def vitesse(t0):
+        async def vitesse(t0, att=2500):
             await pg.evaluate(f"HDS.aller({t0})"); await pg.wait_for_timeout(400)
-            a, ea = await pg.evaluate("[HDS.t, HDS.el]"); await pg.wait_for_timeout(2500); b, eb = await pg.evaluate("[HDS.t, HDS.el]")
+            a, ea = await pg.evaluate("[HDS.t, HDS.el]"); await pg.wait_for_timeout(att); b, eb = await pg.evaluate("[HDS.t, HDS.el]")
             return (a - b) / max(eb - ea, 1e-6)                 # Ga par seconde de scénario (indépendant de la machine)
-        # (18/11, 9 h 33, remplace « accélérer jusqu'à 7 Ga, ralentir aux collisions ») : pendant la remontée,
-        # un seul champ où la galaxie occupe l'écran, qu'on voit rapetisser sans rezoomer ; vitesse constante,
-        # durée totale gardée (37,6 s de récit de 13,8 à 1,8 Ga)
+        # (18/11, 18 h 49, remplace la vitesse constante de 9 h 33) : un seul champ où la galaxie occupe
+        # l'écran, qu'on voit rapetisser sans rezoomer ; remontée deux fois plus courte (≈ 19 s au lieu de 37,6),
+        # qui accélère, freine brièvement quand la naine est avalée (TNG50 537941 : 1:21, fondue à 5,6 Ga, visible de 4,8 à 5,6), réaccélère,
+        # puis freine à l'arrivée sur la galaxie primitive
         await pg.evaluate("HDS.aller(13.4)"); await pg.wait_for_timeout(2500)
         gimg = np.asarray(Image.open(io.BytesIO(await pg.screenshot())).convert("L")).astype(float)[90:600, 0:340]
         cols = np.where((gimg > 45).sum(0) > 2)[0]; largeur = (cols.max() - cols.min()) / 340 if len(cols) else 0
         Wa = await pg.evaluate("HDS.W")
-        v_vite, v_collision = await vitesse(11.0), await vitesse(6.0)
-        Wb = await pg.evaluate("HDS.W"); v_fin = await vitesse(3.2); Wc_ = await pg.evaluate("HDS.W")
+        await vitesse(10.0, 800); Wb = await pg.evaluate("HDS.W"); await vitesse(4.2, 800); Wc_ = await pg.evaluate("HDS.W")
         Wrecul = Wa; fixe = max(Wa, Wb, Wc_) / min(Wa, Wb, Wc_)
         await pg.evaluate("HDS.aller(1.25)"); fin = 99
         for _ in range(10):
             await pg.wait_for_timeout(250); fin = min(fin, await pg.evaluate("HDS.t"))
-        vs = (v_vite, v_collision, v_fin); duree = (13.787 - 1.8) / (sum(vs) / 3)
-        note("Promenade : plongée, puis on remonte le temps", W14 <= 7e-5 and min(vs) > 0 and max(vs) / min(vs) <= 1.25 and fin <= 1.81 and fixe <= 1.02 and largeur >= 0.7 and 32 <= duree <= 43,
-             f"champ {W14:.1e} Gal ; vitesses {[round(v, 2) for v in vs]} Ga/s, durée ≈ {duree:.0f} s ; champ en remontant {Wrecul:.1e} (écart ×{fixe:.3f}) ; galaxie sur {largeur:.0%} de la largeur ; arrêt à {fin:.2f} Ga",
-             "« se délite petit à petit » ; 18/11 : « la galaxie prend beaucoup d'espace, puis rapetisse sans que l'on zoome ; vitesse moyenne la même tout le long, même durée totale »")
+        # durée réelle, mesurée sur une remontée entière (en secondes de récit)
+        await pg.evaluate("HDS.recit('promenade'); HDS.recit('promenade')"); await pg.wait_for_timeout(1200)
+        await pg.evaluate("HDS.vitesse = 3; HDS.el = 19.5"); duree = 99; fil_r = []
+        for _ in range(600):
+            await pg.wait_for_timeout(60); e_, t_ = await pg.evaluate("[HDS.el, HDS.t]"); fil_r.append((e_, t_))
+            if t_ <= 1.81: duree = e_ - 19.5; break
+        await pg.evaluate("HDS.vitesse = 1")
+        def v_entre(t_hi, t_lo):                       # vitesse moyenne relevée sur la remontée entière
+            a_ = next((x for x in fil_r if x[1] <= t_hi), None); b_ = next((x for x in fil_r if x[1] <= t_lo), None)
+            return (a_[1] - b_[1]) / max(b_[0] - a_[0], 1e-6) if a_ and b_ else 0
+        v_vite, v_naine, v_rel, v_arr = v_entre(10.5, 9.5), v_entre(5.35, 5.05), v_entre(4.6, 3.8), v_entre(2.3, 2.0)
+        profil = v_naine < 0.45 * min(v_vite, v_rel) and v_arr < 0.6 * v_rel and v_rel > 0.8 * v_vite
+        note("Promenade : plongée, puis on remonte le temps", W14 <= 7e-5 and profil and fin <= 1.81 and fixe <= 1.02 and largeur >= 0.7 and 15 <= duree <= 22,
+             f"champ {W14:.1e} Gal ; vitesses {round(v_vite, 2)} → naine {round(v_naine, 2)} → {round(v_rel, 2)} → arrivée {round(v_arr, 2)} Ga/s, durée {duree:.1f} s ; champ en remontant {Wrecul:.1e} (écart ×{fixe:.3f}) ; galaxie sur {largeur:.0%} de la largeur ; arrêt à {fin:.2f} Ga",
+             "« se délite petit à petit » ; 18/11 18 h 49 : « accélération, décélération très temporaire quand une naine se fait absorber, puis décélération finale ; deux fois plus courte »")
         note("Promenade : départ à l'échelle de la toile cosmique", W0 >= 1.0, f"champ de départ {W0:.2f} Gal", "« commencer à la toile cosmique, pas aux superamas »")
         note("curseurs qui bougent : pulsation", z_pulse and t_pulse, f"zoom {z_pulse}, temps {t_pulse}", "« repérer ceux qui bougent »")
         # fin de la Promenade : retour fluide à aujourd'hui, au champ Millennium, scénario désactivé
