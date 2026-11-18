@@ -93,6 +93,24 @@ async def main(url):
                     bande = max(prof[i + o - 2:i + o + 3].mean() for o in range(-12, 13)); vois = np.r_[prof[i - 45:i - 25], prof[i + 25:i + 45]].mean()
                     bords.append(bande / max(vois, 1))
         note("pas de traits droits aux époques jeunes", max(bords) < 2.5, f"bord/voisins max {max(bords):.2f} ({len(bords)} bords)", "image du 17/11 : traits brillants aux bords des boîtes")
+        # 3 sexies. le voisinage TNG50 ne dépend pas de l'arrondi du GPU (18/11) : la masse d'étoiles et le
+        #    drapeau sont rangés dans un même flottant (MSt + 1000·SF) ; un téléphone qui divise de façon
+        #    approchée lisait 999 au lieu de 0 → chaque halo sans étoiles devenait une galaxie blanche géante.
+        #    On imite cette erreur (valeur lue un millionième trop basse) : l'image ne doit pas changer.
+        for _ in range(60):
+            if (await pg.evaluate("HDS.chargements"))["halos"] >= 1: break
+            await pg.wait_for_timeout(500)
+        ecarts = []
+        for Wv, tv in ((0.0155, 1.83), (0.042, 13.787)):
+            blancs = []
+            for g in (0, 1e-6):
+                await pg.evaluate(f"HDS.gigueMobile = {g}")
+                im = await vue(Wv, tv, 2500); Lb = im.mean(-1)
+                blancs.append(((Lb > 200) & (im.max(-1) - im.min(-1) < 90)).mean())
+            ecarts.append((Wv, tv, blancs[0], blancs[1]))
+        await pg.evaluate("HDS.gigueMobile = 0")
+        pire = max(b1 - b0 for _, _, b0, b1 in ecarts)
+        note("voisinage : pas de carré blanc (GPU)", pire < 0.003, " ; ".join(f"{b0:.2%}→{b1:.2%}" for _, _, b0, b1 in ecarts), "image du 18/11 : grand carré blanc scintillant")
         # 3 ter. pas de dallage au grand champ (univers observable), sur un écran de téléphone (densité 3)
         pg3 = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=3)
         await pg3.goto(url); await pg3.wait_for_timeout(5000)
