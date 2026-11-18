@@ -477,7 +477,10 @@ async function octets(nom, progres) {
   if (brut[0] === 0x1f && brut[1] === 0x8b)   // gzip (si le serveur ne l'a pas déjà décompressé)
     return new Uint8Array(await new Response(new Blob([brut]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
   if (url.endsWith(".gz")) return brut;
-  return deBase64(new TextDecoder().decode(brut));
+  const dec = await deBase64(new TextDecoder().decode(brut));
+  // un gros fichier peut être compressé avant d'être mis en base64 (l'artefact refuse plus de 20 Mio par fichier)
+  if (dec[0] === 0x1f && dec[1] === 0x8b) return new Uint8Array(await new Response(new Blob([dec]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+  return dec;
 }
 const deBase64 = async txt => new Uint8Array(await (await fetch("data:application/octet-stream;base64," + txt.trim())).arrayBuffer());
 // la Voie lactée est montrée de biais (inclinaison de 62°), pas vue de dessus
@@ -976,8 +979,8 @@ const matiere = (() => {
   };
 
   // -------------------------------------------------------------------------
-  // La Voie lactée (TNG50, galaxie jumelle 522530) : 40 000 étoiles suivies une
-  // à une sur 48 époques. Entre deux époques, l'angle tourne selon la rotation
+  // La Voie lactée (TNG50, galaxie jumelle 537941, Subbox0) : 50 000 étoiles suivies une
+  // à une sur 60 époques. Entre deux époques, l'angle tourne selon la rotation
   // (nombre de tours k précalculé) ; avant sa naissance une étoile n'existe pas ;
   // absente d'une découpe, elle apparaît en fondu. Couleur : jeune = bleu et
   // brillant, ancienne = dorée. Ton à bornes FIXES en étoiles par kpc².
