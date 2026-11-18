@@ -7,6 +7,10 @@ que les étoiles (suivi.py, fichier .npz), même interpolation en rotation.
 Le passage d'un intervalle au suivant se fait en fondu (voir la page).
 
 Usage : python3 sim/tng/gaz.py DOSSIER_GAZ SUIVI.npz SORTIE.bin [Ng]
+
+Variante (galaxie 537941, étoiles suivies dans la Subbox0) : les époques du gaz (boîte principale)
+ne sont pas celles des étoiles. Le centre est alors interpolé dans le temps depuis les centres
+absolus des étoiles (kpc propres), et la courbe de rotation se mesure sur le gaz froid lui-même.
 Format : u32 longueur d'en-tête JSON, en-tête {n, t, rpas, w}, puis pour chaque
 intervalle e (E-1 blocs consécutifs) :
   r0 r1 u16 [N] ×2 · q0 q1 u16 [N] ×2 · h0 h1 u8 [N] ×2 · k i8 [N] (−128 = ligne droite) · z0 z1 i16 [N] ×2
@@ -17,6 +21,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 H, BOITE, RPAS = 0.6774, 35000.0, 0.005
+H_ = H
 
 
 def phys(X, a, ref):
@@ -27,16 +32,39 @@ def main():
     dos, npz, sortie = sys.argv[1], sys.argv[2], sys.argv[3]
     Ng = int(sys.argv[4]) if len(sys.argv) > 4 else 12000
     D = np.load(npz)
-    ts, R, C, prof, rprof, snaps = D["t"], D["R"], D["centres"], D["profils"], D["rprof"], list(D["snaps"])
-    E = len(ts)
     with h5py.File(f"{dos}/mpb.hdf5") as f:
         POS = dict(zip(f["SnapNum"][:].tolist(), f["SubhaloPos"][:]))
+    if "profils" in D:
+        ts, R, C, prof, rprof, snaps = D["t"], D["R"], D["centres"], D["profils"], D["rprof"], list(D["snaps"])
+        absolu = False
+    else:
+        # étoiles suivies ailleurs (Subbox0) : époques propres au gaz, centre interpolé, rotation mesurée sur le gaz
+        meta = json.load(open(f"{dos}/meta.json")); snaps = sorted(e["snap"] for e in meta["epoques"])
+        with h5py.File(f"{dos}/e{snaps[0]:03d}.hdf5") as f: pass
+        def age(a):
+            Om, H0 = 0.3089, 67.74; OL = 1 - Om
+            return 2 / (3 * np.sqrt(OL)) * np.arcsinh(np.sqrt(OL / Om) * a ** 1.5) * 977.8 / H0
+        aa = []
+        for sn in snaps:
+            with h5py.File(f"{dos}/e{sn:03d}.hdf5") as f: aa.append(float(f["Header"].attrs["Time"]))
+        aa = np.array(aa); ts = age(aa)
+        garde = ts >= D["t"][0] - 0.05
+        snaps = [s for s, g in zip(snaps, garde) if g]; aa = aa[garde]; ts = ts[garde]
+        R = D["R"]; Cs = D["centres"]; tsE = D["t"]
+        C = np.stack([np.interp(ts, tsE, Cs[:, i]) for i in range(3)], 1)       # absolu, kpc propres
+        absolu = True; rprof = None; prof = None
+    E = len(ts)
     rng = np.random.default_rng(11)
+    profils = []
 
     def lit(e):
         with h5py.File(f"{dos}/e{snaps[e]:03d}.hdf5") as f:
             a = float(f["Header"].attrs["Time"]); g = f["PartType0"]
-            X = (phys(g["Coordinates"][:], a, POS[snaps[e]]) - C[e]) @ R.T
+            if absolu:
+                Xa = g["Coordinates"][:] * a / H_; c = C[e] + BOITE * a / H_ * np.round((Xa.mean(0) - C[e]) / (BOITE * a / H_))
+                X = (Xa - c) @ R.T
+            else:
+                X = (phys(g["Coordinates"][:], a, POS[snaps[e]]) - C[e]) @ R.T
             V = (g["Velocities"][:] * np.sqrt(a)) @ R.T
             sel = (X ** 2).sum(1) < 9
             V -= np.average(V[sel], axis=0, weights=g["Masses"][:][sel]) if sel.sum() > 20 else 0
@@ -44,16 +72,26 @@ def main():
             return X, g["Masses"][:], g["ParticleIDs"][:], g["StarFormationRate"][:], om
 
     def omega(e, r):
+        if absolu: return om_gaz[e](r)
         ok = np.isfinite(prof[e])
         if ok.sum() < 3: return np.zeros_like(r)
         v = np.interp(np.log(np.maximum(r, 0.2)), np.log(rprof[ok]), prof[e][ok])
         return v / np.maximum(r, 0.3) * 1.0227
 
+    om_gaz = {}
+    def courbe(e, X, sf, om):
+        rr = np.hypot(X[:, 0], X[:, 1]); s_ = (sf > 0) & (np.abs(X[:, 2]) < 3)
+        bins = np.geomspace(0.2, 60, 30); cb = np.sqrt(bins[1:] * bins[:-1])
+        med = np.array([np.median(om[s_ & (rr >= bins[i]) & (rr < bins[i + 1])] * cb[i]) if (s_ & (rr >= bins[i]) & (rr < bins[i + 1])).sum() > 15 else np.nan for i in range(len(cb))])
+        ok = np.isfinite(med)
+        om_gaz[e] = (lambda r, cb=cb, med=med, ok=ok: np.interp(np.log(np.maximum(r, 0.2)), np.log(cb[ok]), med[ok]) / np.maximum(r, 0.3)) if ok.sum() > 2 else (lambda r: np.zeros_like(r))
     blocs = []; poids = []
     suiv = lit(0)
+    if absolu: courbe(0, suiv[0], suiv[3], suiv[4])
     for e in range(E - 1):
         X0, m0, id0, sf0, w0 = suiv
         X1, m1, id1, sf1, w1 = lit(e + 1); suiv = (X1, m1, id1, sf1, w1)
+        if absolu: courbe(e + 1, X1, sf1, w1)
         cand = np.where((sf0 > 0) & ((X0 ** 2).sum(1) < 40 ** 2))[0]
         o = np.argsort(id1); s1 = id1[o]
         j = np.clip(np.searchsorted(s1, id0[cand]), 0, len(s1) - 1)

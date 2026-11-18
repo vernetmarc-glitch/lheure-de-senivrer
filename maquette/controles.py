@@ -461,6 +461,12 @@ async def main(url):
         note("« Récits » : l'action principale, bien visible", rc["fond"] == acc and rc["h"] >= 48 and rc["part"] >= 0.6 and rc["police"] >= 16 and rc["bas"] <= 0.32 * 844,
              f"fond {rc['fond']}, {rc['l']:.0f}×{rc['h']:.0f} px ({rc['part']:.0%} de la barre), police {rc['police']:.0f} px, bas {rc['bas']:.0f} px",
              "« une fois la présentation faite, l'action principale devient récit : beaucoup plus gros »")
+        # bas de l'écran centré, sur toute la largeur (18/11, 5 h 57) : « Récits » et la frise du temps
+        cen = await pd.evaluate("""(() => { const W = innerWidth, r = document.getElementById('recits').getBoundingClientRect(), b = document.getElementById('bas').getBoundingClientRect(), tp = document.getElementById('temps').getBoundingClientRect();
+          return { dec: (r.left + r.right) / 2 - W / 2, larg: r.width / W, bas: b.right / W, temps: tp.width / W, fin: (W - tp.right) }; })()""")
+        note("bas de l'écran centré, sur toute la largeur", abs(cen["dec"]) <= 4 and cen["larg"] >= 0.88 and cen["bas"] >= 0.995 and cen["temps"] >= 0.7 and cen["fin"] <= 24,
+             f"« Récits » décalé de {cen['dec']:.0f} px, {cen['larg']:.0%} de l'écran ; zone du bas jusqu'à {cen['bas']:.0%} ; frise {cen['temps']:.0%}, finit à {cen['fin']:.0f} px du bord",
+             "« problème de centrage en bas : le bouton et la barre ne prennent pas l'ensemble de l'écran »")
         t_libre = await pd.evaluate(TAILLES)
         await pd.click("#recits"); await pd.wait_for_timeout(500)
         t_pan = await pd.evaluate(TAILLES)

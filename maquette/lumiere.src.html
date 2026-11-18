@@ -61,7 +61,7 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 #reperesZoom span { position: absolute; right: 40px; transform: translateY(-50%); font-size: 9.5px; color: rgba(154,159,171,0.8); white-space: nowrap; text-shadow: 0 1px 3px #000; }
 #reperesZoom span::after { content: ""; display: inline-block; width: 6px; height: 1px; background: var(--doux); vertical-align: middle; margin-left: 4px; }
 /* bas : légende, actions, temps */
-#bas { position: fixed; left: 0; right: 52px; bottom: 0; padding: 0 14px calc(env(safe-area-inset-bottom) + 10px); display: grid; gap: 8px;
+#bas { position: fixed; left: 0; right: 0; bottom: 0; padding: 0 14px calc(env(safe-area-inset-bottom) + 10px); display: grid; gap: 8px;
   background: linear-gradient(to top, var(--voile) 65%, rgba(6,8,14,0)); }
 #bas > * { min-width: 0; }
 #phrase { font-size: 13px; line-height: 1.4; min-height: 18px; text-shadow: 0 1px 3px #000; }
@@ -72,12 +72,14 @@ input[type=range].bouge { animation: pouls 1s ease-in-out infinite; }
 #tempsBloc { display: flex; align-items: center; gap: 10px; }
 .piste { flex: 1; position: relative; padding-top: 16px; padding-bottom: 46px; }
 #lectureTemps { position: absolute; top: 0; left: 0; right: 0; text-align: center; font-size: 12px; color: var(--texte); font-variant-numeric: tabular-nums; }
-#temps { width: 100%; transition: width 0.7s ease; }
+#temps { width: 100%; }
 #dispoTemps { transition: right 0.7s ease; }
 .reperes { position: absolute; left: 0; right: 0; bottom: 0; height: 42px; font-size: 10px; color: var(--doux); }
 .reperes span { position: absolute; white-space: nowrap; top: 11px; font-size: 12px; }
 #repAuj { transform: translateX(-50%); position: absolute; top: 0; font: 500 14px var(--f-corps); color: var(--texte); padding: 8px 16px; min-height: 40px; border-radius: 999px; background: rgba(20,22,30,0.8); border: 1px solid var(--trait); white-space: nowrap; }
 #repAuj::before { content: ""; position: absolute; left: 50%; top: -7px; width: 1px; height: 6px; background: var(--doux); }
+#repAuj.auBout { left: auto !important; right: 0; transform: none; }
+#repAuj.auBout::before { left: auto; right: 9px; }
 /* fenêtre « à propos » */
 #modale { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; padding: 20px; }
 #modale.ouverte { display: flex; }
@@ -141,7 +143,7 @@ body[data-mode=zoom] #zoom, body[data-mode=temps] #temps { animation: pouls 1s e
 #barreRecits { display: flex; align-items: center; gap: 10px; min-height: 44px; }
 #recits { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* exploration libre : « Récits » est l'action principale */
-body[data-mode=libre] #recits { flex: 1; max-width: 420px; background: var(--accent); color: #0a0f18; border-color: var(--accent); font-weight: 600; font-size: 18px; padding: 14px 20px; min-height: 54px; letter-spacing: 0.02em; }
+body[data-mode=libre] #recits { flex: 1; background: var(--accent); color: #0a0f18; border-color: var(--accent); font-weight: 600; font-size: 18px; padding: 14px 20px; min-height: 54px; letter-spacing: 0.02em; }
 body[data-mode=libre] #points { display: none; }
 /* pendant un récit : une croix ronde, les étapes, « Suite » en grand */
 body[data-mode=recit] #recits { width: 44px; height: 44px; padding: 0; font-size: 18px; flex: 0 0 auto; }
@@ -1871,8 +1873,10 @@ elT.value = uFromT(t); elZ.value = uFromW(W);
 const futurOuvert = () => !!(scen && scen.cle === "evenements");
 function bornesTemps() {
   const uMax = futurOuvert() ? 1000 : Math.round(uFromT(T0));
-  elT.max = uMax; elT.style.width = (uMax / 10) + "%";
-  const bt = document.getElementById("dispoTemps"); if (bt) bt.style.right = `calc(${100 - uMax / 10}% + 8px)`;
+  // la frise occupe toujours toute la largeur (18/11, 5 h 57) : sans le futur, « aujourd'hui » est au bout
+  elT.max = uMax;
+  const ra = document.getElementById("repAuj"); if (ra) ra.classList.toggle("auBout", uMax < 1000);
+  if (ra && uMax >= 1000) ra.style.left = (uFromT(T0) / 1000 * 100) + "%";
   if (!futurOuvert() && t > T0) t = T0;
   elT.value = uFromT(t);
 }
