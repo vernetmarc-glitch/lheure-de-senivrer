@@ -288,20 +288,29 @@ async def main(url):
             obs = await pg.evaluate(f"({SEQ})('{cle}')")
             # (navigateur sans carte graphique : une image par seconde environ ; le fondu de la légende
             #  dure 0,9 s et ne part qu'à l'image suivante : on tolère 4 s de traîne après chaque arrêt)
-            arrets, bavard, dern_arret, cour = [], 0, -1e9, None
+            # un arrêt = un texte affiché avec « Suite » ; des pages successives au même instant comptent chacune
+            arrets, bavard, dern_arret, cour, vide = [], 0, -1e9, None, 0
             for k, (tm, sv, txt, att, fin) in enumerate(obs):
-                if sv: cour = (cour or "") or txt; dern_arret = tm
-                if not sv and cour is not None: arrets.append(cour); cour = None
+                if sv:
+                    dern_arret = tm
+                    if txt and (not arrets or arrets[-1] != txt or cour is None): arrets.append(txt)
+                    cour = cour or txt or ""
+                if not sv and cour is not None:
+                    if not cour: vide += 1
+                    cour = None
                 if not sv and not att and not fin and tm - dern_arret > 4000 and txt: bavard += 1
-            if cour is not None: arrets.append(cour)
+            if vide: arrets.append("")
             bilan[cle] = (arrets, bavard, obs[-1][4])
             await pg.evaluate(f"HDS.recit('{cle}')"); await pg.wait_for_timeout(400)
         ok_seq = all(len(a) >= 2 and all(a) and len(set(a)) == len(a) and bv == 0 and f for a, bv, f in bilan.values())
         tobs = " ".join(bilan["observable"][0]) + " " + " ".join(await pg.evaluate("(HDS.recit('observable'), HDS.textes)"))
         await pg.evaluate("HDS.recit('observable')")
-        ok_obs = "transparent" in tobs and "380 000" in tobs and "41 millions" in tobs
+        # (18/11, 7 h 45) la fin en plusieurs pages : 13,8 milliards d'années de voyage, la source passée de
+        # 41 millions à 45 milliards d'années-lumière, plus de mille fois plus loin
+        fin_pages = all(m in tobs for m in ("13,8 milliards", "45 milliards", "mille fois")) and len(bilan["observable"][0]) >= 6
+        ok_obs = "transparent" in tobs and "380 000" in tobs and "41 millions" in tobs and fin_pages
         note("récits : le texte arrive avec le bouton « Suite »", ok_seq and ok_obs,
-             " ; ".join(f"{c} : {len(a)} arrêts, {bv} textes pendant le mouvement, fin {f}" for c, (a, bv, f) in bilan.items()) + f" ; observable : transparence {'transparent' in tobs}, 41 millions {'41 millions' in tobs}",
+             " ; ".join(f"{c} : {len(a)} arrêts, {bv} textes pendant le mouvement, fin {f}" for c, (a, bv, f) in bilan.items()) + f" ; observable : transparence {'transparent' in tobs}, 41 millions {'41 millions' in tobs}, fin en pages {fin_pages}",
              "« le texte en même temps que le bouton suite » ; « pourquoi 380 000 ans : l'univers devient transparent ; d'où part la lumière : 41 millions »")
         # 9 nonies. Voie lactée : basse résolution pendant le mouvement (budget de remplissage),
         #    pleine résolution reconstruite en arrière-plan à l'arrêt, identique au rendu direct
