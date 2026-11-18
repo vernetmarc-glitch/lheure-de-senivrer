@@ -116,7 +116,14 @@ body[data-mode=ouverture] #ouverture { display: block; }
 #vers { position: absolute; left: 0; right: 0; top: 42%; margin: 0; text-align: center; font: 500 21px var(--f-titre); letter-spacing: 0.04em; opacity: 0;
   animation: vers 3.6s ease 0.4s forwards; }
 @keyframes vers { 0% { opacity: 0; } 30% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
-#invite { position: absolute; left: 24px; right: 24px; bottom: calc(env(safe-area-inset-bottom) + 48px); text-align: center; opacity: 0; animation: apparait 1.2s ease 5s forwards; pointer-events: auto; }
+/* second écran (18/11) : d'où vient le titre, pendant que la Promenade se charge */
+#reference { position: absolute; left: 22px; right: 22px; top: 21%; margin: 0; padding: 22px 14px; text-align: center; font: 400 18px/1.6 var(--f-corps); color: #ece6da; text-shadow: 0 1px 8px #000;
+  background: radial-gradient(ellipse at center, rgba(4,5,10,0.78) 30%, rgba(4,5,10,0) 72%); opacity: 0; animation: apparait 1.6s ease 4.1s forwards, disparait 1.2s ease 9.4s forwards; }
+/* troisième écran (18/11, 11 h 58) : la formule, qui prend la place de la référence */
+#formule { position: absolute; left: 22px; right: 22px; top: 21%; margin: 0; padding: 22px 14px; text-align: center; font: 400 italic 18px/1.6 var(--f-corps); color: #f2ebdf; text-shadow: 0 1px 8px #000;
+  background: radial-gradient(ellipse at center, rgba(4,5,10,0.78) 30%, rgba(4,5,10,0) 72%); opacity: 0; animation: apparait 1.8s ease 10.6s forwards; }
+@keyframes disparait { from { opacity: 1; } to { opacity: 0; } }
+#invite { position: absolute; left: 24px; right: 24px; bottom: calc(env(safe-area-inset-bottom) + 48px); text-align: center; opacity: 0; animation: apparait 1.2s ease 6.2s forwards; pointer-events: auto; }
 #invite p { margin: 0 0 16px; font-size: 17px; text-shadow: 0 1px 6px #000; }
 #invite button { width: 100%; max-width: 360px; padding: 13px 14px; font-size: 16px; }
 @keyframes apparait { to { opacity: 1; } }
@@ -170,7 +177,9 @@ body[data-mode=recit] #titre { display: none; }
 <div id="ouverture" aria-live="polite">
   <div class="noir"></div>
   <p id="vers">Il est l'heure de s'enivrer.</p>
-  <div id="invite"><p>Tout l'univers, au bout des doigts.</p><button id="partir" class="principal">Découvrir</button></div>
+  <p id="reference">En 1986, face à la menace nucléaire, Hubert Reeves reprit ces mots de Baudelaire : treize milliards d'années ont tissé la vie, émerveillons-nous pour la protéger.</p>
+  <p id="formule">Nous sommes des poussières d'étoiles qui ont appris à s'émerveiller. Avant qu'une pensée de silicium ne prenne le relais, prenons soin de ce qui respire.</p>
+  <div id="invite"><button id="partir" class="principal">Découvrir</button></div>
 </div>
 <button id="passer">Passer</button>
 <div id="indice" role="status"></div>
@@ -1733,7 +1742,8 @@ function dessineGrille(cx, cy, ppg) {
   const lw = Math.log10(W), k = Math.floor(lw) - 1, f = lw - Math.floor(lw);
   // (18/11, 11 h 08) pendant l'univers observable, la carte dézoome pour suivre la matière émettrice :
   // seuls les carreaux (distances propres fixes) montrent l'espace qui s'étire ; ils sont plus contrastés
-  const fort = scen && scen.cle === "observable" && !scen.attente ? 2.8 : 1;
+  const suit = scen && !scen.attente && (scen.cle === "observable" || (scen.cle === "evenements" && scen.acte === 1));
+  const fort = suit ? 2.8 : 1;                                         // (11 h 39) l'horizon, acte 1, aussi
   const pas = [[10 ** k, 0.10 * (1 - f) * fort], [10 ** (k + 1), (0.10 + 0.06 * (1 - f)) * fort]];
   ctx.lineWidth = DPR;
   for (const [g, al] of pas) {
@@ -2064,7 +2074,8 @@ const SCEN = {
     W: 22, cercles: [], acte: 1, intro: "introHorizon1",
     // (18/11) chaque texte décrit l'arrêt qui termine son étape, et arrive avec « Suite »
     get etapes() { return this.acte === 1 ? [
-      { txt: "Le message effleure les galaxies voisines. La carte se dilate avec l'espace : elles restent immobiles.", fin() { return t >= 25; } },
+      { txt: "La carte dézoome pour suivre les galaxies emportées par l'expansion : elles restent immobiles. Regardez les carreaux rapetisser.", fin() { return t >= 16; } },
+      { txt: "Le message effleure les galaxies voisines ; les carreaux, de taille fixe, disent l'espace qui s'étire.", fin() { return t >= 25; } },
       { txt: "Il ralentit à l'écran : les galaxies lointaines fuient presque aussi vite qu'il court.", fin() { return t >= 60; } },
       { txt: "Il se fige sur ce cercle : l'horizon des événements, à 16,7 milliards d'années-lumière aujourd'hui. Au-delà, il ne touchera jamais personne.", fin() { return t >= 100; } },
       { txt: "", fin() { return false; } }] : [
@@ -2368,6 +2379,7 @@ window.HDS = { set grille(v) { sansGrille = !v; sale = true; },
     if (E && !scen.attente) { while (scen.ie < E.length - 1 && E[scen.ie].fin.call(scen)) scen.ie++; if (scen.attenteSuite) { scen.attenteSuite = false; scen.pause = false; } }
   }, get t() { return t; }, get W() { return W; },
   get photons() { return fronts.map(f => { const p = rayonFront(f, t); if (!p) return null; const v = vitesseFront(f, p); return { r: p.r, v, rgb: rgbVitesse(v) }; }); },
+  get chargements() { return { ...CH }; },
   get etat() { return { scen: scen ? scen.cle : null, fronts: fronts.length, acte: scen ? scen.acte || 0 : 0, attente: !!(scen && scen.attente), fin: !!(scen && scen.fin) }; },
   get textes() { if (!scen) return []; const tp = scen.intro && document.getElementById(scen.intro); return [tp ? tp.content.textContent.replace(/\s+/g, " ").trim() : "", ...(scen.etapes || []).map(e => e.txt), scen.texteFin || ""]; },
   set el(v) { if (scen) { scen.el = v; sale = true; } }, get el() { return scen ? scen.el : 0; } };
@@ -2375,8 +2387,8 @@ const elCh = document.getElementById("chargement");
 majDispo(); bornesTemps();
 // données v2 (un fichier par époque) si elles sont publiées ; sinon les anciennes
 matiere.chargeV2("petite").then(ok => ok ? fini("matiere")() : matiere.charge("matiere", suivi("matiere")).then(fini("matiere"), rate("matiere")))
-  .then(() => chargeEnvirons())
-  .then(() => chargeVoieLactee());
+  // dès la toile prête, pendant l'ouverture : la Voie lactée et ses environs, pour la Promenade (18/11)
+  .then(() => Promise.all([chargeVoieLactee(), chargeEnvirons()]));
 ouverture();
 document.getElementById("repAuj").style.left = (uFromT(T0) / 1000 * 100) + "%";
 
