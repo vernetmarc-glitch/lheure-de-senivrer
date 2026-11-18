@@ -1731,7 +1731,10 @@ function dessineAttente(cx, cy, q, nom) {
 }
 function dessineGrille(cx, cy, ppg) {
   const lw = Math.log10(W), k = Math.floor(lw) - 1, f = lw - Math.floor(lw);
-  const pas = [[10 ** k, 0.10 * (1 - f)], [10 ** (k + 1), 0.10 + 0.06 * (1 - f)]];
+  // (18/11, 11 h 08) pendant l'univers observable, la carte dézoome pour suivre la matière émettrice :
+  // seuls les carreaux (distances propres fixes) montrent l'espace qui s'étire ; ils sont plus contrastés
+  const fort = scen && scen.cle === "observable" && !scen.attente ? 2.8 : 1;
+  const pas = [[10 ** k, 0.10 * (1 - f) * fort], [10 ** (k + 1), (0.10 + 0.06 * (1 - f)) * fort]];
   ctx.lineWidth = DPR;
   for (const [g, al] of pas) {
     const sp = g * ppg; if (sp < 6 * DPR || al < 0.01) continue;
@@ -1918,7 +1921,7 @@ const SCEN = {
     // chaque étape court d'un arrêt à l'autre en une durée fixe (s), le temps défilant
     // régulièrement en logarithme : pas de longue course au début, pas de fin précipitée
     etapes: [
-      { txt: "Elle part de matière à 41 millions d'années-lumière. Un souffle, au regard du voyage qui l'attend.", t1: 0.0008, duree: 1.5, fin() { return t >= this.etapes[0].t1 * 0.9999; } },
+      { txt: "Elle part de matière à 41 millions d'années-lumière. La carte va dézoomer pour suivre cette matière : regardez les carreaux rapetisser.", t1: 0.0008, duree: 1.5, fin() { return t >= this.etapes[0].t1 * 0.9999; } },
       { txt: "Et pourtant elle s'éloigne, rougie : l'espace l'emporte plus vite qu'elle ne court, tapis roulant à contre-courant.", t1: 0.6, duree: 4.5, fin() { return t >= this.etapes[1].t1 * 0.9999; } },
       { txt: "Blanche, elle atteint la sphère de Hubble, où l'espace fuit exactement à sa vitesse. Un instant, elle fait du surplace.", t1: null, duree: 4, fin() { return t >= this.etapes[2].t1 * 0.9999; } },
       { txt: "Enfin elle gagne du terrain et bleuit. Sa source, elle, continue de s'enfuir dans la nuit.", t1: 9, duree: 3, fin() { return t >= this.etapes[3].t1 * 0.9999; } },
