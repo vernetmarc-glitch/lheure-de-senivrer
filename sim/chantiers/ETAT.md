@@ -1,7 +1,7 @@
-# État des chantiers — 2026-11-18 16:16
+# État des chantiers — 2026-11-18 16:25
 
-- **A_voisinage_537941** : halos 18545, total 21734, etape téléchargement
+- **A_voisinage_537941** : halos 18967, total 21734, etape téléchargement
 - **B_grande_boite_points** : etape écarté (18/11) : bruit de tirage, tuiles gardées ; voir docs/approches-ecartees.md
 - **C_rendu_voisinage** : etape P3 522530 publié en l'état (18/11 14 h) ; à refaire avec 537941 quand A est prêt
-- **D_maillage_fin** : etape essai 1 (tranche 4 Mpc/h) jugé insuffisant (un filament par champ, bouillie aux époques jeunes) ; essai 2 lancé : tranche 10 Mpc/h, 600 000 points ; page D2 prête, calcul in_progress, run 44328374848
+- **D_maillage_fin** : etape essai 3 lancé (16 h 20) : boîtes moyenne ET petite refaites, départ tiré dans les cellules (GIGUE) contre le treillis ; tranche 10 Mpc/h pour la moyenne. À l'arrivée : planche /tmp/moy.py sur 8775 (v3) contre 8772 (actuel), garder si plus beau, contrôle du treillis < 2,5, calcul in_progress, run 44333882615
 - **E_treillis_toile** : etape constaté, non corrigé (anisotropie du maillage aux époques jeunes) ; voir docs/approches-ecartees.md ; piste : tranche hors axes ou chantier D
