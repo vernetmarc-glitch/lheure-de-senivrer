@@ -448,7 +448,7 @@ async def main(url):
              f"cercles allumés dans l'ordre {ordre}, champ final {st[2]:.0f} Gal", "« le dernier moment waouh dévoile les trois frontières »")
         noms = [l for l in legs if "milliards d'années-lumière" in l]
         definit = [l for l in legs if any(m in l for m in ("au-delà", "tout ce que", "parviendra", "plus vite"))]
-        invite = [l for l in legs if "Récits" in l and "curseurs" in l]
+        invite = [l for l in legs if "Récits" in l and "dériver" not in l]          # 18/11, 10 h 39 : plus de « laissez-vous dériver avec les curseurs »
         note("les frontières nommées, leur rayon, puis une invitation", len(noms) >= 3 and not definit and invite and etiqs and not any("Gal" in e for e in etiqs),
              f"légendes {legs} ; étiquettes {sorted(etiqs)}", "« nommer, donner le rayon ; pour comprendre, Récits ou les curseurs ; sinon on décroche »")
         # passer la main (C1) : le zoom seul, puis le temps, puis le reste
@@ -505,18 +505,17 @@ async def main(url):
         # « Récits » action principale une fois la présentation finie, des cibles au doigt, un panneau sans sous-titres
         mot = await pd.evaluate("document.getElementById('partir').textContent.trim()")
         note("bouton d'ouverture : « Découvrir »", mot == "Découvrir", f"« {mot} »", "« le bouton partir n'est pas clair »")
-        # identité visuelle (18/11, 9 h 48) : l'icône des trois horizons en favicon, dans la barre de titre,
-        # à l'ouverture et dans « à propos » ; trois anneaux jamais sous 24 px (icône ≥ 32 px)
-        idv = await pd.evaluate("""(async () => { const ic = [...document.querySelectorAll('link[rel~=icon]')].map(l => l.href);
+        # identité visuelle (18/11) : l'icône des trois horizons est l'icône de l'application (onglet, écran
+        # d'accueil), pas un élément de la page (10 h 22 : « sur la page où il n'y a écrit que l'heure de
+        # s'enivrer, il ne faut pas de logo », ni ailleurs dans la page)
+        idv = await pd.evaluate("""(() => { const ic = [...document.querySelectorAll('link[rel~=icon]')].map(l => l.href);
           const svg = ic.find(h => h.startsWith('data:image/svg+xml')); let desc = '';
           if (svg) desc = decodeURIComponent(escape(atob(svg.split(',')[1])));
-          const tl = document.querySelector('#titre img.logo'), ov = document.querySelector('#ouverture img.logo');
-          document.getElementById('apropos').click(); await new Promise(r => setTimeout(r, 300));
-          const md = document.querySelector('#modale img.logo'), mh = md ? md.getBoundingClientRect().height : 0; document.getElementById('fermer').click();
-          return { favicon: desc.includes('Trois horizons'), titre: tl ? [tl.complete && tl.naturalWidth > 0, tl.getBoundingClientRect().height] : null,
-                   ouverture: !!(ov && ov.getAttribute('src') === (tl && tl.getAttribute('src'))), modale: mh }; })()""")
-        note("identité visuelle : l'icône des trois horizons", idv["favicon"] and idv["titre"] and idv["titre"][0] and idv["titre"][1] >= 32 and idv["ouverture"] and idv["modale"] >= 48,
-             f"favicon {idv['favicon']}, barre de titre {idv['titre']}, ouverture {idv['ouverture']}, à propos {idv['modale']:.0f} px", "« utilise ces visuels pour l'application »")
+          const tpl = document.getElementById('txtApropos');
+          return { favicon: desc.includes('Trois horizons'), apple: !!document.querySelector('link[rel=apple-touch-icon]'),
+                   dansLaPage: document.querySelectorAll('body img.logo').length + (tpl ? tpl.content.querySelectorAll('img.logo').length : 0) }; })()""")
+        note("identité : l'icône de l'application, pas de logo dans la page", idv["favicon"] and idv["apple"] and idv["dansLaPage"] == 0,
+             f"favicon {idv['favicon']}, icône d'écran d'accueil {idv['apple']}, logos dans la page {idv['dansLaPage']}", "« prévu comme icône de l'application » ; « enlever le logo qui apparaît avant le texte »")
         TAILLES = """(() => { const vis = el => { for (let a = el; a; a = a.parentElement) { const st = getComputedStyle(a); if (a.hidden || st.display === 'none' || st.visibility === 'hidden' || +st.opacity < 0.3) return false; } const r = el.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < innerHeight; };
           return [...document.querySelectorAll('button')].filter(vis).map(b => { const r = b.getBoundingClientRect(); return [b.id || b.dataset.scen || b.textContent.trim().slice(0, 10), Math.round(r.width), Math.round(r.height)]; }); })()"""
         rc = await pd.evaluate("""(() => { const b = document.getElementById('recits'), r = b.getBoundingClientRect(), br = document.getElementById('barreRecits').getBoundingClientRect(), st = getComputedStyle(b);
