@@ -317,9 +317,19 @@ async def main(url):
         # (18/11, 7 h 45) la fin en plusieurs pages : 13,8 milliards d'années de voyage, la source passée de
         # 41 millions à 45 milliards d'années-lumière, plus de mille fois plus loin
         fin_pages = all(m in tobs for m in ("13,8 milliards", "45 milliards", "mille fois")) and len(bilan["observable"][0]) >= 6
-        ok_obs = "transparent" in tobs and "380 000" in tobs and "41 millions" in tobs and fin_pages
+        # (18/11, 11 h 08) le dézoom continu suit la matière émettrice : seuls les carreaux montrent l'étirement
+        # de l'espace ; ils doivent se voir (grille contrastée pendant le récit) et le texte doit le dire
+        await pg.evaluate("HDS.demarrerLibre(); HDS.recit('observable')"); await pg.wait_for_timeout(1200)
+        await pg.evaluate("document.getElementById('cestParti').click(); HDS.vitesse = 0; HDS.aller(0.05)"); await pg.wait_for_timeout(2500)
+        g1 = np.asarray(Image.open(io.BytesIO(await pg.screenshot())).convert("L")).astype(float)[90:560, 0:340]
+        await pg.evaluate("HDS.grille = false"); await pg.wait_for_timeout(1200)
+        g0 = np.asarray(Image.open(io.BytesIO(await pg.screenshot())).convert("L")).astype(float)[90:560, 0:340]
+        await pg.evaluate("HDS.grille = true; HDS.vitesse = 1; HDS.recit('observable')"); await pg.wait_for_timeout(400)
+        traits = float(np.percentile(g1 - g0, 99.5))
+        grille_ok = traits >= 55 and "carreaux" in tobs and "dézoom" in tobs
+        ok_obs = "transparent" in tobs and "380 000" in tobs and "41 millions" in tobs and fin_pages and grille_ok
         note("récits : le texte arrive avec le bouton « Suite »", ok_seq and ok_obs,
-             " ; ".join(f"{c} : {len(a)} arrêts, {bv} textes pendant le mouvement, fin {f}" for c, (a, bv, f) in bilan.items()) + f" ; observable : transparence {'transparent' in tobs}, 41 millions {'41 millions' in tobs}, fin en pages {fin_pages}",
+             " ; ".join(f"{c} : {len(a)} arrêts, {bv} textes pendant le mouvement, fin {f}" for c, (a, bv, f) in bilan.items()) + f" ; observable : transparence {'transparent' in tobs}, 41 millions {'41 millions' in tobs}, fin en pages {fin_pages}, carreaux +{traits:.0f} de luminance, dit {'carreaux' in tobs}",
              "« le texte en même temps que le bouton suite » ; « pourquoi 380 000 ans : l'univers devient transparent ; d'où part la lumière : 41 millions »")
         # 9 nonies. Voie lactée : basse résolution pendant le mouvement (budget de remplissage),
         #    pleine résolution reconstruite en arrière-plan à l'arrêt, identique au rendu direct
