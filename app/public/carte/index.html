@@ -321,7 +321,7 @@ const uFromW = w => 1000 * (Math.log(w) - Math.log(WMIN)) / (Math.log(WMAX) - Ma
 // ---------------------------------------------------------------------------
 // deux simulations 512³ : une petite boîte (toile fine) et une grande (grands champs),
 // chacune rendue en tuile périodique à 11 instants (z = 14 à aujourd'hui)
-const TUILE_GAL = 0.96782, GRANDE_GAL = 7.25866;
+const TUILE_GAL = 0.96782, GRANDE_GAL = 7.25866, MOY_GAL = 64 / 0.674 * 3.26156e-3;   // boîte moyenne (chantier D)
 const AT = [0.0667, 0.0909, 0.1250, 0.1667, 0.2222, 0.2857, 0.3704, 0.5000, 0.6667, 0.8333, 1.0000];
 const jeu = nom => AT.map(a => { const im = new Image(); im.src = `tuiles/${nom}-a${a.toFixed(4)}.jpg`; return { a, im, moy: "rgb(20,4,2)", motif: null }; });
 const imgsP = jeu("petite"), imgsG = jeu("grande"), imgs = imgsP.concat(imgsG);
@@ -618,11 +618,13 @@ const matiere = (() => {
     }`);
   let N = 0, AS = [], bufXY, bufH, tex, fbo, tw = 0, th = 0, agitTon = false, lodTon = 3, texQ = null, fboQ = null, twq = 0, thq = 0;
   // ---- chargement v2 : l'index, puis les époques à la demande (les plus proches d'abord) ----
-  const V2 = { pret: false, A: [], n: 0, ep: [], ix: null, ordre: null };
-  M.chargeV2 = async etq => {
+  const nouveauV2 = () => ({ pret: false, A: [], n: 0, ep: [], ix: null, ordre: null });
+  // petite boîte (200 Mpc/h, la toile) ; boîte moyenne (64 Mpc/h, 3,1× plus fine : 10 à 100 Mal, chantier D)
+  const V2 = nouveauV2(), V2M = nouveauV2();
+  M.chargeV2 = async (etq, V = etq === "moyenne" ? V2M : V2) => {
     try {
       const r = await fetch(SUR_GITHUB ? `donnees/matiere2-${etq}.json` : `matiere2-${etq}.json`); if (!r.ok) return false;
-      const ix = await r.json(); V2.ix = ix; V2.A = ix.a; V2.n = ix.n; V2.ep = ix.a.map(() => null);
+      const ix = await r.json(); V.ix = ix; V.A = ix.a; V.n = ix.n; V.ep = ix.a.map(() => null);
       // ordre de tirage aléatoire fixe : n'importe quel début de liste est un sous-échantillon honnête
       const ordre = new Uint32Array(ix.n); for (let k = 0; k < ix.n; k++) ordre[k] = k;
       // (17/11) un générateur congruentiel pris modulo k + 1 n'utilise que ses bits faibles, mal mêlés :
@@ -630,29 +632,29 @@ const matiere = (() => {
       // époques jeunes. Mulberry32, ramené à l'intervalle par multiplication (bits forts).
       let g = 12345; const alea = () => { g = (g + 0x6D2B79F5) >>> 0; let x = Math.imul(g ^ (g >>> 15), 1 | g); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
       for (let k = ix.n - 1; k > 0; k--) { const j = Math.floor(alea() * (k + 1)); const tmp = ordre[k]; ordre[k] = ordre[j]; ordre[j] = tmp; }
-      V2.ordre = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, V2.ordre); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ordre, gl.STATIC_DRAW);
-      V2.pret = true; M.prete = true;
+      V.ordre = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, V.ordre); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ordre, gl.STATIC_DRAW);
+      V.pret = true; if (V === V2) M.prete = true;
       // prêt quand les deux époques d'aujourd'hui sont là
-      const k = ix.a.length - 2; await new Promise(res => { const v = () => (epoqueV2(k) && epoqueV2(k + 1)) ? res() : setTimeout(v, 150); v(); });
+      const k = ix.a.length - 2; await new Promise(res => { const v = () => (epoqueV2(k, V) && epoqueV2(k + 1, V)) ? res() : setTimeout(v, 150); v(); });
       return true;
     } catch (e) { return false; }
   };
-  function epoqueV2(k) {
-    if (k < 0 || k >= V2.A.length) return null;
-    const e = V2.ep[k]; if (e && e.buf) { e.vu = performance.now(); return e; }
+  function epoqueV2(k, V = V2) {
+    if (k < 0 || k >= V.A.length) return null;
+    const e = V.ep[k]; if (e && e.buf) { e.vu = performance.now(); return e; }
     if (e) return null;                                                  // en cours
-    V2.ep[k] = { charge: true };
-    octets(V2.ix.fichiers[k].replace(/\.bin$/, "")).then(bin => {
+    V.ep[k] = { charge: true };
+    octets(V.ix.fichiers[k].replace(/\.bin$/, "")).then(bin => {
       const lh = new DataView(bin.buffer, bin.byteOffset).getUint32(0, true); let o = 4 + lh; o += o % 2;
       const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(o), gl.STATIC_DRAW);
-      V2.ep[k] = { buf, vu: performance.now() }; sale = true;
+      V.ep[k] = { buf, vu: performance.now() }; sale = true;
       // pas plus de 12 époques sur la carte graphique : on libère les plus anciennement vues
-      const pretes = V2.ep.map((x, j) => [x, j]).filter(([x]) => x && x.buf);
-      if (pretes.length > 12) { pretes.sort((p, q) => p[0].vu - q[0].vu); const [x, j] = pretes[0]; gl.deleteBuffer(x.buf); V2.ep[j] = null; }
-    }).catch(() => { V2.ep[k] = null; });
+      const pretes = V.ep.map((x, j) => [x, j]).filter(([x]) => x && x.buf);
+      if (pretes.length > 12) { pretes.sort((p, q) => p[0].vu - q[0].vu); const [x, j] = pretes[0]; gl.deleteBuffer(x.buf); V.ep[j] = null; }
+    }).catch(() => { V.ep[k] = null; });
     return null;
   }
-  M.v2 = V2;
+  M.v2 = V2; M.v2m = V2M;
   const L = { p0: gl.getAttribLocation(pPts, "p0"), p1: gl.getAttribLocation(pPts, "p1"), h0: gl.getAttribLocation(pPts, "h0"), h1: gl.getAttribLocation(pPts, "h1") };
   const U = n => gl.getUniformLocation(pPts, n), UT = n => gl.getUniformLocation(pTon, n);
   const vao = gl.createVertexArray();
@@ -704,20 +706,21 @@ const matiere = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); tl = w;
   }
   // dépose les particules (copies périodiques `decs`) dans un tampon d'accumulation
-  function depose2(fb, w, h, a, cx, cy, ech, decs, wk, smaxPx, sminPx = 0.7 * DPR) {
-    if (!V2.pret) return false;
-    const A = V2.A, n = V2.n; let k = A.findIndex(v => v > a) - 1; if (k < 0) k = a < A[0] ? 0 : A.length - 2;
+  function depose2(fb, w, h, a, cx, cy, ech, decs, wk, smaxPx, sminPx = 0.7 * DPR, V = V2, efface = true) {
+    if (!V.pret) return false;
+    const A = V.A, n = V.n; let k = A.findIndex(v => v > a) - 1; if (k < 0) k = a < A[0] ? 0 : A.length - 2;
     const f = Math.min(1, Math.max(0, (a - A[k]) / (A[k + 1] - A[k])));
-    for (const j of [k - 2, k + 3]) epoqueV2(j);                        // préchargement des voisines
-    let e0 = epoqueV2(k), e1 = epoqueV2(k + 1), ff = f;
+    for (const j of [k - 2, k + 3]) epoqueV2(j, V);                     // préchargement des voisines
+    let e0 = epoqueV2(k, V), e1 = epoqueV2(k + 1, V), ff = f;
     if (!e0 || !e1) {
       // époques encore en chargement (saut dans le temps) : la plus proche déjà là, plutôt qu'un écran noir
-      const pretes = V2.ep.map((x, j) => x && x.buf ? j : -1).filter(j => j >= 0); if (!pretes.length) return false;
+      const pretes = V.ep.map((x, j) => x && x.buf ? j : -1).filter(j => j >= 0); if (!pretes.length) return false;
       const j = pretes.reduce((m, j) => Math.abs(j - k - f) < Math.abs(m - k - f) ? j : m, pretes[0]);
-      e0 = e1 = V2.ep[j]; ff = 0; sale = true;
+      e0 = e1 = V.ep[j]; ff = 0; sale = true;
     }
-    const em = e0 === e1 && ff === 0 ? e0 : epoqueV2(k - 1) || e0, ep = e0 === e1 && ff === 0 ? e1 : epoqueV2(k + 2) || e1;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    const em = e0 === e1 && ff === 0 ? e0 : epoqueV2(k - 1, V) || e0, ep = e0 === e1 && ff === 0 ? e1 : epoqueV2(k + 2, V) || e1;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.viewport(0, 0, w, h);
+    if (efface) { gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); }
     gl.useProgram(pPts2); gl.bindVertexArray(vao);
     const att = (nom, e, cnt, type, off) => { gl.bindBuffer(gl.ARRAY_BUFFER, e.buf); gl.enableVertexAttribArray(L2[nom]); gl.vertexAttribPointer(L2[nom], cnt, type, false, 0, off); };
     att("pm", em, 2, gl.SHORT, 0); att("p0", e0, 2, gl.SHORT, 0); att("p1", e1, 2, gl.SHORT, 0); att("pp", ep, 2, gl.SHORT, 0);
@@ -729,7 +732,7 @@ const matiere = (() => {
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     const par = Math.min(n, Math.floor(Math.min(1.4e6, tw * th / (DPR * DPR)) / decs.length));
     gl.uniform1f(U2("wk"), wk * n / par); gl.uniform1f(U2("doux"), Math.sqrt(rehausse(a)) * Math.sqrt(n / par));
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, V2.ordre);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, V.ordre);
     for (const [dx, dy] of decs) {
       const centrale = dx === 0 && dy === 0, [ox, oy] = decale(dx, dy);
       // toutes les copies, la centrale comprise, sont repliées dans leur case : les positions sont
@@ -959,7 +962,7 @@ const matiere = (() => {
     const mEff = Math.max(HL.nRef / (boxPx * boxPx), 0.1 / (6.2832 * smaxPx * smaxPx));
     ton(tex, 0, 0, tw, th, Math.max(a, AS[0]), mEff, 1, alpha * debut, false, true, 0.8);
   };
-  M.dessine = (a, cx, cy, boitePx, alpha) => {
+  M.dessine = (a, cx, cy, boitePx, alpha, boiteMPx = 0, partM = 0) => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, tw, th);
     if (!M.prete || alpha < 0.002) { gl.clearColor(0.016, 0.02, 0.04, 1); gl.clear(gl.COLOR_BUFFER_BIT); return; }
     const m = N / (boitePx * boitePx), wk = flottant ? 1 : 1 / (m * 60);   // densité moyenne attendue par pixel
@@ -972,6 +975,18 @@ const matiere = (() => {
     const smaxPx = q * DPR * Math.max(1.1, 14 * Math.min(1, 1.2 * tw / boitePx)), sminPx = q * 0.7 * DPR;
     const nV = V2.pret ? V2.n : N, mV = nV / (bq * bq), wkV = flottant ? 1 : 1 / (mV * 60), mQ = N / (bq * bq), wkQ = flottant ? 1 : 1 / (mQ * 60);
     lodTon = 3 + Math.log2(q);
+    if (V2M.pret && partM > 0.002) {
+      // chantier D : boîte moyenne aux petits champs, mêlée en densité à la petite (chaque boîte rapportée
+      // à sa propre densité moyenne, puis un seul ton : pas de fondu d'images)
+      const unite = flottant ? 1 : 1 / 60, bM = boiteMPx * q;
+      const mx0 = Math.ceil(-cx / boiteMPx - 0.56), mx1 = Math.floor((tw - cx) / boiteMPx + 0.56);
+      const my0 = Math.ceil(-cy / boiteMPx - 0.56), my1 = Math.floor((th - cy) / boiteMPx + 0.56);
+      const decsM = []; for (let a1 = mx0; a1 <= mx1; a1++) for (let b1 = my0; b1 <= my1; b1++) decsM.push([a1, b1]);
+      const smaxM = q * DPR * Math.max(1.1, 14 * Math.min(1, 1.2 * tw / boiteMPx)), mM = V2M.n / (bM * bM);
+      let fait = depose2(fboQ, twq, thq, a, cx * q, cy * q, bM, decsM, unite * partM / Math.max(mM, 0.1 / (6.2832 * smaxM * smaxM)), smaxM, sminPx, V2M, true);
+      if (partM < 0.998 && depose2(fboQ, twq, thq, a, cx * q, cy * q, bq, decs, unite * (1 - partM) / Math.max(mV, 0.1 / (6.2832 * smaxPx * smaxPx)), smaxPx, sminPx, V2, !fait)) fait = true;
+      if (fait) { ton(texQ, 0, 0, tw, th, a, 1, unite, alpha, false); return; }
+    }
     if (depose2(fboQ, twq, thq, a, cx * q, cy * q, bq, decs, wkV, smaxPx, sminPx)) {
       ton(texQ, 0, 0, tw, th, a, Math.max(mV, 0.1 / (6.2832 * smaxPx * smaxPx)), wkV, alpha, false); return;
     }
@@ -1409,7 +1424,10 @@ function dessine() {
   // structures en double) ; au-delà, quand elle devient trop petite à l'écran, la grande boîte
   const aG = 1 - lisse(0.10 * Wpx, 0.30 * Wpx, boitePx);
   const aPts = matiere.prete ? 1 - aG : 0;
-  couches = { points: aPts, tuilesPetite: (1 - aG) * (matiere.prete ? 0 : 1), tuilesGrande: aG };
+  // chantier D : la boîte moyenne prend la place de la petite quand sa boîte déborde l'écran
+  // (aucune répétition visible) : pleine au-delà de 1,2 largeur d'écran, absente sous 0,6
+  const boiteMPx = s.a * MOY_GAL * ppg, partM = matiere.v2m.pret ? lisse(0.6 * Wpx, 1.2 * Wpx, boiteMPx) : 0;
+  couches = { points: aPts, pointsMoyenne: aPts * partM, tuilesPetite: (1 - aG) * (matiere.prete ? 0 : 1), tuilesGrande: aG };
   // les simulations s'arrêtent aujourd'hui : on ne grossit pas des structures figées vers un
   // futur où elles auront changé ; la matière s'efface entre 16 et 22 milliards d'années
   const futur = 1 - lisse(16, 22, t);
@@ -1421,7 +1439,7 @@ function dessine() {
   // la toile simulée ne s'efface que là où les halos TNG50 prennent effectivement le relais
   const aPM = 1 - (1 - lisse(0.004, 0.025, W)) * Math.min(1, aCat * 1.2 * matiere.couvertureHalos(s.a));
   if (aCat > 0) chargeEnvirons();
-  matiere.dessine(s.a, cx, cy, boitePx, aPts * (1 - aGal) * aPM * futur);   // (le poids des points est ici 1 - aG)
+  matiere.dessine(s.a, cx, cy, boitePx, aPts * (1 - aGal) * aPM * futur, boiteMPx, partM);   // (le poids des points est ici 1 - aG)
   matiere.dessineHalos(s.a, cx, cy, boiteTNG * ppg, aCat * (1 - 0.85 * aGal) * futur, ppg);
   matiere.dessineCatalogue(s.a, cx, cy, ppg, aCat * futur, aGal);
   const gx = cx, gy = cy - 8.2 * INCL.c * ppk;   // le Soleil est à 8,2 kpc du centre (projeté, disque incliné)
@@ -2390,7 +2408,7 @@ majDispo(); bornesTemps();
 // données v2 (un fichier par époque) si elles sont publiées ; sinon les anciennes
 matiere.chargeV2("petite").then(ok => ok ? fini("matiere")() : matiere.charge("matiere", suivi("matiere")).then(fini("matiere"), rate("matiere")))
   // dès la toile prête, pendant l'ouverture : la Voie lactée et ses environs, pour la Promenade (18/11)
-  .then(() => Promise.all([chargeVoieLactee(), chargeEnvirons()]));
+  .then(() => Promise.all([chargeVoieLactee(), chargeEnvirons(), matiere.chargeV2("moyenne")]));
 ouverture();
 document.getElementById("repAuj").style.left = (uFromT(T0) / 1000 * 100) + "%";
 
