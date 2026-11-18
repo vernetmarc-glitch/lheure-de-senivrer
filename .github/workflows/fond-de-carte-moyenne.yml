@@ -1,0 +1,60 @@
+name: Fond de carte — boîte moyenne (64 Mpc/h)
+
+# Chantier D (18/11/2026) : une troisième boîte, 3,1 fois plus fine que la petite, pour les champs
+# de 10 à 100 millions d'années-lumière (filaments nets, plus de treillis agrandi). Même simulation
+# particle-mesh 512³, mêmes 32 instantanés réguliers en croissance, même post-traitement que la v2.
+
+on:
+  push:
+    branches: [fond-de-carte]
+    paths: ['.github/workflows/fond-de-carte-moyenne.yml']
+  workflow_dispatch:
+
+jobs:
+  simulation:
+    name: Boîte moyenne
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      NSORTIES: 32
+      FOULE: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Place disque
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL || true
+          df -h /
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet numpy scipy pillow
+      - name: Simulation
+        run: python sim/pm.py 512 640 64 /tmp/sim 48 27182
+      - name: Post-traitement
+        run: python sim/post2.py /tmp/sim sorties-v2/moyenne moyenne 2 500000 4 8 0.7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sorties-v2-moyenne
+          path: sorties-v2/moyenne
+
+  commit:
+    needs: simulation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fond-de-carte
+      - uses: actions/download-artifact@v4
+        with:
+          path: sim/sorties-v2
+          pattern: sorties-v2-moyenne
+      - name: Commit des sorties
+        run: |
+          find sim/sorties-v2 -name '*.bin' -exec gzip -9f {} \;
+          git config user.name "fond-de-carte[bot]"
+          git config user.email "fond-de-carte@users.noreply.github.com"
+          git add sim/sorties-v2
+          git commit -m "Sorties de la boîte moyenne (64 Mpc/h, 32 instantanés) [skip ci]" || { echo "rien à committer"; exit 0; }
+          for i in 1 2 3; do git pull --rebase origin fond-de-carte && git push && break; sleep 10; done

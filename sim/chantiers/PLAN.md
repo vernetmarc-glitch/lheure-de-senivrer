@@ -1,5 +1,10 @@
 # Plan des chantiers (demande de Marc, 18/11/2026, 13 h 30)
 
+**Consigne de Marc (18/11, 14 h 11) : avancer de manière autonome vers le meilleur résultat, même si
+cela prend des jours ; ne pas attendre ses réponses. But final : très esthétique, très réaliste,
+très fluide.** On décide seul ; on ne s'arrête que pour une action irréversible. Marc est prévenu
+quand un chantier se termine, sans question.
+
 L'agent est réveillé toutes les 30 minutes environ. À chaque réveil :
 
 1. `python3 sim/chantiers/maitre.py` : constater, relancer, avancer les étapes mécaniques.
@@ -41,6 +46,12 @@ L'agent est réveillé toutes les 30 minutes environ. À chaque réveil :
 ## A — Voisinage autour de 537941 (mécanique, `maitre.py`)
 - Téléchargement des histoires de halos, puis empaquetage en `tng/historiques537.bin`.
 
-## D — Simulation à maillage plus fin
-- Proposer d'abord à Marc le découpage en calculs enchaînés (reprise sur point de sauvegarde),
-  avant de lancer quoi que ce soit.
+## D — Boîte moyenne (résolution 3× plus fine aux échelles de 10 à 100 millions d'a.-l.)
+- Accord de Marc (14 h 10). Choix technique : plutôt qu'un maillage plus fin dans la petite boîte
+  (mémoire au-delà de 16 Go), une boîte de 64 Mpc/h, 512³ particules, maillage 640 : même coût
+  qu'une simulation v2 (≈ 2 h, un seul calcul GitHub), résolution 3,1× plus fine.
+- D1 : workflow `fond-de-carte-moyenne.yml` → `sim/sorties-v2/sorties-v2-moyenne`.
+- D2 : la page : troisième jeu de points (moyenne) aux petits champs, mêlé en densité à la petite
+  boîte quand sa boîte devient petite à l'écran ; mêmes copies, même ton.
+- D3 : contrôles : le treillis (spectre axes/hors axes < 2,5 à 20–30 Mal, 1–2,5 Ga), netteté,
+  vides noirs, fluidité ; planche avant/après.
