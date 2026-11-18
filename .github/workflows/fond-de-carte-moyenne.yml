@@ -3,6 +3,8 @@ name: Fond de carte — boîte moyenne (64 Mpc/h)
 # Chantier D (18/11/2026) : une troisième boîte, 3,1 fois plus fine que la petite, pour les champs
 # de 10 à 100 millions d'années-lumière (filaments nets, plus de treillis agrandi). Même simulation
 # particle-mesh 512³, mêmes 32 instantanés réguliers en croissance, même post-traitement que la v2.
+# Essai 2 (18/11, 15 h 50) : tranche de 10 Mpc/h (au lieu de 4) : la tranche fine de l'essai 1 ne
+# montrait qu'un filament par champ et une bouillie aux époques jeunes (planche D-essai1-moyenne-hz2.png).
 
 on:
   push:
@@ -31,7 +33,7 @@ jobs:
       - name: Simulation
         run: python sim/pm.py 512 640 64 /tmp/sim 48 27182
       - name: Post-traitement
-        run: python sim/post2.py /tmp/sim sorties-v2/moyenne moyenne 2 500000 4 8 0.7
+        run: python sim/post2.py /tmp/sim sorties-v2/moyenne moyenne 5 600000 4 8 0.7
       - uses: actions/upload-artifact@v4
         with:
           name: sorties-v2-moyenne

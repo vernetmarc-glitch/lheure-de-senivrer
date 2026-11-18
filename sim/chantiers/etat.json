@@ -1,6 +1,6 @@
 {
  "A_voisinage_537941": {
-  "halos": 17190,
+  "halos": 17201,
   "total": 21734,
   "etape": "téléchargement"
  },
@@ -11,12 +11,12 @@
   "etape": "P3 522530 publié en l'état (18/11 14 h) ; à refaire avec 537941 quand A est prêt"
  },
  "D_maillage_fin": {
-  "etape": "D1 calcul en cours sur GitHub ; D2 code de la page écrit (inactif sans données, copie sim/chantiers/lumiere-D2-en-cours.html, source demo/lumiere) ; à tester dès les données",
-  "calcul": "completed success",
-  "run": 44311325171
+  "etape": "essai 1 (tranche 4 Mpc/h) jugé insuffisant (un filament par champ, bouillie aux époques jeunes) ; essai 2 lancé : tranche 10 Mpc/h, 600 000 points ; page D2 prête"
  },
- "passage": "2026-11-18 15:44",
- "journal": [],
+ "passage": "2026-11-18 15:45",
+ "journal": [
+  "sorties de la boîte moyenne récupérées"
+ ],
  "E_treillis_toile": {
   "etape": "constaté, non corrigé (anisotropie du maillage aux époques jeunes) ; voir docs/approches-ecartees.md ; piste : tranche hors axes ou chantier D"
  }

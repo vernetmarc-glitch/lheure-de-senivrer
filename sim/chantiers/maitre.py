@@ -73,7 +73,7 @@ except Exception as e:
     D["calcul"] = "inconnu"
 dos = f"{SIM}/sorties-v2/sorties-v2-moyenne"
 if D.get("calcul", "").startswith("completed success") and not os.path.isdir(dos):
-    sh(f"cd {SIM}/.. && git pull -q --rebase origin fond-de-carte")
+    sh(f"cd {SIM}/.. && git pull -q --rebase --autostash origin fond-de-carte")
 if os.path.isdir(dos) and not os.path.exists("/home/claude/donnees-v2/matiere2-moyenne.json"):
     sh(f"cd {SIM} && python3 recentre_v2.py {dos} /home/claude/donnees-v2-gz /home/claude/donnees-v2")
     for f in os.listdir("/home/claude/donnees-v2"):
