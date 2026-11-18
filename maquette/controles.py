@@ -385,6 +385,27 @@ async def main(url):
              f"acte 1 : fenêtre {vis1}, t {t1:.2f} → {t1b:.1f} Ga ; acte 2 : acte {e2.get('acte')}, fenêtre {vis2}, t {t2a:.2f} → {t2b:.1f} Ga",
              "« une modale pour l'acte 1 et une autre pour l'acte 2 »")
         await pg.evaluate("HDS.recit(\'evenements\')"); await pg.wait_for_timeout(800)
+        # 10 quinquies ter. Horizon, acte 2 (18/11, 12 h 38) : d'abord la lumière partie d'au-delà de l'horizon (elle
+        #    quitte ensuite l'écran), puis celle d'en deçà, puis celle de l'horizon ; à chaque arrêt, seuls les
+        #    photons dont parle le texte restent à l'écran, jusqu'à « Suite »
+        await pg.evaluate("HDS.recit('evenements')"); await pg.wait_for_timeout(1200)
+        await pg.evaluate("document.getElementById('cestParti').click(); HDS.vitesse = 4; HDS.aller(99.9)"); await pg.wait_for_timeout(1500)
+        for _ in range(30):
+            if (await pg.evaluate("HDS.etat"))["acte"] == 2: break
+            await pg.evaluate("(() => { const s = document.getElementById('suite'); if (s.offsetParent) s.click(); })()"); await pg.wait_for_timeout(700)
+        await pg.wait_for_timeout(1500); await pg.evaluate("document.getElementById('cestParti').click()")
+        arrets2 = []
+        for _ in range(240):
+            await pg.wait_for_timeout(250)
+            st = await pg.evaluate("[!!document.getElementById('suite').offsetParent, HDS.etat.fin, (HDS.frontsVisibles || []).join('+'), document.getElementById('phrase').textContent.trim()]")
+            if st[0] or st[1]:
+                await pg.wait_for_timeout(900); st = await pg.evaluate("[!!document.getElementById('suite').offsetParent, HDS.etat.fin, (HDS.frontsVisibles || []).join('+'), document.getElementById('phrase').textContent.trim()]")
+                arrets2.append((st[2], st[3][:50]))
+                if st[1]: break
+                await pg.evaluate("document.getElementById('suite').click()"); await pg.wait_for_timeout(600)
+        await pg.evaluate("HDS.vitesse = 1; HDS.recit('evenements')"); await pg.wait_for_timeout(400)
+        note("Horizon, acte 2 : au-delà, puis en deçà, puis l'horizon, un à la fois", [a for a, _ in arrets2] == ["dehors", "dedans", "horizon"] and "18" in arrets2[0][1],
+             f"arrêts {arrets2}", "« commencer par les photons partis derrière l'horizon ; ne laisser que ceux dont on parle jusqu'à Suite »")
         # 10 sexies bis. P6 (17/11) : formation de la toile cosmique, champ comobile (les structures restent en place)
         await pg.evaluate("HDS.recit('toile')"); await pg.wait_for_timeout(1500)
         t6 = await pg.evaluate("HDS.t"); vis6 = await pg.evaluate("!document.getElementById('intro').hidden")

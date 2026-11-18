@@ -432,7 +432,13 @@ let DPR = 1, Wpx = 0, Hpx = 0, US = 1;   // US : échelle des textes du canevas 
 let t = T0;              // âge affiché (Ga) : aujourd'hui
 let W = 55;             // demi-champ (Gal) : tout l'univers observable
 let scen = null, voirSpheres = true, lecture = false, sale = true;
-let fronts = [];
+let fronts = [], frontsVisibles = [];
+// le faisceau dont parle l'arrêt en cours (horizon, acte 2) ; à la fin, celui de l'horizon
+function focusFront() {
+  if (!scen || scen.cle !== "evenements" || scen.acte !== 2) return null;
+  if (scen.fin) return "horizon";
+  const E = scen.etapes; return scen.attenteSuite && E ? E[Math.min(scen.ie || 0, E.length - 1)].focus || null : null;
+}
 let phase = 0;
 
 function tailleZoom() {
@@ -1539,8 +1545,11 @@ function dessine() {
   if (scen && scen.cle === "evenements" && scen.acte === 1) dessineCibles(cx, cy, ppg, s);
   if (scen && scen.cle === "evenements" && scen.acte === 2) dessineCourant(cx, cy, ppg, s);
 
-  // galaxies associées, puis la lumière
+  // galaxies associées, puis la lumière ; à un arrêt qui parle d'un seul faisceau, les autres s'effacent
+  const foc = focusFront(), montre = f => !foc || f.cle === foc;
+  frontsVisibles = fronts.filter(montre).map(f => f.cle || "");
   fronts.forEach((f, fi) => {
+    if (!montre(f)) return;
     const mk = marqueurs(f, t); if (!mk) return;
     const R = mk.r * ppg; if (R < 3 || R > 3 * Math.max(Wpx, Hpx)) return;
     const [a0, a1] = f.secteur ?? [0, 2 * Math.PI], nd = Math.max(8, Math.round(90 * (a1 - a0) / (2 * Math.PI)));
@@ -1553,13 +1562,14 @@ function dessine() {
   });
   ctx.globalCompositeOperation = "lighter";
   fronts.forEach((f, fi) => {
+    if (!montre(f)) return;
     const p = rayonFront(f, t); if (!p) return;
     dessineCometesScint(cx, cy, f, ppg, p.s, fi);
   });
   ctx.globalCompositeOperation = "source-over";
   // étiquettes des éclairs par secteur
   fronts.forEach(f => {
-    if (!f.secteur || !f.etiquette) return;
+    if (!montre(f) || !f.secteur || !f.etiquette) return;
     const p = rayonFront(f, t), mk = marqueurs(f, t);
     const r = p ? p.r : (mk ? mk.r : 0), th = (f.secteur[0] + f.secteur[1]) / 2;
     const R = r * ppg + 26 * DPR, x = cx + R * Math.cos(th), y = cy + R * Math.sin(th);
@@ -2079,8 +2089,10 @@ const SCEN = {
       { txt: "Il ralentit à l'écran : les galaxies lointaines fuient presque aussi vite qu'il court.", fin() { return t >= 60; } },
       { txt: "Il se fige sur ce cercle : l'horizon des événements, à 16,7 milliards d'années-lumière aujourd'hui. Au-delà, il ne touchera jamais personne.", fin() { return t >= 100; } },
       { txt: "", fin() { return false; } }] : [
-      { txt: "Partie de 15,5 milliards d'années-lumière, en deçà de l'horizon, cette lueur arrivera, patiente.", fin() { return t >= 40; } },
-      { txt: "Partie de 18, au-delà de l'horizon, elle recule pour toujours : ce qui s'y passe ce soir nous restera caché.", fin() { return t >= 70; } },
+      // (12 h 38) d'abord la lumière d'au-delà de l'horizon, avant qu'elle ne quitte l'écran ; à chaque arrêt,
+      // seuls les photons dont parle le texte restent visibles (focus), jusqu'à « Suite »
+      { txt: "Partie de 18 milliards d'années-lumière, au-delà de l'horizon, elle recule pour toujours : ce qui s'y passe ce soir nous restera caché.", focus: "dehors", fin() { return t >= 22; } },
+      { txt: "Partie de 15,5, en deçà de l'horizon, cette lueur arrivera, patiente.", focus: "dedans", fin() { return t >= 45; } },
       { txt: "", fin() { return t >= 100; } }]; },
     texteFin: "Partie de l'horizon, elle demeure, blanche, à 17,5 milliards d'années-lumière : une nageuse face à un courant de sa propre vitesse.",
     init() {
@@ -2098,9 +2110,9 @@ const SCEN = {
         for (const g of cibles) if (g.allume < 0 && g.chi <= chi) g.allume = performance.now();
         if (t >= 100) { this.pauseActe += dts; if (this.pauseActe > 0.3) { this.acte = 2; this.el2 = 0; t = T0; zoomVers(24, 1200); elT.value = uFromT(t);
           this.pause = true; this.attente = true; this.intro = "introHorizon2"; this.ie = 0; montreIntro(); bouton("lecture");
-          fronts = [{ sens: "in", te: T0, chi0: 15.5, secteur: [-2.44, -0.70], etiquette: "partie de 15,5 Gal" },
-                    { sens: "in", te: T0, chi0: ETA_INF - ETA0, secteur: [-0.17, 1.57], etiquette: "partie de l'horizon" },
-                    { sens: "in", te: T0, chi0: 18, secteur: [1.92, 3.66], etiquette: "partie de 18 Gal" }]; } }
+          fronts = [{ cle: "dedans", sens: "in", te: T0, chi0: 15.5, secteur: [-2.44, -0.70], etiquette: "partie de 15,5 Gal" },
+                    { cle: "horizon", sens: "in", te: T0, chi0: ETA_INF - ETA0, secteur: [-0.17, 1.57], etiquette: "partie de l'horizon" },
+                    { cle: "dehors", sens: "in", te: T0, chi0: 18, secteur: [1.92, 3.66], etiquette: "partie de 18 Gal" }]; } }
         return false;
       }
       this.el2 += dts; if (this.el2 < 1) return false;
@@ -2379,6 +2391,7 @@ window.HDS = { set grille(v) { sansGrille = !v; sale = true; },
     if (E && !scen.attente) { while (scen.ie < E.length - 1 && E[scen.ie].fin.call(scen)) scen.ie++; if (scen.attenteSuite) { scen.attenteSuite = false; scen.pause = false; } }
   }, get t() { return t; }, get W() { return W; },
   get photons() { return fronts.map(f => { const p = rayonFront(f, t); if (!p) return null; const v = vitesseFront(f, p); return { r: p.r, v, rgb: rgbVitesse(v) }; }); },
+  get frontsVisibles() { return frontsVisibles; },
   get chargements() { return { ...CH }; },
   get etat() { return { scen: scen ? scen.cle : null, fronts: fronts.length, acte: scen ? scen.acte || 0 : 0, attente: !!(scen && scen.attente), fin: !!(scen && scen.fin) }; },
   get textes() { if (!scen) return []; const tp = scen.intro && document.getElementById(scen.intro); return [tp ? tp.content.textContent.replace(/\s+/g, " ").trim() : "", ...(scen.etapes || []).map(e => e.txt), scen.texteFin || ""]; },
