@@ -55,3 +55,9 @@ L'agent est réveillé toutes les 30 minutes environ. À chaque réveil :
   boîte quand sa boîte devient petite à l'écran ; mêmes copies, même ton.
 - D3 : contrôles : le treillis (spectre axes/hors axes < 2,5 à 20–30 Mal, 1–2,5 Ga), netteté,
   vides noirs, fluidité ; planche avant/après.
+
+## Directive du 18/11, 23 h 29 (Marc)
+Avancer en autonomie sans demander de confirmation : ne jamais lui demander de choisir, de valider ou de modifier un artefact
+quand il n'a pas de valeur ajoutée. Trancher soi-même (meilleur choix esthétique et réaliste), publier après la batterie,
+et lui dire seulement ce qui est fait.
+Icône choisie par Marc (23 h 29) : la coupe remplie de toile cosmique (identite/propositions-3/B-coupe.png).
