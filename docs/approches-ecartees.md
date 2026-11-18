@@ -335,3 +335,24 @@ comparant au `psi_lo` du cache. *Une décomposition dont un terme dépend de la
 fidélité du reconstructeur ne prouve rien sur le générateur.* Il faut instrumenter
 `bake_layer` de l'intérieur, en enregistrant le Ψ réellement appliqué, plutôt que
 de le reconstituer de l'extérieur.
+
+---
+
+## La grande boîte en points (chantier B, 18/11/2026) — écartée
+
+**Idée.** Remplacer les tuiles de la grande boîte (1 500 Mpc/h) par ses 400 000 points suivis
+(sorties v2, 32 époques), comme pour la toile, pour avoir le mouvement et plus aucun fondu
+d'images entre 1,5 et 40 milliards d'années-lumière.
+
+**Mesure.** Planche `sim/chantiers/B-essai-grande-boite-points.png` (en haut : tuiles ; en bas :
+points), à 2, 6, 15 et 30 Gal aujourd'hui et 15 Gal à 5 Ga. Sans rehaussement, les points donnent
+un brouillard bleu uniforme ; avec un contraste ×4, un bruit marbré sans vides francs, saturé aux
+époques jeunes. 400 000 points sur 1,5 Gpc ne portent pas le contraste des vides à ces échelles :
+le bruit de tirage domine. Les tuiles, elles, viennent de la densité des 134 millions de
+particules de la simulation, avec le rehaussement validé (grain, vides noirs).
+
+**Décision.** On garde les tuiles de la grande boîte. Le code de l'essai est retiré ; le
+contrôle qui l'accompagnait aussi.
+
+**Ce qui la rouvrirait.** Une sortie de la grande boîte avec bien plus de points dans la
+tranche (≥ 4 millions), ou un champ de densité par époque plutôt que des points.
