@@ -2024,7 +2024,15 @@ const SCEN = {
     // observable entier, où les trois frontières s'allument l'une après l'autre
     WRECUL: 0.0001,       // champ de toute la remontée du temps : la galaxie d'aujourd'hui occupe l'écran,
                           // puis rapetisse sous nos yeux, sans qu'on rezoome (18/11, 9 h 33)
-    VREMONTE: 0.33,       // Ga par seconde, constante : 38 s de 13,8 à 1,8 milliard d'années, comme avant
+    // (18/11, 18 h 49) remontée deux fois plus courte (≈ 19 s) : elle accélère, freine un instant quand la
+    // galaxie naine est avalée (arbre SubLink de 537941 : 8·10⁸ masses solaires d'étoiles, 1:21, fondue à 5,6 Ga),
+    // réaccélère, puis freine en arrivant sur la galaxie primitive
+    VREMONTE: 0.95,       // Ga par seconde, en croisière
+    TNAINE: 5.2, LNAINE: 0.4, FREIN: 0.8,   // la naine arrive par le bas à gauche (4,8–5,1 Ga), s'étire et se fond (5,3–5,6)
+    vRemontee(tc, e) {
+      return this.VREMONTE * lisse(19.5, 21.5, e) * (1 - this.FREIN * Math.exp(-(((tc - this.TNAINE) / this.LNAINE) ** 2)))
+        * Math.max(0.18, lisse(this.TFIN, this.TFIN + 1.0, tc));   // freinage final bref : pas d'attente sur « elle naissait »
+    },
     WFIN: 52, ALLUME: { p: 16.6, h: 19.6, e: 22.6 }, INVITE: 25.6, FIN: 30.1,
     TFIN: 1.8,            // la remontée s'arrête il y a 12 milliards d'années : avant, il n'y a presque rien à voir
     alaFin() { libre(); mainAuVisiteur(); },
@@ -2045,8 +2053,8 @@ const SCEN = {
       else if (e < 18.5) W = lW(0.00006, this.WRECUL, lis(14.5, 18.5));  // …et, d'un même mouvement, un léger recul
       else W = this.WRECUL;                                                // en remontant : champ fixe
       if (e >= 19.5) {
-        // le zoom est arrêté : on remonte le temps à vitesse constante (18/11), départ et arrivée adoucis
-        t = Math.max(this.TFIN, t - dts * this.VREMONTE * lisse(19.5, 21, e) * Math.max(0.25, lisse(this.TFIN, this.TFIN + 0.15, t)));
+        // le zoom est arrêté : on remonte le temps, vite, sauf à l'avalement de la naine et à l'arrivée
+        t = Math.max(this.TFIN, t - dts * this.vRemontee(t, e));
       }
       if (W !== this.Wv) { elZ.value = uFromW(W); this.Wv = W; }
       if (e > 19.5 && t <= this.TFIN + 0.005) { this.retour = 0; this.Wdebut = W; }   // retour, puis grand recul
@@ -2073,6 +2081,7 @@ const SCEN = {
       if (e < 19.5) return "Nous sommes ici, à 27 000 années-lumière du centre.";
       if (t > 12.6) return "Remontons le temps.";
       if (t > 7.2) return "Le disque se défait, les bras s'effacent.";
+      if (t > 4.6) return "Ici, elle avale une galaxie naine.";
       if (t > 3) return "Elle a dévoré ses voisines.";
       return "Il y a douze milliards d'années, elle naissait.";
     },
