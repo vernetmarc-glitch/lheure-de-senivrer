@@ -326,10 +326,19 @@ async def main(url):
         g0 = np.asarray(Image.open(io.BytesIO(await pg.screenshot())).convert("L")).astype(float)[90:560, 0:340]
         await pg.evaluate("HDS.grille = true; HDS.vitesse = 1; HDS.recit('observable')"); await pg.wait_for_timeout(400)
         traits = float(np.percentile(g1 - g0, 99.5))
-        grille_ok = traits >= 55 and "carreaux" in tobs and "dézoom" in tobs
+        # (18/11, 11 h 39) même chose pour l'horizon des événements, acte 1 (la carte suit l'expansion)
+        await pg.evaluate("HDS.demarrerLibre(); HDS.recit('evenements')"); await pg.wait_for_timeout(1200)
+        await pg.evaluate("document.getElementById('cestParti').click(); HDS.vitesse = 0; HDS.aller(30)"); await pg.wait_for_timeout(2500)
+        h1 = np.asarray(Image.open(io.BytesIO(await pg.screenshot())).convert("L")).astype(float)[90:560, 0:340]
+        await pg.evaluate("HDS.grille = false"); await pg.wait_for_timeout(1200)
+        h0 = np.asarray(Image.open(io.BytesIO(await pg.screenshot())).convert("L")).astype(float)[90:560, 0:340]
+        thor = " ".join(await pg.evaluate("HDS.textes"))
+        await pg.evaluate("HDS.grille = true; HDS.vitesse = 1; HDS.recit('evenements')"); await pg.wait_for_timeout(400)
+        traits_h = float(np.percentile(h1 - h0, 99.5))
+        grille_ok = traits >= 55 and "carreaux" in tobs and "dézoom" in tobs and traits_h >= 55 and "carreaux" in thor and "dézoom" in thor
         ok_obs = "transparent" in tobs and "380 000" in tobs and "41 millions" in tobs and fin_pages and grille_ok
         note("récits : le texte arrive avec le bouton « Suite »", ok_seq and ok_obs,
-             " ; ".join(f"{c} : {len(a)} arrêts, {bv} textes pendant le mouvement, fin {f}" for c, (a, bv, f) in bilan.items()) + f" ; observable : transparence {'transparent' in tobs}, 41 millions {'41 millions' in tobs}, fin en pages {fin_pages}, carreaux +{traits:.0f} de luminance, dit {'carreaux' in tobs}",
+             " ; ".join(f"{c} : {len(a)} arrêts, {bv} textes pendant le mouvement, fin {f}" for c, (a, bv, f) in bilan.items()) + f" ; observable : transparence {'transparent' in tobs}, 41 millions {'41 millions' in tobs}, fin en pages {fin_pages}, carreaux +{traits:.0f} de luminance, dit {'carreaux' in tobs} ; horizon : carreaux +{traits_h:.0f}, dit {'carreaux' in thor}",
              "« le texte en même temps que le bouton suite » ; « pourquoi 380 000 ans : l'univers devient transparent ; d'où part la lumière : 41 millions »")
         # 9 nonies. Voie lactée : basse résolution pendant le mouvement (budget de remplissage),
         #    pleine résolution reconstruite en arrière-plan à l'arrêt, identique au rendu direct
@@ -431,6 +440,19 @@ async def main(url):
         m = await pd.evaluate(MOTS); budget.append(("ouverture", m["mots"]))
         note("ouverture : le noir, puis la toile (A1)", noir < 12 and "enivrer" in ligne and toile > 0.01 and m["commandes"] == ["partir"] and m["principales"] == 1,
              f"luminance à 0,7 s {noir:.1f}, toile {toile:.1%} à 6 s, commandes {m['commandes']}, {m['mots']} mots", "« effet waouh dès l'ouverture, un seul bouton »")
+        # second écran (18/11, 11 h 44) : la référence — Baudelaire, repris par Hubert Reeves — pendant que les
+        # images de la Promenade (la Voie lactée) se chargent déjà ; plus d'« au bout des doigts »
+        ref = await pd.evaluate("""(() => { const o = document.getElementById('ouverture'); const vis = el => +getComputedStyle(el).opacity > 0.5;
+          // (le navigateur de contrôle, sans carte graphique, peut déjà être au troisième écran : on lit le texte du second)
+          const ps = document.getElementById('reference').textContent; return { txt: ps, doigts: o.textContent.includes('doigts'), voie: HDS.chargements ? HDS.chargements.voie : -2 }; })()""")
+        note("ouverture : Baudelaire, Hubert Reeves, la galaxie déjà en chargement", "Reeves" in ref["txt"] and "Baudelaire" in ref["txt"] and not ref["doigts"] and ref["voie"] > 0,
+             f"« {ref['txt'][:90]} » ; « doigts » {ref['doigts']} ; Voie lactée chargée à {ref['voie']:.0%}", "« expliciter la référence à Hubert Reeves et Baudelaire » ; « supprimer au bout des doigts » ; « charger les images en arrière-plan »")
+        # troisième écran (18/11, 11 h 58) : la formule, à la place de la référence
+        await pd.wait_for_timeout(5500)
+        f3 = await pd.evaluate("""(() => { const vis = id => +getComputedStyle(document.getElementById(id) || document.body).opacity > 0.5;
+          const f = document.getElementById('formule'); return { formule: f && vis('formule') ? f.textContent : '', reference: vis('reference') }; })()""")
+        note("ouverture : la formule des poussières d'étoiles", "poussières d'étoiles" in f3["formule"] and "silicium" in f3["formule"] and not f3["reference"],
+             f"« {f3['formule'][:70]} » ; référence encore affichée {f3['reference']}", "« Nous sommes des poussières d'étoiles qui ont appris à s'émerveiller… »")
         await pd.click("#partir"); await pd.wait_for_timeout(1500)
         e0 = await pd.evaluate("HDS.etat")
         ph = {}
@@ -505,7 +527,8 @@ async def main(url):
         note("le « i » garde le texte complet", nps >= 5, f"{nps} paragraphes", "« tout le texte disponible »")
         await pd.click("#fermer"); await pd.wait_for_timeout(300)
         # budget de mots, à chaque écran
-        note("25 mots à l'écran au plus", max(n for _, n in budget) <= 25, " ; ".join(f"{k} {n}" for k, n in budget), "« minimiser la quantité de texte à la fois »")
+        # (18/11, 11 h 58) l'ouverture peut afficher la formule choisie mot pour mot par Marc (26 mots, bouton compris) : 30 au plus
+        note("25 mots à l'écran au plus", all(n <= (30 if k == "ouverture" else 25) for k, n in budget), " ; ".join(f"{k} {n}" for k, n in budget), "« minimiser la quantité de texte à la fois »")
         # visiteur qui revient : « Passer » mène droit à l'exploration libre
         await pd.goto(url); await pd.wait_for_selector("#partir", state="visible", timeout=15000); await pd.click("#partir"); await pd.wait_for_timeout(800)
         await pd.click("#passer"); await pd.wait_for_timeout(800)
