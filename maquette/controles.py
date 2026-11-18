@@ -214,14 +214,23 @@ async def main(url):
             await pg.evaluate(f"HDS.aller({t0})"); await pg.wait_for_timeout(400)
             a, ea = await pg.evaluate("[HDS.t, HDS.el]"); await pg.wait_for_timeout(2500); b, eb = await pg.evaluate("[HDS.t, HDS.el]")
             return (a - b) / max(eb - ea, 1e-6)                 # Ga par seconde de scénario (indépendant de la machine)
+        # (18/11, 9 h 33, remplace « accélérer jusqu'à 7 Ga, ralentir aux collisions ») : pendant la remontée,
+        # un seul champ où la galaxie occupe l'écran, qu'on voit rapetisser sans rezoomer ; vitesse constante,
+        # durée totale gardée (37,6 s de récit de 13,8 à 1,8 Ga)
+        await pg.evaluate("HDS.aller(13.4)"); await pg.wait_for_timeout(2500)
+        gimg = np.asarray(Image.open(io.BytesIO(await pg.screenshot())).convert("L")).astype(float)[90:600, 0:340]
+        cols = np.where((gimg > 45).sum(0) > 2)[0]; largeur = (cols.max() - cols.min()) / 340 if len(cols) else 0
+        Wa = await pg.evaluate("HDS.W")
         v_vite, v_collision = await vitesse(11.0), await vitesse(6.0)
-        Wrecul = await pg.evaluate("HDS.W")
+        Wb = await pg.evaluate("HDS.W"); v_fin = await vitesse(3.2); Wc_ = await pg.evaluate("HDS.W")
+        Wrecul = Wa; fixe = max(Wa, Wb, Wc_) / min(Wa, Wb, Wc_)
         await pg.evaluate("HDS.aller(1.25)"); fin = 99
         for _ in range(10):
             await pg.wait_for_timeout(250); fin = min(fin, await pg.evaluate("HDS.t"))
-        note("Promenade : plongée, puis on remonte le temps", W14 <= 7e-5 and v_collision > 0 and v_vite >= 2.5 * v_collision and fin <= 1.81 and 1.3e-4 <= Wrecul <= 2.0e-4,
-             f"champ {W14:.1e} Gal ; recul ×{v_vite / max(v_collision, 1e-9):.1f} plus vite avant les collisions ; champ en remontant {Wrecul:.1e} ; arrêt à {fin:.2f} Ga",
-             "« se délite petit à petit » ; « accélérer jusqu'à 7 Ga, ralentir aux collisions » ; « dézoomer un peu moins, galaxie plus grosse » (17/11 : remplace « voir les environs », champ ≥ 2,5e-4)")
+        vs = (v_vite, v_collision, v_fin); duree = (13.787 - 1.8) / (sum(vs) / 3)
+        note("Promenade : plongée, puis on remonte le temps", W14 <= 7e-5 and min(vs) > 0 and max(vs) / min(vs) <= 1.25 and fin <= 1.81 and fixe <= 1.02 and largeur >= 0.7 and 32 <= duree <= 43,
+             f"champ {W14:.1e} Gal ; vitesses {[round(v, 2) for v in vs]} Ga/s, durée ≈ {duree:.0f} s ; champ en remontant {Wrecul:.1e} (écart ×{fixe:.3f}) ; galaxie sur {largeur:.0%} de la largeur ; arrêt à {fin:.2f} Ga",
+             "« se délite petit à petit » ; 18/11 : « la galaxie prend beaucoup d'espace, puis rapetisse sans que l'on zoome ; vitesse moyenne la même tout le long, même durée totale »")
         note("Promenade : départ à l'échelle de la toile cosmique", W0 >= 1.0, f"champ de départ {W0:.2f} Gal", "« commencer à la toile cosmique, pas aux superamas »")
         note("curseurs qui bougent : pulsation", z_pulse and t_pulse, f"zoom {z_pulse}, temps {t_pulse}", "« repérer ceux qui bougent »")
         # fin de la Promenade : retour fluide à aujourd'hui, au champ Millennium, scénario désactivé
@@ -496,6 +505,18 @@ async def main(url):
         # « Récits » action principale une fois la présentation finie, des cibles au doigt, un panneau sans sous-titres
         mot = await pd.evaluate("document.getElementById('partir').textContent.trim()")
         note("bouton d'ouverture : « Découvrir »", mot == "Découvrir", f"« {mot} »", "« le bouton partir n'est pas clair »")
+        # identité visuelle (18/11, 9 h 48) : l'icône des trois horizons en favicon, dans la barre de titre,
+        # à l'ouverture et dans « à propos » ; trois anneaux jamais sous 24 px (icône ≥ 32 px)
+        idv = await pd.evaluate("""(async () => { const ic = [...document.querySelectorAll('link[rel~=icon]')].map(l => l.href);
+          const svg = ic.find(h => h.startsWith('data:image/svg+xml')); let desc = '';
+          if (svg) desc = decodeURIComponent(escape(atob(svg.split(',')[1])));
+          const tl = document.querySelector('#titre img.logo'), ov = document.querySelector('#ouverture img.logo');
+          document.getElementById('apropos').click(); await new Promise(r => setTimeout(r, 300));
+          const md = document.querySelector('#modale img.logo'), mh = md ? md.getBoundingClientRect().height : 0; document.getElementById('fermer').click();
+          return { favicon: desc.includes('Trois horizons'), titre: tl ? [tl.complete && tl.naturalWidth > 0, tl.getBoundingClientRect().height] : null,
+                   ouverture: !!(ov && ov.getAttribute('src') === (tl && tl.getAttribute('src'))), modale: mh }; })()""")
+        note("identité visuelle : l'icône des trois horizons", idv["favicon"] and idv["titre"] and idv["titre"][0] and idv["titre"][1] >= 32 and idv["ouverture"] and idv["modale"] >= 48,
+             f"favicon {idv['favicon']}, barre de titre {idv['titre']}, ouverture {idv['ouverture']}, à propos {idv['modale']:.0f} px", "« utilise ces visuels pour l'application »")
         TAILLES = """(() => { const vis = el => { for (let a = el; a; a = a.parentElement) { const st = getComputedStyle(a); if (a.hidden || st.display === 'none' || st.visibility === 'hidden' || +st.opacity < 0.3) return false; } const r = el.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < innerHeight; };
           return [...document.querySelectorAll('button')].filter(vis).map(b => { const r = b.getBoundingClientRect(); return [b.id || b.dataset.scen || b.textContent.trim().slice(0, 10), Math.round(r.width), Math.round(r.height)]; }); })()"""
         rc = await pd.evaluate("""(() => { const b = document.getElementById('recits'), r = b.getBoundingClientRect(), br = document.getElementById('barreRecits').getBoundingClientRect(), st = getComputedStyle(b);
