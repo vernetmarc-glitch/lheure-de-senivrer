@@ -266,10 +266,43 @@ async def main(url):
         for _ in range(8):                                   # les étapes attendent « Suite »
             await pg.wait_for_timeout(1200); await pg.evaluate("HDS.suite()")
         await pg.wait_for_timeout(3000)
-        fin_vis = await pg.evaluate("!document.getElementById('finObs').hidden")
-        intro_txt = await pg.evaluate("document.getElementById('intro').textContent")
-        note("Observable : tapis roulant annoncé, 46 Gal à la fin", fin_vis and "tapis roulant" in intro_txt, f"fourmis {'tapis roulant' in intro_txt}, fenêtre de fin {fin_vis}", "« fourmis sur un tapis roulant » ; « 46 milliards à la fin »")
+        fin_txt = await pg.evaluate("document.getElementById('phrase').textContent + ' ' + (document.getElementById('finObs').hidden ? '' : document.getElementById('finObs').textContent)")
+        textes = " ".join(await pg.evaluate("HDS.textes"))
+        note("Observable : tapis roulant annoncé, 46 Gal à la fin", "46" in fin_txt and "tapis roulant" in textes, f"fourmis {'tapis roulant' in textes}, fin « {fin_txt.strip()[:90]} »", "« fourmis sur un tapis roulant » ; « 46 milliards à la fin »")
         await pg.evaluate("HDS.recit(\'observable\')"); await pg.wait_for_timeout(300)
+        # 9 octies bis. le texte arrive avec le bouton (18/11, 6 h 12) : pendant que l'animation court, pas de
+        #    texte ; à chaque arrêt, une explication nouvelle et « Suite » ensemble ; univers observable :
+        #    la transparence à 380 000 ans, le départ à 41 millions d'années-lumière
+        SEQ = """(cle) => new Promise(res => { HDS.vitesse = 6; HDS.recit(cle); const obs = []; const t0 = performance.now(); let vu = -1, lu = -1;
+          let va = -1;
+          const iv = setInterval(() => { const s = document.getElementById('suite'), p = document.getElementById('phrase'), e = HDS.etat, now = performance.now() - t0;
+            const sv = !!s.offsetParent, txt = +getComputedStyle(p).opacity > 0.5 && getComputedStyle(p).display !== 'none' ? p.textContent.trim() : '';
+            obs.push([now, sv, txt, e.attente, e.fin]);
+            if (e.attente && va < 0) va = now; if (!e.attente) va = -1;
+            if (e.attente && now - va > 1500) { document.getElementById('cestParti').click(); va = -1; }
+            if (sv && vu < 0) { vu = now; lu = -1; } if (!sv) vu = -1; if (sv && txt && lu < 0) lu = now;
+            if (sv && ((lu >= 0 && now - lu > 1200) || now - vu > 8000)) { s.click(); vu = -1; }
+            if (e.fin && obs.filter(o => o[4]).length > 12 || now > 150000) { clearInterval(iv); HDS.vitesse = 1; res(obs); } }, 200); })"""
+        bilan = {}
+        for cle in ("observable", "hubble", "evenements", "toile"):
+            obs = await pg.evaluate(f"({SEQ})('{cle}')")
+            # (navigateur sans carte graphique : une image par seconde environ ; le fondu de la légende
+            #  dure 0,9 s et ne part qu'à l'image suivante : on tolère 4 s de traîne après chaque arrêt)
+            arrets, bavard, dern_arret, cour = [], 0, -1e9, None
+            for k, (tm, sv, txt, att, fin) in enumerate(obs):
+                if sv: cour = (cour or "") or txt; dern_arret = tm
+                if not sv and cour is not None: arrets.append(cour); cour = None
+                if not sv and not att and not fin and tm - dern_arret > 4000 and txt: bavard += 1
+            if cour is not None: arrets.append(cour)
+            bilan[cle] = (arrets, bavard, obs[-1][4])
+            await pg.evaluate(f"HDS.recit('{cle}')"); await pg.wait_for_timeout(400)
+        ok_seq = all(len(a) >= 2 and all(a) and len(set(a)) == len(a) and bv == 0 and f for a, bv, f in bilan.values())
+        tobs = " ".join(bilan["observable"][0]) + " " + " ".join(await pg.evaluate("(HDS.recit('observable'), HDS.textes)"))
+        await pg.evaluate("HDS.recit('observable')")
+        ok_obs = "transparent" in tobs and "380 000" in tobs and "41 millions" in tobs
+        note("récits : le texte arrive avec le bouton « Suite »", ok_seq and ok_obs,
+             " ; ".join(f"{c} : {len(a)} arrêts, {bv} textes pendant le mouvement, fin {f}" for c, (a, bv, f) in bilan.items()) + f" ; observable : transparence {'transparent' in tobs}, 41 millions {'41 millions' in tobs}",
+             "« le texte en même temps que le bouton suite » ; « pourquoi 380 000 ans : l'univers devient transparent ; d'où part la lumière : 41 millions »")
         # 9 nonies. Voie lactée : basse résolution pendant le mouvement (budget de remplissage),
         #    pleine résolution reconstruite en arrière-plan à l'arrêt, identique au rendu direct
         await vue(0.0003, 13.787, 300)
@@ -303,7 +336,8 @@ async def main(url):
         vis1 = await pg.evaluate("!document.getElementById('intro').hidden")
         txt1 = await pg.evaluate("document.getElementById('intro').textContent"); t1 = await pg.evaluate("HDS.t")
         await pg.evaluate("document.getElementById('cestParti').click()"); await pg.wait_for_timeout(5000); t1b = await pg.evaluate("HDS.t")
-        await pg.evaluate("HDS.aller(99.9)"); await pg.wait_for_timeout(7000)
+        await pg.evaluate("HDS.aller(99.9)"); await pg.wait_for_timeout(5000)
+        await pg.evaluate("(() => { const s = document.getElementById('suite'); if (s.offsetParent) s.click(); })()"); await pg.wait_for_timeout(3000)
         e2 = await pg.evaluate("HDS.etat"); vis2 = await pg.evaluate("!document.getElementById('intro').hidden")
         txt2 = await pg.evaluate("document.getElementById('intro').textContent"); t2 = await pg.evaluate("HDS.t")
         await pg.wait_for_timeout(2000); t2a = await pg.evaluate("HDS.t")
@@ -497,7 +531,7 @@ async def main(url):
           const vis = el => { for (let a = el; a; a = a.parentElement) { const st = getComputedStyle(a); if (a.hidden || st.display === 'none' || st.visibility === 'hidden' || +st.opacity < 0.3) return false; } return el.getBoundingClientRect().height > 0; };
           return { intro: vis(i), txt: i.textContent.replace(/\\s+/g, ' ').trim(), haut: i.getBoundingClientRect().top / H, phrase: vis(p) && p.textContent.trim() ? p.getBoundingClientRect().top / H : null }; })()"""
         annonces, budgetR = [], []
-        for cle, mot in (("observable", "passé"), ("hubble", "présent"), ("evenements", "futur"), ("promenade", "galaxie"), ("toile", "filaments")):
+        for cle, mot in (("observable", "transparent"), ("hubble", "vitesse de la lumière"), ("evenements", "message"), ("promenade", "galaxie"), ("toile", "filaments")):
             await pd.evaluate("HDS.demarrerLibre()"); await pd.wait_for_timeout(300)
             await pd.click("#recits"); await pd.wait_for_timeout(400)
             await pd.click(f"#panneauRecits button[data-scen={cle}]"); await pd.wait_for_timeout(1200)

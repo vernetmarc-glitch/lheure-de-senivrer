@@ -168,7 +168,7 @@ body[data-mode=recit] #titre { display: none; }
 <div id="ouverture" aria-live="polite">
   <div class="noir"></div>
   <p id="vers">Il est l'heure de s'enivrer.</p>
-  <div id="invite"><p>Une carte de l'univers, d'un seul geste.</p><button id="partir" class="principal">Découvrir</button></div>
+  <div id="invite"><p>Tout l'univers, au bout des doigts.</p><button id="partir" class="principal">Découvrir</button></div>
 </div>
 <button id="passer">Passer</button>
 <div id="indice" role="status"></div>
@@ -184,27 +184,27 @@ body[data-mode=recit] #titre { display: none; }
 </div>
 <template id="introObservable">
   <p class="titreIntro">Univers observable</p>
-  <p>Le passé : jusqu'où la lumière a pu venir. L'espace l'emporte, tel un tapis roulant.</p>
+  <p>380 000 ans après le Big Bang, l'univers devient transparent. Une première lueur s'élance : suivons-la jusqu'à nos yeux.</p>
 </template>
 <template id="introHubble">
   <p class="titreIntro">Sphère de Hubble</p>
-  <p>Le présent : là où l'espace fuit à la vitesse de la lumière. Une photographie de l'instant.</p>
+  <p>Figeons l'instant, comme une photographie : où l'espace nous fuit-il à la vitesse de la lumière ?</p>
 </template>
 <template id="introHorizon1">
   <p class="titreIntro">Horizon des événements · acte 1 sur 2</p>
-  <p>Le futur : quelles galaxies notre message lumineux atteindra-t-il un jour ?</p>
+  <p>Ce soir, nous lançons un message de lumière : quelles galaxies atteindra-t-il ?</p>
 </template>
 <template id="introHorizon2">
   <p class="titreIntro">Horizon des événements · acte 2 sur 2</p>
-  <p>Dans l'autre sens : la lumière qui part aujourd'hui de loin nous parviendra-t-elle ?</p>
+  <p>Dans l'autre sens : une lueur part ce soir de loin. Nous parviendra-t-elle ?</p>
 </template>
 <template id="introPromenade">
   <p class="titreIntro">Formation de la Voie lactée</p>
-  <p>De la toile cosmique jusqu'à notre galaxie, puis on remonte le temps jusqu'à sa naissance.</p>
+  <p>Plongée dans la toile cosmique jusqu'à notre galaxie, puis le temps remonte jusqu'à son premier souffle.</p>
 </template>
 <template id="introToile">
   <p class="titreIntro">Formation de la toile cosmique</p>
-  <p>De presque rien aux filaments et aux amas : la carte grandit avec l'univers.</p>
+  <p>Au commencement, une matière presque lisse. La gravité, lentement, la tisse en filaments et en amas.</p>
 </template>
 <div id="bas">
   <div id="intro" hidden>
@@ -1823,7 +1823,8 @@ function texteRecit() {
   if (scen.attente) return "";
   const E = scen.etapes;
   if (scen.fin && scen.texteFin) return scen.texteFin;
-  if (E) return E[Math.min(scen.ie || 0, E.length - 1)].txt;
+  // (18/11, 6 h 12) le texte d'une étape décrit l'arrêt qui la termine : il arrive avec « Suite »
+  if (E) return scen.attenteSuite ? E[Math.min(scen.ie || 0, E.length - 1)].txt : "";
   return scen.legende();
 }
 // légende d'un récit ou de la Promenade : une ligne, en fondu quand elle change
@@ -1851,7 +1852,7 @@ function phrase() {
     }
     else txt = "L'éclair ne rattrapera jamais les galaxies en pointillé, même en un temps infini.";
     if (p) txt += ` (à ${fmt(p.r)} de nous, étirée ×${p.s.toFixed(1).replace(".", ",")})`;
-  } else txt = "Explorez : l'espace à droite, le temps en bas.";
+  } else txt = "Voyagez : l'espace à droite, le temps en bas.";
   montrePhrase(txt);
 }
 // lecture du temps : l'âge de l'univers, et l'écart avec aujourd'hui en mots
@@ -1901,17 +1902,31 @@ const SCEN = {
   observable: {
     W: 52, cercles: [], cerclesFin: ["p"],
     intro: "introObservable",
-    init() { t = TREC; fronts = [{ sens: "in", te: TREC, etiquette: "la matière qui a émis cette lumière" }]; this.cadre(); this.pause = true; this.attente = true; },
-    alaFin() { setTimeout(() => { if (scen && scen.cle === "observable" && scen.fin) document.getElementById("finObs").hidden = false; }, 1200); },
-    // une phrase par étape ; à la fin d'une étape, le récit attend « Suite »
+    init() {
+      t = TREC; fronts = [{ sens: "in", te: TREC, etiquette: "la matière qui a émis cette lumière" }]; this.cadre(); this.pause = true; this.attente = true;
+      // instant où la lumière franchit la sphère de Hubble (arrêt « demi-tour »)
+      let lo = 0.01, hi = 13; const g = tt => { const p = rayonFront(fronts[0], tt); return p ? p.r - DH / E(at(tt).a) : -1; };
+      for (let k = 0; k < 40; k++) { const m = Math.sqrt(lo * hi); if (g(m) > 0) lo = m; else hi = m; }
+      this.etapes[2].t1 = hi;
+    },
+    // des arrêts : l'animation court sans texte, puis s'arrête sur l'explication et « Suite » (18/11, 6 h 12)
+    // chaque étape court d'un arrêt à l'autre en une durée fixe (s), le temps défilant
+    // régulièrement en logarithme : pas de longue course au début, pas de fin précipitée
     etapes: [
-      { txt: "380 000 ans après le Big Bang : cette lumière part vers nous.", fin() { return t >= 0.002; } },
-      { txt: "L'expansion l'emporte : la lumière s'éloigne de nous, sa source bien plus vite.", fin() { return t >= 3.6; } },
-      { txt: "Demi-tour : la lumière cesse de reculer.", fin() { return t >= 4.6; } },
-      { txt: "Elle revient vers nous ; sa source continue de s'éloigner.", fin() { return t >= T0; } }],
-    texteFin: "Elle nous atteint aujourd'hui : c'est le fond diffus cosmologique.",
+      { txt: "Elle part de matière à 41 millions d'années-lumière. Un souffle, au regard du voyage qui l'attend.", t1: 0.0008, duree: 1.5, fin() { return t >= this.etapes[0].t1 * 0.9999; } },
+      { txt: "Et pourtant elle s'éloigne, rougie : l'espace l'emporte plus vite qu'elle ne court, tapis roulant à contre-courant.", t1: 0.6, duree: 4.5, fin() { return t >= this.etapes[1].t1 * 0.9999; } },
+      { txt: "Blanche, elle atteint la sphère de Hubble, où l'espace fuit exactement à sa vitesse. Un instant, elle fait du surplace.", t1: null, duree: 4, fin() { return t >= this.etapes[2].t1 * 0.9999; } },
+      { txt: "Enfin elle gagne du terrain et bleuit. Sa source, elle, continue de s'enfuir dans la nuit.", t1: 9, duree: 3, fin() { return t >= this.etapes[3].t1 * 0.9999; } },
+      { txt: "", t1: T0, duree: 2.5, fin() { return t >= T0; } }],
+    get cerclesVus() { return this.fin ? ["p"] : (this.ie >= 2 && !this.attente ? ["h"] : []); },
+    texteFin: "Ce soir, elle touche nos antennes : le fond diffus cosmologique. Sa source est à 45 milliards d'années-lumière ; notre univers observable, à 46.",
     cadre() { const mk = marqueurs(fronts[0], t); const Wc = Math.min(WMAX, Math.max(WMIN, mk.r * 1.3)); if (zoomAnim) zoomAnim.W1 = Wc; else { W = Wc; elZ.value = uFromW(W); } },
-    avance(dts) { if (this.el < 2.5) return false; t = Math.min(T0, t * Math.exp(0.7 * dts)); this.cadre(); return t >= T0; },
+    avance(dts) {
+      if (this.el < 1) return false;
+      const E_ = this.etapes, i = Math.min(this.ie || 0, E_.length - 1);
+      const t0 = i === 0 ? TREC : E_[i - 1].t1, t1 = E_[i].t1;
+      t = Math.min(t1, t * Math.exp(Math.log(t1 / t0) / E_[i].duree * dts)); this.cadre(); return t >= T0;
+    },
     legende() {
       if (this.attente) return "Appuyez sur « C'est parti » pour lancer la course des photons.";
       if (this.fin) return "Aujourd'hui, cette lumière nous atteint : c'est le fond diffus cosmologique. Sa source est maintenant à 45 milliards d'années-lumière. Ce cercle, à 46, est l'univers observable : au-delà, aucune lumière n'a encore eu le temps de nous parvenir. Au moment où cette lumière est partie, toute cette région ne mesurait que 42 millions d'années-lumière de rayon.";
@@ -1939,21 +1954,22 @@ const SCEN = {
       return t >= T0;
     },
     etapes: [
-      { txt: "300 millions d'années : la matière est presque uniforme, à peine ridée.", fin() { return t >= 1.0; } },
-      { txt: "La gravité creuse les rides : la matière quitte les vides.", fin() { return t >= 3.0; } },
-      { txt: "Elle coule le long des filaments vers les nœuds, où naissent les amas.", fin() { return t >= 7.0; } },
-      { txt: "Aujourd'hui : des vides immenses, bordés de filaments et d'amas.", fin() { return t >= T0; } }],
-    texteFin: "La toile cosmique : des milliards de galaxies le long de ses filaments.",
+      { txt: "La gravité creuse les moindres rides : la matière déserte peu à peu les vides.", fin() { return t >= 1.0; } },
+      { txt: "Elle ruisselle le long des filaments vers les nœuds, où s'allument les premiers amas.", fin() { return t >= 3.0; } },
+      { txt: "Les vides s'élargissent ; les filaments se tendent entre des amas toujours plus lourds.", fin() { return t >= 7.0; } },
+      { txt: "", fin() { return t >= T0; } }],
+    texteFin: "Aujourd'hui, la toile cosmique : d'immenses vides bordés de filaments, où brillent des milliards de galaxies.",
     legende() { return ""; },
   },
   hubble: {
     W: 25, cercles: ["h"], tapis: true, pause: false,
     intro: "introHubble",
     etapes: [
-      { txt: "L'espace s'étire : plus une galaxie est loin, plus elle nous fuit vite.", fin() { return this.el >= 4; } },
-      { txt: "À 14,5 milliards d'années-lumière, elle nous fuit à la vitesse de la lumière.", fin() { return this.el >= 9; } },
-      { txt: "La lumière y fait du surplace ; en deçà elle avance, au-delà elle recule.", fin() { return this.el >= 17; } }],
-    texteFin: "Cette sphère grandit : la lumière qui y piétine finira par nous atteindre.",
+      { txt: "Tout l'espace s'étire : plus une galaxie est lointaine, plus vite elle nous fuit, sur un tapis roulant qui s'emballe.", fin() { return this.el >= 3.8; } },
+      { txt: "À 14,5 milliards d'années-lumière, elle file à la vitesse de la lumière : la sphère de Hubble, où même la lumière piétine.", fin() { return this.el >= 8.5; } },
+      { txt: "Nos messagers de lumière : bleus en deçà, ils approchent ; blancs sur la sphère, ils piétinent ; rouges au-delà, emportés.", fin() { return this.el >= 13; } },
+      { txt: "", fin() { return this.el >= 17; } }],
+    texteFin: "Mais la sphère grandit : la lumière qui y piétine finira par nous rejoindre. La vraie frontière sans retour : l'horizon des événements.",
     init() { t = T0; fronts = []; this.pause = true; this.attente = true; },
     avance(dts) { return this.el > 17; },
     legende() {
@@ -2014,9 +2030,9 @@ const SCEN = {
         if (r < this.ALLUME.h) return `L'univers observable : ${enMots(R.p)}.`;
         if (r < this.ALLUME.e) return `La sphère de Hubble : ${enMots(R.h)}.`;
         if (r < this.INVITE) return `L'horizon des événements : ${enMots(R.e)}.`;
-        return "Pour comprendre ce qui les définit, ouvrez « Récits ». Ou promenez-vous avec les curseurs.";
+        return "Pour percer leur secret, ouvrez « Récits ». Ou laissez-vous dériver avec les curseurs.";
       }
-      if (e < 3) return "Chaque lueur est un amas de galaxies.";
+      if (e < 3) return "Chaque lueur est un amas : des milliers de galaxies.";
       if (e < 5) return "Plongeons vers l'un d'eux.";
       if (e < 12.5) return "";
       if (e < 15.5) return "La Voie lactée. La nôtre.";
@@ -2035,14 +2051,16 @@ const SCEN = {
   // fixe ; elle finit immobile, à 17,5 Gal, sans jamais arriver.
   evenements: {
     W: 22, cercles: [], acte: 1, intro: "introHorizon1",
+    // (18/11) chaque texte décrit l'arrêt qui termine son étape, et arrive avec « Suite »
     get etapes() { return this.acte === 1 ? [
-      { txt: "Notre message part ; la carte dézoome au rythme de l'expansion.", fin() { return t >= 25; } },
-      { txt: "Il ralentit : les galaxies lointaines fuient presque aussi vite que lui.", fin() { return t >= 60; } },
-      { txt: "Il se fige sur ce cercle : l'horizon des événements.", fin() { return t >= 100; } }] : [
-      { txt: "La carte est fixe : les points sont l'espace, emporté vers l'extérieur.", fin() { return t >= 40; } },
-      { txt: "Partie de 15,5 milliards d'années-lumière, la lumière arrivera ; partie de 18, elle recule.", fin() { return t >= 70; } },
-      { txt: "Partie de l'horizon, elle reste à jamais à 17,5 milliards d'années-lumière.", fin() { return t >= 100; } }]; },
-    texteFin: "Ce qui se passe aujourd'hui au-delà de 16,7 milliards d'années-lumière ne nous parviendra jamais.",
+      { txt: "Le message effleure les galaxies voisines. La carte se dilate avec l'espace : elles restent immobiles.", fin() { return t >= 25; } },
+      { txt: "Il ralentit à l'écran : les galaxies lointaines fuient presque aussi vite qu'il court.", fin() { return t >= 60; } },
+      { txt: "Il se fige sur ce cercle : l'horizon des événements, à 16,7 milliards d'années-lumière aujourd'hui. Au-delà, il ne touchera jamais personne.", fin() { return t >= 100; } },
+      { txt: "", fin() { return false; } }] : [
+      { txt: "Partie de 15,5 milliards d'années-lumière, en deçà de l'horizon, cette lueur arrivera, patiente.", fin() { return t >= 40; } },
+      { txt: "Partie de 18, au-delà de l'horizon, elle recule pour toujours : ce qui s'y passe ce soir nous restera caché.", fin() { return t >= 70; } },
+      { txt: "", fin() { return t >= 100; } }]; },
+    texteFin: "Partie de l'horizon, elle demeure, blanche, à 17,5 milliards d'années-lumière : une nageuse face à un courant de sa propre vitesse.",
     init() {
       this.acte = 1; this.pauseActe = 0; t = T0; this.pause = true; this.attente = true; this.intro = "introHorizon1";
       fronts = [{ sens: "out", te: T0, etiquetteMarq: "horizon : les galaxies qui étaient à 16,7 Gal aujourd'hui" }];
@@ -2056,7 +2074,7 @@ const SCEN = {
         W = 22 * at(t).a; elZ.value = uFromW(Math.min(W, WMAX));      // dézoom au rythme de l'expansion
         const chi = at(t).eta - ETA0;                                    // rayon comobile du message
         for (const g of cibles) if (g.allume < 0 && g.chi <= chi) g.allume = performance.now();
-        if (t >= 100) { this.pauseActe += dts; if (this.pauseActe > 4) { this.acte = 2; this.el2 = 0; t = T0; zoomVers(24, 1200); elT.value = uFromT(t);
+        if (t >= 100) { this.pauseActe += dts; if (this.pauseActe > 0.3) { this.acte = 2; this.el2 = 0; t = T0; zoomVers(24, 1200); elT.value = uFromT(t);
           this.pause = true; this.attente = true; this.intro = "introHorizon2"; this.ie = 0; montreIntro(); bouton("lecture");
           fronts = [{ sens: "in", te: T0, chi0: 15.5, secteur: [-2.44, -0.70], etiquette: "partie de 15,5 Gal" },
                     { sens: "in", te: T0, chi0: ETA_INF - ETA0, secteur: [-0.17, 1.57], etiquette: "partie de l'horizon" },
@@ -2339,7 +2357,8 @@ window.HDS = { set grille(v) { sansGrille = !v; sale = true; },
     if (E && !scen.attente) { while (scen.ie < E.length - 1 && E[scen.ie].fin.call(scen)) scen.ie++; if (scen.attenteSuite) { scen.attenteSuite = false; scen.pause = false; } }
   }, get t() { return t; }, get W() { return W; },
   get photons() { return fronts.map(f => { const p = rayonFront(f, t); if (!p) return null; const v = vitesseFront(f, p); return { r: p.r, v, rgb: rgbVitesse(v) }; }); },
-  get etat() { return { scen: scen ? scen.cle : null, fronts: fronts.length, acte: scen ? scen.acte || 0 : 0, attente: !!(scen && scen.attente) }; },
+  get etat() { return { scen: scen ? scen.cle : null, fronts: fronts.length, acte: scen ? scen.acte || 0 : 0, attente: !!(scen && scen.attente), fin: !!(scen && scen.fin) }; },
+  get textes() { if (!scen) return []; const tp = scen.intro && document.getElementById(scen.intro); return [tp ? tp.content.textContent.replace(/\s+/g, " ").trim() : "", ...(scen.etapes || []).map(e => e.txt), scen.texteFin || ""]; },
   set el(v) { if (scen) { scen.el = v; sale = true; } }, get el() { return scen ? scen.el : 0; } };
 const elCh = document.getElementById("chargement");
 majDispo(); bornesTemps();
