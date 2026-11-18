@@ -1920,15 +1920,19 @@ const SCEN = {
       { txt: "Et pourtant elle s'éloigne, rougie : l'espace l'emporte plus vite qu'elle ne court, tapis roulant à contre-courant.", t1: 0.6, duree: 4.5, fin() { return t >= this.etapes[1].t1 * 0.9999; } },
       { txt: "Blanche, elle atteint la sphère de Hubble, où l'espace fuit exactement à sa vitesse. Un instant, elle fait du surplace.", t1: null, duree: 4, fin() { return t >= this.etapes[2].t1 * 0.9999; } },
       { txt: "Enfin elle gagne du terrain et bleuit. Sa source, elle, continue de s'enfuir dans la nuit.", t1: 9, duree: 3, fin() { return t >= this.etapes[3].t1 * 0.9999; } },
-      { txt: "", t1: T0, duree: 2.5, fin() { return t >= T0; } }],
-    get cerclesVus() { return this.fin ? ["p"] : (this.ie >= 2 && !this.attente ? ["h"] : []); },
-    texteFin: "Ce soir, elle touche nos antennes : le fond diffus cosmologique. Sa source est à 45 milliards d'années-lumière ; notre univers observable, à 46.",
+      // l'arrivée, puis la fin en plusieurs pages (18/11, 7 h 45), le temps arrêté à aujourd'hui
+      { txt: "Ce soir, elle touche nos antennes : le fond diffus cosmologique. 13,8 milliards d'années de voyage, sur ce tapis roulant.", t1: T0, duree: 2.5, fin() { return t >= T0; } },
+      { txt: "Sa source, elle, n'a cessé de fuir : partie de 41 millions d'années-lumière, elle est aujourd'hui à 45 milliards.", t1: T0, duree: 1, fin() { return t >= T0; } },
+      { txt: "Plus de mille fois plus loin qu'à l'instant où la lumière l'a quittée.", t1: T0, duree: 1, fin() { return t >= T0; } },
+      { txt: "", t1: T0, duree: 1, fin() { return t >= T0; } }],
+    get cerclesVus() { return this.fin ? ["p"] : (this.ie >= 2 && this.ie <= 4 && !this.attente ? ["h"] : []); },
+    texteFin: "Rien de plus ancien ne peut nous parvenir : ce cercle, à 46 milliards d'années-lumière, borde notre univers observable.",
     cadre() { const mk = marqueurs(fronts[0], t); const Wc = Math.min(WMAX, Math.max(WMIN, mk.r * 1.3)); if (zoomAnim) zoomAnim.W1 = Wc; else { W = Wc; elZ.value = uFromW(W); } },
     avance(dts) {
       if (this.el < 1) return false;
       const E_ = this.etapes, i = Math.min(this.ie || 0, E_.length - 1);
       const t0 = i === 0 ? TREC : E_[i - 1].t1, t1 = E_[i].t1;
-      t = Math.min(t1, t * Math.exp(Math.log(t1 / t0) / E_[i].duree * dts)); this.cadre(); return t >= T0;
+      t = Math.min(t1, t * Math.exp(Math.log(t1 / t0) / E_[i].duree * dts)); this.cadre(); return t >= T0 && i === E_.length - 1;
     },
     legende() {
       if (this.attente) return "Appuyez sur « C'est parti » pour lancer la course des photons.";
