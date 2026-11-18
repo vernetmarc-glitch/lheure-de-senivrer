@@ -93,6 +93,23 @@ async def main(url):
                     bande = max(prof[i + o - 2:i + o + 3].mean() for o in range(-12, 13)); vois = np.r_[prof[i - 45:i - 25], prof[i + 25:i + 45]].mean()
                     bords.append(bande / max(vois, 1))
         note("pas de traits droits aux époques jeunes", max(bords) < 2.5, f"bord/voisins max {max(bords):.2f} ({len(bords)} bords)", "image du 17/11 : traits brillants aux bords des boîtes")
+        # 3 sexies 0. pas de treillis aux époques jeunes (chantier E, 19/11) : la grille de départ des particules
+        #    se voyait en quadrillage régulier (image du 18/11 à 1,83 milliard d'années). Puissance spectrale le
+        #    long des axes rapportée à celle hors des axes, de 8 à 64 cycles par image, grille de la carte éteinte.
+        def treillis(Lt):
+            Lt = Lt - Lt.mean(); h, w = Lt.shape
+            F = np.abs(np.fft.fftshift(np.fft.fft2(Lt * np.outer(np.hanning(h), np.hanning(w))))) ** 2
+            yy, xx = np.mgrid[0:h, 0:w]; ky, kx = yy - h // 2, xx - w // 2; kk = np.hypot(kx / w, ky / h) * min(h, w)
+            axe = (np.abs(kx) <= 1) | (np.abs(ky) <= 1); hors = ~((np.abs(kx) <= 3) | (np.abs(ky) <= 3)); r = [0]
+            for k0 in range(8, 64, 4):
+                an = (kk >= k0) & (kk < k0 + 4)
+                if (axe & an).sum() and (hors & an).sum(): r.append(F[axe & an].mean() / F[hors & an].mean())
+            return max(r)
+        await pg.evaluate("HDS.grille = false"); tr = []
+        for Wv, tv in ((0.0155, 1.83), (0.0155, 3.5), (0.008, 2.5)):
+            im = await vue(Wv, tv, 3500); tr.append(treillis(im.mean(-1)))
+        await pg.evaluate("HDS.grille = true")
+        note("pas de treillis aux époques jeunes", max(tr) < 3.0, " ; ".join(f"{x:.1f}" for x in tr), "image du 18/11 : quadrillage régulier à 1,83 milliard d'années")
         # 3 sexies. le voisinage TNG50 ne dépend pas de l'arrondi du GPU (18/11) : la masse d'étoiles et le
         #    drapeau sont rangés dans un même flottant (MSt + 1000·SF) ; un téléphone qui divise de façon
         #    approchée lisait 999 au lieu de 0 → chaque halo sans étoiles devenait une galaxie blanche géante.

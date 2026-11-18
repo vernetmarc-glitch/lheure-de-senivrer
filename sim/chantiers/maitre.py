@@ -90,7 +90,7 @@ if os.path.isdir(V3) and os.path.isdir("/tmp/v2g"):
         if os.path.lexists(f"/tmp/v3/{f}"): os.remove(f"/tmp/v3/{f}")
         os.symlink(f"{V3}/{f}", f"/tmp/v3/{f}")
     if not tourne("http.server 8775"):
-        subprocess.run("cd /tmp/v3 && (setsid nohup python3 -m http.server 8775 > /dev/null 2>&1 < /dev/null &)", shell=True)
+        subprocess.run("cd /tmp/v3g && (setsid nohup python3 -m http.server 8775 > /dev/null 2>&1 < /dev/null &)", shell=True)
     D["donnees"] = "v3 prêtes : " + ", ".join(b for b in ("moyenne", "petite") if os.path.exists(f"{V3}/matiere2-{b}.json"))
 etat["D_maillage_fin"] = D
 

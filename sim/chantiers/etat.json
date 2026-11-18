@@ -12,16 +12,10 @@
   "etape": "P3 522530 publié en l'état (18/11 14 h) ; à refaire avec 537941 quand A est prêt"
  },
  "D_maillage_fin": {
-  "etape": "essai 3 lancé (16 h 20) : boîtes moyenne ET petite refaites, départ tiré dans les cellules (GIGUE) contre le treillis ; tranche 10 Mpc/h pour la moyenne. À l'arrivée : planche /tmp/moy.py sur 8775 (v3) contre 8772 (actuel), garder si plus beau, contrôle du treillis < 2,5",
-  "calcul": "completed success",
-  "run": 44333882615,
-  "donnees": "v3 prêtes : moyenne, petite"
+  "etape": "terminé et publié sur GitHub (19/11, 6839a68) : treillis 2,0 / 1,9 / 1,6 contre 6,5 avant ; batterie 77/77. Artefact non mis à jour (données lourdes)."
  },
  "passage": "2026-11-18 23:10",
- "journal": [
-  "serveur 8766 relancé",
-  "serveur 8771 relancé"
- ],
+ "journal": [],
  "E_treillis_toile": {
   "etape": "constaté, non corrigé (anisotropie du maillage aux époques jeunes) ; voir docs/approches-ecartees.md ; piste : tranche hors axes ou chantier D"
  },

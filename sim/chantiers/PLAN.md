@@ -71,3 +71,7 @@ Icône choisie par Marc (23 h 29) : la coupe remplie de toile cosmique (identite
   Proposition détaillée à écrire d'abord (cohérence avec le récit « univers observable »).
 - R3 « Le tour du Soleil » (année galactique, 230 Ma), R4 « La grande solitude » (galaxies qui passent l'horizon) : plus tard.
 Chaque récit : contrôle d'abord (ordre du panneau, arrêts avec Suite, durées), batterie complète, publication.
+
+## 19/11, 0 h 30 : publication
+GitHub Pages est la référence. L'artefact 508fca81 n'est plus mis à jour pour les données lourdes (Marc a écarté la demande
+d'approbation de publication) ; il garde la version du 18/11 23 h 59.

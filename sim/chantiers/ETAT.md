@@ -7,5 +7,3 @@
 - **E_treillis_toile** : etape constaté, non corrigé (anisotropie du maillage aux époques jeunes) ; voir docs/approches-ecartees.md ; piste : tranche hors axes ou chantier D
 - **C_bascule_voisinage** : etape terminé et publié (18/11, commit 551efc8) : voisinage 537941, 21 713 halos ; batterie 76/76
 - **retours_18_11_soir** : carre_blanc corrigé (décodage entier, contrôle GPU), publié 4de4894, remontee ≈17 s, freinage naine 5,2 Ga et arrivée, publié 551efc8
-
-Ce passage : serveur 8766 relancé ; serveur 8771 relancé
