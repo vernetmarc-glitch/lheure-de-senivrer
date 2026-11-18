@@ -63,6 +63,27 @@ if faits / len(ids) >= 0.995:
         A["etape"] = "paquet prêt"; A["taille_Mo"] = round(os.path.getsize(paquet) / 1e6, 1)
 etat["A_voisinage_537941"] = A
 
+# D. boîte moyenne : le calcul tourne sur GitHub ; à la fin, récupérer ses sorties (txt pour l'artefact
+#    et les tests, gz pour GitHub Pages) dans les dossiers de données
+D = etat.get("D_maillage_fin", {})
+try:
+    r = json.loads(sh("gh run list -R vernetmarc-glitch/lheure-de-senivrer --workflow fond-de-carte-moyenne.yml -L 1 --json databaseId,status,conclusion"))[0]
+    D["calcul"] = f"{r['status']} {r.get('conclusion') or ''}".strip(); D["run"] = r["databaseId"]
+except Exception as e:
+    D["calcul"] = "inconnu"
+dos = f"{SIM}/sorties-v2/sorties-v2-moyenne"
+if D.get("calcul", "").startswith("completed success") and not os.path.isdir(dos):
+    sh(f"cd {SIM}/.. && git pull -q --rebase origin fond-de-carte")
+if os.path.isdir(dos) and not os.path.exists("/home/claude/donnees-v2/matiere2-moyenne.json"):
+    sh(f"cd {SIM} && python3 recentre_v2.py {dos} /home/claude/donnees-v2-gz /home/claude/donnees-v2")
+    for f in os.listdir("/home/claude/donnees-v2"):
+        if "moyenne" in f:
+            for t in ("/tmp/v2t", "/tmp/v2g"):
+                if os.path.isdir(t) and not os.path.exists(f"{t}/{f}"): os.symlink(f"/home/claude/donnees-v2/{f}", f"{t}/{f}")
+    journal.append("sorties de la boîte moyenne récupérées")
+if os.path.exists("/home/claude/donnees-v2/matiere2-moyenne.json"): D["donnees"] = "prêtes"
+etat["D_maillage_fin"] = D
+
 # B, C, D : chantiers de développement (suivis dans PLAN.md ; leur état est écrit par l'agent)
 for k in ("B_grande_boite_points", "C_rendu_voisinage", "D_maillage_fin"):
     etat.setdefault(k, {"etape": "à faire"})

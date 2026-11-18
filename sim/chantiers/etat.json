@@ -1,6 +1,6 @@
 {
  "A_voisinage_537941": {
-  "halos": 14707,
+  "halos": 14758,
   "total": 21734,
   "etape": "téléchargement"
  },
@@ -11,10 +11,16 @@
   "etape": "P3 522530 publié en l'état (18/11 14 h) ; à refaire avec 537941 quand A est prêt"
  },
  "D_maillage_fin": {
-  "etape": "proposé à Marc (18/11 14 h 05), en attente de son accord"
+  "etape": "proposé à Marc (18/11 14 h 05), en attente de son accord",
+  "calcul": "in_progress",
+  "run": 44311325171
  },
- "passage": "2026-11-18 14:06",
- "journal": [],
+ "passage": "2026-11-18 14:12",
+ "journal": [
+  "serveur 8766 relancé",
+  "serveur 8771 relancé",
+  "téléchargement des halos relancé"
+ ],
  "E_treillis_toile": {
   "etape": "constaté, non corrigé (anisotropie du maillage aux époques jeunes) ; voir docs/approches-ecartees.md ; piste : tranche hors axes ou chantier D"
  }
