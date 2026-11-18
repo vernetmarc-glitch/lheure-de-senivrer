@@ -46,7 +46,7 @@ if faits < len(ids):
     # les derniers halos peuvent échouer durablement : au-delà de 99,5 %, on empaquette sans eux
     if faits / len(ids) < 0.995:
         if not tourne("historiques.py historiques537"):
-            lance(f"python3 {SIM}/tng/historiques.py historiques537-ids.npy historiques 16", "historiques537.log")
+            lance(f"python3 {SIM}/tng/historiques.py historiques537-ids.npy historiques 32", "historiques537.log")
             journal.append("téléchargement des halos relancé")
         A["etape"] = "téléchargement"
 if faits / len(ids) >= 0.995:

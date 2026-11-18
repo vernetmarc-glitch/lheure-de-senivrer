@@ -1,6 +1,6 @@
 {
  "A_voisinage_537941": {
-  "halos": 14781,
+  "halos": 15674,
   "total": 21734,
   "etape": "téléchargement"
  },
@@ -15,7 +15,7 @@
   "calcul": "in_progress",
   "run": 44311325171
  },
- "passage": "2026-11-18 14:14",
+ "passage": "2026-11-18 14:58",
  "journal": [],
  "E_treillis_toile": {
   "etape": "constaté, non corrigé (anisotropie du maillage aux époques jeunes) ; voir docs/approches-ecartees.md ; piste : tranche hors axes ou chantier D"
