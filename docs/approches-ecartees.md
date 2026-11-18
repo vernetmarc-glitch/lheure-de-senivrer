@@ -356,3 +356,21 @@ contrôle qui l'accompagnait aussi.
 
 **Ce qui la rouvrirait.** Une sortie de la grande boîte avec bien plus de points dans la
 tranche (≥ 4 millions), ou un champ de densité par époque plutôt que des points.
+
+---
+
+## Le « treillis » de la toile aux petites échelles (chantier E, 18/11/2026) — constat, non corrigé
+
+**Constat.** Vers 10–30 millions d'années-lumière de champ et 1–2,5 milliards d'années, la toile
+montre de faibles alignements horizontaux et verticaux. Mesure (spectre 2D de l'image, toile seule,
+grille de la carte masquée) : énergie sur les axes / hors axes, à même fréquence = **4,6–4,8**,
+contre **1,8–1,9** aujourd'hui au même champ. L'ancienne toile donne le même ordre (7,6 contre 9,3
+à 10 Mal, 1,2 Ga) : ce n'est pas propre aux sorties v2.
+
+**Essais sans effet** (mesure inchangée, code retiré) : plancher du noyau à l'espacement de la
+grille de départ ; halo lissé par quatre lectures décalées (pas d'artefact de mipmap). Les pics
+sont larges (périodes de 1/30 à 1/50 de la boîte) : c'est l'anisotropie du maillage cubique de la
+simulation aux époques jeunes, pas un défaut de rendu.
+
+**Ce qui le corrigerait.** Une tranche orientée hors des axes de la boîte (rotation de la
+projection dans `post2.py`) ou une simulation au maillage plus fin (chantier D).
