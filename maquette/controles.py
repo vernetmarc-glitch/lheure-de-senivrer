@@ -322,7 +322,7 @@ async def main(url):
             if (sv && ((lu >= 0 && now - lu > 1200) || now - vu > 8000)) { s.click(); vu = -1; }
             if (e.fin && obs.filter(o => o[4]).length > 12 || now > 150000) { clearInterval(iv); HDS.vitesse = 1; res(obs); } }, 200); })"""
         bilan = {}
-        for cle in ("observable", "hubble", "evenements", "toile"):
+        for cle in ("observable", "hubble", "evenements"):          # (« toile » retiré le 18/11, 23 h 38)
             obs = await pg.evaluate(f"({SEQ})('{cle}')")
             # (navigateur sans carte graphique : une image par seconde environ ; le fondu de la légende
             #  dure 0,9 s et ne part qu'à l'image suivante : on tolère 4 s de traîne après chaque arrêt)
@@ -435,20 +435,7 @@ async def main(url):
         await pg.evaluate("HDS.vitesse = 1; HDS.recit('evenements')"); await pg.wait_for_timeout(400)
         note("Horizon, acte 2 : au-delà, puis en deçà, puis l'horizon, un à la fois", [a for a, _ in arrets2] == ["dehors", "dedans", "horizon"] and "18" in arrets2[0][1],
              f"arrêts {arrets2}", "« commencer par les photons partis derrière l'horizon ; ne laisser que ceux dont on parle jusqu'à Suite »")
-        # 10 sexies bis. P6 (17/11) : formation de la toile cosmique, champ comobile (les structures restent en place)
-        await pg.evaluate("HDS.recit('toile')"); await pg.wait_for_timeout(1500)
-        t6 = await pg.evaluate("HDS.t"); vis6 = await pg.evaluate("!document.getElementById('intro').hidden")
-        await pg.evaluate("document.getElementById('cestParti').click()"); await pg.wait_for_timeout(1500)
-        ech = []
-        for _ in range(30):
-            await pg.wait_for_timeout(500); x = await pg.evaluate("[HDS.t, HDS.W]"); ech.append(x)
-            if await pg.evaluate("!!document.getElementById('suite') && !!document.getElementById('suite').offsetParent"): break
-        await pg.evaluate("HDS.aller(5.0)"); await pg.wait_for_timeout(1500); x5 = await pg.evaluate("[HDS.t, HDS.W, HDS.etat.scen]")
-        # W / a(t) doit rester constant : on le vérifie sur deux instants éloignés
-        r = await pg.evaluate(f"(() => {{ const a = t => HDS.facteur(t); return [{ech[-1][1]} / a({ech[-1][0]}), {x5[1]} / a({x5[0]})]; }})()")
-        note("formation de la toile cosmique : champ qui suit l'expansion (P6)", vis6 and t6 < 0.5 and abs(r[0] / r[1] - 1) < 0.03 and x5[2] == "toile",
-             f"départ {t6:.2f} Ga, carte d'intro {vis6}, champ/a : {r[0]:.3f} puis {r[1]:.3f}", "« la formation de filaments cosmiques comme récit à part entière »")
-        await pg.evaluate("HDS.recit('toile')"); await pg.wait_for_timeout(500)
+        # 10 sexies bis. (P6, formation de la toile cosmique : récit retiré par Marc le 18/11, 23 h 38 — contrôle retiré avec lui)
         # 10 quater. frise du temps : jusqu'à aujourd'hui en libre, futur seulement pendant l'horizon
         libre_max = await pg.evaluate("+document.getElementById('temps').max")
         await pg.evaluate("HDS.recit(\'evenements\')"); await pg.wait_for_timeout(1200)
@@ -553,7 +540,7 @@ async def main(url):
         e1 = await pd.evaluate("HDS.etat"); panneau = await pd.evaluate("!!document.getElementById('panneauRecits').offsetParent")
         nomP = await pd.evaluate("document.querySelector('#panneauRecits button[data-scen=promenade]').textContent.trim()")
         note("la Promenade s'appelle « Formation de la Voie lactée »", nomP == "Formation de la Voie lactée", f"« {nomP} »", "« le bouton promenade pourrait être renommé formation de la Voie lactée »")
-        note("récits derrière un bouton (E1)", entrees == ["observable", "hubble", "evenements", "promenade", "toile"] and e1["scen"] == "hubble" and not panneau,
+        note("récits derrière un bouton (E1)", entrees == ["observable", "hubble", "evenements", "promenade"] and e1["scen"] == "hubble" and not panneau,
              f"panneau {entrees}, lancé {e1['scen']}, panneau refermé {not panneau}", "« moins de choses à la fois »")
         note("un seul repère sur le curseur du zoom (E1)", rep == 1, f"{rep} repère(s) visibles", "« hiérarchie »")
         note("légende qui s'efface, rappelée au toucher (E1)", op1 < 0.2 and op2 > 0.8, f"opacité après 7 s {op1:.2f}, après un toucher {op2:.2f}", "« moins de texte à la fois »")
@@ -595,10 +582,12 @@ async def main(url):
           const svg = ic.find(h => h.startsWith('data:image/svg+xml')); let desc = '';
           if (svg) desc = decodeURIComponent(escape(atob(svg.split(',')[1])));
           const tpl = document.getElementById('txtApropos');
-          return { favicon: desc.includes('Trois horizons'), apple: !!document.querySelector('link[rel=apple-touch-icon]'),
+          // (18/11, 23 h 16 : « on dirait un écran radar ») (23 h 29) l'icône est la coupe remplie de toile cosmique, plus les trois cercles
+          const app = document.querySelector('link[rel=apple-touch-icon]');
+          return { favicon: desc.includes('Coupe de toile cosmique') && !desc.includes('Trois horizons'), apple: !!app && /coupe/.test(app.getAttribute('href')),
                    dansLaPage: document.querySelectorAll('body img.logo').length + (tpl ? tpl.content.querySelectorAll('img.logo').length : 0) }; })()""")
         note("identité : l'icône de l'application, pas de logo dans la page", idv["favicon"] and idv["apple"] and idv["dansLaPage"] == 0,
-             f"favicon {idv['favicon']}, icône d'écran d'accueil {idv['apple']}, logos dans la page {idv['dansLaPage']}", "« prévu comme icône de l'application » ; « enlever le logo qui apparaît avant le texte »")
+             f"favicon coupe {idv['favicon']}, icône d'écran d'accueil coupe {idv['apple']}, logos dans la page {idv['dansLaPage']}", "« prévu comme icône de l'application » ; « enlever le logo qui apparaît avant le texte » ; « pas un écran radar : onirique » ; « la coupe avec la toile cosmique à l'intérieur »")
         TAILLES = """(() => { const vis = el => { for (let a = el; a; a = a.parentElement) { const st = getComputedStyle(a); if (a.hidden || st.display === 'none' || st.visibility === 'hidden' || +st.opacity < 0.3) return false; } const r = el.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < innerHeight; };
           return [...document.querySelectorAll('button')].filter(vis).map(b => { const r = b.getBoundingClientRect(); return [b.id || b.dataset.scen || b.textContent.trim().slice(0, 10), Math.round(r.width), Math.round(r.height)]; }); })()"""
         rc = await pd.evaluate("""(() => { const b = document.getElementById('recits'), r = b.getBoundingClientRect(), br = document.getElementById('barreRecits').getBoundingClientRect(), st = getComputedStyle(b);
@@ -644,15 +633,16 @@ async def main(url):
         note("panneau des récits : le titre seul, gros boutons", ferme and pan["sous"] == 0 and all(l >= 0.85 and h >= 48 and f >= 16 for l, h, f in pan["bs"]),
              f"refermable {ferme} ; {pan['sous']} sous-titres visibles ; boutons {[(round(l, 2), round(h), round(f)) for l, h, f in pan['bs']]}", "« les récits peuvent n'avoir que le texte du bouton »")
         # ordre, annonce et un seul espace de récit (17/11, 22 h 43) : les trois frontières d'abord ; après
+        # (18/11, 23 h 38 : « supprime le bouton formation de la toile cosmique, qui n'apporte pas grand-chose »)
         # l'appui, on sait ce qu'on va voir (la définition courte) ; tout le texte du récit au même endroit, en bas
         ordreR = await pd.evaluate("[...document.querySelectorAll('#panneauRecits button[data-scen]')].map(b => b.dataset.scen)")
-        note("récits : les trois frontières d'abord", ordreR == ["observable", "hubble", "evenements", "promenade", "toile"], f"{ordreR}",
-             "« l'univers observable en premier, puis Hubble, l'horizon, la Voie lactée, la toile »")
+        note("récits : les trois frontières d'abord", ordreR == ["observable", "hubble", "evenements", "promenade"], f"{ordreR}",
+             "« l'univers observable en premier, puis Hubble, l'horizon, la Voie lactée » ; 18/11 23 h 38 : plus de récit « toile »")
         ESPACE = """(() => { const i = document.getElementById('intro'), p = document.getElementById('phrase'), H = innerHeight;
           const vis = el => { for (let a = el; a; a = a.parentElement) { const st = getComputedStyle(a); if (a.hidden || st.display === 'none' || st.visibility === 'hidden' || +st.opacity < 0.3) return false; } return el.getBoundingClientRect().height > 0; };
           return { intro: vis(i), txt: i.textContent.replace(/\\s+/g, ' ').trim(), haut: i.getBoundingClientRect().top / H, phrase: vis(p) && p.textContent.trim() ? p.getBoundingClientRect().top / H : null }; })()"""
         annonces, budgetR = [], []
-        for cle, mot in (("observable", "transparent"), ("hubble", "vitesse de la lumière"), ("evenements", "message"), ("promenade", "galaxie"), ("toile", "filaments")):
+        for cle, mot in (("observable", "transparent"), ("hubble", "vitesse de la lumière"), ("evenements", "message"), ("promenade", "galaxie")):
             await pd.evaluate("HDS.demarrerLibre()"); await pd.wait_for_timeout(300)
             await pd.click("#recits"); await pd.wait_for_timeout(400)
             await pd.click(f"#panneauRecits button[data-scen={cle}]"); await pd.wait_for_timeout(1200)
