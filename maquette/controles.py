@@ -608,11 +608,20 @@ async def main(url):
              f"fond {rc['fond']}, {rc['l']:.0f}×{rc['h']:.0f} px ({rc['part']:.0%} de la barre), police {rc['police']:.0f} px, bas {rc['bas']:.0f} px",
              "« une fois la présentation faite, l'action principale devient récit : beaucoup plus gros »")
         # bas de l'écran centré, sur toute la largeur (18/11, 5 h 57) : « Récits » et la frise du temps
+        # (18/11, 23 h 10 : la frise ne va plus jusqu'au bord — seuil « fin ≤ 24 px » remplacé par 36 à 64 px :
+        #  au bord, saisir le curseur déclenche le geste « retour / changer d'appli » du téléphone)
         cen = await pd.evaluate("""(() => { const W = innerWidth, r = document.getElementById('recits').getBoundingClientRect(), b = document.getElementById('bas').getBoundingClientRect(), tp = document.getElementById('temps').getBoundingClientRect();
           return { dec: (r.left + r.right) / 2 - W / 2, larg: r.width / W, bas: b.right / W, temps: tp.width / W, fin: (W - tp.right) }; })()""")
-        note("bas de l'écran centré, sur toute la largeur", abs(cen["dec"]) <= 4 and cen["larg"] >= 0.88 and cen["bas"] >= 0.995 and cen["temps"] >= 0.7 and cen["fin"] <= 24,
+        note("bas de l'écran centré, sur toute la largeur", abs(cen["dec"]) <= 4 and cen["larg"] >= 0.88 and cen["bas"] >= 0.995 and cen["temps"] >= 0.7 and 36 <= cen["fin"] <= 64,
              f"« Récits » décalé de {cen['dec']:.0f} px, {cen['larg']:.0%} de l'écran ; zone du bas jusqu'à {cen['bas']:.0%} ; frise {cen['temps']:.0%}, finit à {cen['fin']:.0f} px du bord",
              "« problème de centrage en bas : le bouton et la barre ne prennent pas l'ensemble de l'écran »")
+        # le curseur du temps se saisit loin des bords de l'écran (18/11, 23 h 10) : la zone des gestes
+        # du système (retour, changer d'appli) couvre environ 24 à 32 px de chaque bord
+        bords = await pd.evaluate("""(() => { const tp = document.getElementById('temps'), r = tp.getBoundingClientRect();
+          return { droite: innerWidth - (r.right - 8), gauche: r.left + 8 }; })()""")
+        note("curseur du temps loin des bords", bords["droite"] >= 44 and bords["gauche"] >= 44,
+             f"centre du curseur à {bords['gauche']:.0f} px du bord gauche (Big Bang), {bords['droite']:.0f} px du bord droit (aujourd'hui)",
+             "« le curseur commence du bord de l'écran : on fait le geste pour changer d'appli »")
         t_libre = await pd.evaluate(TAILLES)
         await pd.click("#recits"); await pd.wait_for_timeout(500)
         t_pan = await pd.evaluate(TAILLES)
