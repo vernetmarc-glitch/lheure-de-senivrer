@@ -541,8 +541,8 @@ const matiere = (() => {
       if (enroule > 0.5) {
         // copie voisine : contenu décalé périodiquement, puis tourné d'un quart de tour (×n) et retourné
         u = fract(u + dcl + 0.5) - 0.5;
-        float q = mod(ori, 4.0);
-        if (ori >= 4.0) u.x = -u.x;
+        int oi = int(ori + 0.5); float q = float(oi % 4);
+        if (oi >= 4) u.x = -u.x;
         for (int k = 0; k < 3; k++) if (float(k) < q) u = vec2(-u.y, u.x);
       }
       u += dec;
@@ -571,8 +571,8 @@ const matiere = (() => {
       vec2 u = P / 60000.0;
       if (enroule > 0.5) {
         u = fract(u + dcl + 0.5) - 0.5;
-        float q = mod(ori, 4.0);
-        if (ori >= 4.0) u.x = -u.x;
+        int oi = int(ori + 0.5); float q = float(oi % 4);
+        if (oi >= 4) u.x = -u.x;
         for (int k = 0; k < 3; k++) if (float(k) < q) u = vec2(-u.y, u.x);
       }
       u += dec;
@@ -828,7 +828,7 @@ const matiere = (() => {
   const HI = { pret: false };
   const pHalo = prog(`#version 300 es
     in float idx; in vec2 off; in float hk;
-    uniform highp sampler2D tH; uniform highp sampler2D tR; uniform int RE, k0; uniform float f, ech, smin, smax, galaxie;
+    uniform highp sampler2D tH; uniform highp sampler2D tR; uniform int RE, k0; uniform float f, ech, smin, smax, galaxie, gigue;
     uniform vec2 centre, res;
     out float vw; out vec3 vc;
     vec4 lit(int i, int k) { return texelFetch(tH, ivec2(i % 2048, i / 2048 + k * RE), 0); }
@@ -840,7 +840,10 @@ const matiere = (() => {
       float mf = mix(q0.z, q1.z, f), R = texelFetch(tR, ivec2(i % 2048, i / 2048), 0).r * pow(max(mf, 1e-4), 1.0 / 3.0);
       if (galaxie > 0.5) {
         // la galaxie du halo : un point de lumière, sa taille et sa couleur selon sa masse d'étoiles
-        float ms = mix(mod(q0.w, 1000.0), mod(q1.w, 1000.0), f) / 20.0;
+        // masse d'étoiles rangée avec le drapeau (MSt + 1000·SF) : décodée en entiers, jamais par mod() flottant
+        // (les GPU de téléphone divisent de façon approchée : mod(255000, 1000) y valait 999 — 18/11)
+        int w0 = int(q0.w * (1.0 - gigue) + 0.5), w1 = int(q1.w * (1.0 - gigue) + 0.5);
+        float ms = mix(float(w0 % 1000), float(w1 % 1000), f) / 20.0;
         if (ms < 7.5 || mf < 0.003) { gl_Position = vec4(2.0, 2.0, 0.0, 1.0); gl_PointSize = 0.0; vw = 0.0; vc = vec3(0.0); return; }
         vec2 px = centre + vec2(P.x, -P.y) * ech;
         gl_Position = vec4(px.x / res.x * 2.0 - 1.0, 1.0 - px.y / res.y * 2.0, 0.0, 1.0);
@@ -899,7 +902,7 @@ const matiere = (() => {
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, HI.tH); gl.uniform1i(UH("tH"), 1);
     gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, HI.tR); gl.uniform1i(UH("tR"), 2); gl.activeTexture(gl.TEXTURE0);
     gl.uniform1i(UH("RE"), HI.RE); gl.uniform1i(UH("k0"), k); gl.uniform1f(UH("f"), f); gl.uniform1f(UH("ech"), ech);
-    gl.uniform2f(UH("centre"), cx, cy); gl.uniform2f(UH("res"), tw, th); gl.uniform1f(UH("al"), alpha);
+    gl.uniform2f(UH("centre"), cx, cy); gl.uniform2f(UH("res"), tw, th); gl.uniform1f(UH("al"), alpha); gl.uniform1f(UH("gigue"), HI.gigue || 0);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     if (galaxies) {
       gl.uniform1f(UH("galaxie"), 1); gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -2383,6 +2386,8 @@ taille(); tailleZoom(); requestAnimationFrame(boucle);
 let sansGrille = false;                                   // contrôles seulement : mesurer le fond sans la grille
 let vitesseTest = 1;                                      // contrôles seulement : accélère un scénario
 window.HDS = { set grille(v) { sansGrille = !v; sale = true; },
+  // 18/11 : imite l'arrondi approché des GPU de téléphone (division imprécise) pour le contrôle du voisinage
+  set gigueMobile(v) { matiere.historiques.gigue = v; sale = true; },
   demarrerLibre() { marqueDecouverte(); libre(); zoomAnim = null; mode("libre"); }, recit(cle) { recit(cle); }, suite() { suite(); },
   set vitesse(v) { vitesseTest = v; }, get cercles() { return cerclesVisibles(); }, get ici() { return marqueurIci; }, get etiquettes() { return etiquettes; }, get couches() { return couches; }, facteur(tt) { return at(tt).a; }, get v2() { const V = matiere.v2; return V ? { pret: V.pret, chargees: V.ep.map((e, j) => e && e.buf ? j : -1).filter(j => j >= 0), n: V.n } : null; }, get galaxie() { return matiere.etat; }, set galaxieDirecte(v) { matiere.directe = !!v; sale = true; }, get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
   aller(v) {
