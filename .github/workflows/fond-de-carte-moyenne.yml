@@ -9,17 +9,26 @@ name: Fond de carte — boîte moyenne (64 Mpc/h)
 on:
   push:
     branches: [fond-de-carte]
-    paths: ['.github/workflows/fond-de-carte-moyenne.yml']
+    paths: ['.github/workflows/fond-de-carte-moyenne.yml', 'sim/pm.py']
   workflow_dispatch:
 
 jobs:
   simulation:
-    name: Boîte moyenne
+    # essai 3 (18/11, 16 h 20) : positions de départ tirées dans leur cellule (GIGUE), pour la boîte
+    # moyenne et la petite : le treillis des époques jeunes venait de la grille de départ projetée
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { boite: moyenne, l: 64, graine: 27182, hz: 5, npts: 600000, liss: 0.7 }
+          - { boite: petite, l: 200, graine: 31415, hz: 6, npts: 500000, liss: 2 }
+    name: Boîte ${{ matrix.boite }}
     runs-on: ubuntu-latest
     timeout-minutes: 350
     env:
       NSORTIES: 32
       FOULE: 8
+      GIGUE: 1
     steps:
       - uses: actions/checkout@v4
       - name: Place disque
@@ -31,16 +40,17 @@ jobs:
           python-version: '3.12'
       - run: pip install --quiet numpy scipy pillow
       - name: Simulation
-        run: python sim/pm.py 512 640 64 /tmp/sim 48 27182
+        run: python sim/pm.py 512 640 ${{ matrix.l }} /tmp/sim 48 ${{ matrix.graine }}
       - name: Post-traitement
-        run: python sim/post2.py /tmp/sim sorties-v2/moyenne moyenne 5 600000 4 8 0.7
+        run: python sim/post2.py /tmp/sim sorties-v3/${{ matrix.boite }} ${{ matrix.boite }} ${{ matrix.hz }} ${{ matrix.npts }} 4 8 ${{ matrix.liss }}
       - uses: actions/upload-artifact@v4
         with:
-          name: sorties-v2-moyenne
-          path: sorties-v2/moyenne
+          name: sorties-v3-${{ matrix.boite }}
+          path: sorties-v3/${{ matrix.boite }}
 
   commit:
     needs: simulation
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -50,13 +60,13 @@ jobs:
           ref: fond-de-carte
       - uses: actions/download-artifact@v4
         with:
-          path: sim/sorties-v2
-          pattern: sorties-v2-moyenne
+          path: sim/sorties-v3
+          pattern: sorties-v3-*
       - name: Commit des sorties
         run: |
-          find sim/sorties-v2 -name '*.bin' -exec gzip -9f {} \;
+          find sim/sorties-v3 -name '*.bin' -exec gzip -9f {} \;
           git config user.name "fond-de-carte[bot]"
           git config user.email "fond-de-carte@users.noreply.github.com"
-          git add sim/sorties-v2
-          git commit -m "Sorties de la boîte moyenne (64 Mpc/h, 32 instantanés) [skip ci]" || { echo "rien à committer"; exit 0; }
+          git add sim/sorties-v3
+          git commit -m "Sorties v3 (boîtes moyenne et petite, départ tiré dans les cellules) [skip ci]" || { echo "rien à committer"; exit 0; }
           for i in 1 2 3; do git pull --rebase origin fond-de-carte && git push && break; sleep 10; done

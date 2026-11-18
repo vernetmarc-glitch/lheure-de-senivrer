@@ -68,10 +68,16 @@ dk[0, 0, 0] = 0
 dk /= K2; del K2
 x = np.empty((NP**3, 3), np.float32); p = np.empty((NP**3, 3), np.float32)
 q1 = ((np.arange(NP) + 0.5) * (L / NP)).astype(np.float32)
+# GIGUE=1 (18/11, chantier D) : positions de départ tirées au hasard dans leur cellule. Sans cela, aux
+# époques jeunes, la tranche projetée garde la grille de départ (toutes les couches en z tombent sur
+# les mêmes colonnes) : un treillis aligné sur les axes, visible quand on zoome.
+GIGUE = os.environ.get("GIGUE", "0") == "1"
+rg = np.random.default_rng(GRAINE + 1)
 for c, kc in enumerate((k1[:, None, None], k1[None, :, None], kz[None, None, :])):
     psi = sfft.irfftn(1j * kc * dk, s=(NP,) * 3, workers=W).astype(np.float32)
     qc = np.broadcast_to(q1[:, None, None] if c == 0 else q1[None, :, None] if c == 1 else q1[None, None, :], (NP,) * 3)
-    x[:, c] = ((qc + D(AI) * psi) % L).ravel()
+    gq = (rg.random(NP**3, dtype=np.float32) - 0.5) * np.float32(L / NP) if GIGUE else 0
+    x[:, c] = ((qc.ravel() + gq + D(AI) * psi.ravel()) % L)
     p[:, c] = (AI**3 * Hf(AI) * fg(AI) * D(AI) * psi).ravel()
     del psi
 del dk

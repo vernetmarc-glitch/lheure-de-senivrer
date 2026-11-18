@@ -71,17 +71,27 @@ try:
     D["calcul"] = f"{r['status']} {r.get('conclusion') or ''}".strip(); D["run"] = r["databaseId"]
 except Exception as e:
     D["calcul"] = "inconnu"
-dos = f"{SIM}/sorties-v2/sorties-v2-moyenne"
-if D.get("calcul", "").startswith("completed success") and not os.path.isdir(dos):
+# essai 3 : sorties v3 (moyenne et petite, départ tiré dans les cellules) → /home/claude/donnees-v3 ;
+# page de test /tmp/v3 (port 8775) = /tmp/v2g avec ces données-là
+dos = f"{SIM}/sorties-v3"
+if D.get("calcul", "").startswith("completed") and not os.path.isdir(f"{dos}/sorties-v3-moyenne"):
     sh(f"cd {SIM}/.. && git pull -q --rebase --autostash origin fond-de-carte")
-if os.path.isdir(dos) and not os.path.exists("/home/claude/donnees-v2/matiere2-moyenne.json"):
-    sh(f"cd {SIM} && python3 recentre_v2.py {dos} /home/claude/donnees-v2-gz /home/claude/donnees-v2")
-    for f in os.listdir("/home/claude/donnees-v2"):
-        if "moyenne" in f:
-            for t in ("/tmp/v2t", "/tmp/v2g"):
-                if os.path.isdir(t) and not os.path.exists(f"{t}/{f}"): os.symlink(f"/home/claude/donnees-v2/{f}", f"{t}/{f}")
-    journal.append("sorties de la boîte moyenne récupérées")
-if os.path.exists("/home/claude/donnees-v2/matiere2-moyenne.json"): D["donnees"] = "prêtes"
+V3 = "/home/claude/donnees-v3"
+for boite in ("moyenne", "petite"):
+    src = f"{dos}/sorties-v3-{boite}"
+    if os.path.isdir(src) and not os.path.exists(f"{V3}/matiere2-{boite}.json"):
+        sh(f"cd {SIM} && python3 recentre_v2.py {src} {V3}-gz {V3}")
+        journal.append(f"sorties v3 {boite} récupérées")
+if os.path.isdir(V3) and os.path.isdir("/tmp/v2g"):
+    os.makedirs("/tmp/v3", exist_ok=True)
+    for f in os.listdir("/tmp/v2g"):
+        if not os.path.lexists(f"/tmp/v3/{f}"): os.symlink(os.path.realpath(f"/tmp/v2g/{f}"), f"/tmp/v3/{f}")
+    for f in os.listdir(V3):
+        if os.path.lexists(f"/tmp/v3/{f}"): os.remove(f"/tmp/v3/{f}")
+        os.symlink(f"{V3}/{f}", f"/tmp/v3/{f}")
+    if not tourne("http.server 8775"):
+        subprocess.run("cd /tmp/v3 && (setsid nohup python3 -m http.server 8775 > /dev/null 2>&1 < /dev/null &)", shell=True)
+    D["donnees"] = "v3 prêtes : " + ", ".join(b for b in ("moyenne", "petite") if os.path.exists(f"{V3}/matiere2-{b}.json"))
 etat["D_maillage_fin"] = D
 
 # B, C, D : chantiers de développement (suivis dans PLAN.md ; leur état est écrit par l'agent)
