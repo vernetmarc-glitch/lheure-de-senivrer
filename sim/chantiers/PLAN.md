@@ -61,3 +61,13 @@ Avancer en autonomie sans demander de confirmation : ne jamais lui demander de c
 quand il n'a pas de valeur ajoutée. Trancher soi-même (meilleur choix esthétique et réaliste), publier après la batterie,
 et lui dire seulement ce qui est fait.
 Icône choisie par Marc (23 h 29) : la coupe remplie de toile cosmique (identite/propositions-3/B-coupe.png).
+
+## Nouveaux récits (proposés à Marc le 19/11, 0 h ; à faire dans cet ordre, sans redemander)
+- R2 « L'année cosmique » : 13,8 Ga ramenés à une année le long de la frise ; arrêts avec « Suite » : Voie lactée (mars),
+  Soleil (1er sept., 4,57 Ga), vie (22 sept.), dinosaures (25 déc.), sapiens (31 déc. 23 h 48), écriture (23 h 59 min 48 s),
+  une vie humaine (0,2 s). Le temps ralentit exponentiellement à la fin ; carte à l'échelle de la Voie lactée puis figée.
+- R1 « Regarder loin, c'est voir le passé » : zoom et temps liés par le cône de lumière passé (t = instant d'émission de la
+  lumière venue du bord du champ) ; montrer qu'au fond diffus, l'univers observable ne mesurait que 41 Mal (taille propre).
+  Proposition détaillée à écrire d'abord (cohérence avec le récit « univers observable »).
+- R3 « Le tour du Soleil » (année galactique, 230 Ma), R4 « La grande solitude » (galaxies qui passent l'horizon) : plus tard.
+Chaque récit : contrôle d'abord (ordre du panneau, arrêts avec Suite, durées), batterie complète, publication.
