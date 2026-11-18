@@ -1,0 +1,16 @@
+{
+  "name": "L'Heure de s'enivrer",
+  "short_name": "S'enivrer",
+  "description": "Carte interactive de l'univers observable : la lumière, la sphère de Hubble et l'horizon des événements, de la Voie lactée aux confins.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#04050a",
+  "theme_color": "#04050a",
+  "icons": [
+    { "src": "icones/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
