@@ -59,7 +59,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
-          git add app/public/labo/alpes/sim app/public/labo/alpes/donnees
+          git add -A app/public/labo/alpes
           if git diff --cached --quiet; then echo "rien à pousser"; exit 0; fi
           git commit -m "Alpes : relief réel et simulation recalculés (workflow)"
           for i in 1 2 3 4 5; do
