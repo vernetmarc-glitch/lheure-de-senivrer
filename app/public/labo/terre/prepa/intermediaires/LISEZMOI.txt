@@ -1,0 +1,6 @@
+Intermédiaires de l'étape A (workflow chantier-terre), pour la cuisson et le
+développement local. Ne pas publier : la page ne lit que ../../donnees/.
+partitions.npz : indices de polygones à 0,1° (pixel (i,j) centré lon -180+(i+.5)/10,
+  lat 90-(j+.5)/10), tables (plate_id, début Ma, fin Ma) ;
+rotations.npz : quaternions (x,y,z,w) plaque -> repère absolu, par Ma entier ;
+dem1deg.npz : PaleoDEM Scotese & Wright 2018 à 1°, lat décroissante, lon -180..180.
