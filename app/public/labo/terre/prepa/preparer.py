@@ -108,7 +108,7 @@ def etape_a():
     me_rot = me_dir / "Rotations" / "1000_0_rotfile_Merdith_etal.rot"
     me_sta = trouve("shapes_static_polygons_Merdith_etal.gpml", me_dir)
     me_con = trouve("shapes_continents.gpml", me_dir)
-    log("sources :", pm_rot, pm_pol, me_rot, me_sta, me_con, sep="\n  ")
+    log("sources :", *[f"\n  {x}" for x in (pm_rot, pm_pol, me_rot, me_sta, me_con)])
 
     pm_r, pm_t = rasteriser(pygplates.FeatureCollection(str(pm_pol)), "PALEOMAP polygones")
     ms_r, ms_t = rasteriser(pygplates.FeatureCollection(str(me_sta)), "Merdith polygones statiques")
