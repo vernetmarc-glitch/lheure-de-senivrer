@@ -86,3 +86,8 @@ Arrêts (avec Suite) : Andromède (2,5 Ma) ; amas de la Vierge (≈ 55 Ma) ; 1 G
 les premières galaxies ; le fond diffus (42 Mal, 380 000 ans). Fin : « Tout le ciel que nous voyons tenait alors dans
 42 millions d'années-lumière. » Le cercle « p » apparaît à la fin. Contrôle : t et W suivent la relation du cône (écart
 < 2 %), W passe par un maximum entre 3 et 5 Ga puis décroît, arrêts et budgets de mots comme les autres récits.
+
+## 19/11, 4 h : bilan
+Tous les chantiers sont terminés et publiés sur GitHub Pages : A, C (voisinage 537941), D (toile sans treillis),
+R1–R4 (regarder loin, année cosmique, tour du Soleil, grande solitude), icône coupe, retours du 18/11 (carré blanc,
+remontée, curseur loin du bord). Batterie : 81 contrôles. Plus de réveil programmé : la suite part des prochains retours de Marc.
