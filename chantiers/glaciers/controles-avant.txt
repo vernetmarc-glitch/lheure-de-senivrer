@@ -1,0 +1,10 @@
+ÉCHEC  C1  données absentes (glace.bin.gz ou reference.npz)
+ÉCHEC  C7  page non prête
+ÉCHEC  C8  page non prête
+ÉCHEC  C2  références absentes (le workflow n’a pas encore déposé les données)
+ÉCHEC  C3  références absentes (le workflow n’a pas encore déposé les données)
+ÉCHEC  C4  références absentes (le workflow n’a pas encore déposé les données)
+ÉCHEC  C5  références absentes (le workflow n’a pas encore déposé les données)
+ÉCHEC  C6  2 erreur(s) console: Failed to load resource: the server responded with a status of 404 (File not found) | page jamais prête : Page.wait_for_function: Timeout 90000ms exceeded.
+
+0/8 contrôles passés
