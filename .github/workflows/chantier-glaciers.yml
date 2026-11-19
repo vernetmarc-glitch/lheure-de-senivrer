@@ -1,0 +1,56 @@
+name: Chantier glaciers — préparation des données
+
+# Chantier S8. Le bac à sable de Claude ne joint pas Zenodo ni AWS : cette machine
+# télécharge la simulation PISM de Seguinot et al. 2018 (1 km, 120 → 0 ka) et le
+# relief Copernicus, découpe la fenêtre des Alpes du Nord (150 × 150 km autour de
+# Grenoble), quantifie et dépose un paquet compact sur la branche.
+
+on:
+  push:
+    branches: [chantier/glaciers]
+    paths:
+      - '.github/workflows/chantier-glaciers.yml'
+      - 'chantiers/glaciers/prepare.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: chantier-glaciers
+  cancel-in-progress: false
+
+jobs:
+  preparer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GLACIERS_DL: /home/runner/glaciers-dl
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chantier/glaciers
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Cache des téléchargements
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/glaciers-dl
+          key: glaciers-dl-alpcyc-1km-1ka-v3-cop
+      - name: Paquets
+        run: pip install numpy scipy netCDF4 pyproj rasterio
+      - name: Préparer
+        run: python chantiers/glaciers/prepare.py
+      - name: Déposer sur la branche
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A app/public/labo/glaciers/donnees chantiers/glaciers || true
+          git commit -m "Glaciers : données préparées par le workflow (Seguinot et al. 2018, Copernicus DEM)" || exit 0
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin chantier/glaciers && git push origin HEAD:chantier/glaciers && exit 0
+            sleep 10
+          done
+          exit 1
