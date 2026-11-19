@@ -339,7 +339,7 @@ async def main(url):
             if (sv && ((lu >= 0 && now - lu > 1200) || now - vu > 8000)) { s.click(); vu = -1; }
             if (e.fin && obs.filter(o => o[4]).length > 12 || now > 150000) { clearInterval(iv); HDS.vitesse = 1; res(obs); } }, 200); })"""
         bilan = {}
-        for cle in ("observable", "hubble", "evenements", "annee"):   # (« toile » retiré le 18/11, 23 h 38 ; « annee » ajouté le 19/11)
+        for cle in ("observable", "hubble", "evenements", "annee", "passe"):   # (« toile » retiré le 18/11, 23 h 38 ; « annee » ajouté le 19/11)
             obs = await pg.evaluate(f"({SEQ})('{cle}')")
             # (navigateur sans carte graphique : une image par seconde environ ; le fondu de la légende
             #  dure 0,9 s et ne part qu'à l'image suivante : on tolère 4 s de traîne après chaque arrêt)
@@ -368,6 +368,24 @@ async def main(url):
              and "cinquième de seconde" in textes_a and bilan["annee"][2] and not faux,
              f"{len(ar_a)} arrêts ; dates fausses {faux} ; dates vues : {sorted(set(m for m in ('janvier', 'février', 'mai', 'septembre', 'décembre', '23 h 59') if m in dates))}",
              "19/11 : « des choses difficilement appréhendables en échelle de temps » (récit R2)")
+        # R1 (19/11) : « Regarder loin, c'est voir le passé ». Le temps affiché est l'instant d'émission de la lumière venue
+        # de la distance comobile χ ; le champ (propre) vaut 1,25·a(t)·χ : il grandit, culmine vers 4 Ga (5,8 Gal), puis se
+        # resserre jusqu'à 42 Mal au fond diffus
+        ar_p = bilan["passe"][0]
+        await pg.evaluate("HDS.demarrerLibre(); HDS.recit('passe')"); await pg.wait_for_timeout(1200)
+        await pg.evaluate("document.getElementById('cestParti').click(); HDS.vitesse = 3"); ech_p = []
+        for _ in range(500):
+            await pg.wait_for_timeout(150)
+            x = await pg.evaluate("(() => { const s = document.getElementById('suite'); if (s.offsetParent) s.click(); return [HDS.t, HDS.W, HDS.facteur(HDS.t), HDS.cone ? HDS.cone(HDS.t) : -1, HDS.etat.fin]; })()")
+            ech_p.append(x)
+            if x[4]: break
+        await pg.evaluate("HDS.vitesse = 1; HDS.recit('passe')")
+        ecarts_p = [abs(W_ / (1.25 * a_) - c_) / c_ for t_, W_, a_, c_, _ in ech_p if c_ > 0 and 6e-5 < W_ < 89]
+        kmax = max(range(len(ech_p)), key=lambda k: ech_p[k][1]); fin_p = ech_p[-1]
+        note("Regarder loin : le passé, le cône de lumière", len(ar_p) >= 6 and ecarts_p and max(ecarts_p) < 0.03 and 3 <= ech_p[kmax][0] <= 5.5
+             and fin_p[1] <= 0.06 and fin_p[0] <= 0.001 and bilan["passe"][2],
+             f"{len(ar_p)} arrêts ; écart au cône {max(ecarts_p or [9]):.1%} ; champ maximal {ech_p[kmax][1]:.1f} Gal à {ech_p[kmax][0]:.1f} Ga ; fin {fin_p[1]:.3f} Gal à {fin_p[0] * 1e3:.2f} Ma",
+             "19/11 : récit R1 — « regarder loin, c'est voir le passé ; au fond diffus, tout le ciel tenait dans 42 millions d'années-lumière »")
         ok_seq = all(len(a) >= 2 and all(a) and len(set(a)) == len(a) and bv == 0 and f for a, bv, f in bilan.values())
         tobs = " ".join(bilan["observable"][0]) + " " + " ".join(await pg.evaluate("(HDS.recit('observable'), HDS.textes)"))
         await pg.evaluate("HDS.recit('observable')")
@@ -568,7 +586,7 @@ async def main(url):
         e1 = await pd.evaluate("HDS.etat"); panneau = await pd.evaluate("!!document.getElementById('panneauRecits').offsetParent")
         nomP = await pd.evaluate("document.querySelector('#panneauRecits button[data-scen=promenade]').textContent.trim()")
         note("la Promenade s'appelle « Formation de la Voie lactée »", nomP == "Formation de la Voie lactée", f"« {nomP} »", "« le bouton promenade pourrait être renommé formation de la Voie lactée »")
-        note("récits derrière un bouton (E1)", entrees == ["observable", "hubble", "evenements", "promenade", "annee"] and e1["scen"] == "hubble" and not panneau,
+        note("récits derrière un bouton (E1)", entrees == ["observable", "hubble", "evenements", "promenade", "annee", "passe"] and e1["scen"] == "hubble" and not panneau,
              f"panneau {entrees}, lancé {e1['scen']}, panneau refermé {not panneau}", "« moins de choses à la fois »")
         note("un seul repère sur le curseur du zoom (E1)", rep == 1, f"{rep} repère(s) visibles", "« hiérarchie »")
         note("légende qui s'efface, rappelée au toucher (E1)", op1 < 0.2 and op2 > 0.8, f"opacité après 7 s {op1:.2f}, après un toucher {op2:.2f}", "« moins de texte à la fois »")
@@ -664,13 +682,13 @@ async def main(url):
         # (18/11, 23 h 38 : « supprime le bouton formation de la toile cosmique, qui n'apporte pas grand-chose »)
         # l'appui, on sait ce qu'on va voir (la définition courte) ; tout le texte du récit au même endroit, en bas
         ordreR = await pd.evaluate("[...document.querySelectorAll('#panneauRecits button[data-scen]')].map(b => b.dataset.scen)")
-        note("récits : les trois frontières d'abord", ordreR == ["observable", "hubble", "evenements", "promenade", "annee"], f"{ordreR}",
+        note("récits : les trois frontières d'abord", ordreR == ["observable", "hubble", "evenements", "promenade", "annee", "passe"], f"{ordreR}",
              "« l'univers observable en premier, puis Hubble, l'horizon, la Voie lactée » ; 18/11 23 h 38 : plus de récit « toile »")
         ESPACE = """(() => { const i = document.getElementById('intro'), p = document.getElementById('phrase'), H = innerHeight;
           const vis = el => { for (let a = el; a; a = a.parentElement) { const st = getComputedStyle(a); if (a.hidden || st.display === 'none' || st.visibility === 'hidden' || +st.opacity < 0.3) return false; } return el.getBoundingClientRect().height > 0; };
           return { intro: vis(i), txt: i.textContent.replace(/\\s+/g, ' ').trim(), haut: i.getBoundingClientRect().top / H, phrase: vis(p) && p.textContent.trim() ? p.getBoundingClientRect().top / H : null }; })()"""
         annonces, budgetR = [], []
-        for cle, mot in (("observable", "transparent"), ("hubble", "vitesse de la lumière"), ("evenements", "message"), ("promenade", "galaxie"), ("annee", "en une année")):
+        for cle, mot in (("observable", "transparent"), ("hubble", "vitesse de la lumière"), ("evenements", "message"), ("promenade", "galaxie"), ("annee", "en une année"), ("passe", "univers jeune")):
             await pd.evaluate("HDS.demarrerLibre()"); await pd.wait_for_timeout(300)
             await pd.click("#recits"); await pd.wait_for_timeout(400)
             await pd.click(f"#panneauRecits button[data-scen={cle}]"); await pd.wait_for_timeout(1200)
