@@ -213,6 +213,10 @@ body[data-mode=recit] #titre { display: none; }
   <p class="titreIntro">Formation de la Voie lactée</p>
   <p>Plongée dans la toile cosmique jusqu'à notre galaxie, puis le temps remonte jusqu'à son premier souffle.</p>
 </template>
+<template id="introAnnee">
+  <p class="titreIntro">L'année cosmique</p>
+  <p>L'histoire de l'univers en une année : Big Bang le 1er janvier, aujourd'hui le soir du 31 décembre.</p>
+</template>
 <div id="bas">
   <div id="intro" hidden>
     <div id="introTexte"></div>
@@ -245,6 +249,7 @@ body[data-mode=recit] #titre { display: none; }
   <div class="scen"><button data-scen="hubble">Sphère de Hubble</button></div>
   <div class="scen"><button data-scen="evenements">Horizon des événements</button></div>
   <div class="scen"><button data-scen="promenade">Formation de la Voie lactée</button></div>
+  <div class="scen"><button data-scen="annee">L'année cosmique</button></div>
 </div>
 <div id="modale" role="dialog" aria-modal="true" aria-labelledby="modaleTitre">
   <div>
@@ -1905,7 +1910,22 @@ function etat(s) {
   let z = "aujourd'hui";
   if (t < T0 - 0.005) z = `il y a ${fmtEcart(T0 - t)}`;
   else if (t > T0 + 0.005) z = `dans ${fmtEcart(t - T0)}`;
-  document.getElementById("lectureTemps").textContent = `⏳ ${fmtT(t)} · ${z}`;
+  document.getElementById("lectureTemps").textContent = scen && scen.calendrier && !scen.attente ? `📅 ${dateCosmique(t)}` : `⏳ ${fmtT(t)} · ${z}`;
+}
+// R2 (19/11) : l'âge de l'univers ramené à une année de 365 jours (le Big Bang le 1er janvier à minuit)
+// l'instant de midi d'un jour donné (mois 1–12) : les arrêts tombent au jour que dit leur texte
+function jourT(mois, jour) { const C = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]; return T0 * (C[mois - 1] + jour - 0.5) / 365; }
+function dateCosmique(tt) {
+  const s = Math.max(0, Math.min(1, tt / T0)) * 365 * 86400, j = Math.floor(s / 86400);
+  const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+  const LG = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (j >= 365) return "31 décembre, minuit";
+  let m = 0, d = j; while (d >= LG[m]) { d -= LG[m]; m++; }
+  const jour = d === 0 ? "1er" : String(d + 1), r = s - j * 86400;
+  const h = Math.floor(r / 3600), mi = Math.floor((r % 3600) / 60), se = Math.floor(r % 60), z2 = v => String(v).padStart(2, "0");
+  if (j === 364 && h === 23 && mi === 59) return `31 décembre, 23 h 59 min ${z2(se)} s`;
+  if (j === 0 || j === 364) return `${jour} ${MOIS[m]}, ${h} h ${z2(mi)}`;
+  return `${jour} ${MOIS[m]}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -2009,6 +2029,40 @@ const SCEN = {
     },
   },
   // promenade : de la toile cosmique jusqu'à notre galaxie, puis sa formation
+  // R2 (19/11) : l'année cosmique. 13,8 milliards d'années ramenés à une année : la date remplace l'âge
+  // sous la frise ; on plonge de la toile jusqu'à notre galaxie, puis les derniers instants se dilatent
+  // (le temps restant avant aujourd'hui défile en logarithme) jusqu'à minuit.
+  annee: {
+    W: 0.15, cercles: [], intro: "introAnnee", calendrier: true,
+    init() { t = TREC; W = 0.15; elZ.value = uFromW(W); fronts = []; this.iProg = -1; this.pause = true; this.attente = true; },
+    etapes: [
+      { txt: "1er janvier, 0 h 14 : l'univers devient transparent. Sa première lumière nous parvient encore.", t1: TREC, W1: 0.15, duree: 0.6, fin() { return this.prog >= 1; } },
+      { txt: "6 janvier : dans la toile encore pâle, les premières étoiles s'allument.", t1: jourT(1, 6), W1: 0.15, duree: 4, fin() { return this.prog >= 1; } },
+      { txt: "17 février : notre galaxie n'est encore qu'un embryon de lumière.", t1: jourT(2, 17), W1: 0.0001, duree: 6, fin() { return this.prog >= 1; } },
+      { txt: "23 mai : elle avale une galaxie naine.", t1: jourT(5, 23), W1: 0.0001, duree: 4, fin() { return this.prog >= 1; } },
+      { txt: "1er septembre : dans l'un de ses bras, le Soleil s'allume.", t1: jourT(9, 1), W1: 0.0001, duree: 4, fin() { return this.prog >= 1; } },
+      { txt: "22 septembre : sur la Terre, la vie apparaît.", t1: jourT(9, 22), W1: 0.0001, duree: 2, fin() { return this.prog >= 1; } },
+      { txt: "25 décembre : les premiers dinosaures.", t1: jourT(12, 25), W1: 0.0001, duree: 4, fin() { return this.prog >= 1; } },
+      { txt: "30 décembre : un astéroïde les efface.", t1: jourT(12, 30), W1: 0.0001, duree: 2.5, fin() { return this.prog >= 1; } },
+      { txt: "31 décembre, 23 h 48 : apparaît Homo sapiens.", t1: T0 - 0.0003, W1: 0.0001, duree: 4, fin() { return this.prog >= 1; } },
+      { txt: "23 h 59 min 48 s : l'écriture. Toute notre histoire tient dans ces douze dernières secondes.", t1: T0 - 0.000005, W1: 0.0001, duree: 3, fin() { return this.prog >= 1; } },
+      { txt: "", t1: T0, W1: 0.0001, duree: 2.5, fin() { return this.prog >= 1; } }],
+    texteFin: "Minuit. Une vie humaine dure ici un cinquième de seconde.",
+    ici() { return (this.ie || 0) >= 4 && W < 0.001; },
+    avance(dts) {
+      if (this.el < 0.3) return false;
+      const E_ = this.etapes, i = Math.min(this.ie || 0, E_.length - 1), e = E_[i];
+      if (this.iProg !== i) { this.iProg = i; this.prog = 0; this.t0 = t; this.W0 = W; }
+      this.prog = Math.min(1, this.prog + dts / e.duree);
+      const q = lisse(0, 1, this.prog), lg = (a, b) => Math.exp(Math.log(a) + (Math.log(b) - Math.log(a)) * q);
+      if (e.t1 < 9) t = lg(Math.max(this.t0, TREC), e.t1);
+      else t = T0 - lg(Math.max(T0 - this.t0, 1e-9), Math.max(T0 - e.t1, 1e-9));
+      if (i === E_.length - 1 && this.prog >= 1) t = T0;
+      W = lg(this.W0, e.W1); elZ.value = uFromW(W);
+      return i === E_.length - 1 && this.prog >= 1;
+    },
+    legende() { return ""; },
+  },
   promenade: {
     W: 1.2, cercles: [],
     intro: "introPromenade",
