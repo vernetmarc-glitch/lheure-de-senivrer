@@ -1,6 +1,18 @@
+[    0.0 s] sources : 
+  /tmp/sources/paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PALEOMAP Global Plate Model/PALEOMAP_PlateModel.rot 
+  /tmp/sources/paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PALEOMAP Global Plate Model/PALEOMAP_PlatePolygons.gpml 
+  /tmp/sources/merdith/13635864/x/Merdith_etal_2021_ESR_v1.2.4/Rotations/1000_0_rotfile_Merdith_etal.rot 
+  /tmp/sources/merdith/13635864/x/Merdith_etal_2021_ESR_v1.2.4/StaticPolygons/shapes_static_polygons_Merdith_etal.gpml 
+  /tmp/sources/merdith/13635864/x/Merdith_etal_2021_ESR_v1.2.4/Continents/shapes_continents.gpml
+[    0.3 s] PALEOMAP polygones : 503 polygones, 241 plaques, couverture 99.8 % des pixels
+[    1.6 s] Merdith polygones statiques : 2392 polygones, 478 plaques, couverture 100.0 % des pixels
+[    2.1 s] Merdith croûte continentale : 852 polygones, 427 plaques, couverture 47.6 % des pixels
+[    8.0 s] rotations PALEOMAP : 241 plaques × 751 Ma ; écart maison/pygplates 9.23e-08
+[   45.9 s] rotations Merdith : 481 plaques × 1001 Ma ; écart maison/pygplates 6.62e-08
 Traceback (most recent call last):
   File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/terre/prepa/preparer.py", line 149, in <module>
     etape_a()
-  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/terre/prepa/preparer.py", line 111, in etape_a
-    log("sources :", pm_rot, pm_pol, me_rot, me_sta, me_con, sep="\n  ")
-TypeError: log() got an unexpected keyword argument 'sep'
+  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/terre/prepa/preparer.py", line 128, in etape_a
+    ts = [int(re.search(r"_(\d+)Ma\.nc$", f).group(1)) for f in fs]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'group'
