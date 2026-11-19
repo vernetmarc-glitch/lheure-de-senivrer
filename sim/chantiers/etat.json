@@ -25,5 +25,8 @@
  "retours_18_11_soir": {
   "carre_blanc": "corrigé (décodage entier, contrôle GPU), publié 4de4894",
   "remontee": "≈17 s, freinage naine 5,2 Ga et arrivée, publié 551efc8"
+ },
+ "R2_annee_cosmique": {
+  "etape": "publié sur GitHub (19/11) ; batterie 78/78"
  }
 }

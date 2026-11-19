@@ -75,3 +75,14 @@ Chaque récit : contrôle d'abord (ordre du panneau, arrêts avec Suite, durées
 ## 19/11, 0 h 30 : publication
 GitHub Pages est la référence. L'artefact 508fca81 n'est plus mis à jour pour les données lourdes (Marc a écarté la demande
 d'approbation de publication) ; il garde la version du 18/11 23 h 59.
+
+## R1 « Regarder loin, c'est voir le passé » — proposition détaillée (19/11, 1 h)
+Exigence servie : faire comprendre l'univers observable (intention de l'œuvre), par le cône de lumière passé.
+Principe : un paramètre χ (distance comobile, celle d'aujourd'hui) croît de 0,003 à 46 Gal. Pour chaque χ, la carte montre
+l'univers à l'instant t_e où partit la lumière venue de χ (η0 − η(t_e) = χ), dans un champ de taille PROPRE a(t_e)·χ :
+c'est ce que nos yeux reçoivent. Le champ grandit, culmine (≈ 5,8 Gal, lumière partie il y a ≈ 10 Ga, z ≈ 1,6), puis
+rapetisse jusqu'à 42 Mal au fond diffus : le paradoxe à faire sentir (« plus loin, plus jeune, et plus petit »).
+Arrêts (avec Suite) : Andromède (2,5 Ma) ; amas de la Vierge (≈ 55 Ma) ; 1 Ga ; le champ le plus large (≈ 5,8 Gal) ;
+les premières galaxies ; le fond diffus (42 Mal, 380 000 ans). Fin : « Tout le ciel que nous voyons tenait alors dans
+42 millions d'années-lumière. » Le cercle « p » apparaît à la fin. Contrôle : t et W suivent la relation du cône (écart
+< 2 %), W passe par un maximum entre 3 et 5 Ga puis décroît, arrêts et budgets de mots comme les autres récits.
