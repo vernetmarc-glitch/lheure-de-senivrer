@@ -1,0 +1,69 @@
+name: Chantier S7 — Alpes
+
+# Le bac à sable ne joint pas les MNT ouverts (Copernicus sur AWS : 403).
+# Ce workflow, déclenché par push sur chantier/alpes :
+#   1. prépare le relief réel (sim/reel_1024.npz) s'il manque ou si prepare_mnt.py change ;
+#   2. relance la simulation FastScape (sim/simuler.py, 512²) si son empreinte change ;
+#   3. pousse le paquet léger (donnees/) sur la branche.
+
+on:
+  push:
+    branches: [chantier/alpes]
+    paths:
+      - 'app/public/labo/alpes/sim/**'
+      - '.github/workflows/chantier-alpes.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: chantier-alpes
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  alpes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: app/public/labo/alpes
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chantier/alpes
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dépendances
+        run: pip install --quiet numpy scipy pillow rasterio pyproj fastscapelib==0.3.0
+      - name: Relief réel (Copernicus GLO-90)
+        run: |
+          E=$(sha256sum sim/prepare_mnt.py | cut -c1-16)
+          if [ ! -f sim/reel_1024.npz ] || [ "$(cat sim/reel_1024.empreinte 2>/dev/null)" != "$E" ]; then
+            python sim/prepare_mnt.py
+            echo "$E" > sim/reel_1024.empreinte
+          else
+            echo "relief réel à jour"
+          fi
+      - name: Simulation FastScape
+        run: |
+          if [ ! -f sim/simuler.py ]; then echo "pas encore de simulation"; exit 0; fi
+          E=$(cat sim/simuler.py sim/scenario.py sim/reel_1024.empreinte 2>/dev/null | sha256sum | cut -c1-16)
+          if [ "$(cat donnees/empreinte.txt 2>/dev/null)" = "$E" ]; then echo "simulation à jour"; exit 0; fi
+          python sim/simuler.py --n 512 --sortie donnees
+          echo "$E" > donnees/empreinte.txt
+      - name: Pousser le paquet
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add app/public/labo/alpes/sim app/public/labo/alpes/donnees
+          if git diff --cached --quiet; then echo "rien à pousser"; exit 0; fi
+          git commit -m "Alpes : relief réel et simulation recalculés (workflow)"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin chantier/alpes && git push origin HEAD:chantier/alpes && exit 0
+            sleep 10
+          done
+          exit 1
