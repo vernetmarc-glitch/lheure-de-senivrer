@@ -447,3 +447,24 @@ T-102 et T-103 les arment. Ils entrent **en chantier** avec leur mesure d'entré
 le générateur produit un champ isotrope et de moyenne homogène à toutes les
 lignes, et seule une évolution de la géométrie de la dalle et de la condition
 initiale peut les fermer.
+
+## D-39 — L'intention de l'œuvre s'élargit *(19/11/2026, Marc)*
+« Le but du projet n'est plus de représenter ces trois frontières mais effectivement de
+s'enivrer et de donner la possibilité au spectateur d'appréhender l'immensité des
+échelles de temps et de l'espace. » Les trois frontières deviennent le premier chapitre.
+Remplace l'intention du §0 de `demandes-client.md` (N0).
+
+## D-40 — Chantiers en parallèle, pilotés par un maître *(19/11/2026, Marc)*
+Tous les chantiers de la refonte avancent en parallèle ; un maître répond aux agents,
+leur donne les autorisations, sélectionne et publie au fur et à mesure ce qui améliore
+l'œuvre. Pas de validation demandée à Marc quand elle est évidente. Voir `CLAUDE.md`,
+`chantiers/MAITRE.md`.
+
+## D-41 — Les Alpes finissent sur le relief réel *(19/11/2026, Marc)*
+Sur les deux derniers millions d'années, on finit par reconnaître Belledonne : le
+soulèvement converge vers le relief réel, et la barre de temps ralentit pour le montrer.
+
+## D-42 — L'écoulement des glaciers alpins *(19/11/2026, Marc)*
+Depuis la même vue d'avion, voir s'écouler les glaciers dans les vallées, avec leurs
+avancées et leurs retraits, sur environ 100 000 ans, d'après les publications
+(simulations PISM de Seguinot et al. 2018, 120–0 ka). Chantier S8.

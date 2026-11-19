@@ -17,6 +17,10 @@ exigences qu'elle sert est incomplète.
 
 ## 0. L'œuvre — intention
 
+> **19/11/2026 — intention élargie par Marc (D-39), remplace la suivante :** s'enivrer,
+> donner au spectateur la possibilité d'appréhender l'immensité des échelles de temps
+> et d'espace. Les trois frontières en sont le premier chapitre. Voir section N.
+
 **L'objet de l'œuvre est de faire comprendre visuellement trois limites de
 l'univers : l'univers observable, la sphère de Hubble et l'horizon des
 événements.** Tout le reste — la toile cosmique, les galaxies, les filaments, la
@@ -1077,3 +1081,37 @@ sphère de la matière observable reste tracée : à l'intérieur, l'univers mes
 l'observable ne peut pas effacer cette limite pour faire joli.*
 
 
+
+
+---
+
+## N — Refonte : du cosmos aux Alpes *(19/11/2026)*
+
+*Demande de Marc du 19/11/2026, 7 h 02 et 7 h 29. Proposition : Claude Doc « L'Heure de
+s'enivrer — Refonte : du cosmos aux Alpes ».*
+
+- **N0.** Intention : s'enivrer, appréhender l'immensité des échelles de temps et d'espace (D-39).
+- **N1.** Le zoom descend sans rupture de l'univers observable jusqu'au Soleil, puis à la Terre, puis à une vue d'avion des Alpes du Nord.
+- **N2.** En descendant, le centre du zoom quitte le centre de la Voie lactée pour suivre le Soleil, puis la Terre.
+- **N3.** En dézoomant depuis la Terre jeune, le Soleil en formation reste à l'écran.
+- **N4.** On voit les particules du nuage s'agglutiner, le Soleil s'allumer, sa périphérie se nettoyer à mesure que les planètes se forment.
+- **N5.** On voit la Terre se former par accrétion, puis la collision qui donne la Lune.
+- **N6.** On voit la Lune s'éloigner de la Terre au fil des milliards d'années.
+- **N7.** La Terre est montrée comme photographiée de l'espace, sans nuages, toujours à la même saison quand le temps défile vite.
+- **N8.** Les continents dérivent sur 4,5 milliards d'années ; on comprend que la Pangée et l'époque hercynienne n'en couvrent qu'environ un dixième.
+- **N9.** Reconstitutions scientifiques publiées là où elles existent ; au-delà, hypothèse signalée.
+- **N10.** Les glaces scintillent au rythme des glaciations ; les épisodes « boule de neige » sont visibles et racontés.
+- **N11.** Le climat se lit sur le globe.
+- **N12.** La vie se voit de l'espace là où elle change la couleur de la planète ; ce qui ne se voit pas est montré autrement, sans tricher.
+- **N13.** Hominines, genre *Homo*, différents hommes, puis *sapiens* colonisent la Terre en bouffées de lichen de couleurs différentes.
+- **N14.** Les vagues successives et le remplacement des autres espèces humaines par *sapiens* sont visibles.
+- **N15.** Un zoom mène de la Pangée et du massif hercynien à la Téthys, puis à la surrection des Alpes.
+- **N16.** Un film de 45 millions d'années, en vue d'avion, montre compression et érosion simultanées jusqu'au relief des Alpes du Nord.
+- **N17.** Relief réaliste ; on comprend les échelles de temps et la « machine à laver métamorphique ».
+- **N18.** Récits rangés par échelle (univers, galaxie, Système solaire, Terre, Alpes).
+- **N19.** Partout, le temps écoulé reste situé dans les 13,8 milliards d'années.
+- **N20.** Même exigence esthétique à toutes les échelles ; fluide sur téléphone.
+- **N21.** Les récits existants ne régressent pas.
+- **N22.** Depuis la même vue d'avion, on voit s'écouler les glaciers dans les vallées alpines, avec leurs avancées et leurs retraits, sur environ 100 000 ans, d'après les publications (D-42).
+- **N23.** Sur les deux derniers millions d'années, on finit par reconnaître Belledonne ; la barre de temps ralentit pour le montrer (D-41).
+- **N24.** Les résultats des chantiers sont publiés au fur et à mesure qu'ils améliorent l'œuvre (D-40).
