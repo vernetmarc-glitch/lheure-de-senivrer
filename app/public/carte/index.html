@@ -221,6 +221,10 @@ body[data-mode=recit] #titre { display: none; }
   <p class="titreIntro">Le tour du Soleil</p>
   <p>Le Soleil tourne autour de la galaxie : un tour dure un quart de milliard d'années.</p>
 </template>
+<template id="introSolitude">
+  <p class="titreIntro">La grande solitude</p>
+  <p>L'expansion accélère : un à un, les amas passent l'horizon des événements. Que restera-t-il dans notre ciel ?</p>
+</template>
 <template id="introAnnee">
   <p class="titreIntro">L'année cosmique</p>
   <p>L'histoire de l'univers en une année : Big Bang le 1er janvier, aujourd'hui le soir du 31 décembre.</p>
@@ -260,6 +264,7 @@ body[data-mode=recit] #titre { display: none; }
   <div class="scen"><button data-scen="annee">L'année cosmique</button></div>
   <div class="scen"><button data-scen="passe">Regarder loin, c'est voir le passé</button></div>
   <div class="scen"><button data-scen="soleil">Le tour du Soleil</button></div>
+  <div class="scen"><button data-scen="solitude">La grande solitude</button></div>
 </div>
 <div id="modale" role="dialog" aria-modal="true" aria-labelledby="modaleTitre">
   <div>
@@ -1573,6 +1578,7 @@ function dessine() {
   } else { ctx.fillStyle = "#ffffff"; cercle(cx, cy, 2.2 * DPR); ctx.fill(); ctx.fillStyle = "#d9dbe2"; ctx.fillText("nous", cx, cy + 15 * DPR); }
 
   // flèches de vitesse (scénario de la sphère de Hubble)
+  if (scen && scen.solitude) dessineSolitude(cx, cy, ppg, s);
   if (scen && scen.tapis) { dessineTapis(cx, cy, ppg, s); if (scen.cle === "hubble") dessineVitesses(cx, cy, ppg, s); }
   if (scen && scen.cle === "evenements" && scen.acte === 1) dessineCibles(cx, cy, ppg, s);
   if (scen && scen.cle === "evenements" && scen.acte === 2) dessineCourant(cx, cy, ppg, s);
@@ -1753,6 +1759,24 @@ function dessineLoupe(cx, cy, ppg, s) {
   ctx.strokeStyle = "rgba(225,232,245,0.8)"; ctx.lineWidth = 1.5 * DPR; cercle(x + d / 2, y + d / 2, d / 2); ctx.stroke();
   ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "left"; ctx.fillStyle = "rgba(225,232,245,0.9)";
   ctx.fillText(`loupe : ${fmt(champ * TUILE_GAL * s.a)} autour d'une source`, x, y + d + 15 * DPR * US);
+}
+// R4 : les amas, à distance propre a·χ ; à portée (en deçà de l'horizon) dorés, perdus (au-delà) rougis puis éteints
+function dessineSolitude(cx, cy, ppg, s) {
+  const h = ETA_INF - s.eta; let n = 0; ctx.save(); ctx.globalCompositeOperation = "lighter";
+  for (const q of scen.amas) {
+    const r = s.a * q.chi * ppg, x = cx + r * Math.cos(q.th), y = cy - r * Math.sin(q.th), u = q.chi / h;
+    if (u < 1) n++;
+    if (x < -10 || y < -10 || x > Wpx + 10 || y > Hpx + 10) continue;
+    const al = u < 1 ? 0.85 : 0.85 * Math.exp(-2.2 * (u - 1));
+    if (al < 0.02) continue;
+    const g = u < 1 ? 1 : Math.max(0.25, 1 - 0.75 * (u - 1)), rr = (1.1 + 0.9 * q.m) * DPR;
+    ctx.fillStyle = `rgba(255,${Math.round(225 * g)},${Math.round(170 * g * g)},${al})`; cercle(x, y, rr); ctx.fill();
+    if (u < 1) { ctx.fillStyle = `rgba(255,220,160,${0.12 * al})`; cercle(x, y, rr * 3.2); ctx.fill(); }
+  }
+  ctx.globalCompositeOperation = "source-over";
+  const R = s.a * h * ppg; ctx.font = `${11.5 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "center"; ctx.fillStyle = "rgba(235,238,245,0.9)";
+  ctx.fillText(n > 1 ? `${n} amas encore à portée` : n === 1 ? "un amas encore à portée" : "plus aucun amas à portée", cx, Math.min(Hpx * 0.8, cy + R + 22 * DPR));
+  ctx.restore(); sale = true;
 }
 // R3 : l'orbite du Soleil (8,2 kpc, disque incliné comme les étoiles) et le Soleil, avec sa traîne
 function dessineSoleil(gx, gy, ppk, phi) {
@@ -2084,6 +2108,39 @@ const SCEN = {
       this.prog = Math.min(1, this.prog + dts / e.duree);
       this.chi = Math.exp(Math.log(this.chi0) + (Math.log(e.chi1) - Math.log(this.chi0)) * lisse(0, 1, this.prog));
       this.place();
+      return i === E_.length - 1 && this.prog >= 1;
+    },
+    legende() { return ""; },
+  },
+  // R4 (19/11) : « La grande solitude ». Des amas à distance comobile fixe (tirage fixe, disque de 40 Gal) ; le temps
+  // court d'aujourd'hui à 100 milliards d'années, champ propre fixe. L'horizon des événements se referme sur eux en
+  // comobile (η∞ − η) : un amas qui le franchit est perdu (sa lumière rougit, se fige, s'éteint).
+  solitude: {
+    W: 22, cercles: ["e"], intro: "introSolitude", solitude: true,
+    init() {
+      t = T0; W = 22; elZ.value = uFromW(W); fronts = []; this.iProg = -1; this.pause = true; this.attente = true;
+      if (!this.amas) {
+        let g = 271828; const alea = () => { g = (g + 0x6D2B79F5) >>> 0; let x = Math.imul(g ^ (g >>> 15), 1 | g); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+        this.amas = Array.from({ length: 1400 }, () => ({ chi: 40 * Math.sqrt(0.0004 + 0.9996 * alea()), th: 2 * Math.PI * alea(), m: 0.5 + alea() }));
+        // nos voisins réels, à leur distance comobile (Gal) : Vierge, Fourneau, Hydre, Centaure, Coma
+        for (const chi of [0.054, 0.062, 0.16, 0.17, 0.32]) this.amas.push({ chi, th: 2 * Math.PI * alea(), m: 1.4 });
+      }
+    },
+    get dans() { const h = ETA_INF - at(t).eta; return this.amas ? this.amas.filter(q => q.chi < h).length : 0; },
+    etapes: [
+      { txt: "Aujourd'hui : chaque point, un amas de galaxies. Ceux qui sont en deçà du cercle pourront encore nous faire signe.", t1: T0, duree: 0.5, fin() { return this.prog >= 1; } },
+      { txt: "Dans quelques milliards d'années, Andromède et la Voie lactée se rapprochent, peut-être pour s'unir. Au loin, les amas s'éloignent.", t1: 18.8, duree: 5, fin() { return this.prog >= 1; } },
+      { txt: "L'expansion accélère : un à un, les amas franchissent l'horizon. Leur lumière rougit, se fige, s'éteint.", t1: 32, duree: 5, fin() { return this.prog >= 1; } },
+      { txt: "Le ciel se vide : seuls les amas les plus proches sont encore à portée. Ce qui a franchi l'horizon est perdu pour toujours.", t1: 60, duree: 5, fin() { return this.prog >= 1; } },
+      { txt: "Dans 100 milliards d'années, il ne reste que deux voisins, rougis à l'extrême. Bientôt, plus rien : notre galaxie, seule dans le noir.", t1: 100, duree: 5, fin() { return this.prog >= 1; } },
+      { txt: "", t1: 100, duree: 1, fin() { return this.prog >= 1; } }],
+    texteFin: "Ses astronomes ne pourront plus deviner l'expansion. Nous vivons l'heure où le ciel la raconte encore : l'heure de s'enivrer.",
+    avance(dts) {
+      if (this.el < 0.3) return false;
+      const E_ = this.etapes, i = Math.min(this.ie || 0, E_.length - 1), e = E_[i];
+      if (this.iProg !== i) { this.iProg = i; this.prog = 0; this.ta = t; }
+      this.prog = Math.min(1, this.prog + dts / e.duree);
+      t = Math.min(TMAX, Math.exp(Math.log(this.ta) + (Math.log(e.t1) - Math.log(this.ta)) * lisse(0, 1, this.prog)));
       return i === E_.length - 1 && this.prog >= 1;
     },
     legende() { return ""; },
@@ -2527,6 +2584,7 @@ let vitesseTest = 1;                                      // contrôles seulemen
 window.HDS = { set grille(v) { sansGrille = !v; sale = true; },
   // 18/11 : imite l'arrondi approché des GPU de téléphone (division imprécise) pour le contrôle du voisinage
   cone(tt) { return ETA0 - at(tt).eta; },
+  get solitude() { return scen && scen.solitude ? { dans: scen.dans } : null; },
   get soleil() { return scen && scen.soleilPhi != null ? { phi: scen.soleilPhi } : null; },
   set gigueMobile(v) { matiere.historiques.gigue = v; sale = true; },
   demarrerLibre() { marqueDecouverte(); libre(); zoomAnim = null; mode("libre"); }, recit(cle) { recit(cle); }, suite() { suite(); },
