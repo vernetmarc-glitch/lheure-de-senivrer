@@ -1,0 +1,492 @@
+== merdith 4450249 : Plate model for 'Extending Full-Plate Tectonic Models into Deep Time: Linking the Neoproterozoic and the Phanerozoic ' (version 1.1a)
+  SM2.zip  9.6 Mo
+== merdith 13635864 : Extending full-plate tectonic models into deep time: Linking the Neoproterozoic and the Phanerozoic (version 1.2.4)
+  Stats_SM3.zip  0.1 Mo
+  Animations.zip  0.0 Mo
+  Graphs.zip  0.1 Mo
+  Merdith_etal_2021_ESR_v1.2.4.zip  8.5 Mo
+== paleodem 5460860 : PALEOMAP Paleodigital Elevation Models (PaleoDEMS) for the Phanerozoic (version None)
+  Scotese_Wright_2018_Maps_1-88_1degX1deg_PaleoDEMS_nc.zip  9.3 Mo
+  PALEOMAP_PaleoAtlases.zip  112.9 Mo
+  PaleoDEMS_long_lat_elev_csv_v2.zip  20.3 Mo
+  Scotese_Wright2018_PALEOMAP_PaleoDEMs.pdf  6.8 Mo
+  Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc.zip  207.3 Mo
+  Scotese_PaleoAtlas_v3.zip  58.1 Mo
+== plate-model-manager : default, muller2025, shirmard2025, alfonso2024, cao2024, cao2023, muller2022, zahirovic2022, merdith2021, clennett2020, clennett2020_m2019, clennett2020_s2013, muller2019, scotese_and_wright2018, young2018, torsvikcocks2017, matthews2016, matthews2016_mantle_ref, matthews2016_pmag_ref, muller2016, scotese2016, zahirovic2016, gibbons2015, domeier2014, zahirovic2014, shephard2013, gurnis2012, seton2012, li2008, muller2008, golonka, paleomap, rodinia
+  PALEOMAP : 0–750 Ma ; couches ['Coastlines', 'StaticPolygons']
+   rotations ['/tmp/sources/pmm/paleomap/Rotations/PALEOMAP_PlateModel.rot']
+    Coastlines ['/tmp/sources/pmm/paleomap/Coastlines/PALEOMAP_coastlines.gpmlz']
+    StaticPolygons ['/tmp/sources/pmm/paleomap/StaticPolygons/PALEOMAP_PlatePolygons.gpml']
+  Merdith2021 : 0–1000 Ma ; couches ['Coastlines', 'StaticPolygons', 'ContinentalPolygons', 'Topologies', 'Cratons', 'COBs']
+   rotations ['/tmp/sources/pmm/merdith2021/Rotations/1000_0_rotfile_Merdith_etal.rot']
+    Coastlines ['/tmp/sources/pmm/merdith2021/Coastlines/shapes_coastlines_Merdith_et_al_v2.gpmlz']
+    StaticPolygons ['/tmp/sources/pmm/merdith2021/StaticPolygons/shapes_static_polygons_Merdith_etal.gpml']
+    ContinentalPolygons ['/tmp/sources/pmm/merdith2021/ContinentalPolygons/shapes_continents.gpml']
+    Topologies ['/tmp/sources/pmm/merdith2021/Topologies/1000-410-Convergence_Merdith_etal.gpml', '/tmp/sources/pmm/merdith2021/Topologies/250-0_plate_bounds_Merdith_etal.gpml', '/tmp/sources/pmm/merdith2021/Topologies/1000-410-Transforms_Merdith_etal.gpml', '/tmp/sources/pmm/merdith2021/Topologies/TopologyBuildingBlocks_Merdith_etal.gpml', '/tmp/sources/pmm/merdith2021/Topologies/410-250_plate_bounds_Merdith_etal.gpml', '/tmp/sources/pmm/merdith2021/Topologies/1000-410-Topologies_Merdith_etal.gpml', '/tmp/sources/pmm/merdith2021/Topologies/1000-410-Divergence_Merdith_etal.gpml']
+    Cratons ['/tmp/sources/pmm/merdith2021/Cratons/shapes_cratons_Merdith_etal.gpml']
+    COBs ['/tmp/sources/pmm/merdith2021/COBs/shapes_continents.gpml']
+
+== Arborescence (hors .nc détaillés)
+[.] 1 fichiers, dont 0 grilles
+    journal-telechargement.txt  0.00 Mo
+[merdith] 0 fichiers, dont 0 grilles
+[merdith/13635864] 5 fichiers, dont 0 grilles
+    Animations.zip  0.00 Mo
+    Graphs.zip  0.08 Mo
+    Merdith_etal_2021_ESR_v1.2.4.zip  8.50 Mo
+    Stats_SM3.zip  0.08 Mo
+    record.json  0.01 Mo
+[merdith/13635864/x] 0 fichiers, dont 0 grilles
+[merdith/13635864/x/Animations] 1 fichiers, dont 0 grilles
+    1_Ga.mp4  0.00 Mo
+[merdith/13635864/x/Graphs] 4 fichiers, dont 0 grilles
+    MOR_length_Sep2020.pdf  0.02 Mo
+    Seafloor_consumption_Sep2020.pdf  0.02 Mo
+    Seafloor_production_Sep2020.pdf  0.02 Mo
+    Sub_length_Sep2020.pdf  0.02 Mo
+[merdith/13635864/x/Merdith_etal_2021_ESR_v1.2.4] 2 fichiers, dont 0 grilles
+    Merdith_etal_2021_ESR_v1.2.4.gproj  0.01 Mo
+    README.txt  0.02 Mo
+[merdith/13635864/x/Merdith_etal_2021_ESR_v1.2.4/Coastlines] 1 fichiers, dont 0 grilles
+    shapes_coastlines_Merdith_et_al_v2.gpmlz  1.90 Mo
+[merdith/13635864/x/Merdith_etal_2021_ESR_v1.2.4/Continents] 1 fichiers, dont 0 grilles
+    shapes_continents.gpml  9.59 Mo
+[merdith/13635864/x/Merdith_etal_2021_ESR_v1.2.4/Cratons] 1 fichiers, dont 0 grilles
+    shapes_cratons_Merdith_etal.gpml  5.36 Mo
+[merdith/13635864/x/Merdith_etal_2021_ESR_v1.2.4/PaleomagneticData] 1 fichiers, dont 0 grilles
+    1000-410_poles.gpml  0.38 Mo
+[merdith/13635864/x/Merdith_etal_2021_ESR_v1.2.4/Rotations] 1 fichiers, dont 0 grilles
+    1000_0_rotfile_Merdith_etal.rot  0.63 Mo
+[merdith/13635864/x/Merdith_etal_2021_ESR_v1.2.4/StaticPolygons] 1 fichiers, dont 0 grilles
+    shapes_static_polygons_Merdith_etal.gpml  23.46 Mo
+[merdith/13635864/x/Merdith_etal_2021_ESR_v1.2.4/Topologies] 7 fichiers, dont 0 grilles
+    1000-410-Convergence_Merdith_etal.gpml  1.30 Mo
+    1000-410-Divergence_Merdith_etal.gpml  0.79 Mo
+    1000-410-Topologies_Merdith_etal.gpml  11.80 Mo
+    1000-410-Transforms_Merdith_etal.gpml  1.45 Mo
+    250-0_plate_bounds_Merdith_etal.gpml  34.60 Mo
+    410-250_plate_bounds_Merdith_etal.gpml  7.27 Mo
+    TopologyBuildingBlocks_Merdith_etal.gpml  1.09 Mo
+[merdith/13635864/x/Stats_SM3] 2 fichiers, dont 0 grilles
+    SM3a_SUB_stats.csv  0.08 Mo
+    SM3b_MOR_stats.csv  0.08 Mo
+[merdith/4450249] 2 fichiers, dont 0 grilles
+    SM2.zip  9.58 Mo
+    record.json  0.00 Mo
+[merdith/4450249/x] 0 fichiers, dont 0 grilles
+[merdith/4450249/x/SM2] 0 fichiers, dont 0 grilles
+[merdith/4450249/x/SM2/SM2] 17 fichiers, dont 0 grilles
+    .DS_Store  0.01 Mo
+    1000-410-Convergence_Merdith_et_al.gpml  1.11 Mo
+    1000-410-Divergence_Merdith_et_al.gpml  0.70 Mo
+    1000-410-Topologies_Merdith_et_al.gpml  9.48 Mo
+    1000-410-Transforms_Merdith_et_al.gpml  1.58 Mo
+    1000-410_poles.gpml  0.38 Mo
+    1000_0_rotfile_Merdith_et_al.rot  0.63 Mo
+    1_Ga.mp4  2.94 Mo
+    1_Ga_base_project.gproj  0.01 Mo
+    250-0_plate_boundaries_Merdith_et_al.gpml  35.46 Mo
+    410-250_plate_boundaries_Merdith_et_al.gpml  6.63 Mo
+    APWP.txt  0.00 Mo
+    SM2_ReadMe.txt  0.00 Mo
+    TopologyBuildingBlocks_Merdith_et_al.gpml  1.12 Mo
+    shapes_continents_Merdith_et_al.gpml  9.54 Mo
+    shapes_cratons_Merdith_et_al.gpml  5.36 Mo
+    shapes_static_polygons_Merdith_et_al.gpml  23.46 Mo
+[merdith/4450249/x/SM2/__MACOSX] 0 fichiers, dont 0 grilles
+[merdith/4450249/x/SM2/__MACOSX/SM2] 17 fichiers, dont 0 grilles
+    ._.DS_Store  0.00 Mo
+    ._1000-410-Convergence_Merdith_et_al.gpml  0.00 Mo
+    ._1000-410-Divergence_Merdith_et_al.gpml  0.00 Mo
+    ._1000-410-Topologies_Merdith_et_al.gpml  0.00 Mo
+    ._1000-410-Transforms_Merdith_et_al.gpml  0.00 Mo
+    ._1000-410_poles.gpml  0.00 Mo
+    ._1000_0_rotfile_Merdith_et_al.rot  0.00 Mo
+    ._1_Ga.mp4  0.00 Mo
+    ._1_Ga_base_project.gproj  0.00 Mo
+    ._250-0_plate_boundaries_Merdith_et_al.gpml  0.00 Mo
+    ._410-250_plate_boundaries_Merdith_et_al.gpml  0.00 Mo
+    ._APWP.txt  0.00 Mo
+    ._SM2_ReadMe.txt  0.00 Mo
+    ._TopologyBuildingBlocks_Merdith_et_al.gpml  0.00 Mo
+    ._shapes_continents_Merdith_et_al.gpml  0.00 Mo
+    ._shapes_cratons_Merdith_et_al.gpml  0.00 Mo
+    ._shapes_static_polygons_Merdith_et_al.gpml  0.00 Mo
+[paleodem] 0 fichiers, dont 0 grilles
+[paleodem/5460860] 7 fichiers, dont 0 grilles
+    PALEOMAP_PaleoAtlases.zip  112.90 Mo
+    PaleoDEMS_long_lat_elev_csv_v2.zip  20.30 Mo
+    Scotese_PaleoAtlas_v3.zip  58.09 Mo
+    Scotese_Wright2018_PALEOMAP_PaleoDEMs.pdf  6.84 Mo
+    Scotese_Wright_2018_Maps_1-88_1degX1deg_PaleoDEMS_nc.zip  9.30 Mo
+    Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc.zip  207.27 Mo
+    record.json  0.01 Mo
+[paleodem/5460860/x] 0 fichiers, dont 0 grilles
+[paleodem/5460860/x/PALEOMAP_PaleoAtlases] 1 fichiers, dont 0 grilles
+    License.txt  0.00 Mo
+[paleodem/5460860/x/PALEOMAP_PaleoAtlases/PALEOMAP PaleoAtlases] 17 fichiers, dont 0 grilles
+    1.1 Atlasof Neogene Paleogeographic Maps (Scotese, 2014).pdf  6.28 Mo
+    1.2 Atlas of Paleogene Paleogeographic Maps (Scotese, 2014).pdf  18.87 Mo
+    2.1 Atlas of Late Cretaceous Paleogeographic Maps (Scotese, 2014).pdf  3.12 Mo
+    2.2 Atlas of Early Cretacceous Paleogeographic Maps (Scotese, 2014).pdf  2.60 Mo
+    3.1 Atlas of Jurassic Paleogeographic Maps (Scotese, 2014).pdf  3.21 Mo
+    3.2 Atlas of Permo-Triassic Paleogeographic Maps (Scotese, 2014).pdf  4.02 Mo
+    4.1 Atlas of Permo-Carboniferoous Paleogeographic Maps (Scotese, 2014).pdf  2.91 Mo
+    4.3 Atlas of Devonian Paleogeographic Maps.pdf  2.23 Mo
+    5.1 Atlas of Siluro-Ordovician Paleogeographic Maps (Scotese, 2014).pdf  3.25 Mo
+    5.2 Atlas of Cambro-Ordovician Paleogeographic Maps (Scotese, 2014).pdf  3.86 Mo
+    6.1 Phanerozoic PlateTectonic Atlas (Scotese, 2014).pdf  9.37 Mo
+    6.2 Atlas of PaleoClimatic Zones (Scotese et al, 2013).pdf  11.49 Mo
+    6.3 Atlas of PaleoTemperaures (Scotese&Moore, 2014).pdf  4.47 Mo
+    6.4 Atlas of PaleoRainfall (Scotese& Moore, 2014).pdf  11.20 Mo
+    6.5 Atlas of PaleoSalinity (scotese & Moore, 2014).pdf  7.70 Mo
+    6.6 Atlas of PaleoAnoxia (Scotese, 2014).pdf  15.33 Mo
+    6.7 Atlas of PaleoUpwelling (Scotese & Moore, 2014).pdf  11.83 Mo
+[paleodem/5460860/x/PaleoDEMS_long_lat_elev_csv_v2] 1 fichiers, dont 0 grilles
+    License.txt  0.00 Mo
+[paleodem/5460860/x/PaleoDEMS_long_lat_elev_csv_v2/PaleoDEMS_long_lat_elev_csv_v2.csv] 109 fichiers, dont 0 grilles
+    Map01_000Ma.csv  1.21 Mo
+    Map03_005Ma.csv  1.21 Mo
+    Map05_010Ma.csv  1.21 Mo
+    Map06_015Ma.csv  1.21 Mo
+    Map07_020Ma.csv  1.21 Mo
+    Map08_025Ma.csv  1.21 Mo
+    Map09_030Ma.csv  1.20 Mo
+    Map10_035Ma.csv  1.20 Mo
+    Map11_040Ma.csv  1.20 Mo
+    Map12_045Ma.csv  1.20 Mo
+    Map13_050Ma.csv  1.21 Mo
+    Map14_055Ma.csv  1.20 Mo
+    Map15_060Ma.csv  1.20 Mo
+    Map16_065Ma.csv  1.20 Mo
+    Map17_070Ma.csv  1.20 Mo
+    Map18_075Ma.csv  1.21 Mo
+    Map19_080Ma.csv  1.21 Mo
+    Map20_085Ma.csv  1.21 Mo
+    Map21_090Ma.csv  1.21 Mo
+    Map22_095Ma.csv  1.21 Mo
+    Map23_100Ma.csv  1.21 Mo
+    Map24_105Ma.csv  1.21 Mo
+    Map25_110Ma.csv  1.20 Mo
+    Map26_115Ma.csv  1.20 Mo
+    Map27_120Ma.csv  1.20 Mo
+    Map28_125Ma.csv  1.21 Mo
+    Map29_130Ma.csv  1.20 Mo
+    Map30_135Ma.csv  1.20 Mo
+    Map31_140Ma.csv  1.20 Mo
+    Map32_145Ma.csv  0.82 Mo
+    Map33_150Ma.csv  0.81 Mo
+    Map34_155Ma.csv  0.81 Mo
+    Map35_160Ma.csv  0.81 Mo
+    Map36_165Ma.csv  0.81 Mo
+    Map37_170Ma.csv  0.81 Mo
+    Map38_175Ma.csv  0.81 Mo
+    Map39_180Ma.csv  0.81 Mo
+    Map40_185Ma.csv  0.81 Mo
+    Map41_190Ma.csv  0.81 Mo
+    Map42_195Ma.csv  0.81 Mo
+    Map43.5_205Ma.csv  0.81 Mo
+    Map43_200Ma.csv  0.80 Mo
+    Map44.5_215Ma.csv  0.80 Mo
+    Map44_210Ma.csv  0.81 Mo
+    Map45.5_225Ma.csv  0.81 Mo
+    Map45_220Ma.csv  0.80 Mo
+    Map46.5_235Ma.csv  0.80 Mo
+    Map46_230Ma.csv  0.81 Mo
+    Map47_240Ma.csv  0.81 Mo
+    Map48_245Ma.csv  0.80 Mo
+    Map49_250Ma.csv  0.81 Mo
+    Map50_255Ma.csv  0.81 Mo
+    Map51.5_265Ma.csv  0.82 Mo
+    Map51_260Ma.csv  0.81 Mo
+    Map52_270Ma.csv  0.82 Mo
+    Map53.5_280Ma.csv  0.82 Mo
+    Map53_275Ma.csv  0.82 Mo
+    Map54_285Ma.csv  0.82 Mo
+    Map55_290Ma.csv  0.82 Mo
+    Map56_295Ma.csv  0.82 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3] 1 fichiers, dont 0 grilles
+    License.txt  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3] 1 fichiers, dont 0 grilles
+    PALEOMAP PaleoAtlas for GPlates v3.pdf  5.29 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PALEOMAP Global Plate Model] 3 fichiers, dont 0 grilles
+    PALEOMAP_PlateModel.rot  0.08 Mo
+    PALEOMAP_PlatePolygons.gpml  5.29 Mo
+    PALEOMAP_PoliticalBoundaries.gpml  3.49 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PALEOMAP PaleoAtlas Rasters v3] 90 fichiers, dont 0 grilles
+    Map10a Late Eocene_035.jpg  0.83 Mo
+    Map11a MIddle Eocene_040.jpg  0.89 Mo
+    Map12a early Middle Eocene_045.jpg  0.92 Mo
+    Map13a Early Eocene_050.jpg  1.04 Mo
+    Map14a PETM_055.jpg  0.85 Mo
+    Map15a Paleocene_060.jpg  0.99 Mo
+    Map16a KT Boundary_066.jpg  0.75 Mo
+    Map17a LtK Maastrichtian_070.jpg  0.82 Mo
+    Map18a LtK Late Campanian_075.jpg  0.74 Mo
+    Map19a LtK Early Campanian_080.jpg  0.73 Mo
+    Map1a PALEOMAP PaleoAtlas_000.jpg  1.40 Mo
+    Map21a LtK Turonian_090.jpg  0.70 Mo
+    Map22a LtK Cenomanian_095.jpg  0.68 Mo
+    Map23a EK Late Albian_100.jpg  0.81 Mo
+    Map24a EK Middle Albian_105.jpg  0.83 Mo
+    Map25a EK Early Albian_110.jpg  0.81 Mo
+    Map26a EK Late Aptian_115.jpg  0.69 Mo
+    Map27a EK Early Albian_120.jpg  1.03 Mo
+    Map28a EK Barremian_125.jpg  0.70 Mo
+    Map29a EK Hauterivian_130.jpg  0.71 Mo
+    Map2a Last Glacial Maximum_001.jpg  0.95 Mo
+    Map30a EK Valangian_135.jpg  0.61 Mo
+    Map31a EK Berriasian_140.jpg  0.65 Mo
+    Map32a Jurassic-Cretaceous Boundary_145.jpg  0.66 Mo
+    Map33a LtJ Tithonian_150.jpg  0.68 Mo
+    Map34a LtJ Kimmeridgian_155.jpg  0.99 Mo
+    Map35a LtJ Oxfordian_160.jpg  0.67 Mo
+    Map36a MJ Callovian_165.jpg  0.60 Mo
+    Map37a MJ Bajocian&Bathonian_170.jpg  0.60 Mo
+    Map38a MJ Aalenian_175.jpg  0.57 Mo
+    Map39a EJ Toarcian_180.jpg  0.54 Mo
+    Map3a Pliocene_004.jpg  0.94 Mo
+    Map40a EJ Pliensbachian_185.jpg  0.56 Mo
+    Map41a EJ Sinemurian_190.jpg  0.58 Mo
+    Map42a EJ Hettangian_195.jpg  0.52 Mo
+    Map43a Triassic-Jurassic Boundary_200.jpg  0.51 Mo
+    Map44a LtTr Norian_210.jpg  0.84 Mo
+    Map45a LtTr Carnian_220.jpg  0.57 Mo
+    Map46a MTr Ladinian_230.jpg  0.53 Mo
+    Map47a MTr Anisian_240.jpg  0.45 Mo
+    Map48a ETr Induan-Olenekian_245.jpg  0.49 Mo
+    Map49a Permo-Triassic Boundary_250.jpg  0.47 Mo
+    Map4a Messinian Event_006.jpg  0.89 Mo
+    Map50a LtP Lopingian_255.jpg  0.53 Mo
+    Map51a LtP Capitanian_260.jpg  0.46 Mo
+    Map52a MP Roadian&Wordian_270.jpg  0.45 Mo
+    Map53a EP Kungurian_275.jpg  0.51 Mo
+    Map54a EP Artinskian_280.jpg  0.53 Mo
+    Map55a EP Sakmarian_290.jpg  0.73 Mo
+    Map56a EP Asselian_295.jpg  0.68 Mo
+    Map57a LtCarb Gzhelian_300.jpg  0.44 Mo
+    Map58a LtCarb Kasimovian_305.jpg  0.45 Mo
+    Map59a LtCarb Moscovian_310.jpg  0.43 Mo
+    Map5a Late Miocene_010.jpg  0.99 Mo
+    Map60a LtCarb Bashkirian_315.jpg  0.45 Mo
+    Map61a ECarb Serpukhovian_320.jpg  0.41 Mo
+    Map62a ECarb Late Visean_330.jpg  0.43 Mo
+    Map63a ECarb Early Visean_340.jpg  0.44 Mo
+    Map64a ECarb Tournaisian_350.jpg  0.44 Mo
+    Map65a Devono-Carboniferous Boundary_360.jpg  0.41 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program] 4 fichiers, dont 0 grilles
+    AptianReefs.csv  0.00 Mo
+    AptianReefs_URN.csv  0.00 Mo
+    ExampleSymbolParameterFile.csv  0.00 Mo
+    Numbers0_9v3.csv  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app] 0 fichiers, dont 0 grilles
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents] 2 fichiers, dont 0 grilles
+    Info.plist  0.00 Mo
+    PkgInfo  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks] 0 fichiers, dont 0 grilles
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework] 2 fichiers, dont 0 grilles
+    Resources  0.00 Mo
+    XojoFramework  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions] 1 fichiers, dont 0 grilles
+    Current  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A] 1 fichiers, dont 0 grilles
+    XojoFramework  3.74 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources] 24 fichiers, dont 22 grilles
+    FileTypeChooser.nib  0.00 Mo
+    Info.plist  0.00 Mo
+    grilles : ['ControllerBackgroundLeft.tiff', 'ControllerBackgroundMiddle.tiff', 'ControllerBackgroundRight.tiff'] … ['VolumeSliderKnob.tiff', 'VolumeSliderTrack.tiff', 'VolumeWindow.tiff']
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/ar.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/ca.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/cs.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/da.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/de.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/el.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/en.lproj] 2 fichiers, dont 0 grilles
+    InfoPlist.strings  0.00 Mo
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/es.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/fi.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/fr.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/he.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/hr.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/hu.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/it.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/ja.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/ko.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/nl.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/no.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/pl.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/pt-BR.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/pt-PT.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/ro.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/ru.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/sk.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/sv.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/th.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/tr.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/uk.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/zh-CN.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/zh-TW.lproj] 1 fichiers, dont 0 grilles
+    Localizable.strings  0.00 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/_CodeSignature] 1 fichiers, dont 0 grilles
+    CodeResources  0.02 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/MacOS] 1 fichiers, dont 0 grilles
+    DatWriterv1  1.53 Mo
+[paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Resources] 0 fichiers, dont 0 grilles
+[paleodem/5460860/x/Scotese_Wright_2018_Maps_1-88_1degX1deg_PaleoDEMS_nc] 1 fichiers, dont 0 grilles
+    License.txt  0.00 Mo
+[paleodem/5460860/x/Scotese_Wright_2018_Maps_1-88_1degX1deg_PaleoDEMS_nc/Scotese_Wright_2018_Maps_1-88_1degX1deg_PaleoDEMS_nc_v2] 329 fichiers, dont 109 grilles
+    All_Maps.gpml  0.28 Mo
+    Map01_PALEOMAP_1deg_Holocene_0Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map01_PALEOMAP_1deg_Holocene_0Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map03_PALEOMAP_1deg_Pliocene_5Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map03_PALEOMAP_1deg_Pliocene_5Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map05_PALEOMAP_1deg_middle_Late_Miocene_10Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map05_PALEOMAP_1deg_middle_Late_Miocene_10Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map06_PALEOMAP_1deg_Middle_Miocene_15Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map06_PALEOMAP_1deg_Middle_Miocene_15Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map07_PALEOMAP_1deg_Early_Miocene_20Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map07_PALEOMAP_1deg_Early_Miocene_20Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map08_PALEOMAP_1deg_Late_Oligocene_25Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map08_PALEOMAP_1deg_Late_Oligocene_25Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map09_PALEOMAP_1deg_Early_Oligocene_30Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map09_PALEOMAP_1deg_Early_Oligocene_30Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map10_PALEOMAP_1deg_Late_Eocene_35Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map10_PALEOMAP_1deg_Late_Eocene_35Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map11_PALEOMAP_1deg_late_Middle_Eocene_40Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map11_PALEOMAP_1deg_late_Middle_Eocene_40Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map12_PALEOMAP_1deg_early_Middle_Eocene_45Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map12_PALEOMAP_1deg_early_Middle_Eocene_45Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map13_PALEOMAP_1deg_Early_Eocene_50Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map13_PALEOMAP_1deg_Early_Eocene_50Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map14_PALEOMAP_1deg_Paleocene_Eocene_Boundary_55Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map14_PALEOMAP_1deg_Paleocene_Eocene_Boundary_55Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map15_PALEOMAP_1deg_Paleocene_60Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map15_PALEOMAP_1deg_Paleocene_60Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map16_PALEOMAP_1deg_KT_Boundary_65Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map16_PALEOMAP_1deg_KT_Boundary_65Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map17_PALEOMAP_1deg_Late_Cretaceous_70Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map17_PALEOMAP_1deg_Late_Cretaceous_70Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map18_PALEOMAP_1deg_Late_Cretaceous_75Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map18_PALEOMAP_1deg_Late_Cretaceous_75Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map19_PALEOMAP_1deg_Late_Cretaceous_80Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map19_PALEOMAP_1deg_Late_Cretaceous_80Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map20_PALEOMAP_1deg_Late_Cretaceous_85Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map20_PALEOMAP_1deg_Late_Cretaceous_85Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map21_PALEOMAP_1deg_Mid-Cretaceous_90Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map21_PALEOMAP_1deg_Mid-Cretaceous_90Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map22_PALEOMAP_1deg_Mid-Cretaceous_95Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map22_PALEOMAP_1deg_Mid-Cretaceous_95Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map23_PALEOMAP_1deg_Early_Cretaceous_100Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map23_PALEOMAP_1deg_Early_Cretaceous_100Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map24_PALEOMAP_1deg_Early Cretaceous_105Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map24_PALEOMAP_1deg_Early Cretaceous_105Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map25_PALEOMAP_1deg_Early_Cretaceous_110Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map25_PALEOMAP_1deg_Early_Cretaceous_110Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map26_PALEOMAP_1deg_Early_Cretaceous_115Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map26_PALEOMAP_1deg_Early_Cretaceous_115Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map27_PALEOMAP_1deg_Early_Cretaceous_120Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map27_PALEOMAP_1deg_Early_Cretaceous_120Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map28_PALEOMAP_1deg_Early_Cretaceous_125Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map28_PALEOMAP_1deg_Early_Cretaceous_125Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map29_PALEOMAP_1deg_Early_Cretaceous_130Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map29_PALEOMAP_1deg_Early_Cretaceous_130Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map30_PALEOMAP_1deg_Early_Cretaceous_135Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map30_PALEOMAP_1deg_Early_Cretaceous_135Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map31_PALEOMAP_1deg_Early_Cretaceous_140Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    Map31_PALEOMAP_1deg_Early_Cretaceous_140Ma.nc.band1.mipmaps.gplates.cache  0.13 Mo
+    Map32_PALEOMAP_1deg_Jurassic_Cretaceous_Boundary_145Ma.nc.band1.level0.gplates.cache  0.26 Mo
+    grilles : ['Map01_PALEOMAP_1deg_Holocene_0Ma.nc', 'Map03_PALEOMAP_1deg_Pliocene_5Ma.nc', 'Map05_PALEOMAP_1deg_middle_Late_Miocene_10Ma.nc'] … ['Map87.5_PALEOMAP_1deg_Early_Cambrian_535Ma.nc', 'Map87_PALEOMAP_1deg_Early_Cambrian_530Ma.nc', 'Map88_PALEOMAP_1deg_Cambrian_Precambrian boundary_540Ma.nc']
+[paleodem/5460860/x/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc] 0 fichiers, dont 0 grilles
+[paleodem/5460860/x/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc] 111 fichiers, dont 109 grilles
+    .DS_Store  0.01 Mo
+    PaleoAtlasTimeIntervalsv22b copy.csv  0.01 Mo
+    grilles : ['Map01_PALEOMAP_6min_Holocene_0Ma.nc', 'Map03_PALEOMAP_6min_Pliocene_5Ma.nc', 'Map05_PALEOMAP_6min_middle_Late_Miocene_10Ma.nc'] … ['Map87.5_PALEOMAP_6min_Early_Cambrian_535Ma.nc', 'Map87_PALEOMAP_6min_Early_Cambrian_530Ma.nc', 'Map88_PALEOMAP_6min_Cambrian_Precambrian boundary_540Ma.nc']
+[paleodem/5460860/x/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc/__MACOSX] 0 fichiers, dont 0 grilles
+[paleodem/5460860/x/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc/__MACOSX/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc] 4 fichiers, dont 2 grilles
+    ._.DS_Store  0.00 Mo
+    ._PaleoAtlasTimeIntervalsv22b copy.csv  0.00 Mo
+    grilles : ['._Map01_PALEOMAP_6min_Holocene_0Ma.nc', '._Map03_PALEOMAP_6min_Pliocene_5Ma.nc'] … ['._Map01_PALEOMAP_6min_Holocene_0Ma.nc', '._Map03_PALEOMAP_6min_Pliocene_5Ma.nc']
+[pmm] 1 fichiers, dont 0 grilles
+    models.json  0.03 Mo
+[pmm/merdith2021] 2 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    readme.txt  0.00 Mo
+[pmm/merdith2021/COBs] 2 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    shapes_continents.gpml  9.59 Mo
+[pmm/merdith2021/Coastlines] 2 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    shapes_coastlines_Merdith_et_al_v2.gpmlz  1.90 Mo
+[pmm/merdith2021/ContinentalPolygons] 2 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    shapes_continents.gpml  9.59 Mo
+[pmm/merdith2021/Cratons] 2 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    shapes_cratons_Merdith_etal.gpml  5.36 Mo
+[pmm/merdith2021/Rotations] 2 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    1000_0_rotfile_Merdith_etal.rot  0.63 Mo
+[pmm/merdith2021/StaticPolygons] 2 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    shapes_static_polygons_Merdith_etal.gpml  23.46 Mo
+[pmm/merdith2021/Topologies] 8 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    1000-410-Convergence_Merdith_etal.gpml  1.30 Mo
+    1000-410-Divergence_Merdith_etal.gpml  0.79 Mo
+    1000-410-Topologies_Merdith_etal.gpml  11.80 Mo
+    1000-410-Transforms_Merdith_etal.gpml  1.45 Mo
+    250-0_plate_bounds_Merdith_etal.gpml  34.60 Mo
+    410-250_plate_bounds_Merdith_etal.gpml  7.27 Mo
+    TopologyBuildingBlocks_Merdith_etal.gpml  1.09 Mo
+[pmm/paleomap] 2 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    readme.txt  0.00 Mo
+[pmm/paleomap/Coastlines] 2 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    PALEOMAP_coastlines.gpmlz  1.35 Mo
+[pmm/paleomap/Rotations] 2 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    PALEOMAP_PlateModel.rot  0.08 Mo
+[pmm/paleomap/StaticPolygons] 2 fichiers, dont 0 grilles
+    .metadata.json  0.00 Mo
+    PALEOMAP_PlatePolygons.gpml  5.29 Mo
+  illisible /tmp/sources/paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/ControllerBackgroundLeft.tiff [Errno -51] NetCDF: Unknown file format: '/tmp/sources/paleodem/5460860/x/Scotese_PaleoAtlas_v3/Scotese PaleoAtlas_v3/PaleoDataPlotter_Program/PaleoData_Plotter.app/Contents/Frameworks/XojoFramework.framework/Versions/A/Resources/ControllerBackgroundLeft.tiff'
+== paleodem/5460860/x/Scotese_Wright_2018_Maps_1-88_1degX1deg_PaleoDEMS_nc/Scotese_Wright_2018_Maps_1-88_1degX1deg_PaleoDEMS_nc_v2/Map01_PALEOMAP_1deg_Holocene_0Ma.nc
+    lon ('lon',) (361,) float64 {'long_name': 'longitude', 'units': 'degrees_east', 'actual_range': '[-180.  180.]'}
+    lat ('lat',) (181,) float64 {'long_name': 'latitude', 'units': 'degrees_north', 'actual_range': '[-90.  90.]'}
+    z ('lat', 'lon') (181, 361) float32 {'long_name': 'z', '_FillValue': 'nan', 'actual_range': '[-9000.  6000.]'}
+== paleodem/5460860/x/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc/Map01_PALEOMAP_6min_Holocene_0Ma.nc
+    latitude ('latitude',) (1801,) float64 {'units': 'degrees_north'}
+    longitude ('longitude',) (3601,) float64 {'units': 'degrees_east'}
+    z ('latitude', 'longitude') (1801, 3601) float32 {'units': 'm', 'actual_range': '[-9000. 10500.]'}
+  illisible /tmp/sources/paleodem/5460860/x/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc/__MACOSX/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc/._Map01_PALEOMAP_6min_Holocene_0Ma.nc [Errno -51] NetCDF: Unknown file format: '/tmp/sources/paleodem/5460860/x/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc/__MACOSX/Scotese_Wright_2018_Maps_1-88_6minX6min_PaleoDEMS_nc/._Map01_PALEOMAP_6min_Holocene_0Ma.nc'
+pygplates 'Feature' object has no attribute 'get_total_reconstruction_sequence'
