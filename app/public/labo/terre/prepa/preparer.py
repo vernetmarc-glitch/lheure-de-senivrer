@@ -24,6 +24,13 @@ NX, NY = 3600, 1800                      # 0,1° : pixel (i, j) centré lon -180
 T0 = time.time()
 
 
+def age_nc(f):
+    """Âge (Ma) tiré du nom d'un PaleoDEM, ex. « Map88_PALEOMAP_6min_..._540Ma.nc »."""
+    m = re.findall(r"(\d+(?:\.\d+)?)\s*Ma", pathlib.Path(f).name)
+    if not m: raise ValueError(f"âge illisible : {f}")
+    return int(round(float(m[-1])))
+
+
 def log(*a):
     print(f"[{time.time()-T0:7.1f} s]", *a, flush=True)
 
@@ -125,7 +132,12 @@ def etape_a():
     import netCDF4
     fs = sorted(glob.glob(str(SRC / "paleodem" / "**" / "*_1deg_*Ma.nc"), recursive=True))
     fs = [f for f in fs if "__MACOSX" not in f]
-    ts = [int(re.search(r"_(\d+)Ma\.nc$", f).group(1)) for f in fs]
+    ok = []
+    for f in fs:
+        try: ok.append((age_nc(f), f))
+        except ValueError as e: log(e)
+    ok = sorted(dict(ok).items())
+    fs = [f for _, f in ok]; ts = [t for t, _ in ok]
     ordre = np.argsort(ts)
     cube = []
     for k in ordre:
@@ -145,7 +157,7 @@ def etape_a():
 
 
 if __name__ == "__main__":
-    if not (INTER / "rotations.npz").exists() or "--refaire-a" in sys.argv:
+    if not (INTER / "dem1deg.npz").exists() or "--refaire-a" in sys.argv:
         etape_a()
     else:
         log("étape A déjà faite (intermediaires/ présents)")
