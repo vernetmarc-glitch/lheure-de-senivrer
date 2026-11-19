@@ -213,6 +213,10 @@ body[data-mode=recit] #titre { display: none; }
   <p class="titreIntro">Formation de la Voie lactée</p>
   <p>Plongée dans la toile cosmique jusqu'à notre galaxie, puis le temps remonte jusqu'à son premier souffle.</p>
 </template>
+<template id="introPasse">
+  <p class="titreIntro">Regarder loin, c'est voir le passé</p>
+  <p>La lumière voyage lentement : regarder loin, c'est voir l'univers jeune. Suivons-la jusqu'au premier ciel.</p>
+</template>
 <template id="introAnnee">
   <p class="titreIntro">L'année cosmique</p>
   <p>L'histoire de l'univers en une année : Big Bang le 1er janvier, aujourd'hui le soir du 31 décembre.</p>
@@ -250,6 +254,7 @@ body[data-mode=recit] #titre { display: none; }
   <div class="scen"><button data-scen="evenements">Horizon des événements</button></div>
   <div class="scen"><button data-scen="promenade">Formation de la Voie lactée</button></div>
   <div class="scen"><button data-scen="annee">L'année cosmique</button></div>
+  <div class="scen"><button data-scen="passe">Regarder loin, c'est voir le passé</button></div>
 </div>
 <div id="modale" role="dialog" aria-modal="true" aria-labelledby="modaleTitre">
   <div>
@@ -2029,6 +2034,38 @@ const SCEN = {
     },
   },
   // promenade : de la toile cosmique jusqu'à notre galaxie, puis sa formation
+  // R1 (19/11) : « Regarder loin, c'est voir le passé ». Une distance comobile χ (celle d'aujourd'hui) grandit ; la carte
+  // montre l'univers à l'instant où partit la lumière venue de χ (η0 − η(t) = χ), dans un champ de taille PROPRE
+  // 1,25·a(t)·χ : ce que nos yeux reçoivent. Le champ culmine (5,8 Gal, lumière partie il y a 9,7 Ga) puis se resserre
+  // jusqu'à 42 Mal au fond diffus : plus loin, plus jeune… et plus petit.
+  passe: {
+    W: 0.0004, cercles: [], intro: "introPasse",
+    init() { this.chi = 0.0003; this.place(); this.iProg = -1; this.pause = true; this.attente = true; },
+    teDe(chi) { let lo = TMIN, hi = T0; for (let k = 0; k < 60; k++) { const m = Math.sqrt(lo * hi); if (ETA0 - at(m).eta > chi) lo = m; else hi = m; } return hi; },
+    // le cercle : la lumière qui nous parviendra, à l'instant où elle part (rouge si l'espace l'emporte, blanche au
+    // plus loin, quand elle fait du surplace, bleue en deçà) — le code de couleur des photons
+    place() { t = this.teDe(this.chi); W = Math.min(WMAX, Math.max(WMIN, 1.25 * at(t).a * this.chi)); elZ.value = uFromW(W);
+      fronts = [{ sens: "in", te: t, chi0: this.chi, etiquette: "d'ici part la lumière que nous voyons" }]; },
+    etapes: [
+      { txt: "Andromède : sa lumière est partie il y a 2,5 millions d'années. Nous la voyons telle qu'elle était alors.", chi1: 0.0025, duree: 4, fin() { return this.prog >= 1; } },
+      { txt: "L'amas de la Vierge, il y a 54 millions d'années. Plus loin on regarde, plus loin dans le passé.", chi1: 0.054, duree: 4, fin() { return this.prog >= 1; } },
+      { txt: "À un milliard d'années-lumière, l'univers d'il y a un milliard d'années.", chi1: 1.037, duree: 4, fin() { return this.prog >= 1; } },
+      { txt: "Il y a 9,7 milliards d'années, ces galaxies étaient à 5,8 milliards d'années-lumière. Aucune lumière reçue n'est partie de plus loin.", chi1: 15.13, duree: 5, fin() { return this.prog >= 1; } },
+      { txt: "Plus loin, plus jeune… et plus près : les premières galaxies, aujourd'hui à 27 milliards d'années-lumière, n'étaient alors qu'à 4.", chi1: 26.95, duree: 4, fin() { return this.prog >= 1; } },
+      { txt: "380 000 ans : le fond diffus. Tout le ciel que nous voyons tenait alors dans 42 millions d'années-lumière.", chi1: 45.19, duree: 5, fin() { return this.prog >= 1; } },
+      { txt: "", chi1: 45.19, duree: 1.5, fin() { return this.prog >= 1; } }],
+    texteFin: "Regarder loin, c'est remonter le temps : au bout de notre regard, il y a le commencement.",
+    avance(dts) {
+      if (this.el < 0.3) return false;
+      const E_ = this.etapes, i = Math.min(this.ie || 0, E_.length - 1), e = E_[i];
+      if (this.iProg !== i) { this.iProg = i; this.prog = 0; this.chi0 = this.chi; }
+      this.prog = Math.min(1, this.prog + dts / e.duree);
+      this.chi = Math.exp(Math.log(this.chi0) + (Math.log(e.chi1) - Math.log(this.chi0)) * lisse(0, 1, this.prog));
+      this.place();
+      return i === E_.length - 1 && this.prog >= 1;
+    },
+    legende() { return ""; },
+  },
   // R2 (19/11) : l'année cosmique. 13,8 milliards d'années ramenés à une année : la date remplace l'âge
   // sous la frise ; on plonge de la toile jusqu'à notre galaxie, puis les derniers instants se dilatent
   // (le temps restant avant aujourd'hui défile en logarithme) jusqu'à minuit.
@@ -2443,6 +2480,7 @@ let sansGrille = false;                                   // contrôles seulemen
 let vitesseTest = 1;                                      // contrôles seulement : accélère un scénario
 window.HDS = { set grille(v) { sansGrille = !v; sale = true; },
   // 18/11 : imite l'arrondi approché des GPU de téléphone (division imprécise) pour le contrôle du voisinage
+  cone(tt) { return ETA0 - at(tt).eta; },
   set gigueMobile(v) { matiere.historiques.gigue = v; sale = true; },
   demarrerLibre() { marqueDecouverte(); libre(); zoomAnim = null; mode("libre"); }, recit(cle) { recit(cle); }, suite() { suite(); },
   set vitesse(v) { vitesseTest = v; }, get cercles() { return cerclesVisibles(); }, get ici() { return marqueurIci; }, get etiquettes() { return etiquettes; }, get couches() { return couches; }, facteur(tt) { return at(tt).a; }, get v2() { const V = matiere.v2; return V ? { pret: V.pret, chargees: V.ep.map((e, j) => e && e.buf ? j : -1).filter(j => j >= 0), n: V.n } : null; }, get galaxie() { return matiere.etat; }, set galaxieDirecte(v) { matiere.directe = !!v; sale = true; }, get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
