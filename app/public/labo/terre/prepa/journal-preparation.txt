@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/terre/prepa/preparer.py", line 149, in <module>
+    etape_a()
+  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/terre/prepa/preparer.py", line 111, in etape_a
+    log("sources :", pm_rot, pm_pol, me_rot, me_sta, me_con, sep="\n  ")
+TypeError: log() got an unexpected keyword argument 'sep'
