@@ -217,6 +217,10 @@ body[data-mode=recit] #titre { display: none; }
   <p class="titreIntro">Regarder loin, c'est voir le passé</p>
   <p>La lumière voyage lentement : regarder loin, c'est voir l'univers jeune. Suivons-la jusqu'au premier ciel.</p>
 </template>
+<template id="introSoleil">
+  <p class="titreIntro">Le tour du Soleil</p>
+  <p>Le Soleil tourne autour de la galaxie : un tour dure un quart de milliard d'années.</p>
+</template>
 <template id="introAnnee">
   <p class="titreIntro">L'année cosmique</p>
   <p>L'histoire de l'univers en une année : Big Bang le 1er janvier, aujourd'hui le soir du 31 décembre.</p>
@@ -255,6 +259,7 @@ body[data-mode=recit] #titre { display: none; }
   <div class="scen"><button data-scen="promenade">Formation de la Voie lactée</button></div>
   <div class="scen"><button data-scen="annee">L'année cosmique</button></div>
   <div class="scen"><button data-scen="passe">Regarder loin, c'est voir le passé</button></div>
+  <div class="scen"><button data-scen="soleil">Le tour du Soleil</button></div>
 </div>
 <div id="modale" role="dialog" aria-modal="true" aria-labelledby="modaleTitre">
   <div>
@@ -1556,15 +1561,16 @@ function dessine() {
     ctx.strokeStyle = `rgba(255,235,210,${0.8 * (1 - dp)})`; ctx.lineWidth = 1.5 * DPR; cercle(cx, cy, (6 + 60 * dp) * DPR); ctx.stroke();
     ctx.globalCompositeOperation = "source-over"; sale = true;
   }
-  ctx.fillStyle = "#ffffff"; cercle(cx, cy, 2.2 * DPR); ctx.fill();
   ctx.font = `${11 * DPR * US}px Jost, sans-serif`; ctx.fillStyle = "#d9dbe2"; ctx.textAlign = "center";
   marqueurIci = !!(scen && scen.ici && scen.ici());
-  if (marqueurIci) {
+  if (scen && scen.sansNous) { /* (R3) le Soleil est dessiné sur son orbite, avec la galaxie */ }
+  else if (marqueurIci) {
+    ctx.fillStyle = "#ffffff"; cercle(cx, cy, 2.2 * DPR); ctx.fill(); ctx.fillStyle = "#d9dbe2";
     // la Promenade arrive sur la Voie lactée : un anneau qui respire autour du Soleil
     const pr = 0.5 + 0.5 * Math.sin(performance.now() / 380);
     ctx.strokeStyle = `rgba(207,230,255,${0.55 + 0.4 * pr})`; ctx.lineWidth = 1.6 * DPR; cercle(cx, cy, (11 + 4 * pr) * DPR); ctx.stroke();
     ctx.font = `600 ${12.5 * DPR * US}px Jost, sans-serif`; ctx.fillStyle = "#eef4ff"; ctx.fillText("nous sommes ici", cx, cy + 32 * DPR); sale = true;
-  } else ctx.fillText("nous", cx, cy + 15 * DPR);
+  } else { ctx.fillStyle = "#ffffff"; cercle(cx, cy, 2.2 * DPR); ctx.fill(); ctx.fillStyle = "#d9dbe2"; ctx.fillText("nous", cx, cy + 15 * DPR); }
 
   // flèches de vitesse (scénario de la sphère de Hubble)
   if (scen && scen.tapis) { dessineTapis(cx, cy, ppg, s); if (scen.cle === "hubble") dessineVitesses(cx, cy, ppg, s); }
@@ -1748,11 +1754,27 @@ function dessineLoupe(cx, cy, ppg, s) {
   ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "left"; ctx.fillStyle = "rgba(225,232,245,0.9)";
   ctx.fillText(`loupe : ${fmt(champ * TUILE_GAL * s.a)} autour d'une source`, x, y + d + 15 * DPR * US);
 }
+// R3 : l'orbite du Soleil (8,2 kpc, disque incliné comme les étoiles) et le Soleil, avec sa traîne
+function dessineSoleil(gx, gy, ppk, phi) {
+  const R = 8.2 * ppk, pos = p => [gx + R * Math.cos(p), gy - R * Math.sin(p) * INCL.c];
+  ctx.save(); ctx.lineWidth = 1 * DPR; ctx.strokeStyle = "rgba(255,236,200,0.22)"; ctx.setLineDash([3 * DPR, 5 * DPR]);
+  ctx.beginPath(); ctx.ellipse(gx, gy, R, R * INCL.c, 0, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+  for (let k = 0; k < 60; k++) {                                   // traîne : les derniers trois dixièmes de tour
+    const p = phi - 0.6 * Math.PI * k / 60, [x, y] = pos(p);
+    ctx.fillStyle = `rgba(255,214,140,${0.5 * (1 - k / 60)})`; cercle(x, y, (2.2 - 1.2 * k / 60) * DPR); ctx.fill();
+  }
+  const [x, y] = pos(phi), g = ctx.createRadialGradient(x, y, 0, x, y, 14 * DPR);
+  g.addColorStop(0, "rgba(255,240,200,0.95)"); g.addColorStop(0.3, "rgba(255,200,120,0.45)"); g.addColorStop(1, "rgba(255,180,90,0)");
+  ctx.fillStyle = g; cercle(x, y, 14 * DPR); ctx.fill(); ctx.fillStyle = "#fff6e4"; cercle(x, y, 2.6 * DPR); ctx.fill();
+  ctx.font = `600 ${12 * DPR * US}px Jost, sans-serif`; ctx.textAlign = "center"; ctx.fillStyle = "#fff1d6"; ctx.fillText("le Soleil", x, y + 22 * DPR);
+  ctx.restore(); sale = true;
+}
 function dessineLegendeGalaxie(gx, gy, ppk, al) {
   const G = matiere.galaxie;
   if (document.body.dataset.mode === "immersion" && G.pret) return;
   ctx.globalAlpha = al; ctx.font = `${10.5 * DPR * US}px Jost, sans-serif`; ctx.fillStyle = "rgba(225,232,245,0.85)";
   if (!G.pret) { ctx.textAlign = "center"; ctx.fillText("Voie lactée : chargement…", gx, gy + 40 * DPR); ctx.globalAlpha = 1; return; }
+  if (scen && scen.soleilPhi != null) dessineSoleil(gx, gy, ppk, scen.soleilPhi);
   if (t < G.ts[0]) { ctx.textAlign = "center"; ctx.fillText("la Voie lactée n'a pas encore d'étoiles", gx, gy + 8.2 * ppk - 30 * DPR); }
   else if (8.2 * ppk > 40 * DPR) {
     ctx.strokeStyle = "rgba(225,232,245,0.5)"; ctx.lineWidth = DPR;
@@ -2062,6 +2084,30 @@ const SCEN = {
       this.prog = Math.min(1, this.prog + dts / e.duree);
       this.chi = Math.exp(Math.log(this.chi0) + (Math.log(e.chi1) - Math.log(this.chi0)) * lisse(0, 1, this.prog));
       this.place();
+      return i === E_.length - 1 && this.prog >= 1;
+    },
+    legende() { return ""; },
+  },
+  // R3 (19/11) : « Le tour du Soleil ». Champ fixe sur la jumelle de la Voie lactée ; le Soleil tourne avec ses
+  // étoiles (période à 8 kpc mesurée sur la jumelle : 261 Ma ; 230 pour la vraie Voie lactée). Un tour depuis l'aube des
+  // dinosaures, puis dix-sept et demi depuis la naissance de la Terre ; il finit à sa place d'aujourd'hui.
+  soleil: {
+    W: 0.00006, cercles: [], intro: "introSoleil", sansNous: true, PER: 0.261,
+    init() { t = T0 - this.PER; W = 0.00006; elZ.value = uFromW(W); fronts = []; this.iProg = -1; this.pause = true; this.attente = true; },
+    get soleilPhi() { return -Math.PI / 2 - 2 * Math.PI * (T0 - t) / this.PER; },
+    etapes: [
+      { txt: "Il y a 260 millions d'années, le Soleil tourne déjà ici autour du centre. Les dinosaures n'existent pas encore.", t1: T0 - 0.261, duree: 0.5, fin() { return this.prog >= 1; } },
+      { txt: "Il y a 66 millions d'années, les dinosaures disparaissent : le Soleil a parcouru les trois quarts du tour.", t1: T0 - 0.066, duree: 7, fin() { return this.prog >= 1; } },
+      { txt: "Aujourd'hui : un seul tour depuis l'aube des dinosaures. C'est une année galactique.", t1: T0, duree: 2.5, fin() { return this.prog >= 1; } },
+      { txt: "Et depuis la naissance de la Terre, il y a 4,6 milliards d'années ?", t1: T0, duree: 0.5, fin() { return this.prog >= 1; } },
+      { txt: "", t0: T0 - 4.57, t1: T0, duree: 11, fin() { return this.prog >= 1; } }],
+    texteFin: "Dix-sept tours et demi : toute l'histoire de la vie tient en quelques tours de manège.",
+    avance(dts) {
+      if (this.el < 0.3) return false;
+      const E_ = this.etapes, i = Math.min(this.ie || 0, E_.length - 1), e = E_[i];
+      if (this.iProg !== i) { this.iProg = i; this.prog = 0; this.ta = e.t0 ?? t; }
+      this.prog = Math.min(1, this.prog + dts / e.duree);
+      t = this.ta + (e.t1 - this.ta) * lisse(0, 1, this.prog);
       return i === E_.length - 1 && this.prog >= 1;
     },
     legende() { return ""; },
@@ -2481,6 +2527,7 @@ let vitesseTest = 1;                                      // contrôles seulemen
 window.HDS = { set grille(v) { sansGrille = !v; sale = true; },
   // 18/11 : imite l'arrondi approché des GPU de téléphone (division imprécise) pour le contrôle du voisinage
   cone(tt) { return ETA0 - at(tt).eta; },
+  get soleil() { return scen && scen.soleilPhi != null ? { phi: scen.soleilPhi } : null; },
   set gigueMobile(v) { matiere.historiques.gigue = v; sale = true; },
   demarrerLibre() { marqueDecouverte(); libre(); zoomAnim = null; mode("libre"); }, recit(cle) { recit(cle); }, suite() { suite(); },
   set vitesse(v) { vitesseTest = v; }, get cercles() { return cerclesVisibles(); }, get ici() { return marqueurIci; }, get etiquettes() { return etiquettes; }, get couches() { return couches; }, facteur(tt) { return at(tt).a; }, get v2() { const V = matiere.v2; return V ? { pret: V.pret, chargees: V.ep.map((e, j) => e && e.buf ? j : -1).filter(j => j >= 0), n: V.n } : null; }, get galaxie() { return matiere.etat; }, set galaxieDirecte(v) { matiere.directe = !!v; sale = true; }, get dispo() { return [0.0001, 0.003, 0.02, 0.15, 2, 50].map(dispoW); }, get bandes() { return document.getElementById("dispoZoom").style.background.length; },
