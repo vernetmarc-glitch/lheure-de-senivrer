@@ -1,0 +1,60 @@
+name: Chantier S3 — Terre (données de plaques et PaleoDEM)
+
+# Zenodo et les dépôts EarthByte ne sont pas joignables du bac à sable :
+# ce workflow télécharge les données publiées, les prépare avec pyGPlates et
+# pousse sur la branche un paquet compact (app/public/labo/terre/donnees/).
+
+on:
+  push:
+    branches: [chantier/terre]
+    paths:
+      - 'app/public/labo/terre/prepa/**'
+      - '.github/workflows/chantier-terre.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: chantier-terre
+  cancel-in-progress: true
+
+jobs:
+  preparer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chantier/terre
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Paquets
+        run: pip install pygplates plate-model-manager numpy scipy netCDF4 pillow
+      - name: Cache des sources
+        uses: actions/cache@v4
+        with:
+          path: /tmp/sources
+          key: terre-sources-v1
+      - name: Téléchargement
+        run: python3 app/public/labo/terre/prepa/telecharger.py /tmp/sources
+      - name: Inventaire
+        run: python3 app/public/labo/terre/prepa/inventaire.py /tmp/sources app/public/labo/terre/prepa/inventaire.txt
+      - name: Préparation du paquet
+        run: |
+          if [ -f app/public/labo/terre/prepa/preparer.py ]; then
+            python3 app/public/labo/terre/prepa/preparer.py /tmp/sources app/public/labo/terre/donnees 2>&1 | tee app/public/labo/terre/prepa/journal-preparation.txt
+            exit ${PIPESTATUS[0]}
+          fi
+      - name: Dépôt sur la branche
+        if: always()
+        run: |
+          git config user.name "Claude (workflow chantier-terre)"
+          git config user.email noreply@anthropic.com
+          git add -A app/public/labo/terre/prepa app/public/labo/terre/donnees 2>/dev/null || git add -A app/public/labo/terre/prepa
+          git commit -m "Terre : données préparées par le workflow (run ${GITHUB_RUN_ID})" || exit 0
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin chantier/terre && git push origin HEAD:chantier/terre && break
+            sleep 5
+          done
