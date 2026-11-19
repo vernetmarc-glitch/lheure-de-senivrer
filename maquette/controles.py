@@ -339,7 +339,7 @@ async def main(url):
             if (sv && ((lu >= 0 && now - lu > 1200) || now - vu > 8000)) { s.click(); vu = -1; }
             if (e.fin && obs.filter(o => o[4]).length > 12 || now > 150000) { clearInterval(iv); HDS.vitesse = 1; res(obs); } }, 200); })"""
         bilan = {}
-        for cle in ("observable", "hubble", "evenements", "annee", "passe"):   # (« toile » retiré le 18/11, 23 h 38 ; « annee » ajouté le 19/11)
+        for cle in ("observable", "hubble", "evenements", "annee", "passe", "soleil"):   # (« toile » retiré le 18/11, 23 h 38 ; « annee » ajouté le 19/11)
             obs = await pg.evaluate(f"({SEQ})('{cle}')")
             # (navigateur sans carte graphique : une image par seconde environ ; le fondu de la légende
             #  dure 0,9 s et ne part qu'à l'image suivante : on tolère 4 s de traîne après chaque arrêt)
@@ -386,6 +386,28 @@ async def main(url):
              and fin_p[1] <= 0.06 and fin_p[0] <= 0.001 and bilan["passe"][2],
              f"{len(ar_p)} arrêts ; écart au cône {max(ecarts_p or [9]):.1%} ; champ maximal {ech_p[kmax][1]:.1f} Gal à {ech_p[kmax][0]:.1f} Ga ; fin {fin_p[1]:.3f} Gal à {fin_p[0] * 1e3:.2f} Ma",
              "19/11 : récit R1 — « regarder loin, c'est voir le passé ; au fond diffus, tout le ciel tenait dans 42 millions d'années-lumière »")
+        # R3 (19/11) : « Le tour du Soleil ». Le Soleil tourne avec les étoiles de la jumelle (période mesurée sur ses
+        # étoiles à 8 kpc : 261 Ma) ; un tour depuis l'aube des dinosaures, 17,5 depuis la naissance de la Terre ; il finit
+        # à sa place d'aujourd'hui (« nous »)
+        ar_s = bilan["soleil"][0]
+        await pg.evaluate("HDS.demarrerLibre(); HDS.recit('soleil')"); await pg.wait_for_timeout(1200)
+        await pg.evaluate("document.getElementById('cestParti').click(); HDS.vitesse = 3"); ech_s = []
+        for _ in range(600):
+            await pg.wait_for_timeout(150)
+            x = await pg.evaluate("(() => { const s = document.getElementById('suite'); if (s.offsetParent) s.click(); const so = HDS.soleil; return [HDS.t, so ? so.phi : null, HDS.etat.fin, document.getElementById('phrase').textContent]; })()")
+            ech_s.append(x)
+            if x[2]: break
+        await pg.wait_for_timeout(1500); ech_s.append([0, None, True, await pg.evaluate("document.getElementById('phrase').textContent")])
+        await pg.evaluate("HDS.vitesse = 1; HDS.recit('soleil')")
+        phis = [x for x in ech_s if x[1] is not None]
+        tmin_s = min(x[0] for x in phis) if phis else 99
+        fin_phi = (phis[-1][1] + math.pi / 2) % (2 * math.pi) if phis else 9
+        fin_phi = min(fin_phi, 2 * math.pi - fin_phi)
+        tours = (phis[-1][1] - min(x[1] for x in phis)) / (2 * math.pi) if phis else 0
+        note("Le tour du Soleil : un tour, puis dix-sept et demi", len(ar_s) >= 4 and tmin_s <= 13.787 - 4.5 and fin_phi < 0.05 and 17 <= tours <= 18.2
+             and any("ix-sept tours" in x[3] for x in ech_s) and bilan["soleil"][2],
+             f"{len(ar_s)} arrêts ; depuis {13.787 - tmin_s:.2f} Ga ; {tours:.1f} tours ; écart final à « nous » {fin_phi:.3f} rad",
+             "19/11 : récit R3 — « le Soleil fait le tour de la galaxie : un seul tour depuis les dinosaures »")
         ok_seq = all(len(a) >= 2 and all(a) and len(set(a)) == len(a) and bv == 0 and f for a, bv, f in bilan.values())
         tobs = " ".join(bilan["observable"][0]) + " " + " ".join(await pg.evaluate("(HDS.recit('observable'), HDS.textes)"))
         await pg.evaluate("HDS.recit('observable')")
@@ -586,7 +608,7 @@ async def main(url):
         e1 = await pd.evaluate("HDS.etat"); panneau = await pd.evaluate("!!document.getElementById('panneauRecits').offsetParent")
         nomP = await pd.evaluate("document.querySelector('#panneauRecits button[data-scen=promenade]').textContent.trim()")
         note("la Promenade s'appelle « Formation de la Voie lactée »", nomP == "Formation de la Voie lactée", f"« {nomP} »", "« le bouton promenade pourrait être renommé formation de la Voie lactée »")
-        note("récits derrière un bouton (E1)", entrees == ["observable", "hubble", "evenements", "promenade", "annee", "passe"] and e1["scen"] == "hubble" and not panneau,
+        note("récits derrière un bouton (E1)", entrees == ["observable", "hubble", "evenements", "promenade", "annee", "passe", "soleil"] and e1["scen"] == "hubble" and not panneau,
              f"panneau {entrees}, lancé {e1['scen']}, panneau refermé {not panneau}", "« moins de choses à la fois »")
         note("un seul repère sur le curseur du zoom (E1)", rep == 1, f"{rep} repère(s) visibles", "« hiérarchie »")
         note("légende qui s'efface, rappelée au toucher (E1)", op1 < 0.2 and op2 > 0.8, f"opacité après 7 s {op1:.2f}, après un toucher {op2:.2f}", "« moins de texte à la fois »")
@@ -682,13 +704,13 @@ async def main(url):
         # (18/11, 23 h 38 : « supprime le bouton formation de la toile cosmique, qui n'apporte pas grand-chose »)
         # l'appui, on sait ce qu'on va voir (la définition courte) ; tout le texte du récit au même endroit, en bas
         ordreR = await pd.evaluate("[...document.querySelectorAll('#panneauRecits button[data-scen]')].map(b => b.dataset.scen)")
-        note("récits : les trois frontières d'abord", ordreR == ["observable", "hubble", "evenements", "promenade", "annee", "passe"], f"{ordreR}",
+        note("récits : les trois frontières d'abord", ordreR == ["observable", "hubble", "evenements", "promenade", "annee", "passe", "soleil"], f"{ordreR}",
              "« l'univers observable en premier, puis Hubble, l'horizon, la Voie lactée » ; 18/11 23 h 38 : plus de récit « toile »")
         ESPACE = """(() => { const i = document.getElementById('intro'), p = document.getElementById('phrase'), H = innerHeight;
           const vis = el => { for (let a = el; a; a = a.parentElement) { const st = getComputedStyle(a); if (a.hidden || st.display === 'none' || st.visibility === 'hidden' || +st.opacity < 0.3) return false; } return el.getBoundingClientRect().height > 0; };
           return { intro: vis(i), txt: i.textContent.replace(/\\s+/g, ' ').trim(), haut: i.getBoundingClientRect().top / H, phrase: vis(p) && p.textContent.trim() ? p.getBoundingClientRect().top / H : null }; })()"""
         annonces, budgetR = [], []
-        for cle, mot in (("observable", "transparent"), ("hubble", "vitesse de la lumière"), ("evenements", "message"), ("promenade", "galaxie"), ("annee", "en une année"), ("passe", "univers jeune")):
+        for cle, mot in (("observable", "transparent"), ("hubble", "vitesse de la lumière"), ("evenements", "message"), ("promenade", "galaxie"), ("annee", "en une année"), ("passe", "univers jeune"), ("soleil", "quart de milliard")):
             await pd.evaluate("HDS.demarrerLibre()"); await pd.wait_for_timeout(300)
             await pd.click("#recits"); await pd.wait_for_timeout(400)
             await pd.click(f"#panneauRecits button[data-scen={cle}]"); await pd.wait_for_timeout(1200)
