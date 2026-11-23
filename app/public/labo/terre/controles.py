@@ -19,6 +19,13 @@ pas un aperçu. Chaque mesure passe par le même shader que le globe : l'état d
       la calotte nord est éclairée et la calotte sud dans la nuit
   C8  liseré d'atmosphère : un mince anneau bleu hors du disque, côté jour
   C9  interaction : le doigt fait tourner le globe ; lecture fait avancer le temps
+  C10 signature de la référence visuelle (N25, NASA Blue Marble NG, juin 2004, sans nuages) :
+      aujourd'hui, sur le globe rendu (zone éclairée à moins de 32° du point subsolaire),
+      couleur médiane des terres et des mers à ΔE ≤ 10 du composite de juin aux mêmes
+      lieux ; mers plus sombres que terres
+  C11 compteur de vitesse du temps (N28) : présent, lisible (≥ 56 px), hors du globe ;
+      aiguille sur la butée à l'arrêt ; en lecture, angle = vitesse réelle du curseur
+      (échelle log, à 1° près après amortissement) ; lecture chiffrée en clair
 
 Usage : python3 app/public/labo/terre/controles.py   (code de sortie 0 si tout passe)
 """
@@ -105,6 +112,47 @@ def lum(img):
     return img @ np.array([0.2126, 0.7152, 0.0722])
 
 
+def lab(rgb):
+    """sRGB (0–1) -> CIELAB D65."""
+    c = np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
+    M = np.array([[0.4124, 0.3576, 0.1805], [0.2126, 0.7152, 0.0722], [0.0193, 0.1192, 0.9505]])
+    xyz = c @ M.T / np.array([0.95047, 1.0, 1.08883])
+    f = np.where(xyz > (6 / 29) ** 3, np.cbrt(xyz), xyz / (3 * (6 / 29) ** 2) + 4 / 29)
+    return np.stack([116 * f[..., 1] - 16, 500 * (f[..., 0] - f[..., 1]), 200 * (f[..., 1] - f[..., 2])], -1)
+
+
+def ciel_bm(rgb, geo, sol, bm, ne):
+    """Compare, pixel à pixel sur le globe rendu, aux mêmes lieux, la couleur médiane des terres
+    et des mers à celle de Blue Marble (zone μ > 0,85, soit < 32° du point subsolaire)."""
+    H, W = rgb.shape[:2]
+    yy, xx = np.mgrid[0:H, 0:W]
+    x = (xx + .5 - geo["cx"]) / geo["r"]; y = -(yy + .5 - geo["cy"]) / geo["r"]
+    r2 = x * x + y * y; d = r2 < 0.97
+    z = np.sqrt(np.clip(1 - r2, 0, 1))
+    la, lo = np.radians(sol["lat"]), np.radians(sol["lon"])
+    e = np.array([-np.sin(lo), np.cos(lo), 0]); n = np.array([-np.sin(la) * np.cos(lo), -np.sin(la) * np.sin(lo), np.cos(la)])
+    c = np.array([np.cos(la) * np.cos(lo), np.cos(la) * np.sin(lo), np.sin(la)])
+    P = x[..., None] * e + y[..., None] * n + z[..., None] * c
+    mu = P @ c
+    sel = d & (mu > 0.85)
+    lat = np.degrees(np.arcsin(np.clip(P[..., 2], -1, 1)))[sel]; lon = np.degrees(np.arctan2(P[..., 1], P[..., 0]))[sel]
+    def prend(img):
+        h, w = img.shape[:2]
+        j = np.clip(((90 - lat) / 180 * h).astype(int), 0, h - 1); i = np.clip(((lon + 180) / 360 * w).astype(int), 0, w - 1)
+        return img[j, i]
+    terre = prend(ne)
+    Lr, Lb = lab(rgb[sel]), lab(prend(bm))
+    res, ok = [], True
+    for nom, m in (("terres", terre), ("mers", ~terre)):
+        if m.sum() < 200: ok = False; res.append(f"{nom} : trop peu de pixels"); continue
+        a, b = np.median(Lr[m], 0), np.median(Lb[m], 0)
+        dE = float(np.linalg.norm(a - b)); ok &= dE <= 10
+        res.append(f"{nom} ΔE {dE:.1f} (rendu L*a*b* {np.round(a, 1).tolist()}, Blue Marble {np.round(b, 1).tolist()})")
+    Lt, Lm = np.median(Lr[terre][:, 0]), np.median(Lr[~terre][:, 0])
+    ok &= Lm < Lt; res.append(f"L* mers {Lm:.1f} < terres {Lt:.1f}")
+    return ok, " ; ".join(res)
+
+
 async def main():
     from playwright.async_api import async_playwright
     port = port_libre(); srv = servir(port)
@@ -125,7 +173,7 @@ async def main():
             await pg.wait_for_function("window.terre && window.terre.pret === true", timeout=120000)
         except Exception as e:
             note("C1", False, f"page non chargée : {e}".splitlines()[0])
-            for c in ("C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"):
+            for c in ("C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11"):
                 note(c, False, "page non chargée")
             await b.close(); srv.shutdown(); return 1
 
@@ -262,6 +310,48 @@ async def main():
         await pg.click("#lecture")
         ok9 = abs(v1["lon"] - v0["lon"]) > 5 and v2["t"] < 600 - 1
         note("C9", ok9, f"glisser : lon {v0['lon']:.1f}→{v1['lon']:.1f} ; lecture : 600→{v2['t']:.1f} Ma")
+
+        # ---- C10 signature Blue Marble de juin
+        refbm = ICI / "controles" / "blue-marble-juin-2004.png"
+        if not refbm.exists():
+            note("C10", False, "référence Blue Marble absente (controles/blue-marble-juin-2004.png)")
+        else:
+            s0 = await pg.evaluate("terre.soleil()")
+            await pg.evaluate("o => terre.regler(o)", {"t": 0, "lat": s0["lat"], "lon": s0["lon"]})
+            rgb = await ecran(pg); geo = await pg.evaluate("terre.disque()")
+            ok10, det10 = ciel_bm(rgb, geo, s0, np.asarray(Image.open(refbm).convert("RGB")) / 255,
+                                  np.asarray(Image.open(ICI / "controles" / "terres-actuelles-ne50m.png")) > 127)
+            note("C10", ok10, det10)
+
+        # ---- C11 compteur de vitesse du temps
+        det11, ok11 = [], True
+        bc = await pg.evaluate("""() => { const e = document.querySelector('.compteur');
+            if (!e) return null; const r = e.getBoundingClientRect();
+            return {x: r.left, y: r.top, w: r.width, h: r.height, txt: e.textContent}; }""")
+        if not bc:
+            note("C11", False, "compteur absent")
+        else:
+            gb = await pg.locator("#globe").bounding_box(); geo = await pg.evaluate("terre.disque()")
+            cx, cy, R = gb["x"] + geo["cx"], gb["y"] + geo["cy"], geo["r"] * 1.03
+            nx = min(max(cx, bc["x"]), bc["x"] + bc["w"]); ny = min(max(cy, bc["y"]), bc["y"] + bc["h"])
+            hors = np.hypot(nx - cx, ny - cy) > R
+            dedans = bc["x"] >= 0 and bc["y"] >= 0 and bc["x"] + bc["w"] <= 390 and bc["y"] + bc["h"] <= 844
+            ok11 &= hors and dedans and bc["w"] >= 56
+            det11.append(f"{bc['w']:.0f} px, hors du globe {hors}, dans l'écran {dedans}")
+            await pg.evaluate("terre.regler({t: 700})"); await pg.wait_for_timeout(1500)
+            c = await pg.evaluate("terre.compteur()")
+            ok11 &= abs(c["angle"] - c["butee"]) <= 1
+            det11.append(f"arrêt : aiguille {c['angle']:.1f}° (butée {c['butee']}°)")
+            await pg.click("#lecture"); await pg.wait_for_timeout(1500)
+            m = await pg.evaluate("""async () => { const a = [performance.now(), terre.etat().t];
+                await new Promise(r => setTimeout(r, 600)); const b = [performance.now(), terre.etat().t];
+                const c = terre.compteur(); return {v: (a[1] - b[1]) * 1e6 / ((b[0] - a[0]) / 1000), ...c,
+                attendu: Compteur.angleDe((a[1] - b[1]) * 1e6 / ((b[0] - a[0]) / 1000)),
+                txt: document.querySelector('.compteur').textContent}; }""")
+            await pg.click("#lecture")
+            ok11 &= abs(m["angle"] - m["attendu"]) <= 1 and "par seconde" in m["txt"]
+            det11.append(f"lecture : {m['v']:.3g} ans/s -> attendu {m['attendu']:.1f}°, aiguille {m['angle']:.1f}° ; « {m['txt'].strip()[-45:]} »")
+            note("C11", ok11, " ; ".join(det11))
 
         # ---- C1 (en dernier : couvre toute la session)
         gl2 = await pg.evaluate("!!document.createElement('canvas').getContext('webgl2')")

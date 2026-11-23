@@ -20,7 +20,8 @@
   #quand { font-family:var(--f-titre); font-size:26px; font-weight:500; letter-spacing:.02em; margin:0; }
   #recit { font-size:15px; line-height:1.45; color:#cfd2d8; margin:6px 0 0; min-height:44px;
            transition:opacity .6s; }
-  #globe { flex:1 1 auto; width:100%; min-height:0; display:block; touch-action:none; cursor:grab; }
+  #scene { position:relative; flex:1 1 auto; min-height:0; }
+  #globe { position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
   #globe:active { cursor:grabbing; }
   footer { padding:0 20px 14px; }
   #frise { position:relative; display:flex; height:16px; margin:4px 0 0; border-radius:2px; }
@@ -59,7 +60,7 @@
     <p id="quand">&nbsp;</p>
     <p id="recit">&nbsp;</p>
   </header>
-  <canvas id="globe" aria-label="Globe terrestre, à faire tourner du doigt"></canvas>
+  <div id="scene"><canvas id="globe" aria-label="Globe terrestre, à faire tourner du doigt"></canvas></div>
   <footer>
     <div class="au-dessus"><span id="rep-pangee"></span></div>
     <div id="frise" aria-label="Les 4,54 milliards d'années de la Terre">
@@ -84,6 +85,7 @@
   </footer>
 </main>
 <div id="attente">chargement…</div>
+<script src="compteur.js"></script>
 <script>
 "use strict";
 (() => {
@@ -134,7 +136,7 @@ const VS_PORTER = COMMUN + `
 uniform sampler2D cle; uniform sampler2D rot;
 uniform int rotCols, rotLarg; uniform float seg0, tk, t; uniform vec2 taille; uniform float tailleMax;
 uniform vec2 codeT, codeM;
-flat out float vh;
+flat out float vh; flat out vec2 vpd; flat out vec3 vc; flat out float vfond;
 vec4 Qf(int row, int c){ int k = row * rotCols + c; return texelFetch(rot, ivec2(k % rotLarg, k / rotLarg), 0); }
 vec4 Q(int row, float tt){
   float u = clamp(tt - seg0, 0., float(rotCols - 1)); int c0 = int(floor(u)); float f = u - float(c0);
@@ -152,22 +154,89 @@ void main(){
   float h = dec(c.r); vh = h;
   float lat0 = 90. - (float(j) + .5) * 180. / taille.y, lon0 = -180. + (float(i) + .5) * 360. / taille.x;
   vec3 p = versXYZ(lat0, lon0);
-  if (row > 0) p = normalize(qr(Q(row, t), qr(qc(Q(row, tk)), p)));
+  vec3 pd = p;                                   // position actuelle du même morceau de croûte
+  if (row > 0) { pd = normalize(qr(qc(Q(row, tk)), p)); p = normalize(qr(Q(row, t), pd)); }
+  vpd = latLon(pd);
   vec2 l = latLon(p);
-  float z = 1. - 2. * clamp((h - (${HMIN}.)) / (${HMAX}. - (${HMIN}.)), 0., 1.);
-  gl_Position = vec4(l.y / 180., l.x / 90., z * .999, 1.);
-  float etire = cos(radians(lat0)) / max(cos(radians(l.x)), 1e-3);
-  gl_PointSize = min(tailleMax, ceil(max(etire, 1.)) + 1.); }`;
+  gl_Position = vec4(l.y / 180., l.x / 90., 0., 1.);
+  // l'écart entre deux points voisins (un pas de grille, d'arc au plus) peut arriver dans
+  // n'importe quelle direction : en longitude il couvre 1/cos(lat) pixels
+  float etire = 1. / max(cos(radians(l.x)), 1e-3);
+  // chaque pixel prend le point le plus proche (rééchantillonnage au plus proche voisin,
+  // sans biais : ni les terres ni les mers ne gagnent par la taille du point)
+  vfond = row > 0 ? 0. : 1.;   // les fonds immobiles ne recouvrent jamais une plaque portée
+  vc = vec3((l.y / 180. * .5 + .5) * taille.x, (l.x / 90. * .5 + .5) * taille.y, etire);
+  gl_PointSize = min(tailleMax, ceil(etire) + 1.); }`;
 const FS_PORTER = COMMUN + `
-flat in float vh; out vec4 o;
+flat in float vh; flat in vec2 vpd; flat in vec3 vc; flat in float vfond; layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
+vec2 c16(float x){ float c = floor(clamp(x, 0., 1.) * 65535. + .5); return vec2(floor(c / 256.), mod(c, 256.)) / 255.; }
 void main(){
-  float c = floor(clamp((vh - (${HMIN}.)) / (${HMAX}. - (${HMIN}.)), 0., 1.) * 65535. + .5);
-  o = vec4(floor(c / 256.) / 255., mod(c, 256.) / 255., 1., 1.); }`;
+  vec2 d = gl_FragCoord.xy - vc.xy; d.x /= vc.z;
+  gl_FragDepth = .5 * vfond + .49 * clamp(length(d) / 4., 0., 1.);
+  o = vec4(c16((vh - (${HMIN}.)) / (${HMAX}. - (${HMIN}.))), 1., 1.);
+  o2 = vec4(c16((vpd.y + 180.) / 360.), c16((vpd.x + 90.) / 180.)); }`;
+// Segment M (1 Ga -> 540 Ma) : un seul nuage de points en coordonnées actuelles, transporté
+// d'un bloc par les rotations de Merdith (raccordées à PALEOMAP de 580 à 540 Ma) ; élévation
+// calculée à chaque instant (relief de 540 Ma qui s'efface vers un relief générique).
+const VS_POINTS_M = COMMUN + `
+uniform sampler2D m1, m2; uniform sampler2D rot;
+uniform int rotCols, rotLarg; uniform float seg0, t; uniform vec2 taille; uniform float tailleMax, pasDebut;
+uniform vec2 codeT, codeM, eff;
+flat out float vh; flat out vec2 vpd; flat out vec3 vc; flat out float vfond;
+vec4 Qf(int row, int c){ int k = row * rotCols + c; return texelFetch(rot, ivec2(k % rotLarg, k / rotLarg), 0); }
+vec4 Q(int row, float tt){
+  float u = clamp(tt - seg0, 0., float(rotCols - 1)); int c0 = int(floor(u)); float f = u - float(c0);
+  int c1 = min(c0 + 1, rotCols - 1);
+  vec4 a = Qf(row, c0), b = Qf(row, c1); if (dot(a, b) < 0.) b = -b; return normalize(mix(a, b, f)); }
+vec3 qr(vec4 q, vec3 v){ vec3 s = 2. * cross(q.xyz, v); return v + q.w * s + cross(q.xyz, s); }
+float dec(float r){ float c = floor(r * 255. + .5);
+  return c >= 128. ? 10. + codeT.x * pow((c - 128.) / 127., 2.)
+                   : -10. - codeM.x * pow((127. - c) / 127., codeM.y); }
+void main(){
+  int W = int(taille.x), i = gl_VertexID % W, j = gl_VertexID / W;
+  vec4 a1 = texelFetch(m1, ivec2(i, j), 0), a2 = texelFetch(m2, ivec2(i, j), 0);
+  int dr = int(a1.b * 255. + .5);
+  bool typeA = (dr & 1) != 0, croute = (dr & 2) != 0, point = (dr & 4) != 0;
+  float a = smoothstep(0., 1., clamp((t - eff.x) / (eff.y - eff.x), 0., 1.));
+  bool vivant = croute && a2.b * 255. * pasDebut >= t - .01;
+  float hgen = dec(a1.g), h0 = dec(a1.r);
+  float h = typeA ? mix(h0, vivant ? hgen : -3000., a) : mix(-150., hgen, a);
+  bool existe = point && (typeA ? (vivant || a < .999) : vivant);
+  vh = h; vfond = 0.;
+  float lat0 = 90. - (float(j) + .5) * 180. / taille.y, lon0 = -180. + (float(i) + .5) * 360. / taille.x;
+  vec3 q = versXYZ(lat0, lon0); vpd = vec2(lat0, lon0);
+  int row = int(a2.r * 255. + .5) + 256 * int(a2.g * 255. + .5);
+  vec2 l = latLon(normalize(qr(Q(row, t), q)));
+  gl_Position = existe ? vec4(l.y / 180., l.x / 90., 0., 1.) : vec4(9., 9., 9., 1.);
+  // l'écart entre deux points voisins (un pas de grille, d'arc au plus) peut arriver dans
+  // n'importe quelle direction : en longitude il couvre 1/cos(lat) pixels
+  float etire = 1. / max(cos(radians(l.x)), 1e-3);
+  vc = vec3((l.y / 180. * .5 + .5) * taille.x, (l.x / 90. * .5 + .5) * taille.y, etire);
+  gl_PointSize = min(tailleMax, ceil(etire) + 1.); }`;
+// fond immobile du segment M : les océans du PaleoDEM de 540 Ma, qui s'approfondissent
+const FS_FOND_M = COMMUN + `
+uniform sampler2D fond; uniform vec2 taille, codeT, codeM, eff; uniform float t;
+layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
+float dec(float r){ float c = floor(r * 255. + .5);
+  return c >= 128. ? 10. + codeT.x * pow((c - 128.) / 127., 2.)
+                   : -10. - codeM.x * pow((127. - c) / 127., codeM.y); }
+vec2 c16(float x){ float c = floor(clamp(x, 0., 1.) * 65535. + .5); return vec2(floor(c / 256.), mod(c, 256.)) / 255.; }
+void main(){
+  ivec2 ij = ivec2(gl_FragCoord.xy);
+  float h540 = dec(texelFetch(fond, ivec2(ij.x, int(taille.y) - 1 - ij.y), 0).r);
+  float a = smoothstep(0., 1., clamp((t - eff.x) / (eff.y - eff.x), 0., 1.));
+  float h = mix(min(h540, -1000.), -4200., a);
+  gl_FragDepth = .999;
+  float lat = -90. + (float(ij.y) + .5) * 180. / taille.y, lon = -180. + (float(ij.x) + .5) * 360. / taille.x;
+  o = vec4(c16((h - (${HMIN}.)) / (${HMAX}. - (${HMIN}.))), 1., 1.);
+  o2 = vec4(c16((lon + 180.) / 360.), c16((lat + 90.) / 180.)); }`;
+
 // Passe d'état : les deux états clés portés à l'instant t sont co-localisés ; on interpole
 // l'élévation (jamais deux images). Là où un seul des deux couvre (trou laissé derrière un
 // continent), on prend celui qui couvre.
 const FS_ETAT = COMMUN + `
-uniform sampler2D A, B; uniform float wB; in vec2 uv; out vec4 o;
+uniform sampler2D A, B, A2, B2; uniform float wB; in vec2 uv;
+layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
 float hh(vec4 c){ return (c.r * 255. * 256. + c.g * 255.) / 65535. * (${HMAX}. - (${HMIN}.)) + (${HMIN}.); }
 void main(){
   ivec2 ij = ivec2(gl_FragCoord.xy);
@@ -175,11 +244,12 @@ void main(){
   float ca = step(.5, a.b), cb = step(.5, b.b);
   float h = ca * cb > 0. ? mix(hh(a), hh(b), wB) : ca > 0. ? hh(a) : cb > 0. ? hh(b) : -4000.;
   float c = floor(clamp((h - (${HMIN}.)) / (${HMAX}. - (${HMIN}.)), 0., 1.) * 65535. + .5);
-  o = vec4(floor(c / 256.) / 255., mod(c, 256.) / 255., 0., 1.); }`;
+  o = vec4(floor(c / 256.) / 255., mod(c, 256.) / 255., 0., 1.);
+  o2 = (ca > 0. && (wB < .5 || cb == 0.)) ? texelFetch(A2, ij, 0) : texelFetch(B2, ij, 0); }`;
 
 // Passe globe : vue lointaine (quasi orthographique), relief éclairé, mer teintée, atmosphère.
 const FS_GLOBE = COMMUN + `
-uniform sampler2D etat; uniform vec2 taille, ecran; uniform float rayon; uniform mat3 vue; uniform vec3 soleil;
+uniform sampler2D etat, actuel, surface; uniform float vegetation; uniform vec2 taille, ecran; uniform float rayon; uniform mat3 vue; uniform vec3 soleil;
 in vec2 uv; out vec4 o;
 float h(vec2 ll){   // ll = (lat, lon) degrés -> élévation (m), bilinéaire
   float x = (ll.y + 180.) / 360. * taille.x - .5, y = (ll.x + 90.) / 180. * taille.y - .5;
@@ -193,6 +263,13 @@ float h(vec2 ll){   // ll = (lat, lon) degrés -> élévation (m), bilinéaire
   r = r / 65535. * (${HMAX}. - ${HMIN}.) + ${HMIN}.;
   return mix(mix(r.x, r.y, f.x), mix(r.z, r.w, f.x), f.y); }
 vec3 lin(vec3 c){ return pow(c, vec3(2.2)); }
+vec3 photo(vec2 ll){   // couleur de Blue Marble (juin) à la position actuelle du morceau de croûte
+  ivec2 ij = ivec2(clamp(floor((ll.y + 180.) / 360. * taille.x), 0., taille.x - 1.),
+                   clamp(floor((ll.x + 90.) / 180. * taille.y), 0., taille.y - 1.));
+  vec4 c = texelFetch(actuel, ij, 0);
+  float lon = (c.r * 255. * 256. + c.g * 255.) / 65535. * 360. - 180.;
+  float lat = (c.b * 255. * 256. + c.a * 255.) / 65535. * 180. - 90.;
+  return lin(texture(surface, vec2((lon + 180.) / 360., (90. - lat) / 180.)).rgb); }
 vec3 terre(float z, float pente){
   vec3 c = mix(lin(vec3(.50,.43,.33)), lin(vec3(.60,.51,.39)), smoothstep(0., 600., z));
   c = mix(c, lin(vec3(.55,.50,.45)), smoothstep(600., 2200., z));
@@ -223,15 +300,14 @@ void main(){
     float pente = length(vec2(dze, dzn));
     float mu = dot(P, S), dif = max(dot(N, S), 0.);
     float jour = smoothstep(-.10, .12, mu);
-    vec3 alb;
-    if (z > 0.) { alb = terre(z, pente); col = alb * (dif * 1.05 * jour + .015); }
+    vec3 alb, ph = vegetation > .002 ? photo(ll) : vec3(0.);
+    if (z > 0.) { alb = mix(terre(z, pente), ph, vegetation); col = alb * (dif * 1.1 * jour + .015); }
     else {
-      alb = mer(z);
+      alb = mix(mer(z), ph, vegetation);
       vec3 V = vue * vec3(0., 0., 1.);
       vec3 Hh = normalize(S + V);
       float spec = pow(max(dot(P, Hh), 0.), 180.) * .35 * jour;
-      col = alb * (max(mu, 0.) * .95 * jour + .012) + vec3(.9, .85, .7) * spec;
-      col = mix(col, alb * .9 * jour, smoothstep(-40., 0., z) * .0);
+      col = alb * (max(mu, 0.) * 1.1 * jour + .012) + vec3(.9, .85, .7) * spec;
     }
     // voile bleu vers le limbe, côté jour
     float limbe = pow(1. - n0.z, 2.2);
@@ -244,7 +320,6 @@ void main(){
     float g = exp(-(r - 1.) / .010) * .75 + exp(-(r - 1.) / .035) * .12;
     col = lin(vec3(.40,.62,1.)) * g * jour;
   }
-  col = col / (1. + col * .35);                     // tonalité douce
   o = vec4(pow(col, vec3(1. / 2.2)), 1.); }`;
 
 function prog(fs, vs = VS) {
@@ -262,10 +337,27 @@ function prog(fs, vs = VS) {
 }
 
 // ------------------------------------------------------------------ données
-let man, pEtat, pGlobe, pPorter, texEtat, fbEtat, rotTex = {}, porte = [], vaoVide, vaoPlein, pointMax = 64;
+let man, pEtat, pGlobe, pPorter, pFondM, pPointsM, texM = [], texEtat, texActuel, texSurface, fbEtat, rotTex = {}, porte = [], vaoVide, vaoPlein, pointMax = 64;
 const cles = { P: [], M: [] };          // par segment : [{t, f, blob, tex, usage}]
 let horloge = 0;
 
+// La surface d'aujourd'hui (Blue Marble, juin) suit ses plaques en remontant le temps et
+// s'efface vers les couleurs minérales (e-folding 10 Ma) : la vie du passé viendra (S4, S5).
+const VEGETATION_MA = 10;
+async function chargerSurface() {
+  const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([90, 85, 70, 255]));
+  if (man.surface) {
+    const bm = await createImageBitmap(await (await fetch("donnees/" + man.surface)).blob(), { colorSpaceConversion: "none" });
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bm); bm.close && bm.close();
+  }
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return tex;
+}
 async function texRot(seg) {
   const s = man.segments[seg];
   const buf = await (await fetch(s.rot)).arrayBuffer();
@@ -305,17 +397,57 @@ function menage() {   // au plus 10 états clés en mémoire graphique
   const t = [...cles.P, ...cles.M].filter(c => c.tex).sort((a, b) => b.usage - a.usage);
   for (const c of t.slice(10)) { gl.deleteTexture(c.tex); c.tex = null; }
 }
-function encadrer(t) {     // segment et états clés qui encadrent t
-  const seg = t <= 540 ? "P" : "M", L = cles[seg];
+function encadrer(t) {     // états clés du segment P qui encadrent t (t ≤ 540 Ma)
+  const seg = "P", L = cles[seg];
   let k = L.findIndex(c => c.t >= t); if (k < 0) k = L.length - 1;
   const A = L[k], B = L[Math.max(k - 1, 0)];       // A plus ancien (tA ≥ t), B plus jeune
   const wB = A.t === B.t ? 0 : (A.t - t) / (A.t - B.t);
-  return { seg, A, B, wB: Math.min(Math.max(wB, 0), 1) };
+  return { seg, A, B, wB: poidsForce ?? Math.min(Math.max(wB, 0), 1) };
 }
 
 // ------------------------------------------------------------------ rendu
-let enCours = null, tCalcule = null;
+let enCours = null, tCalcule = null, poidsForce = null;
+async function calculerEtatM(t) {
+  const fond = await texture(cles.P[cles.P.length - 1]);          // PaleoDEM de 540 Ma
+  const R = rotTex.M, S = man.segments.M;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, porte[1].fb); gl.viewport(0, 0, man.W, man.H);
+  gl.clearColor(0, 0, 0, 0); gl.clearDepth(1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, porte[0].fb);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS);
+  gl.useProgram(pFondM.p); let u = pFondM.u;
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, fond); gl.uniform1i(u.fond, 0);
+  gl.uniform2f(u.taille, man.W, man.H); gl.uniform1f(u.t, t); gl.uniform2f(u.eff, S.effacement[0], S.effacement[1]);
+  gl.uniform2f(u.codeT, man.codage.terre[0], 0); gl.uniform2f(u.codeM, man.codage.mer[0], man.codage.mer[1]);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.useProgram(pPointsM.p); u = pPointsM.u;
+  gl.bindVertexArray(vaoVide);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texM[0]); gl.uniform1i(u.m1, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texM[1]); gl.uniform1i(u.m2, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, R.tex); gl.uniform1i(u.rot, 2);
+  gl.uniform1i(u.rotCols, R.cols); gl.uniform1i(u.rotLarg, R.larg); gl.uniform1f(u.seg0, R.t0);
+  gl.uniform1f(u.t, t); gl.uniform2f(u.taille, man.W, man.H); gl.uniform1f(u.tailleMax, pointMax);
+  gl.uniform1f(u.pasDebut, S.pasDebut); gl.uniform2f(u.eff, S.effacement[0], S.effacement[1]);
+  gl.uniform2f(u.codeT, man.codage.terre[0], 0); gl.uniform2f(u.codeM, man.codage.mer[0], man.codage.mer[1]);
+  gl.drawArrays(gl.POINTS, 0, man.W * man.H);
+  gl.bindVertexArray(vaoPlein);
+  gl.disable(gl.DEPTH_TEST);
+  melanger(0);
+  tCalcule = t;
+}
+function melanger(wB) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat); gl.viewport(0, 0, man.W, man.H);
+  gl.useProgram(pEtat.p);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, porte[0].tex); gl.uniform1i(pEtat.u.A, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, porte[1].tex); gl.uniform1i(pEtat.u.B, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, porte[0].tex2); gl.uniform1i(pEtat.u.A2, 2);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, porte[1].tex2); gl.uniform1i(pEtat.u.B2, 3);
+  gl.uniform1f(pEtat.u.wB, wB);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
 async function calculerEtat(t) {
+  if (t > 540) return calculerEtatM(t);
   const e = encadrer(t);
   const [ta, tb] = await Promise.all([texture(e.A), texture(e.B)]);
   const R = rotTex[e.seg];
@@ -345,6 +477,8 @@ async function calculerEtat(t) {
   gl.useProgram(pEtat.p);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, porte[0].tex); gl.uniform1i(pEtat.u.A, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, porte[1].tex); gl.uniform1i(pEtat.u.B, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, porte[0].tex2); gl.uniform1i(pEtat.u.A2, 2);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, porte[1].tex2); gl.uniform1i(pEtat.u.B2, 3);
   gl.uniform1f(pEtat.u.wB, e.wB <= 0 ? 0 : e.wB >= 1 ? 1 : e.wB);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -363,7 +497,7 @@ function geometrie() {
   if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
   }
-  return { dpr, w, h, r: Math.min(w, h) * 0.44 };
+  return { dpr, w, h, r: Math.min(w, h) * 0.42 };
 }
 function soleilXYZ() {
   const a = OBLIQUITE * Math.PI / 180, o = LON_SOLEIL * Math.PI / 180;
@@ -374,6 +508,9 @@ function dessinerGlobe() {
   gl.viewport(0, 0, canvas.width, canvas.height);
   gl.useProgram(pGlobe.p); const u = pGlobe.u;
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texEtat); gl.uniform1i(u.etat, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texActuel); gl.uniform1i(u.actuel, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texSurface); gl.uniform1i(u.surface, 2);
+  gl.uniform1f(u.vegetation, Math.exp(-(tCalcule ?? etat.t) / VEGETATION_MA));
   gl.uniform2f(u.taille, man.W, man.H); gl.uniform2f(u.ecran, canvas.width, canvas.height);
   gl.uniform1f(u.rayon, g.r * g.dpr); gl.uniformMatrix3fv(u.vue, false, matVue());
   gl.uniform3fv(u.soleil, soleilXYZ());
@@ -425,27 +562,43 @@ function interaction() {
   });
   const fin = () => glisse = null;
   canvas.addEventListener("pointerup", fin); canvas.addEventListener("pointercancel", fin);
-  $("#temps").addEventListener("input", e => { etat.t = 1000 - Number(e.target.value); etat.lecture = false; majBouton(); majTextes(); sale = true; });
-  $("#lecture").addEventListener("click", () => {
-    etat.lecture = !etat.lecture;
-    if (etat.lecture && etat.t <= 0) etat.t = 1000;
-    majBouton();
-  });
+  $("#temps").addEventListener("input", e => { if (etat.lecture) lancer(false); etat.t = 1000 - Number(e.target.value); majTextes(); sale = true; });
+  $("#lecture").addEventListener("click", () => lancer(!etat.lecture));
   window.addEventListener("resize", () => sale = true);
 }
 function majBouton() { $("#lecture").textContent = etat.lecture ? "❚❚" : "▶";
   $("#lecture").setAttribute("aria-label", etat.lecture ? "Pause" : "Lecture"); }
 
 const VITESSE = 25;            // Ma par seconde : un milliard d'années en 40 s
-let tPrec = performance.now();
+// La lecture est réglée sur l'horloge réelle : le curseur avance à vitesse exacte, même si
+// une image tarde ; le globe montre le dernier instant calculé.
+const lect = { t0: 1000, debut: 0 };
+function tCourant(now = performance.now()) {
+  return etat.lecture ? Math.max(0, lect.t0 - VITESSE * (now - lect.debut) / 1000) : etat.t;
+}
+function lancer(oui) {
+  if (oui) { if (etat.t <= 0) etat.t = 1000; lect.t0 = etat.t; lect.debut = performance.now(); }
+  else etat.t = tCourant();
+  etat.lecture = oui; majBouton();
+}
+let compteur = null; const histoire = [];
+function majCompteur(now) {
+  if (!compteur) return;
+  histoire.push([now, etat.t]);
+  while (histoire.length > 2 && now - histoire[1][0] > 500) histoire.shift();
+  if (etat.lecture) { compteur.regler(VITESSE * 1e6, 1); return; }
+  const [n0, t0] = histoire[0], dts = (now - n0) / 1000;
+  const v = dts > 0.05 ? Math.abs(t0 - etat.t) * 1e6 / dts : 0;
+  compteur.regler(v > 1 ? v : 0, etat.t > t0 ? -1 : 1);
+}
 function boucle(now) {
-  const dt = Math.min((now - tPrec) / 1000, .1); tPrec = now;
-  if (etat.lecture && !calculEnAttente) {
-    etat.t = Math.max(0, etat.t - VITESSE * dt);
-    if (etat.t <= 0) { etat.lecture = false; majBouton(); }
+  if (etat.lecture) {
+    etat.t = tCourant(now);
+    if (etat.t <= 0) lancer(false);
     majTextes(); sale = true;
     precharger();
   }
+  majCompteur(now);
   if (sale) rendre();
   requestAnimationFrame(boucle);
 }
@@ -467,6 +620,7 @@ async function demarrer() {
   for (const c of man.cles) cles[c.seg].push({ t: c.t, f: "donnees/" + c.f });
   for (const s of ["P", "M"]) { cles[s].sort((a, b) => a.t - b.t); man.segments[s].rot = "donnees/" + man.segments[s].rot; }
   pEtat = prog(FS_ETAT); pGlobe = prog(FS_GLOBE); pPorter = prog(FS_PORTER, VS_PORTER);
+  pFondM = prog(FS_FOND_M); pPointsM = prog(FS_PORTER, VS_POINTS_M);
   pointMax = Math.min(64, gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE)[1]);
   vaoVide = gl.createVertexArray(); vaoPlein = gl.createVertexArray(); gl.bindVertexArray(vaoPlein);
   const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb);
@@ -475,22 +629,37 @@ async function demarrer() {
   texEtat = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texEtat);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, man.W, man.H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
-  for (let k = 0; k < 2; k++) {
-    const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+  const texCible = () => { const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, man.W, man.H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+    return tex; };
+  for (let k = 0; k < 2; k++) {
+    const tex = texCible(), tex2 = texCible();
     const rb = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
     gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, man.W, man.H);
     const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, tex2, 0);
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
-    porte.push({ tex, fb });
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    porte.push({ tex, tex2, fb });
   }
   fbEtat = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texEtat, 0);
+  texActuel = texCible();
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, texActuel, 0);
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+  texSurface = await chargerSurface();
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   await Promise.all([texRot("P"), texRot("M")]);
+  texM = await Promise.all(man.segments.M.points.map(async f => {
+    const bm = await createImageBitmap(await (await fetch("donnees/" + f)).blob(), { premultiplyAlpha: "none", colorSpaceConversion: "none" });
+    const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bm); bm.close && bm.close();
+    for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+    return tex; }));
   placerFrise(); interaction(); majTextes();
+  compteur = new Compteur($("#scene"), { taille: 64, style: "top:4px;right:6px", disposition: "ligne" });
   await rendre();
   $("#attente").style.opacity = 0;
   etat.pret = true; window.terre.pret = true;
@@ -502,7 +671,7 @@ async function demarrer() {
 window.terre = {
   pret: false,
   async regler(o) {
-    if (o.t !== undefined) etat.t = Math.min(1000, Math.max(0, o.t));
+    if (o.t !== undefined) { etat.t = Math.min(1000, Math.max(0, o.t)); lect.t0 = etat.t; lect.debut = performance.now(); }
     if (o.lon !== undefined) etat.lon = o.lon;
     if (o.lat !== undefined) etat.lat = o.lat;
     majTextes();
@@ -511,7 +680,8 @@ window.terre = {
     dessinerGlobe(); sale = false; gl.finish();
     await new Promise(r => requestAnimationFrame(() => r()));
   },
-  etat: () => ({ t: etat.t, lon: etat.lon, lat: etat.lat, lecture: etat.lecture }),
+  etat: () => ({ t: tCourant(), lon: etat.lon, lat: etat.lat, lecture: etat.lecture }),
+  compteur: () => ({ angle: compteur.angle(), cible: compteur.angleCible(), butee: Compteur.BUTEE, v: compteur.v }),
   lirePixels() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat);
     const b = new Uint8Array(man.W * man.H * 4);
@@ -535,6 +705,7 @@ window.terre = {
     return terre / tout;
   },
   soleil: () => ({ lat: OBLIQUITE, lon: LON_SOLEIL }),
+  forcerPoids(w) { poidsForce = w; tCalcule = null; },   // diagnostic : un seul état clé porté
   disque() { const g = geometrie(); return { cx: g.w / 2, cy: g.h / 2, r: g.r }; },
   bornesPangee: () => PANGEE.slice(),
 };

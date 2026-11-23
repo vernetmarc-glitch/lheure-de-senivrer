@@ -118,7 +118,9 @@ class Grille:
         out = np.full((self.H, self.W), fond, val.dtype); vu = np.zeros((self.H, self.W), bool)
         out[j, i] = val; vu[j, i] = True
         d, (jj, ii) = ndimage.distance_transform_edt(~vu, return_indices=True)
-        bouche = (~vu) & (d <= trou)
+        # on ne bouche que les trous (fermeture morphologique) : le bord ne gonfle pas
+        ferme = ndimage.binary_closing(np.pad(vu, trou, mode="wrap"), iterations=trou)[trou:-trou, trou:-trou]
+        bouche = (~vu) & (d <= trou) & ferme
         out[bouche] = out[jj[bouche], ii[bouche]]
         return out, vu | bouche
 
@@ -202,19 +204,32 @@ def main(src, out, inter, W=1440, pas=1, tP=None, tM=None):
     QP = rot["paleomap_q"].astype(np.float64)                    # [rangée, Ma, 4]
     rowP = rowP_poly[pm]; debP, finP = pm_tab[pm, 1], pm_tab[pm, 2]
     tempsP = [t for t in dem.temps if t <= 540] if tP is None else tP
+    if 540 not in tempsP: tempsP = list(tempsP) + [540]
     cles = []
     for t in tempsP:
         h = dem(t, g)
         ok = (rowP > 0) & (debP >= t) & (finP <= t)
         v = qrot(QP[rowP[ok], t], V[ok])
         rows, _ = g.disperser(v, rowP[ok].astype(np.int32), 0)
+        brut = rows
+        rows = combler_plaques(rows, h > -1000)
+        if t == 540: h540_P, rows540_P, brut540_P = h, rows, brut
         ecrire(out / "cles" / f"P{t:04d}.png", h, rows)
         cles.append({"t": t, "seg": "P", "f": f"cles/P{t:04d}.png"})
         if t % 50 == 0: log(f"P {t} Ma : terres {(h > 0).mean()*100:.1f} % des pixels")
     ecrire_rot(out / "rot-P.bin", QP[:, :541])
 
-    # ---------- segment M (Merdith, raccord 580 -> 540 Ma)
-    me_ids = rot["merdith_ids"]; QM = rot["merdith_q"].astype(np.float64)
+    # ---------- segment M (Merdith, 1000 -> 540 Ma, raccord 580 -> 540 Ma)
+    # Pas d'états clés ici : un seul nuage de points en coordonnées ACTUELLES (la grille de
+    # sortie, pixel = morceau de croûte), chacun avec sa rangée de rotation et de quoi
+    # calculer son élévation à tout instant. La page le transporte d'un bloc : les mêmes
+    # points d'un instant à l'autre, rien à recaler, aucun mélange de deux états.
+    #   type a : pixels du PaleoDEM de 540 Ma au-dessus de -1000 m, ramenés au présent par
+    #            leur plaque PALEOMAP (comblée au plus proche) ; h0 = leur élévation ;
+    #   type b : croûte continentale de Merdith que (a) ne recouvre pas ; h0 = -150 m.
+    #   h(t) = (1-a) h0 + a cible, a = lissé((t-540)/100) ; cible = relief générique si la
+    #   croûte existe à t (Merdith), sinon -3000 m (le morceau s'enfonce et disparaît).
+    me_ids = rot["merdith_ids"]; QM = lisser_sauts(rot["merdith_q"].astype(np.float64), me_ids)
     mid2row = {int(p): r for r, p in enumerate(me_ids)}
     ms_tab = np.vstack([[0, 1e4, 0], part["merdith_table"]])
     mc_tab = np.vstack([[0, 0, 0], part["continents_table"]])
@@ -224,90 +239,96 @@ def main(src, out, inter, W=1440, pas=1, tP=None, tM=None):
     rowM = np.array([mid2row.get(int(u), 0) for u in uniq], np.int64)[invi]
     debC = mc_tab[mc, 1]
     vP540 = (rowP > 0) & (debP >= 540) & (finP <= 540)
-    rowP540 = np.where(vP540, rowP, 0)
-    besoin = croute | vP540
-    cle_paire = rowP540 * 100000 + rowM
-    paires, inv = np.unique(cle_paire[besoin], return_inverse=True)
-    rowH = np.zeros(len(V), np.int64); rowH[besoin] = inv + 1        # 0 = immobile
-    nH = len(paires) + 1
-    log(f"segment M : {nH-1} morceaux (plaque PALEOMAP × plaque Merdith)")
+
+    gv = xyz(g.lat.ravel(), g.lon.ravel())                         # grille de sortie
+    jj = np.clip(((90 - g.lat.ravel()) * 10 / pas).astype(np.int64), 0, ny - 1)
+    ii = np.clip(((g.lon.ravel() + 180) * 10 / pas).astype(np.int64), 0, nx - 1)
+    cel = jj * nx + ii                                               # cellule 0,1° du pixel actuel
+    crC, debCC, rowMC = croute[cel], debC[cel], rowM[cel]
+
+    h540, rows540 = h540_P, rows540_P
+    # 1) pixels actuels sur une plaque PALEOMAP de 540 Ma : leur élévation est lue au point
+    #    où leur plaque les place à 540 Ma (lecture inverse, sans hachures) ;
+    # 2) terres du PaleoDEM hors de tout polygone PALEOMAP : rattachées à la plaque la plus
+    #    proche, ramenées au présent par elle.
+    rowPC = np.where(vP540, rowP, 0)[cel]
+    h0 = np.full(g.H * g.W, np.nan); rP = np.zeros(g.H * g.W, np.int64)
+    ok1 = rowPC > 0
+    p = qrot(QP[rowPC[ok1], 540], gv[ok1])
+    jx, ix = g.indices(p)
+    hv = h540[jx, ix]
+    garde = hv > -1000
+    idx = np.where(ok1)[0][garde]
+    h0[idx] = hv[garde]; rP[idx] = rowPC[ok1][garde]
+    hors = (brut540_P == 0) & (h540 > -1000) & (rows540 > 0)
+    for r in np.unique(rows540[hors]):
+        libre = np.isnan(h0)
+        jx, ix = g.indices(qrot(np.broadcast_to(QP[r, 540], (int(libre.sum()), 4)), gv[libre]))
+        m = (rows540[jx, ix] == r) & hors[jx, ix]
+        k = np.where(libre)[0][m]
+        h0[k] = h540[jx[m], ix[m]]; rP[k] = r
+    vuA = ~np.isnan(h0)
+    typB = crC & ~vuA
+    pts = vuA | typB
+    log(f"segment M : {int(vuA.sum())} points du PaleoDEM de 540 Ma, {int(typB.sum())} de croûte seule")
+
+    cle_paire = np.where(vuA, rP, 0) * 100000 + rowMC
+    paires, inv = np.unique(cle_paire[pts], return_inverse=True)
+    rowH = np.zeros(g.H * g.W, np.int64); rowH[pts] = inv + 1; nH = len(paires) + 1
     pp, mm = paires // 100000, paires % 100000
-    TM = np.arange(540, 1001)
-    QH = np.zeros((nH, len(TM), 4)); QH[0, :, 3] = 1
-    # morceaux sans plaque PALEOMAP à 540 Ma : on leur prête la plaque PALEOMAP la plus
-    # représentée sur leur plaque Merdith (sinon ils resteraient aux positions de Merdith
-    # pendant le raccord, détachés de leurs voisins)
     compte = np.bincount(inv, minlength=len(paires))
     ppx = pp.copy()
     for m in np.unique(mm[pp == 0]):
-        k = np.where((mm == m) & (pp > 0))[0]
-        if len(k): ppx[(mm == m) & (pp == 0)] = pp[k[np.argmax(compte[k])]]
-    log(f"raccord : {int(((pp == 0) & (ppx > 0)).sum())} morceaux rattachés, "
-        f"{int((ppx == 0).sum())} sans correspondant")
+        kk = np.where((mm == m) & (pp > 0))[0]
+        if len(kk): ppx[(mm == m) & (pp == 0)] = pp[kk[np.argmax(compte[kk])]]
+    log(f"raccord : {nH-1} morceaux ; {int(((pp == 0) & (ppx > 0)).sum())} rattachés, "
+        f"{int((ppx == 0).sum())} sans correspondant PALEOMAP")
+    TM = np.arange(540, 1001)
+    QH = np.zeros((nH, len(TM), 4)); QH[0, :, 3] = 1
     C = qmul(QP[ppx, 540], qconj(QM[mm, 540]))                     # Merdith-540 -> PALEOMAP-540
     for k, t in enumerate(TM):
         s = np.clip((t - 540) / 40.0, 0, 1); s = s * s * (3 - 2 * s)
-        Ct = qslerp_id(C, s)
-        q = qmul(Ct, QM[mm, t])
-        q = np.where((ppx == 0)[:, None], QM[mm, t], q)
-        QH[1:, k] = q
+        q = qmul(qslerp_id(C, s), QM[mm, t])
+        QH[1:, k] = np.where((ppx == 0)[:, None], QM[mm, t], q)
     ecrire_rot(out / "rot-M.bin", QH)
 
-    # relief de 540 Ma en coordonnées actuelles ; relief générique
-    h540 = dem(540, g)
-    vv = qrot(QP[rowP540[vP540], 540], V[vP540])
-    la = np.degrees(np.arcsin(np.clip(vv[:, 2], -1, 1))); lo = np.degrees(np.arctan2(vv[:, 1], vv[:, 0]))
-    z540 = dem_brut(dem, 540)
-    h540_pd = np.full(len(V), np.nan); h540_pd[vP540] = echantillonner(z540, None, la, lo)
-    # distance au bord de la croûte (actuel), km
-    bord = croute.reshape(ny, nx) & ~ndimage.binary_erosion(croute.reshape(ny, nx), iterations=1)
+    # relief générique (hypothèse) aux points de croûte
+    cr2 = croute.reshape(ny, nx)
+    bord = cr2 & ~ndimage.binary_erosion(cr2, iterations=1)
     arbre = cKDTree(V[bord.ravel()])
-    dC = np.zeros(len(V)); dC[croute] = arbre.query(V[croute], workers=-1)[0] * R_TERRE
-    nz = bruit_spherique(V[croute])
-    hgen = np.full(len(V), np.nan)
-    hgen[croute] = (-120 + 560 * (1 - np.exp(-dC[croute] / 300))
-                    + 280 * nz * (1 - np.exp(-dC[croute] / 150)))
-    log(f"relief générique : médiane {np.nanmedian(hgen):.0f} m")
+    hgen = np.full(g.H * g.W, -3000.0)
+    d = arbre.query(gv[crC], workers=-1)[0] * R_TERRE
+    nz = bruit_spherique(gv[crC])
+    hgen[crC] = -120 + 560 * (1 - np.exp(-d / 300)) + 280 * nz * (1 - np.exp(-d / 150))
+    log(f"relief générique : médiane {np.median(hgen[crC]):.0f} m")
 
-    # état clé de raccord : PaleoDEM de 540 Ma, plaques hybrides aux positions PALEOMAP
-    v = qrot(QP[rowP540[vP540], 540], V[vP540])
-    rows, _ = g.disperser(v, rowH[vP540].astype(np.int32), 0)
-    ecrire(out / "cles" / "M0540.png", h540, rows)
-    cles.append({"t": 540, "seg": "M", "f": "cles/M0540.png"})
+    # images : M-points-1 (R = h0, G = relief générique, B = drapeaux), M-points-2 (rangée,
+    # début de la croûte en pas de 4 Ma)
+    h0c = np.where(vuA, h0, -150.0)
+    drap = (vuA * 1 + crC * 2 + pts * 4).astype(np.uint8)
+    deb = np.clip(np.round(np.minimum(debCC, 1020) / 4), 0, 255).astype(np.uint8)
+    im1 = np.stack([coder(h0c), coder(hgen), drap], -1).reshape(g.H, g.W, 3)
+    im2 = np.stack([(rowH & 255).astype(np.uint8), (rowH >> 8).astype(np.uint8), deb], -1).reshape(g.H, g.W, 3)
+    Image.fromarray(im1, "RGB").save(out / "M-points-1.png", optimize=True)
+    Image.fromarray(im2, "RGB").save(out / "M-points-2.png", optimize=True)
 
-    tempsM = list(range(550, 1001, 10)) if tM is None else tM
-    for t in tempsM:
+    # contrôle de la cuisson : surface émergée du nuage à quelques instants (sphère)
+    w = np.cos(np.radians(g.lat.ravel()))
+    for t in (540, 545, 550, 560, 600, 700, 1000):
         a = np.clip((t - 540) / 100.0, 0, 1); a = a * a * (3 - 2 * a)
-        cm = croute & (debC >= t)
-        # terres du PaleoDEM de 540 Ma hors de la croûte de Merdith à t : elles ne
-        # disparaissent pas d'un coup au raccord, elles s'enfoncent avec a (sous -3000 m)
-        ok = cm | (vP540 & ~cm & (a < 0.999))
-        base = np.where(np.isnan(h540_pd[ok]), -150.0, h540_pd[ok])
-        cible = np.where(cm[ok], hgen[ok], -3000.0)
-        cible = np.where(np.isnan(cible), -150.0, cible)
-        hb = (1 - a) * base + a * cible
-        k = t - 540
-        v = qrot(QH[rowH[ok], k], V[ok])
-        ordre = np.argsort(hb)                                        # le plus haut l'emporte
-        hc, vu = g.disperser(v, hb.astype(np.float32), np.nan, ordre=ordre)
-        rows, _ = g.disperser(v, rowH[ok].astype(np.int32), 0, ordre=ordre)
-        # fonds marins génériques : profondeur selon la distance à la croûte
-        gv = xyz(g.lat.ravel(), g.lon.ravel())
-        arbre = cKDTree(gv[vu.ravel()])
-        d = arbre.query(gv[~vu.ravel()], workers=-1)[0] * R_TERRE
-        h = hc.ravel().copy()
-        h[~vu.ravel()] = -(160 + 3900 * (1 - np.exp(-d / 420)))
-        h = h.reshape(g.H, g.W)
-        ecrire(out / "cles" / f"M{t:04d}.png", h, rows)
-        cles.append({"t": t, "seg": "M", "f": f"cles/M{t:04d}.png"})
-        if t % 50 == 0: log(f"M {t} Ma : terres {(h > 0).mean()*100:.1f} % des pixels")
+        viv = crC & (debCC >= t)
+        h = np.where(vuA, (1 - a) * h0c + a * np.where(viv, hgen, -3000.0), (1 - a) * -150 + a * hgen)
+        ex = pts & np.where(vuA, viv | (a < 0.999), viv)
+        log(f"M {t} Ma : terres {(w * (ex & (h > 0))).sum() / w.sum() * 100:.1f} % de la sphère")
 
     bm = preparer_blue_marble(src, out, inter)
     man = {
         "W": g.W, "H": g.H, "surface": bm,
         "codage": {"terre": [H_TERRE], "mer": [H_MER, G_MER]},
         "segments": {"P": {"t0": 0, "t1": 540, "rot": "rot-P.bin", "rangees": int(QP.shape[0]), "cols": 541},
-                     "M": {"t0": 540, "t1": 1000, "rot": "rot-M.bin", "rangees": int(nH), "cols": len(TM)}},
+                     "M": {"t0": 540, "t1": 1000, "rot": "rot-M.bin", "rangees": int(nH), "cols": len(TM),
+                           "points": ["M-points-1.png", "M-points-2.png"], "fond": "cles/P0540.png",
+                           "pasDebut": 4, "raccord": [540, 580], "effacement": [540, 640]}},
         "cles": cles,
         "sources": ["Scotese & Wright 2018, PALEOMAP PaleoDEMs, Zenodo 5460860",
                     "Scotese 2016, PALEOMAP Global Plate Model (PaleoAtlas v3), Zenodo 5460860",
@@ -333,6 +354,41 @@ def preparer_blue_marble(src, out, inter):
             return "surface-juin.jpg"
     log("Blue Marble absent")
     return None
+
+
+def lisser_sauts(Q, ids, seuil=15.0, demi=5):
+    """Sauts de plus de `seuil` degrés en 1 Ma dans un modèle publié (raccords de rotation
+    non synchronisés : Merdith v1.2.4 en montre à 610 Ma) : étalés en rotation continue
+    sur ± `demi` Ma, pour que les continents ne se téléportent pas."""
+    Q = Q.copy()
+    d = np.abs((Q[:, 1:] * Q[:, :-1]).sum(-1)); ang = 2 * np.degrees(np.arccos(np.clip(d, 0, 1)))
+    for r, t in np.argwhere(ang > seuil):
+        t0, t1 = max(t - demi, 0), min(t + 1 + demi, Q.shape[1] - 1)
+        a, b = Q[r, t0], Q[r, t1]
+        if np.dot(a, b) < 0: b = -b
+        om = np.arccos(np.clip(np.dot(a, b), -1, 1))
+        for k in range(t0 + 1, t1):
+            f = (k - t0) / (t1 - t0)
+            q = (np.sin((1 - f) * om) * a + np.sin(f * om) * b) / np.sin(om) if om > 1e-6 else a
+            Q[r, k] = q / np.linalg.norm(q)
+    n = int((ang > seuil).sum())
+    if n: log(f"sauts de rotation > {seuil}°/Ma lissés : {n} (plaques {sorted(set(ids[np.argwhere(ang > seuil)[:, 0]].tolist()))[:12]}…, "
+              f"vers {sorted(set((np.argwhere(ang > seuil)[:, 1]).tolist()))[:6]} Ma)")
+    return Q
+
+
+def lon_wrap(lo):
+    return (lo + 180) % 360 - 180
+
+
+def combler_plaques(rows, masque):
+    """Terres et plateaux du PaleoDEM hors de tout polygone de plaque : rattachés à la plaque
+    la plus proche, pour qu'ils voyagent avec leurs voisins au lieu de rester immobiles."""
+    vide = (rows == 0) & masque
+    if not vide.any() or not (rows > 0).any(): return rows
+    _, (jj, ii) = ndimage.distance_transform_edt(rows == 0, return_indices=True)
+    out = rows.copy(); out[vide] = rows[jj[vide], ii[vide]]
+    return out
 
 
 def dem_brut(dem, t):
