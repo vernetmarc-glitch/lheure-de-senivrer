@@ -173,11 +173,13 @@ async def main():
         # ---- C5 pas de saut
         r = await pg.evaluate("""async () => {
             const out = [];
-            for (const [a, b] of [[0, 12], [245, 257], [528, 562], [985, 1000]])
-              for (let t = a; t <= b + 1e-9; t += 0.5) { await terre.regler({t}); out.push([t, terre.aireTerres()]); }
+            for (const [a, b] of [[0, 12], [245, 257], [528, 562], [985, 1000]]) {
+              const s = [];
+              for (let t = a; t <= b + 1e-9; t += 0.5) { await terre.regler({t}); s.push([t, terre.aireTerres()]); }
+              out.push(s); }
             return out; }""")
-        sauts = [(r[i][0], abs(r[i][1] - r[i-1][1]) / max(r[i][1], r[i-1][1], 1e-9))
-                 for i in range(1, len(r)) if r[i][0] > r[i-1][0]]
+        sauts = [(s[i][0], abs(s[i][1] - s[i-1][1]) / max(s[i][1], s[i-1][1], 1e-9))
+                 for s in r for i in range(1, len(s))]
         smax = max(sauts, key=lambda x: x[1])
         note("C5", smax[1] < 0.01, f"plus grand saut de surface émergée : {smax[1]*100:.2f} % "
              f"(vers {smax[0]} Ma ; seuil 1 %)")
