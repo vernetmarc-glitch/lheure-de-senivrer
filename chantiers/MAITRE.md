@@ -43,3 +43,11 @@ chantier concerné.
 6. Message à Marc **seulement** si quelque chose a été publié ou si un chantier bloque :
    ce qui est nouveau, le lien, une phrase.
 7. Reprogrammer le réveil suivant (environ 60 min) tant qu'un chantier reste ouvert.
+
+## Limites d'usage (consigne de Marc, 23/11)
+
+Quand des agents s'arrêtent sur une limite d'usage, le maître programme un réveil à
+l'heure de remise à zéro annoncée (+ 5 min) et reprend alors les chantiers lui-même,
+sans attendre Marc. Il reprend **au plus trois agents à la fois**, en priorité ceux qui
+sont le plus près d'une page publiable, pour que la limite suivante tombe plus tard ; les
+autres reprennent au réveil suivant.
