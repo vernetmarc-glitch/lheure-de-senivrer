@@ -1,13 +1,13 @@
 == HYDE 3.3
 [200] https://geo.public.data.uu.nl/vault-hyde/ -> https://geo.public.data.uu.nl/vault-hyde/ (None o)
    (page Anubis : protection anti-robots)
-   -> https://geo.public.data.uu.nl/.within.website/x/cmd/anubis/api/honeypot/11b3a95c-3a4b-4a04-80b1-e89023f39685/init
+   -> https://geo.public.data.uu.nl/.within.website/x/cmd/anubis/api/honeypot/6922e512-0471-4de8-8c61-a63a7b76dc66/init
    -> https://geo.public.data.uu.nl/.within.website/x/xess/xess.min.css?cachebuster=v1.27.0
    -> https://github.com/TecharoHQ/anubis
    -> https://techaro.lol
 [200] https://geo.public.data.uu.nl/vault-hyde-data/ -> https://geo.public.data.uu.nl/vault-hyde-data/ (None o)
    (page Anubis : protection anti-robots)
-   -> https://geo.public.data.uu.nl/.within.website/x/cmd/anubis/api/honeypot/40b88956-3895-406a-888b-0348068e9f92/init
+   -> https://geo.public.data.uu.nl/.within.website/x/cmd/anubis/api/honeypot/899d1acf-67e6-4f8c-b14a-5b9beedf15df/init
    -> https://geo.public.data.uu.nl/.within.website/x/xess/xess.min.css?cachebuster=v1.27.0
    -> https://github.com/TecharoHQ/anubis
    -> https://techaro.lol
@@ -46,7 +46,7 @@
 [200] https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM2_ESM.pdf (6707027 o)
 [200] https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM3_ESM.xlsx (765984 o)
 [200] https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM4_ESM.xlsx (10212 o)
-[200] https://www.nature.com/articles/s41586-022-04600-9 -> https://www.nature.com/articles/s41586-022-04600-9?error=cookies_not_supported&code=f49c0cd1-f8c8-448e-82e0-709009297f45 (None o)
+[200] https://www.nature.com/articles/s41586-022-04600-9 -> https://www.nature.com/articles/s41586-022-04600-9?error=cookies_not_supported&code=f094cf35-2913-4ebb-a311-b35db66f6927 (None o)
 == Niveau marin
 [200] https://www.ncei.noaa.gov/pub/data/paleo/contributions_by_author/spratt2016/spratt2016.txt (52553 o) b'# Global Sea Level Reconstruction using Stacked Records from 0-800 ka\r\n#------------------------------------------------'
 [200] https://www.ncei.noaa.gov/pub/data/paleo/contributions_by_author/bintanja2008/bintanja2008.txt (2944909 o) b'Global 3Ma Temperature, Sea Level, and Ice Volume Reconstructions \n-----------------------------------------------------'
