@@ -1115,3 +1115,8 @@ s'enivrer — Refonte : du cosmos aux Alpes ».*
 - **N22.** Depuis la même vue d'avion, on voit s'écouler les glaciers dans les vallées alpines, avec leurs avancées et leurs retraits, sur environ 100 000 ans, d'après les publications (D-42).
 - **N23.** Sur les deux derniers millions d'années, on finit par reconnaître Belledonne ; la barre de temps ralentit pour le montrer (D-41).
 - **N24.** Les résultats des chantiers sont publiés au fur et à mesure qu'ils améliorent l'œuvre (D-40).
+- **N25.** Chaque chantier a un visuel de référence, objectif esthétique de son rendu, et une signature chiffrée qui en devient un contrôle (23/11, Marc ; `docs/references-visuelles-refonte.md`).
+- **N26.** Le style de rendu est fixé par chantier : photoréaliste, simulation 3D ou animation (23/11).
+- **N27.** Un format de compression vidéo limite le poids des téléchargements et accroît la fluidité du défilement dans le temps (23/11).
+- **N28.** La vitesse d'avancée dans le temps est montrée en permanence par un compteur à aiguille dans un coin de la scène, de 1 an à 10 milliards d'années par seconde (23/11).
+- **N29.** L'humanité montre ses lignées successives et sa densité qui augmente au cours du temps (23/11).
