@@ -69,7 +69,7 @@ def creep_eta(flu, T, P, e):
 class Modele:
     def __init__(self, cfg, pas_km=5.0, seed=0):
         self.cfg = cfg
-        self.L = cfg.get("largeur_km", 1200) * KM
+        self.L = cfg.get("largeur_km", 1900) * KM
         self.H = cfg.get("profondeur_km", 400) * KM
         self.yair = 20 * KM
         self.dx = self.dy = pas_km * KM
@@ -159,6 +159,8 @@ class Modele:
         Y = Y.ravel() + (self.rng.random(Y.size) - 0.5) * dym
         self.mx, self.my = X, Y
         self.lit, self.dom, self.T, self.eps, self.ecl = self.proprietes(X, Y)
+        # poinçon adriatique : intérieur rigide de l'Adria, à vitesse horizontale imposée
+        self.rig = (self.dom == ADR) & np.isin(self.lit, (SED, CS, CI, ML)) & (X > (self.x6 + 150) * KM)
         # zone de faiblesse : serpentinites plongeant à 30° sous l'Adria, depuis la marge adriatique
         xs = self.x5 * KM - 10 * KM
         ys = self.surf0(xs / KM) * KM
@@ -171,15 +173,16 @@ class Modele:
         self.topo = np.array([self.surf0(xk / KM) for xk in x0]) * KM     # profondeur de la surface (m)
         # marqueurs suivis (croûte supérieure à 8 km sous la surface) : x initial des fragments
         b = self.bornes
-        cibles = {"Europe": 200.0, "Adria": self.L / KM - 150.0}
+        cibles = {"Europe": 200.0, "Adria": self.x6 + 300.0}
         if b["valais"][1] > b["valais"][0]:
             cibles["Valais"] = 0.5 * sum(b["valais"])
         cibles["Briançonnais"] = 0.5 * sum(b["bri"])
         cibles["Liguro-piémontais"] = 0.5 * sum(b["ocean"])
         self.suivis = {}
         for nom, xk in cibles.items():
-            yk = (self.surf0(xk) + 3.0) * KM
-            self.suivis[nom] = int(np.argmin((X - xk * KM) ** 2 + (Y - yk) ** 2))
+            yk = (self.surf0(xk) + 5.0) * KM
+            d2 = (X - xk * KM) ** 2 + (Y - yk) ** 2
+            self.suivis[nom] = np.argsort(d2)[:40]                     # 40 marqueurs de croûte supérieure
 
     def surf0(self, xk):
         return self.isostasie(self.colonne(xk))
@@ -288,15 +291,15 @@ class Modele:
             ep = sy / (2 * e[s])
             pl = ep < ev
             # bandes de 40 km contre les parois : plaques rigides (ni plasticité ni fluage rapide)
-            paroi = ((self.mx[s] < 40 * KM) | (self.mx[s] > self.L - 40 * KM)) & (code != AST)
+            paroi = ((self.mx[s] < 150 * KM) | self.rig[s]) & (code != AST)   # Europe lointaine, poinçon adriatique
             pl &= ~paroi
-            ev = np.where(paroi, np.maximum(ev, 1e22), ev)
+            ev = np.where(paroi, ETA_MAX, ev)
             eta[s] = np.clip(np.where(pl, ep, ev), 1e20 if code in (ML, AST) else ETA_MIN, ETA_MAX)
             plast[np.where(s)[0][pl]] = True
         return eta, rho, kk, Hr, plast
 
     # ---------------------------------------------------------------- Stokes
-    def stokes(self, etas, etap, rho, dt, vbord):
+    def stokes(self, etas, etap, rho, dt, vbord, poincon=None, vp=0.0):
         Nx, Ny, dx, dy = self.Nx, self.Ny, self.dx, self.dy
         N = (Nx + 1) * (Ny + 1) * 3
         Kc = 2 * 1e21 / (dx + dy)
@@ -322,6 +325,11 @@ class Modele:
         basb = (ii == Ny) & (jj > 0) & (jj < Nx - 1)
         ajoute(kvx[basb], kvx[basb] - 3, -1.0)
         m = (ii > 0) & (ii < Ny) & (jj > 0) & (jj < Nx - 1)
+        if poincon is not None:
+            pc = m & poincon
+            ajoute(kvx[pc], kvx[pc], 1.0)
+            R[kvx[pc]] = vp
+            m &= ~poincon
         i, j, k = ii[m], jj[m], kvx[m]
         e1, e2 = etas[i - 1, j], etas[i, j]
         p1, p2 = etap[i, j], etap[i, j + 1]
@@ -426,7 +434,7 @@ class Modele:
         graphe = fs.FlowGraph(grille, [fs.SingleFlowRouter(), fs.MSTSinkResolver()])
         zz = np.maximum(z, 0.0)
         graphe.update_routes(zz)
-        Lup = graphe.accumulate(np.full(n, self.dx))                 # longueur drainée le long du profil
+        Lup = graphe.accumulate(np.ones(n))                          # longueur drainée (m) : accumulate multiplie par l’espacement
         aire = 13.6 * Lup ** 1.67                                    # loi de Hack (m², m)
         Kf = self.cfg.get("Kf", 4e-6)
         spl = fs.SPLEroder(graphe, Kf, 0.4, 1.0)
@@ -466,7 +474,9 @@ class Modele:
         f[yv < self.topo[-1]] = 0.0                  # l'air ne traverse pas la paroi
         ins = np.clip(-f, 0, None).sum()
         outs = np.clip(f, 0, None).sum()
-        vb = v * np.where(f < 0, f, f * ins / outs)
+        vb = np.zeros_like(yv)                          # parois fermées ; l'Adria avance en poinçon
+        fr, _ = self.vers_grille(self.rig.astype(float), 0.0, -0.5 * dy, Nx + 1, Ny + 1)
+        poincon = fr > 0.5
         for it in range(2):
             eta, rho, kk, Hr, plast = self.rheologie(self.EIIm, Pm)
             lg, _ = self.vers_grille(np.log10(eta), 0, 0, Nx, Ny)
@@ -474,7 +484,7 @@ class Modele:
             rg, _ = self.vers_grille(rho, 0, 0, Nx, Ny)
             lp, _ = self.vers_grille(np.log10(eta), -0.5 * dx, -0.5 * dy, Nx + 1, Ny + 1)
             etap = 10 ** lp
-            self.stokes(etas, etap, rg, dt, vb)
+            self.stokes(etas, etap, rg, dt, vb, poincon, -v)
             EII = self.deformation()
             self.EIIm = np.maximum(self.vers_marqueurs(EII[1:Ny, 1:Nx], 0.5 * dx, 0.5 * dy), 1e-18)
             Pm = self.vers_marqueurs(self.P[1:Ny, 1:Nx], 0.5 * dx, 0.5 * dy)
@@ -495,12 +505,14 @@ class Modele:
         self.mx += dt * vx2
         self.my += dt * vy2
         xt = self.x.copy()
-        tx, ty = self.vitesse_marqueurs(xt, self.topo)
+        tx, ty = self.vitesse_marqueurs(xt, self.topo + 0.5 * dy)       # vitesse de la roche sous la surface
         xt2, yt2 = xt + dt * tx, self.topo + dt * ty
         o = np.argsort(xt2)
         self.topo = np.interp(self.x, xt2[o], yt2[o])
+        self.topo[0], self.topo[-1] = self.topo[1], self.topo[-2]      # bords : pente nulle
+        self.topo = np.clip(self.topo, 8 * KM, 60 * KM)                 # surface dans le modèle (≤ 12 km d'altitude)
         self.erosion(dt / AN)
-        self.renouvelle(dt, v, hin)
+        self.renouvelle(dt, 0.0, hin)
         # air / roche selon la surface
         st = np.interp(self.mx, self.x, self.topo)
         mange = (self.lit != AIR) & (self.my < st)
@@ -520,7 +532,7 @@ class Modele:
         if not dedans.all():
             nouv = np.cumsum(dedans) - 1
             for k, i in suivis.items():
-                self.suivis[k] = int(nouv[i]) if dedans[i] else -1
+                self.suivis[k] = nouv[i[dedans[i]]]
             self.garde(dedans)
         # injection : bande de largeur v dt au bord droit, jusqu'à hin
         dens = self.nm ** 2 / (self.dx * self.dy)
@@ -547,7 +559,7 @@ class Modele:
         self.vides = int(vides.size)
 
     def garde(self, s):
-        for a in ("mx", "my", "lit", "dom", "T", "eps", "ecl", "EIIm"):
+        for a in ("mx", "my", "lit", "dom", "T", "eps", "ecl", "EIIm", "rig"):
             setattr(self, a, getattr(self, a)[s])
 
     def ajoute(self, X, Y, lit, dom, T, eps=None, ecl=None):
@@ -558,6 +570,7 @@ class Modele:
         self.eps = np.r_[self.eps, np.zeros(n) if eps is None else eps]
         self.ecl = np.r_[self.ecl, np.zeros(n, bool) if ecl is None else ecl]
         self.EIIm = np.r_[self.EIIm, np.full(n, 1e-15)]
+        self.rig = np.r_[self.rig, np.zeros(n, bool)]
 
     # ---------------------------------------------------------------- sorties
     def image(self, prof_km=200.0, fin=2):
@@ -578,7 +591,7 @@ class Modele:
     def etat(self):
         return dict(t=self.t, topo_m=(self.yair - self.topo - self.cfg.get("mer_m", 100.0)).astype(np.float32),
                     image=self.image(),
-                    suivi={k: (float(self.mx[i] / KM) if i >= 0 else np.nan) for k, i in self.suivis.items()})
+                    suivi={k: (float(np.median(self.mx[i]) / KM) if len(i) >= 5 else np.nan) for k, i in self.suivis.items()})
 
 
 def main():
@@ -605,7 +618,7 @@ def main():
         if abs(M.t - round(M.t)) < 1e-9:
             images.append(M.etat())
             e = images[-1]
-            print(f"{M.t:6.1f} Ma  pas {M.pas:5d}  dt {dt/MA*1e3:5.0f} ka  alt max {e['topo_m'].max():6.0f} m  "
+            print(f"{M.t:6.1f} Ma  pas {M.pas:5d}  dt {dt/MA*1e3:5.0f} ka  alt max {e['topo_m'].max():6.0f} m à {np.argmax(e['topo_m'])*M.dx/KM:4.0f} km  "
                   f"marqueurs {M.mx.size}  vides {M.vides}  {time.time()-t0:7.0f} s", flush=True)
             if time.time() - t0 > a.budget_s and M.t < a.jusqua - 1e-9:
                 import pickle
