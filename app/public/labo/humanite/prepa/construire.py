@@ -126,9 +126,10 @@ def relief():
     n = ecrire_gz('relief.u8.gz', code)
     log(f'relief 0,2° : {code.shape}, {n/1e6:.2f} Mo')
     # seuil de submersion d'une maille de 0,5° : 60e centile des 25 mailles de 0,1°
-    # (une maille est émergée si au moins 40 % de sa surface l'est)
+    # 80e centile : une maille est émergée si au moins 20 % de sa surface l'est (les
+    # détroits et les îles étroites, Java oriental, Timor, la mer Égée, survivent à 0,5°)
     blocs = z.reshape(H, 5, W, 5).transpose(0, 2, 1, 3).reshape(H, W, 25)
-    seuil = np.quantile(blocs, 0.6, axis=2).astype(np.float32)
+    seuil = np.quantile(blocs, 0.8, axis=2).astype(np.float32)
     return code, seuil
 
 
@@ -178,6 +179,45 @@ FLORES = boite(118.5, 123.8, -9.6, -7.8)
 LUZON = boite(119.4, 124.6, 12.3, 19.2)
 
 
+_HAB = None
+
+
+def habitat(*especes, seuil=20):
+    """Habitats probables de Timmermann et al. 2022 (1°, 2 Ma → 0) : maille de 0,5° dont la
+    maille de 1° a été favorable (≥ seuil/254) au moins une fois pour l'une des espèces."""
+    global _HAB
+    if _HAB is None:
+        _HAB = np.load(os.path.join(INTER, 'habitats_timmermann2022.npz'))
+    m = None
+    for e in especes:
+        a = _HAB[e]
+        a = np.where(a == 255, 0, a).max(axis=0) >= seuil        # 180 × 360, lat −90 → 90, lon 0 → 359
+        m = a if m is None else (m | a)
+    lat_i = np.clip(np.floor(LAT2 + 90).astype(int), 0, 179)
+    lon_i = np.floor(LON2 % 360).astype(int) % 360
+    return ndimage.binary_dilation(m, iterations=1)[lat_i, lon_i]
+
+
+_NB = None
+
+
+def boite_floue(lon0, lon1, lat0, lat1):
+    """Boîte dont les bords ondulent (± 4° en longitude, ± 2,5° en latitude) : pas de
+    frontière rectiligne sur le globe."""
+    global _NB
+    if _NB is None:
+        _NB = (bruit(901, ((10, 1.0),)), bruit(902, ((10, 1.0),)))
+    lo, la = LON2 + 4.0 * _NB[0], LAT2 + 2.5 * _NB[1]
+    return (lo >= lon0) & (lo <= lon1) & (la >= lat0) & (la <= lat1)
+
+
+_SEUIL = None
+
+
+def seuil_global():
+    return _SEUIL
+
+
 def domaine(carte):
     """Domaine géographique d'une lignée et dates d'ouverture (âge BP à partir duquel la
     lignée peut y entrer) : tableau H × W d'âges ; 0 = jamais."""
@@ -186,25 +226,32 @@ def domaine(carte):
         o[AFR & (LAT2 < 22) & (LAT2 > -35)] = 7.1e6
     elif carte == 'erectus':
         o[AFR] = 2.9e6
-        eur = EURASIE & (LAT2 < 54) & ~((LON2 > 60) & (LAT2 > 46)) & ~boite(125, 150, 30, 46)
+        eur = EURASIE & ~boite_floue(-30, 200, 54, 90) & ~boite_floue(60, 200, 46, 90) & ~boite(125, 150, 30, 46)
+        eur &= habitat('erectus', 'heidelberg', 'ergahabi') | boite(95, 135, -12, 12)
         o[eur] = 2.4e6
         o[WALLACEA & ~FLORES] = 1.1e6
         o[FLORES] = 1.1e6
         o[LUZON] = 0.75e6
     elif carte == 'neandertal':
-        o[EURASIE & boite(-10, 90, 30, 56) & ~boite(48, 90, 30, 37)] = 4.5e5
+        o[EURASIE & boite_floue(-12, 92, 30, 57) & ~boite_floue(48, 92, 20, 37) & habitat('neander', 'heidelberg')] = 4.5e5
     elif carte == 'denisova':
-        o[EURASIE & boite(75, 135, 8, 54) & ~boite(75, 92, 8, 26)] = 3.0e5
+        o[EURASIE & boite_floue(75, 135, 8, 54) & ~boite_floue(70, 92, 0, 26)
+          & habitat('heidelberg', 'neander', 'erectus')] = 3.0e5
     elif carte == 'insulaires':
         o[FLORES | LUZON] = 7.2e5
     elif carte == 'sapiens1':
-        o[EURASIE & boite(20, 60, 12, 42)] = 2.2e5
+        o[EURASIE & boite_floue(20, 60, 12, 42)] = 2.2e5
     elif carte == 'sapiens':
         o[AFR] = 3.2e5
         o[EURASIE & ~WALLACEA] = 7.2e4
-        o[EURASIE & (LAT2 > 62)] = 4.6e4             # Arctique : après 46 ka (Yana 32 ka)
-        o[WALLACEA] = 6.5e4
-        o[SAHUL] = 6.0e4
+        europe = EURASIE & (boite_floue(-30, 40, 41, 90) | boite_floue(-30, 28, 35, 90))
+        o[europe] = 5.6e4                               # Europe : après 56 ka (Mandrin 54 ka)
+        o[EURASIE & boite_floue(45, 90, 35, 90)] = 5.5e4  # Asie centrale
+        o[EURASIE & boite_floue(40, 200, 50, 90)] = 5.2e4  # Sibérie
+        o[EURASIE & boite_floue(-30, 200, 62, 90)] = 4.6e4  # Arctique : après 46 ka (Yana 32 ka)
+        o[EURASIE & boite_floue(78, 104, 28, 39) & (seuil_global() > 2500)] = 4.0e4   # plateau tibétain (Nwya Devu, 40–30 ka)
+        o[WALLACEA] = 5.8e4       # Leang Karampuang 51 ka ; Florès vers 46 ka
+        o[SAHUL] = 5.6e4
         o[AMER & ~GROENLAND] = 3.0e4
         o[MADAGASCAR] = 0       # Madagascar, Océanie lointaine, Islande : Holocène (HYDE)
         o[OCEANIE_LOINTAINE & ~AMER] = 0
@@ -215,22 +262,22 @@ def domaine(carte):
 
 
 SAUTS = {  # (distance maximale d'un saut de mer en mailles de 0,5°, âge BP d'ouverture)
-    'hominines': (0, 0), 'erectus': (1.5, 1.1e6), 'neandertal': (1.0, 4.5e5),
-    'denisova': (1.0, 3e5), 'insulaires': (1.0, 7.2e5), 'sapiens1': (1.0, 2.2e5),
-    'sapiens': (2.3, 6.5e4)}
+    'hominines': (0, 0), 'erectus': (2.0, 1.1e6), 'neandertal': (1.0, 4.5e5),
+    'denisova': (1.0, 3e5), 'insulaires': (1.0, 7.2e5), 'sapiens1': (2.0, 2.2e5),
+    'sapiens': (3.6, 5.8e4)}
 
 VITESSE = {  # km par millier d'années, vitesse de base du front (avant calage)
     'hominines': 3.0, 'erectus': 15.0, 'neandertal': 20.0, 'denisova': 25.0,
-    'insulaires': 10.0, 'sapiens1': 40.0, 'sapiens': 250.0}
+    'insulaires': 10.0, 'sapiens1': 80.0, 'sapiens': 600.0}
 
-COEXISTENCE = {'neandertal': 5000, 'denisova': 5000, 'insulaires': 3000, 'erectus': 20000,
+COEXISTENCE = {'neandertal': 8000, 'denisova': 5000, 'insulaires': 3000, 'erectus': 20000,
                'hominines': 50000, 'sapiens1': 3000}
 REMPLACANTS = {'erectus': ['neandertal', 'denisova', 'sapiens', 'insulaires'],
                'neandertal': ['sapiens'], 'denisova': ['sapiens'], 'insulaires': ['sapiens'],
                'hominines': [], 'sapiens1': []}
 
 
-def bruit(graine, echelles=((24, 0.55), (8, 0.45), (2.5, 0.35), (0, 0.3))):
+def bruit(graine, echelles=((24, 0.55), (8, 0.5), (3, 0.3))):
     rng = np.random.default_rng(graine)
     n = np.zeros((H, W))
     for s, a in echelles:
@@ -288,6 +335,10 @@ class Croissance:
         parent = np.full((H, W), -1, np.int64)
         v0 = VITESSE[carte]
         vit = v0 * np.exp(0.9 * bruit(graine)) * mult    # km / ka
+        if carte == 'sapiens':
+            # en Europe, le front de sapiens avance trois fois moins vite : les Néandertaliens
+            # y résistent (coexistence de 5 à 10 ka ; Higham et al. 2014, Slimak et al. 2022)
+            vit = vit * np.where(EURASIE & (LON2 < 40) & (LAT2 > 35), 0.33, 1.0)
         saut, saut_age = SAUTS[carte]
         r = int(math.ceil(saut))
         voisins = [(di, dj) for di in range(-max(1, r), max(1, r) + 1) for dj in range(-max(1, r), max(1, r) + 1)
@@ -297,26 +348,32 @@ class Croissance:
             A[i, j] = age
             heapq.heappush(tas, (-age, i, j))
         fait = np.zeros((H, W), bool)
+        cote = ndimage.binary_dilation(self.seuil < -100, iterations=1) & (ouverture > 0)
+        proches = [(di, dj) for (di, dj) in voisins if abs(di) <= 1 and abs(dj) <= 1]
         while tas:
             na, i, j = heapq.heappop(tas)
             a = -na
             if fait[i, j]:
                 continue
             fait[i, j] = True
-            for di, dj in voisins:
+            for di, dj in (voisins if (cote[i, j] and saut_age > 0) else proches):
                 ii = i + di
                 if ii < 0 or ii >= H:
                     continue
                 jj = (j + dj) % W
                 if fait[ii, jj] or ouverture[ii, jj] <= 0:
                     continue
+                a_dep = a
+                if AFR[i, j] and not AFR[ii, jj] and LON[jj] < 12:
+                    continue        # pas de passage par Gibraltar ni par la Sicile
                 pas = math.hypot(di * self.dy, dj * 0.5 * (self.dx[i] + self.dx[ii]))
                 est_voisin = abs(di) <= 1 and abs(dj) <= 1
                 if not est_voisin:
-                    if a > saut_age or math.hypot(di, dj) > saut + 1e-6:
+                    if math.hypot(di, dj) > saut + 1e-6:
                         continue
+                    a_dep = min(a, saut_age)       # le saut attend son ouverture
                 cout = pas / (0.5 * (vit[i, j] + vit[ii, jj])) * 1000.0   # années
-                t = min(a, ouverture[ii, jj]) - cout
+                t = min(a_dep, ouverture[ii, jj]) - cout
                 if t <= 0:
                     continue
                 if est_voisin is False or self.seuil[ii, jj] <= 40:
@@ -349,8 +406,8 @@ def maille_valide(lat, lon, ouverture, seuil, age):
     for di in (0, -1, 1):
         for dj in (0, -1, 1):
             i, j = i0 + di, (j0 + dj) % W
-            if 0 <= i < H and ouverture[i, j] > 0:
-                d = abs(di) + abs(dj)
+            if 0 <= i < H and ouverture[i, j] > 0 and seuil[i, j] > -120:
+                d = abs(di) + abs(dj) - min(0.5, max(0.0, seuil[i, j]) / 2000)
                 if best is None or d < best[0]:
                     best = (d, i, j)
     return None if best is None else (best[1], best[2])
@@ -394,7 +451,7 @@ def caler(cro, carte, sites, ouverture, graine, iterations=40):
         if it % 5 == 4:
             log(f'  {carte} : passe {it + 1}, {len(retards)} sites en retard : '
                 + ', '.join(f'{s["nom"]} ({A[c]:.0f} < {need:.0f})' for c, need, s in retards[:4]))
-    log(f'  !! {carte} : non calé, {len(retards)} sites en retard')
+    log(f'  !! {carte} : non calé : ' + ', '.join(f'{s["nom"]} ({A[c]:.0f} < {need:.0f})' for c, need, s in retards))
     return A, origines, contraintes
 
 
@@ -427,12 +484,76 @@ def distances_refuge(cro, ij, masque, graine):
     return D
 
 
+ELECTRIFICATION = [[1880, 0.0], [1900, 0.04], [1930, 0.12], [1950, 0.25], [1970, 0.5], [1990, 0.75],
+                   [2010, 0.95], [2016, 1.0]]   # hypothèse : part de la lumière électrique d'aujourd'hui
+
+
+def paquet_hyde():
+    z = np.load(os.path.join(INTER, 'hyde_0p5.npz'))
+    annees = [int(a) for a in z['annees']]
+    cell, pop, sous = z['cellules'], z['pop'].astype(np.float64), z['sous_2017']
+    tot = json.load(open(os.path.join(INTER, 'hyde_totaux_annees.json')))
+    # tranche 2023 : carte de 2017 mise à l'effectif des Nations unies (hypothèse : même répartition)
+    i17 = annees.index(2017)
+    f = ONU_2023 / float(tot['2017'])
+    pop = np.vstack([pop, pop[i17] * f])
+    annees.append(AUJOURDHUI)
+    totaux = [float(tot[str(a)]) for a in annees[:-1]] + [ONU_2023]
+    # les grilles agrégées à 0,5° ont la même somme que les grilles à 5' (à l'arrondi près) : on
+    # recale chaque tranche sur son total publié
+    for s in range(len(pop)):
+        pop[s] *= totaux[s] / max(pop[s].sum(), 1)
+    ages = [AUJOURDHUI - a for a in annees]
+    # lumière par humain : Black Marble 2016 (moyenne 0,5°) / population HYDE 2016
+    bm = np.load(os.path.join(INTER, 'blackmarble_0p1.npz'))['v'].astype(np.float64)
+    bm05 = bm.reshape(H, 5, W, 5).mean(axis=(1, 3)).ravel()[cell]
+    p16 = pop[annees.index(2016)]
+    lpc = np.where(p16 > 0, bm05 / np.maximum(p16, 1.0), 0.0)
+    # plancher : 1 % de la médiane, pour que les campagnes non éclairées restent à peine visibles
+    med = np.median(lpc[(lpc > 0)])
+    lpc = np.maximum(lpc, 0.01 * med)
+    nc, ns = len(cell), len(pop)
+    qpop = np.clip(np.round(2600 * np.log2(1 + pop)), 0, 65535).astype(np.uint16)
+    blocs = [cell.astype(np.int32).tobytes(), qpop.tobytes(), lpc.astype(np.float32).tobytes(),
+             sous.astype(np.uint8).tobytes()]
+    off, o = [], 0
+    for b in blocs:
+        off.append(o)
+        o += len(b)
+    with gzip.open(os.path.join(SORTIE, 'hyde.bin.gz'), 'wb', compresslevel=9) as fz:
+        for b in blocs:
+            fz.write(b)
+    log(f'HYDE : {nc} mailles habitées, {ns} tranches, {os.path.getsize(os.path.join(SORTIE, "hyde.bin.gz"))/1e6:.2f} Mo ; '
+        f'{totaux[0]/1e6:.2f} M en {annees[0]}, {totaux[-1]/1e9:.2f} G en {annees[-1]}')
+    json.dump({str(a): t for a, t in zip(ages, totaux)}, open(os.path.join(INTER, 'hyde_totaux.json'), 'w'), indent=0)
+    return {'ncell': nc, 'nslice': ns, 'ages': ages, 'annees': annees, 'totaux': totaux,
+            'o_cellules': off[0], 'o_pop': off[1], 'o_lpc': off[2], 'o_sous': off[3],
+            'version': str(z['version']), 'codage_pop': 'u16 : effectif = 2^(q/2600) − 1'}, ages, totaux
+
+
 def main():
     t0 = time.time()
+    if not os.path.exists(os.path.join(INTER, 'hyde_0p5.npz')):
+        log('!! HYDE absent : paquet incomplet')
+        hyde, ages_h, tot_h = None, [12023.0], [4e6]
+    else:
+        hyde, ages_h, tot_h = paquet_hyde()
+    eff = {}
+    for r in lire_csv('effectifs_litterature.csv'):
+        eff.setdefault(r['lignee'], []).append([float(r['age_ans']), float(r['effectif'])])
+    eff['sapiens'] = [x for x in eff['sapiens'] if x[0] > max(ages_h)] + [[float(a), t] for a, t in zip(ages_h, tot_h)]
+    for k in eff:
+        eff[k].sort(key=lambda x: -x[0])
+    json.dump({'noeuds': eff, 'K': K, 'electrification': ELECTRIFICATION,
+               'sources': {'avant_holocene': 'estimations (prepa/effectifs_litterature.csv)', 'holocene': hyde['version'] if hyde else None,
+                           '2023': 'Nations unies, WPP 2024'}},
+              open(os.path.join(SORTIE, 'population.json'), 'w'), ensure_ascii=False, indent=0)
     code, seuil = relief()
     t_sl, sl = niveau_marin()
     sites = [dict(r, lat=float(r['lat']), lon=float(r['lon']), age=float(r['age_ans']))
              for r in lire_csv('sites_cles.csv')]
+    global _SEUIL
+    _SEUIL = seuil
     cro = Croissance(seuil, t_sl, sl)
     A, D, info = {}, {}, {}
     ordre = ['hominines', 'sapiens', 'sapiens1', 'neandertal', 'denisova', 'insulaires', 'erectus']
@@ -469,8 +590,8 @@ def main():
             for s in sites:
                 if s['lignee'] == carte and s['role'] in ('site', 'origine'):
                     ij2 = maille_valide(s['lat'], s['lon'], pres * 1.0, seuil, s['age'])
-                    if ij2 and d[ij2] >= 0.9 * s['age']:
-                        log(f'  !! {carte} : {s["nom"]} vidé trop tôt ({d[ij2]:.0f} ≥ {0.9 * s["age"]:.0f})')
+                    if ij2 and d[ij2] >= 0.98 * s['age']:
+                        log(f'  !! {carte} : {s["nom"]} vidé trop tôt ({d[ij2]:.0f} ≥ {0.98 * s["age"]:.0f})')
         D[carte] = d
         n_pres = int(pres.sum())
         log(f'{carte} : {n_pres} mailles ; arrivée {a[pres].max():.0f} → {a[pres].min():.0f} ans ; '
@@ -493,7 +614,7 @@ def main():
             'cartes': CARTES, 'codage_age': f'u16 = 65535 · log10(âge) / {LOGMAX} ; 0 = jamais',
             'niveau_marin': {'pas_ans': 1000, 'n': int(len(sl)),
                              'sources': 'Spratt & Lisiecki 2016 (0–798 ka) ; Bintanja & van de Wal 2008 (→ 3 Ma)'},
-            'K': K, 'aujourdhui': AUJOURDHUI, 'info': info}
+            'K': K, 'aujourdhui': AUJOURDHUI, 'info': info, 'logmax': LOGMAX, 'hyde': hyde}
     json.dump(meta, open(os.path.join(SORTIE, 'meta.json'), 'w'), ensure_ascii=False, indent=1)
     json.dump([{'lignee': s['lignee'], 'role': s['role'], 'nom': s['nom'], 'lat': s['lat'], 'lon': s['lon'],
                 'age': s['age'], 'source': s['source']} for s in sites],

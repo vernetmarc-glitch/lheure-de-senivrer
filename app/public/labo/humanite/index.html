@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Les vagues humaines — L'Heure de s'enivrer (labo)</title>
+<style>
+  @font-face { font-family: "Cinzel"; font-weight: 500; font-display: swap; src: url("../../commun/polices/cinzel-latin-500-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Jost"; font-weight: 400; font-display: swap; src: url("../../commun/polices/jost-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Jost"; font-weight: 500; font-display: swap; src: url("../../commun/polices/jost-latin-500-normal.woff2") format("woff2"); }
+  html, body { margin: 0; height: 100%; background: #000; color: #e8e6df; overflow: hidden;
+    font-family: Jost, "Helvetica Neue", Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+  canvas#scene { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; }
+  #haut { position: fixed; left: 16px; top: calc(14px + env(safe-area-inset-top, 0px)); max-width: min(58vw, 340px);
+    pointer-events: none; text-shadow: 0 1px 8px #000; }
+  #titre { font-family: Cinzel, Georgia, serif; font-size: 13px; letter-spacing: 0.14em; color: rgba(236,232,222,0.7); text-transform: uppercase; }
+  #date { font-family: Cinzel, Georgia, serif; font-size: 22px; line-height: 1.15; margin-top: 6px; color: #f4efe4; font-variant-numeric: lining-nums; }
+  #recit { font-size: 14px; line-height: 1.35; margin-top: 8px; color: rgba(232,230,223,0.86); min-height: 3.9em; }
+  #panneau { position: fixed; left: 0; right: 0; bottom: 0; padding: 8px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to top, rgba(0,0,0,0.82) 60%, rgba(0,0,0,0)); }
+  #legende { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px 8px; font-size: 11px; color: rgba(232,230,223,0.82); }
+  #legende span { display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #legende i { width: 8px; height: 8px; border-radius: 50%; flex: none; box-shadow: 0 0 6px currentColor; }
+  #legende-k { font-size: 11.5px; margin-top: 6px; color: rgba(232,230,223,0.9); }
+  #note { font-size: 10.5px; color: rgba(190,198,210,0.66); margin-top: 2px; line-height: 1.3; }
+  #commandes { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  #lecture { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(207,230,255,0.4); background: rgba(10,14,22,0.7);
+    color: #f4efe4; font-size: 15px; flex: none; }
+  #curseur { flex: 1; accent-color: #ffcf8a; height: 28px; }
+  #fenetres { display: flex; gap: 6px; margin-top: 6px; }
+  #fenetres button { flex: 1; font: 500 12px Jost, sans-serif; color: rgba(232,230,223,0.88); background: rgba(10,14,22,0.6);
+    border: 1px solid rgba(207,230,255,0.22); border-radius: 14px; padding: 6px 4px; }
+  #fenetres button.actif { border-color: rgba(255,207,138,0.85); color: #ffe2b0; }
+  #sources { font-size: 9.5px; color: rgba(170,178,190,0.55); margin-top: 6px; line-height: 1.3; }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="haut">
+  <div id="titre">Les vagues humaines</div>
+  <div id="date">…</div>
+  <div id="recit"></div>
+</div>
+<div id="panneau">
+  <div id="legende"></div>
+  <div id="legende-k">un point = 2 000 humains</div>
+  <div id="note">Avant 10 000 av. J.-C., effectifs estimés d'après la littérature ; ensuite HYDE. Territoires : croissance de proche en proche calée sur les sites datés (hypothèse).</div>
+  <div id="commandes">
+    <button id="lecture" aria-label="Lecture">▶</button>
+    <input id="curseur" type="range" min="0" max="10000" value="0" aria-label="Temps">
+  </div>
+  <div id="fenetres">
+    <button data-a="7000000">7 Ma</button><button data-a="300000">300 000 ans</button><button data-a="10000">10 000 ans</button>
+  </div>
+  <div id="sources">Sources : sites datés (ROAD, Timmermann et al. 2022 et publications citées) · HYDE 3.2.1 (Klein Goldewijk et al. 2017) · NASA Black Marble 2016 · niveau marin : Spratt &amp; Lisiecki 2016, Bintanja &amp; van de Wal 2008 · relief SRTM15+.</div>
+</div>
+<script type="module">
+import { creeCompteur } from '../../commun/compteur.js';
+
+const CONTROLE = location.search.includes('controle');
+const CARTES = ['hominines', 'erectus', 'neandertal', 'denisova', 'insulaires', 'sapiens', 'sapiens1'];
+const LIGNEES = ['hominines', 'erectus', 'neandertal', 'denisova', 'insulaires', 'sapiens'];
+const NOMS = { hominines: 'Australopithèques', erectus: 'Homo erectus', neandertal: 'Néandertaliens',
+  denisova: 'Dénisoviens', insulaires: 'Hommes de Florès', sapiens: 'Homo sapiens' };
+const COULEUR = { hominines: [1.0, 0.62, 0.28], erectus: [1.0, 0.34, 0.24], neandertal: [0.36, 0.70, 1.0],
+  denisova: [0.74, 0.50, 1.0], insulaires: [0.36, 0.96, 0.62], sapiens: [1.0, 0.84, 0.52], sapiens1: [1.0, 0.84, 0.52] };
+const LIGNEE_DE = m => (m === 'sapiens1' ? 'sapiens' : m);
+const A0 = 20;            // décalage de la loi de lecture (ans)
+const C_LECTURE = 0.13;   // la lecture divise l'âge par e toutes les 7,7 s
+
+// ------------------------------------------------------------------ chargement
+async function json(u) { const r = await fetch(u); if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); }
+async function gz(u) {
+  const r = await fetch(u); if (!r.ok) throw new Error(u + ' ' + r.status);
+  return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+}
+const [META, SITES, POP, RELIEF, LIG, NIVEAU, SEUIL, HYDEB] = await Promise.all([
+  json('donnees/meta.json'), json('donnees/sites.json'), json('donnees/population.json'),
+  gz('donnees/relief.u8.gz').then(b => new Uint8Array(b)), gz('donnees/lignees.u16.gz').then(b => new Uint16Array(b)),
+  gz('donnees/niveau_marin.f32.gz').then(b => new Float32Array(b)), gz('donnees/seuil_0p5.i16.gz').then(b => new Int16Array(b)),
+  gz('donnees/hyde.bin.gz')]);
+const K = META.K, W = 720, H = 360, NC = W * H;
+document.getElementById('legende-k').textContent = `un point = ${K.toLocaleString('fr-FR')} humains`;
+
+// ------------------------------------------------------------------ effectifs
+const NOEUDS = POP.noeuds;   // {lignée: [[âge, effectif], …]} âges décroissants
+function effectif(lig, age) {
+  const n = NOEUDS[lig]; if (!n || !n.length) return 0;
+  if (age > n[0][0] || age < n[n.length - 1][0]) return 0;
+  for (let i = 0; i < n.length - 1; i++) {
+    const [a0, e0] = n[i], [a1, e1] = n[i + 1];
+    if (a0 >= age && age >= a1) {
+      if (a0 === a1) return e1;
+      const w = (a0 - age) / (a0 - a1);
+      if (e0 <= 0 || e1 <= 0) return e0 * (1 - w) + e1 * w;
+      return Math.exp(Math.log(e0) * (1 - w) + Math.log(e1) * w);
+    }
+  }
+  return n[n.length - 1][1];
+}
+function niveauMarin(age) {
+  const x = Math.max(0, age) / 1000, i = Math.min(NIVEAU.length - 2, Math.floor(x)), f = Math.min(1, x - i);
+  return NIVEAU[i] * (1 - f) + NIVEAU[i + 1] * f;
+}
+const ELEC = POP.electrification;   // [[année, part], …]
+function electrification(age) {
+  const an = META.aujourdhui - age;
+  if (an <= ELEC[0][0]) return 0;
+  for (let i = 0; i < ELEC.length - 1; i++) if (an <= ELEC[i + 1][0]) {
+    const w = (an - ELEC[i][0]) / (ELEC[i + 1][0] - ELEC[i][0]); return ELEC[i][1] * (1 - w) + ELEC[i + 1][1] * w; }
+  return ELEC[ELEC.length - 1][1];
+}
+
+// ------------------------------------------------------------------ cartes des lignées
+const qAge = age => Math.log10(Math.max(age, 1)) / META.logmax * 65535;
+function presentCellule(m, c, qa) {
+  const o = (m * NC + c) * 2, a = LIG[o], d = LIG[o + 1];
+  return a > 0 && a >= qa && (d === 0 || qa > d);
+}
+const LISTE = CARTES.map((m, k) => { const l = []; for (let c = 0; c < NC; c++) if (LIG[(k * NC + c) * 2] > 0) l.push(c); return Int32Array.from(l); });
+
+// ------------------------------------------------------------------ HYDE
+const HM = META.hyde;
+const HC = new Int32Array(HYDEB, HM.o_cellules, HM.ncell);
+const HQ = new Uint16Array(HYDEB, HM.o_pop, HM.ncell * HM.nslice);     // [tranche][cellule], log2
+const HP = new Float32Array(HQ.length); for (let i = 0; i < HQ.length; i++) HP[i] = Math.pow(2, HQ[i] / 2600) - 1;
+const HL = new Float32Array(HYDEB, HM.o_lpc, HM.ncell);                 // lumière par humain (unités Black Marble)
+const HS = new Uint8Array(HYDEB, HM.o_sous, HM.ncell * 36);
+const HAGES = HM.ages;                 // âges décroissants
+const HTOT = new Float64Array(HM.nslice);     // sommes des mailles décodées (le total publié est rendu exact plus bas)
+for (let s = 0; s < HM.nslice; s++) { let t = 0; for (let k = 0; k < HM.ncell; k++) t += HP[s * HM.ncell + k]; HTOT[s] = t; }
+const A_HYDE = HAGES[0], A_FONDU = 13000;
+const poidsSapiens = new Float32Array(NC);   // HYDE 10 000 av. J.-C. : densité relative pour les points de sapiens avant
+{ let ref = 0; const v = []; for (let k = 0; k < HM.ncell; k++) v.push(HP[k]); v.sort((a, b) => a - b); ref = v[Math.floor(v.length * 0.95)] || 1;
+  poidsSapiens.fill(0.12); for (let k = 0; k < HM.ncell; k++) poidsSapiens[HC[k]] = Math.min(1, 0.12 + HP[k] / ref); }
+
+// pool des points HYDE : (maille, rang), position fixe dans la maille (répartition de 2017 à 5′)
+function hash(a, b, c, d) {
+  let h = (a * 374761393 + b * 668265263 + c * 2246822519 + d * 3266489917) >>> 0;
+  h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0; h = Math.imul(h ^ (h >>> 13), 3266489909) >>> 0; h = (h ^ (h >>> 16)) >>> 0;
+  return h / 4294967296;
+}
+const MAXC = new Uint32Array(HM.ncell);
+for (let s = 0; s < HM.nslice; s++) for (let k = 0; k < HM.ncell; k++) { const n = Math.ceil(HP[s * HM.ncell + k] / K); if (n > MAXC[k]) MAXC[k] = n; }
+let NPOOL = 0; for (let k = 0; k < HM.ncell; k++) NPOOL += MAXC[k];
+// tranche d'apparition de chaque (maille, rang) -> tri par tranche (on ne dessine que le préfixe utile)
+const parTranche = new Uint32Array(HM.nslice + 1);
+const trancheDe = (k, r) => { for (let s = 0; s < HM.nslice; s++) if (HP[s * HM.ncell + k] / K > r) return s; return HM.nslice - 1; };
+for (let k = 0; k < HM.ncell; k++) for (let r = 0; r < MAXC[k]; r++) parTranche[trancheDe(k, r) + 1]++;
+for (let s = 0; s < HM.nslice; s++) parTranche[s + 1] += parTranche[s];
+const POOL_CR = new Uint32Array(NPOOL), POOL_POS = new Uint16Array(NPOOL * 2);
+{
+  const curseur = parTranche.slice(0, HM.nslice);
+  const cum = new Float32Array(37);
+  for (let k = 0; k < HM.ncell; k++) {
+    const c = HC[k], i = Math.floor(c / W), j = c % W;
+    cum[0] = 0; for (let q = 0; q < 36; q++) cum[q + 1] = cum[q] + HS[k * 36 + q] + 0.02;
+    for (let r = 0; r < MAXC[k]; r++) {
+      const s = trancheDe(k, r), p = curseur[s]++;
+      const u = hash(k, r, 7, 1) * cum[36]; let q = 0; while (q < 35 && cum[q + 1] < u) q++;
+      const si = Math.floor(q / 6), sj = q % 6;
+      const lat = 90 - i * 0.5 - (si + 0.08 + 0.84 * hash(k, r, 7, 2)) / 12;
+      const lon = -180 + j * 0.5 + (sj + 0.08 + 0.84 * hash(k, r, 7, 3)) / 12;
+      POOL_CR[p] = (k << 15) | Math.min(r, 32767);
+      POOL_POS[2 * p] = Math.round((lon + 180) / 360 * 65535); POOL_POS[2 * p + 1] = Math.round((lat + 90) / 180 * 65535);
+    }
+  }
+}
+
+// effectif par maille HYDE à un âge (somme exacte = effectif HYDE interpolé)
+const comptes = new Uint32Array(HM.ncell);
+let prefixe = 0;
+function comptesHyde(age) {
+  comptes.fill(0); prefixe = 0;
+  if (age > A_FONDU) return 0;
+  let s0, s1, w, total;
+  const P = effectif('sapiens', age);
+  if (age >= A_HYDE) { s0 = s1 = 0; w = 0; total = P * (A_FONDU - age) / (A_FONDU - A_HYDE); }
+  else {
+    s0 = 0; while (s0 < HM.nslice - 2 && HAGES[s0 + 1] > age) s0++;
+    s1 = s0 + 1; w = (HAGES[s0] - age) / (HAGES[s0] - HAGES[s1]); total = P;
+  }
+  const lin = HTOT[s0] * (1 - w) + HTOT[s1] * w, f = total / lin / K;
+  let S = 0, fS = 0;
+  for (let k = 0; k < HM.ncell; k++) {
+    S += (HP[s0 * HM.ncell + k] * (1 - w) + HP[s1 * HM.ncell + k] * w) * f;
+    const fl = Math.floor(S + 1e-9); comptes[k] = Math.min(MAXC[k], fl - fS); fS = fl;
+  }
+  prefixe = parTranche[Math.min(HM.nslice, s1 + 1)];
+  return fS;
+}
+
+// ------------------------------------------------------------------ points des lignées (avant HYDE)
+function partHyde(age) { return age >= A_FONDU ? 0 : age <= A_HYDE ? 1 : (A_FONDU - age) / (A_FONDU - A_HYDE); }
+function pasGeneration(v) { let g = 25; const cible = Math.abs(v) * 0.25; while (g < cible) g *= 2; return g; }
+let periode = 25;
+function pointsLignees(age, filtre, sortie) {
+  const qa = qAge(age), sl = niveauMarin(age), T = 7.2e6 - age;
+  let n = 0;
+  for (let m = 0; m < CARTES.length; m++) {
+    const carte = CARTES[m];
+    if (filtre && LIGNEE_DE(carte) !== filtre) continue;
+    let P = effectif(carte, age);
+    if (carte === 'sapiens') P *= 1 - partHyde(age);
+    const N = Math.round(P / K);
+    if (N <= 0) continue;
+    const L = LISTE[m];
+    let occ = null;
+    for (let jx = 0; jx < N; jx++) {
+      const phi = hash(jx, m, 3, 9), g = Math.floor(T / periode + phi), vie = T / periode + phi - g;
+      let c = -1;
+      for (let t = 0; t < 400 && c < 0; t++) {
+        const cc = L[Math.floor(hash(jx, g, m, t) * L.length)];
+        if (!presentCellule(m, cc, qa) || SEUIL[cc] <= sl) continue;
+        const wgt = carte === 'sapiens' ? poidsSapiens[cc] : Math.cos((90 - (Math.floor(cc / W) + 0.5) * 0.5) * Math.PI / 180);
+        if (hash(jx, g, m, t + 1000) <= wgt) c = cc;
+      }
+      if (c < 0) {
+        if (!occ) { occ = []; for (const cc of L) if (presentCellule(m, cc, qa) && SEUIL[cc] > sl) occ.push(cc); }
+        if (!occ.length) break;
+        c = occ[Math.floor(hash(jx, g, m, 77) * occ.length)];
+      }
+      const i = Math.floor(c / W), j = c % W;
+      const lat = 90 - (i + 0.05 + 0.9 * hash(jx, g, m, 501)) * 0.5, lon = -180 + (j + 0.05 + 0.9 * hash(jx, g, m, 502)) * 0.5;
+      if (sortie) { const o = n * 4; sortie[o] = lon; sortie[o + 1] = lat; sortie[o + 2] = m; sortie[o + 3] = Math.pow(Math.sin(Math.PI * vie), 0.6); }
+      n++;
+    }
+  }
+  return n;
+}
+
+// ------------------------------------------------------------------ WebGL
+const canvas = document.getElementById('scene');
+const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, preserveDrawingBuffer: CONTROLE });
+const flottant = !!gl.getExtension('EXT_color_buffer_float');
+gl.getExtension('EXT_float_blend');
+function shader(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+function programme(vs, fs) { const p = gl.createProgram(); gl.attachShader(p, shader(gl.VERTEX_SHADER, vs)); gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); for (let i = 0; i < n; i++) { const a = gl.getActiveUniform(p, i); u[a.name.replace('[0]', '')] = gl.getUniformLocation(p, a.name); }
+  return { p, u }; }
+function texture(w, h, ifmt, fmt, type, data, filtre, layers) {
+  const t = gl.createTexture(); const cible = layers ? gl.TEXTURE_2D_ARRAY : gl.TEXTURE_2D; gl.bindTexture(cible, t);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  if (layers) gl.texImage3D(cible, 0, ifmt, w, h, layers, 0, fmt, type, data); else gl.texImage2D(cible, 0, ifmt, w, h, 0, fmt, type, data);
+  const f = filtre ? gl.LINEAR : gl.NEAREST;
+  gl.texParameteri(cible, gl.TEXTURE_MIN_FILTER, f); gl.texParameteri(cible, gl.TEXTURE_MAG_FILTER, f);
+  gl.texParameteri(cible, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(cible, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t; }
+
+const texRelief = texture(1800, 900, gl.R8, gl.RED, gl.UNSIGNED_BYTE, RELIEF, true);
+const texLig = texture(W, H, gl.RG16UI, gl.RG_INTEGER, gl.UNSIGNED_SHORT, LIG, false, CARTES.length);
+const texSeuil = texture(W, H, gl.R32F, gl.RED, gl.FLOAT, Float32Array.from(SEUIL), false);
+const LCW = 1024, LCH = Math.ceil(HM.ncell / LCW);
+const lpcPad = new Float32Array(LCW * LCH); lpcPad.set(HL);
+const texLpc = texture(LCW, LCH, gl.R32F, gl.RED, gl.FLOAT, lpcPad, false);
+const cptPad = new Uint32Array(LCW * LCH);
+const texCpt = texture(LCW, LCH, gl.R32UI, gl.RED_INTEGER, gl.UNSIGNED_INT, cptPad, false);
+const bruitTex = (() => { const n = 128, d = new Uint8Array(n * n); for (let i = 0; i < n * n; i++) d[i] = Math.round(255 * hash(i, 17, 5, 3));
+  return texture(n, n, gl.R8, gl.RED, gl.UNSIGNED_BYTE, d, true); })();
+
+const GLSL_COMMUN = `#version 300 es
+precision highp float; precision highp int; precision highp usampler2DArray; precision highp usampler2D;
+uniform float u_qa, u_sl;
+uniform highp usampler2DArray u_lig;
+uniform sampler2D u_relief, u_seuil;
+float elevation(float c) {
+  c *= 255.0;
+  if (c <= 39.5) return c / 39.0 * 10800.0 - 11000.0;
+  if (c <= 165.5) return (c - 40.0) * 2.0 - 200.0;
+  return 50.0 + 50.0 * (exp((c - 166.0) / 89.0 * log(1.0 + 8800.0 / 50.0)) - 1.0);
+}
+bool present(int m, ivec2 p) {
+  uvec2 v = texelFetch(u_lig, ivec3(p, m), 0).rg;
+  float a = float(v.r), d = float(v.g);
+  return v.r > 0u && a >= u_qa && (v.g == 0u || u_qa > d);
+}
+const float PI = 3.14159265;
+`;
+
+// --- globe : surface, territoires, halo
+const progGlobe = programme(`#version 300 es
+in vec2 a; out vec2 v; void main() { v = a; gl_Position = vec4(a, 0.0, 1.0); }`,
+GLSL_COMMUN + `
+in vec2 v; out vec4 o;
+uniform vec2 u_res, u_centre; uniform float u_r; uniform mat3 u_rot;
+uniform vec3 u_coul[7]; uniform float u_age, u_tau, u_terr;
+uniform sampler2D u_bruit;
+float presence(int m, vec2 g) {
+  vec2 f = g - 0.5; ivec2 b = ivec2(floor(f)); vec2 t = fract(f);
+  float s = 0.0;
+  for (int k = 0; k < 4; k++) { ivec2 d = ivec2(k & 1, k >> 1); ivec2 p = b + d; p.x = (p.x + 720) % 720; p.y = clamp(p.y, 0, 359);
+    float w = (d.x == 1 ? t.x : 1.0 - t.x) * (d.y == 1 ? t.y : 1.0 - t.y); if (present(m, p)) s += w; }
+  return s;
+}
+float arrivee(int m, vec2 g) { ivec2 p = ivec2(g); p.x = p.x % 720; p.y = clamp(p.y, 0, 359);
+  uint a = texelFetch(u_lig, ivec3(p, m), 0).r; return pow(10.0, float(a) / 65535.0 * ${META.logmax.toFixed(1)}); }
+void main() {
+  vec2 px = (v * 0.5 + 0.5) * u_res;
+  vec2 p = (px - u_centre) / u_r;
+  float r2 = dot(p, p);
+  if (r2 > 1.0) {
+    float h = exp(-(sqrt(r2) - 1.0) * u_r / 9.0);
+    o = vec4(vec3(0.10, 0.18, 0.34) * 0.10 * h, 1.0); return;
+  }
+  vec3 q = u_rot * vec3(p.x, p.y, sqrt(1.0 - r2));
+  float lat = asin(clamp(q.y, -1.0, 1.0)), lon = atan(q.x, q.z);
+  vec2 uv = vec2(lon / (2.0 * PI) + 0.5, 0.5 - lat / PI);
+  float z = elevation(texture(u_relief, uv).r);
+  float zx = elevation(texture(u_relief, uv + vec2(1.0 / 1800.0, 0.0)).r), zy = elevation(texture(u_relief, uv - vec2(0.0, 1.0 / 900.0)).r);
+  bool terre = z > u_sl;
+  vec3 c;
+  float latd = degrees(lat), lond = degrees(lon);
+  bool glace = latd < -62.0 || (latd > 60.0 && lond > -73.0 && lond < -12.0);
+  if (terre) {
+    vec3 n = normalize(vec3(-(zx - z) / 2200.0, -(zy - z) / 2200.0, 1.0));
+    float ombre = clamp(dot(n, normalize(vec3(-0.6, 0.7, 0.55))), 0.0, 1.0);
+    c = vec3(0.0060, 0.0072, 0.0100) * (0.45 + 1.1 * ombre) + vec3(0.0025, 0.0024, 0.0018) * clamp(z / 3000.0, 0.0, 1.0);
+    if (glace) c = vec3(0.016, 0.019, 0.025) * (0.7 + 0.5 * ombre);
+  } else {
+    float prof = clamp((u_sl - z) / 4000.0, 0.0, 1.0);
+    c = mix(vec3(0.0035, 0.0060, 0.0110), vec3(0.0008, 0.0015, 0.0035), sqrt(prof));
+  }
+  if (terre && u_terr > 0.0) {
+    vec2 g = vec2(uv.x * 720.0, uv.y * 360.0);
+    vec2 st = vec2(lon * cos(lat), lat) * 9.0;      // coordonnées à peu près isotropes
+    float fb = 0.5 * texture(u_bruit, st * 0.11).r + 0.3 * texture(u_bruit, st * 0.29 + 0.37).r + 0.2 * texture(u_bruit, st * 0.83 + 0.71).r;
+    float lich = smoothstep(0.30, 0.75, fb) * 1.6 + 0.12;
+    vec3 t = vec3(0.0); float nb = 0.0;
+    for (int m = 0; m < 7; m++) {
+      float pr = presence(m, g);
+      if (pr <= 0.0) continue;
+      float dt = max(0.0, arrivee(m, g) - u_age);
+      float front = exp(-dt / u_tau);
+      t += u_coul[m] * pr * (0.010 * lich + 0.10 * front * (0.4 + lich)); nb += pr;
+    }
+    if (nb > 1.2) t *= 1.0 + 1.4 * (nb - 1.0);   // liseré de couleur mêlée : coexistence, métissage
+    c += t * u_terr;
+  }
+  float limbe = sqrt(1.0 - r2);
+  c *= 0.55 + 0.45 * limbe;
+  c += vec3(0.10, 0.18, 0.34) * 0.06 * pow(1.0 - limbe, 3.0);
+  o = vec4(c, 1.0);
+}`);
+
+// --- points : pool HYDE et points des lignées
+const VS_POINTS = GLSL_COMMUN + `
+in uint a_cr; in vec2 a_pos;          // pool HYDE
+in vec4 a_lig;                        // points des lignées : lon, lat, carte, vie
+uniform int u_mode;                   // 0 : HYDE ; 1 : lignées
+uniform int u_plan;                   // 0 : globe ; 1 : équirectangulaire 720 × 360
+uniform highp usampler2D u_cpt; uniform sampler2D u_lpc;
+uniform mat3 u_rotT; uniform vec2 u_res, u_centre; uniform float u_r, u_taille, u_K, u_e, u_feu, u_gainE, u_gen;
+uniform vec3 u_coul[7]; uniform int u_filtre; uniform int u_valeur;   // valeur : 0 affichage, 1 compte, 2 lumière
+out vec3 v_c; out float v_alpha;
+void main() {
+  float lon, lat, b; vec3 col; int carte;
+  if (u_mode == 0) {
+    int cell = int(a_cr >> 15u), rang = int(a_cr & 32767u);
+    uint n = texelFetch(u_cpt, ivec2(cell % 1024, cell / 1024), 0).r;
+    if (rang >= int(n) || (u_filtre >= 0 && u_filtre != 5)) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
+    lon = a_pos.x * 360.0 - 180.0; lat = a_pos.y * 180.0 - 90.0;
+    if (u_plan == 0) { float h1 = fract(sin(float(gl_VertexID) * 12.9898 + u_gen * 78.233) * 43758.5453);
+      float h2 = fract(sin(float(gl_VertexID) * 39.346 + u_gen * 11.135) * 24634.6345);
+      lon += (h1 - 0.5) * 0.05; lat += (h2 - 0.5) * 0.05; }
+    float lpc = texelFetch(u_lpc, ivec2(cell % 1024, cell / 1024), 0).r;
+    b = u_e * lpc * u_K;                    // unités Black Marble (somme par maille de 0,5°)
+    col = mix(u_coul[5], vec3(1.0, 0.80, 0.52), u_e);
+    carte = 5;
+    v_alpha = 1.0;
+    if (u_valeur == 0) b = u_e * lpc * u_K * u_gainE + (1.0 - u_e) * u_feu * 3.0;
+  } else {
+    lon = a_lig.x; lat = a_lig.y; carte = int(a_lig.z + 0.5);
+    int lig = carte == 6 ? 5 : carte;
+    if (u_filtre >= 0 && u_filtre != lig) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
+    col = u_coul[carte]; v_alpha = a_lig.w; b = u_feu * 40.0;
+  }
+  if (u_valeur == 1) b = 1.0;
+  if (u_plan == 1) {
+    gl_Position = vec4(lon / 180.0, lat / 90.0, 0.0, 1.0); gl_PointSize = 1.0; v_c = vec3(b); v_alpha = 1.0; return;
+  }
+  float la = radians(lat), lo = radians(lon);
+  vec3 q = vec3(cos(la) * sin(lo), sin(la), cos(la) * cos(lo));
+  vec3 e = u_rotT * q;
+  if (e.z < 0.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
+  vec2 px = u_centre + e.xy * u_r;
+  gl_Position = vec4(px / u_res * 2.0 - 1.0, 0.0, 1.0);
+  gl_PointSize = u_mode == 0 ? u_taille : u_taille * 2.6;
+  // l'énergie d'un point se répartit sur les pixels qu'il couvre : radiance indépendante du zoom
+  v_c = col * b / (gl_PointSize * gl_PointSize * 0.35);
+}`;
+const progPoints = programme(VS_POINTS, `#version 300 es
+precision highp float; precision highp int; in vec3 v_c; in float v_alpha; out vec4 o; uniform int u_plan;
+void main() { if (u_plan == 1) { o = vec4(v_c, 1.0); return; }
+  vec2 d = gl_PointCoord - 0.5; float g = exp(-dot(d, d) * 14.0); o = vec4(v_c * g * v_alpha, 1.0); }`);
+
+// --- plans de contrôle : territoires (bits) et terres
+const progPlan = programme(`#version 300 es
+in vec2 a; void main() { gl_Position = vec4(a, 0.0, 1.0); }`, GLSL_COMMUN + `
+out vec4 o; uniform int u_quoi;
+void main() {
+  ivec2 p = ivec2(gl_FragCoord.xy); p.y = 359 - p.y;
+  vec2 uv = (vec2(p) + 0.5) / vec2(720.0, 360.0);
+  if (u_quoi == 1) { o = vec4(elevation(texture(u_relief, uv).r) > u_sl ? 1.0 : 0.0); return; }
+  float land = texelFetch(u_seuil, p, 0).r > u_sl ? 1.0 : 0.0;
+  float bits = 0.0;
+  for (int m = 0; m < 7; m++) if (present(m, p)) bits += exp2(float(m));
+  o = vec4(bits * land);
+}`);
+
+// --- ton
+const progTon = programme(`#version 300 es
+in vec2 a; out vec2 v; void main() { v = a * 0.5 + 0.5; gl_Position = vec4(a, 0.0, 1.0); }`, `#version 300 es
+precision highp float; in vec2 v; out vec4 o; uniform sampler2D u_hdr; uniform float u_expo;
+void main() { vec3 x = texture(u_hdr, v).rgb * u_expo;
+  vec3 t = 1.0 - exp(-x); float l = max(t.r, max(t.g, t.b));
+  t = mix(t, vec3(l), smoothstep(0.75, 1.0, l) * 0.5);
+  o = vec4(pow(t, vec3(1.0 / 2.2)), 1.0); }`);
+
+const quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+function vaoQuad(prog) { const v = gl.createVertexArray(); gl.bindVertexArray(v); gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  const l = gl.getAttribLocation(prog.p, 'a'); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0); return v; }
+const vaoGlobe = vaoQuad(progGlobe), vaoPlan = vaoQuad(progPlan), vaoTon = vaoQuad(progTon);
+const vaoHyde = gl.createVertexArray(); gl.bindVertexArray(vaoHyde);
+{ const b1 = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b1); gl.bufferData(gl.ARRAY_BUFFER, POOL_CR, gl.STATIC_DRAW);
+  const l1 = gl.getAttribLocation(progPoints.p, 'a_cr'); gl.enableVertexAttribArray(l1); gl.vertexAttribIPointer(l1, 1, gl.UNSIGNED_INT, 0, 0);
+  const b2 = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b2); gl.bufferData(gl.ARRAY_BUFFER, POOL_POS, gl.STATIC_DRAW);
+  const l2 = gl.getAttribLocation(progPoints.p, 'a_pos'); gl.enableVertexAttribArray(l2); gl.vertexAttribPointer(l2, 2, gl.UNSIGNED_SHORT, true, 0, 0);
+  const l3 = gl.getAttribLocation(progPoints.p, 'a_lig'); gl.disableVertexAttribArray(l3); gl.vertexAttrib4f(l3, 0, 0, 0, 0); }
+const MAXL = 40000, ligBuf = new Float32Array(MAXL * 4);
+const vaoLig = gl.createVertexArray(); gl.bindVertexArray(vaoLig);
+const bufLig = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, bufLig); gl.bufferData(gl.ARRAY_BUFFER, ligBuf.byteLength, gl.DYNAMIC_DRAW);
+{ const l3 = gl.getAttribLocation(progPoints.p, 'a_lig'); gl.enableVertexAttribArray(l3); gl.vertexAttribPointer(l3, 4, gl.FLOAT, false, 0, 0);
+  const l1 = gl.getAttribLocation(progPoints.p, 'a_cr'); gl.disableVertexAttribArray(l1); gl.vertexAttribI4ui(l1, 0, 0, 0, 0);
+  const l2 = gl.getAttribLocation(progPoints.p, 'a_pos'); gl.disableVertexAttribArray(l2); gl.vertexAttrib2f(l2, 0, 0); }
+gl.bindVertexArray(null);
+
+function cible(w, h) { const t = texture(w, h, flottant ? gl.RGBA32F : gl.RGBA8, gl.RGBA, flottant ? gl.FLOAT : gl.UNSIGNED_BYTE, null, false);
+  const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); return { t, f, w, h }; }
+let hdr = null;
+const plan = flottant ? cible(W, H) : null;
+
+// ------------------------------------------------------------------ état
+const etat = { age: 7.0e6, amax: 7.0e6, jouer: false, vdemo: null, vit: 0, lon: 25, lat: 12, zoom: 1, sale: true, horloge: 0 };
+const msJS = [];
+let geo = { cx: 0, cy: 0, r: 0 }, dpr = 1;
+function dimensions() {
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; hdr = cible(w, h); }
+  const r = Math.min(innerWidth * 0.47, innerHeight * 0.30) * etat.zoom;
+  geo = { cx: innerWidth / 2, cy: innerHeight * 0.47, r };
+  etat.sale = true;
+}
+addEventListener('resize', dimensions);
+function rotation() {
+  const lo = etat.lon * Math.PI / 180, la = etat.lat * Math.PI / 180;
+  // vue -> monde : colonnes = axes x (est), y (nord), z (vers l'observateur) de la vue exprimés dans le monde
+  const z = [Math.cos(la) * Math.sin(lo), Math.sin(la), Math.cos(la) * Math.cos(lo)];
+  const x = [Math.cos(lo), 0, -Math.sin(lo)];
+  const y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]];
+  return { R: new Float32Array([...x, ...y, ...z]), RT: new Float32Array([x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2]]) };
+}
+function couleurs() { const a = new Float32Array(21); CARTES.forEach((m, k) => a.set(COULEUR[m], 3 * k)); return a; }
+const COUL = couleurs();
+
+function uniformsCommuns(pr, age) {
+  gl.uniform1f(pr.u.u_qa, qAge(age)); gl.uniform1f(pr.u.u_sl, niveauMarin(age));
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D_ARRAY, texLig); gl.uniform1i(pr.u.u_lig, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texRelief); gl.uniform1i(pr.u.u_relief, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texSeuil); gl.uniform1i(pr.u.u_seuil, 2);
+}
+let nLig = 0, nHyde = 0, ageCalcule = -1, periodeCalculee = -1;
+function preparerPoints(age) {
+  if (age === ageCalcule && periode === periodeCalculee) return;
+  ageCalcule = age; periodeCalculee = periode;
+  nHyde = comptesHyde(age);
+  cptPad.set(comptes); gl.bindTexture(gl.TEXTURE_2D, texCpt);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, LCW, LCH, gl.RED_INTEGER, gl.UNSIGNED_INT, cptPad);
+  nLig = Math.min(MAXL, pointsLignees(age, null, ligBuf));
+  gl.bindBuffer(gl.ARRAY_BUFFER, bufLig); gl.bufferSubData(gl.ARRAY_BUFFER, 0, ligBuf, 0, nLig * 4);
+}
+function dessinerPoints(age, planMode, filtre, valeur, rot) {
+  const pr = progPoints; gl.useProgram(pr.p); uniformsCommuns(pr, age);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, texCpt); gl.uniform1i(pr.u.u_cpt, 3);
+  gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, texLpc); gl.uniform1i(pr.u.u_lpc, 4);
+  gl.uniform1i(pr.u.u_plan, planMode ? 1 : 0); gl.uniform1i(pr.u.u_filtre, filtre); gl.uniform1i(pr.u.u_valeur, valeur);
+  gl.uniform3fv(pr.u.u_coul, COUL); gl.uniform1f(pr.u.u_K, K); gl.uniform1f(pr.u.u_e, electrification(age));
+  gl.uniform1f(pr.u.u_gen, Math.floor((7.2e6 - age) / periode));
+  const rpx = geo.r * dpr;
+  if (!planMode) {
+    gl.uniformMatrix3fv(pr.u.u_rotT, false, rot.RT); gl.uniform2f(pr.u.u_res, canvas.width, canvas.height);
+    gl.uniform2f(pr.u.u_centre, geo.cx * dpr, canvas.height - geo.cy * dpr); gl.uniform1f(pr.u.u_r, rpx);
+    gl.uniform1f(pr.u.u_taille, Math.max(1.5, 2.0 * dpr * Math.sqrt(etat.zoom)));
+    // gain : une maille de 0,5° couvre (r·π/360)² pixels ; Black Marble 255 ≈ pleine lumière
+    const aire = Math.pow(rpx * Math.PI / 360, 2);
+    gl.uniform1f(pr.u.u_gainE, aire / 255 * 0.9);
+    gl.uniform1f(pr.u.u_feu, 0.9);
+  } else { gl.uniform1f(pr.u.u_feu, 0.0); gl.uniform1f(pr.u.u_gainE, 1.0); }
+  gl.uniform1i(pr.u.u_mode, 0); gl.bindVertexArray(vaoHyde);
+  if (prefixe > 0 && (filtre < 0 || filtre === 5)) gl.drawArrays(gl.POINTS, 0, prefixe);
+  gl.uniform1i(pr.u.u_mode, 1); gl.bindVertexArray(vaoLig);
+  if (nLig > 0) gl.drawArrays(gl.POINTS, 0, nLig);
+  gl.bindVertexArray(null);
+}
+function rendre() {
+  const age = etat.age, rot = rotation();
+  preparerPoints(age);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, hdr.f); gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.disable(gl.BLEND);
+  const pg = progGlobe; gl.useProgram(pg.p); uniformsCommuns(pg, age);
+  gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, bruitTex); gl.uniform1i(pg.u.u_bruit, 5);
+  gl.uniform2f(pg.u.u_res, canvas.width, canvas.height); gl.uniform2f(pg.u.u_centre, geo.cx * dpr, canvas.height - geo.cy * dpr);
+  gl.uniform1f(pg.u.u_r, geo.r * dpr); gl.uniformMatrix3fv(pg.u.u_rot, false, rot.R); gl.uniform3fv(pg.u.u_coul, COUL);
+  gl.uniform1f(pg.u.u_age, age); gl.uniform1f(pg.u.u_tau, Math.max(150, 0.05 * age));
+  gl.uniform1f(pg.u.u_terr, age > 12000 ? 1.0 : Math.max(0.25, age / 12000));
+  gl.bindVertexArray(vaoGlobe); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+  dessinerPoints(age, false, -1, 0, rot);
+  gl.disable(gl.BLEND);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  const pt = progTon; gl.useProgram(pt.p); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, hdr.t);
+  gl.uniform1i(pt.u.u_hdr, 0); gl.uniform1f(pt.u.u_expo, 2.2);
+  gl.bindVertexArray(vaoTon); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.bindVertexArray(null);
+}
+
+// ------------------------------------------------------------------ textes
+const nf = new Intl.NumberFormat('fr-FR');
+function arrondi(x) { const p = Math.pow(10, Math.max(0, Math.floor(Math.log10(Math.max(1, x))) - 1)); return Math.round(x / p) * p; }
+function texteDate(age) {
+  if (age < 0.5) return "aujourd'hui";
+  const an = Math.round(META.aujourdhui - age);
+  if (age < 4000) return an <= 0 ? `${nf.format(1 - an)} av. J.-C.` : `an ${nf.format(an)}`;
+  if (age < 1e6) { const a = arrondi(age); return `il y a ${nf.format(a)} ans` + (age < 14000 ? ` · ${nf.format(Math.round(-an / 100) * 100)} av. J.-C.` : ''); }
+  const m = Math.round(age / 1e5) / 10; return `il y a ${nf.format(m)} million${m >= 2 ? 's' : ''} d'années`;
+}
+const RECIT = [
+  [4.0e6, "Il y a sept millions d'années, en Afrique, quelques-uns se redressent."],
+  [2.2e6, "Quelques milliers de vies, éparses dans la savane."],
+  [1.2e6, "Homo erectus marche hors d'Afrique : le Caucase, la Chine, Java."],
+  [4.5e5, "La mer franchie : à Florès, à Luçon, des hommes rapetissent."],
+  [3.2e5, "En Europe naissent les Néandertaliens ; en Asie, les Dénisoviens."],
+  [1.2e5, "En Afrique, Homo sapiens. Plusieurs humanités se partagent la Terre."],
+  [7.0e4, "Une première sortie, vers le Levant, s'éteint."],
+  [4.5e4, "La grande sortie : en vingt mille ans, l'Asie, l'Australie, l'Europe."],
+  [3.0e4, "Les autres s'effacent. Un peu d'eux demeure en nous."],
+  [1.3e4, "Par la Béringie, les Amériques. Un seul peuple, sur toute la Terre."],
+  [3.0e3, "L'agriculture : la flamme prend."],
+  [150, "Villes, empires, routes : la nuit s'allume par taches."],
+  [0, "L'électricité. La nuit des villes : huit milliards."]];
+const elDate = document.getElementById('date'), elRecit = document.getElementById('recit');
+function textes() {
+  elDate.textContent = texteDate(etat.age);
+  const t = RECIT.find(([a]) => etat.age >= a); if (t && elRecit.textContent !== t[1]) elRecit.textContent = t[1];
+}
+const leg = document.getElementById('legende');
+for (const l of LIGNEES) { const s = document.createElement('span'); const c = COULEUR[l].map(x => Math.round(255 * x)); s.innerHTML = `<i style="background:rgb(${c});color:rgb(${c})"></i>${NOMS[l]}`; leg.appendChild(s); }
+
+// ------------------------------------------------------------------ temps, curseur, gestes
+const curseur = document.getElementById('curseur'), btnLecture = document.getElementById('lecture');
+const ageDeU = u => (etat.amax + A0) * Math.pow(A0 / (etat.amax + A0), u) - A0;
+const uDeAge = a => Math.log((Math.max(0, a) + A0) / (etat.amax + A0)) / Math.log(A0 / (etat.amax + A0));
+function placerCurseur() { curseur.value = String(Math.round(10000 * Math.min(1, Math.max(0, uDeAge(etat.age))))); }
+curseur.addEventListener('input', () => { etat.jouer = false; etat.vdemo = null; etat.age = Math.max(0, ageDeU(+curseur.value / 10000)); etat.sale = true; majBouton(); });
+function majBouton() { btnLecture.textContent = etat.jouer ? '❚❚' : '▶'; }
+btnLecture.addEventListener('click', () => { etat.vdemo = null; if (etat.age <= 0.5) etat.age = etat.amax; etat.jouer = !etat.jouer; majBouton(); });
+const boutons = [...document.querySelectorAll('#fenetres button')];
+function fenetre(a) { etat.amax = a; boutons.forEach(b => b.classList.toggle('actif', +b.dataset.a === a)); if (etat.age > a) etat.age = a; placerCurseur(); etat.sale = true; }
+boutons.forEach(b => b.addEventListener('click', () => { fenetre(+b.dataset.a); etat.age = etat.amax; etat.vdemo = null; etat.jouer = true; majBouton(); }));
+fenetre(7.0e6);
+const pointeurs = new Map(); let distPince = 0;
+canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pointeurs.set(e.pointerId, [e.clientX, e.clientY]); });
+canvas.addEventListener('pointermove', e => {
+  if (!pointeurs.has(e.pointerId)) return;
+  const [x0, y0] = pointeurs.get(e.pointerId); pointeurs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pointeurs.size === 2) { const [a, b] = [...pointeurs.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    if (distPince) etat.zoom = Math.min(5, Math.max(1, etat.zoom * d / distPince)); distPince = d; dimensions(); return; }
+  const k = 57.3 / geo.r; etat.lon -= (e.clientX - x0) * k; etat.lat = Math.max(-80, Math.min(80, etat.lat + (e.clientY - y0) * k)); etat.sale = true;
+});
+const fin = e => { pointeurs.delete(e.pointerId); distPince = 0; };
+canvas.addEventListener('pointerup', fin); canvas.addEventListener('pointercancel', fin);
+canvas.addEventListener('wheel', e => { e.preventDefault(); etat.zoom = Math.min(5, Math.max(1, etat.zoom * Math.exp(-e.deltaY * 0.001))); dimensions(); }, { passive: false });
+
+const compteur = creeCompteur(document.body, { coin: 'haut-droite', marge: 12, taille: 'clamp(104px, 30vw, 140px)' });
+let tPrec = performance.now(), agePrec = etat.age, vLisse = 0;
+function image(now) {
+  const t0 = performance.now();
+  const dt = Math.min(0.25, Math.max(1e-4, (now - tPrec) / 1000)); tPrec = now;
+  if (etat.vdemo !== null) {
+    etat.age = (((etat.age - etat.vdemo * dt) % etat.amax) + etat.amax) % etat.amax;
+    etat.sale = true;
+  } else if (etat.jouer) {
+    etat.age = (etat.age + A0) * Math.exp(-C_LECTURE * dt) - A0;
+    if (etat.age <= 0) { etat.age = 0; etat.jouer = false; majBouton(); }
+    etat.sale = true; placerCurseur();
+  }
+  let v = (agePrec - etat.age) / dt;
+  if (etat.vdemo !== null) v = etat.vdemo;             // repliement de la démonstration : vitesse vraie
+  agePrec = etat.age;
+  vLisse += (v - vLisse) * (1 - Math.exp(-dt / 0.08));
+  if (Math.abs(vLisse) < 1e-3) vLisse = 0;
+  etat.vit = vLisse; etat.horloge = now;
+  compteur.vitesse(Math.abs(vLisse), Math.sign(vLisse));
+  const np = pasGeneration(vLisse); if (np !== periode) { periode = np; etat.sale = true; }
+  if (etat.sale) { textes(); rendre(); etat.sale = false; }
+  msJS.push(performance.now() - t0); if (msJS.length > 90) msJS.shift();
+  requestAnimationFrame(image);
+}
+dimensions(); etat.age = 7.0e6; placerCurseur(); textes(); rendre();
+requestAnimationFrame(image);
+
+// ------------------------------------------------------------------ interface des contrôles
+function b64(f32) { const u8 = new Uint8Array(f32.buffer, f32.byteOffset, f32.byteLength); let s = '';
+  for (let i = 0; i < u8.length; i += 32768) s += String.fromCharCode.apply(null, u8.subarray(i, i + 32768)); return btoa(s); }
+function lirePlan() { const px = new Float32Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.FLOAT, px);
+  const r = new Float32Array(W * H); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) r[(H - 1 - y) * W + x] = px[(y * W + x) * 4];
+  return r; }
+window.__hum = {
+  pret: true, K, lignees: LIGNEES,
+  regler(age) { etat.jouer = false; etat.vdemo = null; etat.age = Math.max(0, age); agePrec = etat.age; placerCurseur(); textes(); rendre(); return etat.age; },
+  vue(lon, lat) { etat.lon = lon; etat.lat = lat; rendre(); },
+  vitesse(v) { etat.jouer = false; etat.vdemo = v; majBouton(); },
+  lecture(on) { etat.vdemo = null; etat.jouer = !!on; majBouton(); },
+  etat() { const m = [...msJS].sort((a, b) => a - b); return { age: etat.age, vitesse: etat.vit, horloge: etat.horloge,
+    msJS: m.length ? +m[Math.floor(m.length / 2)].toFixed(2) : null, points: nLig + nHyde, plancher: flottant }; },
+  compteur() { const e = compteur.element; const g = e.querySelector('.aiguille');
+    const m = /rotate\(([-\d.]+)/.exec(g.getAttribute('transform'));
+    const f = e.querySelector('.fleche-sens');
+    return { angle: m ? +m[1] : NaN, retour: !!f && f.style.opacity === '1', texte: e.querySelector('.lecture').textContent }; },
+  geometrie() { const r = compteur.element.getBoundingClientRect(); const rect = (n, el) => { const b = el.getBoundingClientRect(); return { nom: n, x: b.x, y: b.y, w: b.width, h: b.height }; };
+    return { vw: innerWidth, vh: innerHeight, compteur: { x: r.x, y: r.y, w: r.width, h: r.height }, globe: { cx: geo.cx, cy: geo.cy, r: geo.r },
+      textes: [rect('titre', document.getElementById('titre')), rect('date', elDate), rect('récit', elRecit), rect('panneau', document.getElementById('panneau'))] }; },
+  plan(age, mode, lignee) {
+    if (!plan) throw new Error('pas de cible flottante');
+    const sauve = etat.age; ageCalcule = -1; const perio = periode; periode = 25;
+    preparerPoints(age);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, plan.f); gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    if (mode === 'territoire' || mode === 'terre') {
+      gl.disable(gl.BLEND); gl.useProgram(progPlan.p); uniformsCommuns(progPlan, age); gl.uniform1i(progPlan.u.u_quoi, mode === 'terre' ? 1 : 0);
+      gl.bindVertexArray(vaoPlan); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.bindVertexArray(null);
+    } else {
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+      dessinerPoints(age, true, lignee ? LIGNEES.indexOf(lignee) : -1, mode === 'comptage' ? 1 : 2, null);
+      gl.disable(gl.BLEND);
+    }
+    const r = lirePlan(); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    periode = perio; ageCalcule = -1; etat.age = sauve; etat.sale = true;
+    if (mode === 'comptage') { let s = 0; for (const x of r) s += x; return { w: W, h: H, somme: s, b64: b64(r) }; }
+    return { w: W, h: H, b64: b64(r) };
+  },
+  echantillon(age, lignee) { const perio = periode; periode = 25; const out = new Float32Array(MAXL * 4);
+    const n = pointsLignees(age, lignee, out); periode = perio; const r = []; for (let i = 0; i < n; i++) r.push([out[4 * i], out[4 * i + 1]]); return r; },
+};
+</script>
+</body>
+</html>

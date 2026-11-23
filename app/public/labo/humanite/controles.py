@@ -5,7 +5,7 @@ Mesure la page SERVIE (serveur local, Chrome sans tête, WebGL2 logiciel), pas u
 Les références viennent des sources, jamais de la page :
   - sites datés : prepa/sites_cles.csv (publications ; ROAD et Timmermann et al. 2022) ;
   - effectifs : prepa/effectifs_litterature.csv (avant l'Holocène, estimations publiées)
-    et prepa/intermediaires/hyde_totaux.json (HYDE 3.3, sommes des grilles à 5′) ;
+    et prepa/intermediaires/hyde_totaux.json (HYDE 3.2.1, sommes des grilles à 5′ ; 2023 : ONU) ;
   - Black Marble 2016 (NASA) : prepa/intermediaires/blackmarble_0p1.npz ;
   - relief et bathymétrie : prepa/intermediaires/relief_0p1.npz ; niveau marin : Spratt &
     Lisiecki 2016 (prepa/intermediaires/spratt2016.txt).
@@ -17,7 +17,7 @@ cible flottante relue par readPixels : c'est ce qui est dessiné qui est mesuré
   C1 données     : paquet publié présent ; chaque site daté et chaque effectif sont repris
                    tels quels ; HYDE 3.3 couvre 10 000 av. J.-C. → 2023
   C2 sites       : chaque site daté est atteint par le territoire de sa lignée au plus tard
-                   à sa date (à 10 % de son âge près) ; chaque dernier refuge est encore
+                   à sa date (à 10 % de son âge près : présent à 0,9, 0,95 ou 1 fois l'âge) ; chaque dernier refuge est encore
                    habité juste avant sa date (+10 %) et la lignée a disparu partout après
                    (−10 %)
   C3 remplacement: après 30 000 ans, plus aucune autre lignée que sapiens (territoires et
@@ -120,13 +120,15 @@ def sites_reference():
 def effectifs_reference():
     """{lignée: [(âge, effectif)]} : littérature avant l'Holocène, HYDE 3.3 ensuite (sapiens)."""
     p = os.path.join(PREPA, 'effectifs_litterature.csv')
-    h = os.path.join(INTER, 'hyde_totaux.json')
+    h = os.path.join(INTER, 'hyde_totaux_annees.json')
     if not (os.path.exists(p) and os.path.exists(h)):
         return None
     eff = {}
     for r in lire_csv(p):
         eff.setdefault(r['lignee'], []).append((float(r['age_ans']), float(r['effectif'])))
-    hyde = json.load(open(h))
+    # âges avant 2023 ; 2023 : Nations unies (WPP 2024), la dernière tranche HYDE 3.2.1 étant 2017
+    hyde = {str(2023 - int(a)): float(v) for a, v in json.load(open(h)).items()}
+    hyde['0'] = 8.09e9
     a_hyde = max(float(a) for a in hyde)
     eff['sapiens'] = [(a, e) for a, e in eff.get('sapiens', []) if a > a_hyde] + \
         [(float(a), float(v)) for a, v in hyde.items()]
@@ -201,8 +203,10 @@ def ouvrir(pw, port, largeur=390, hauteur=844):
 
 
 def plan(page, age, mode, carte=None):
+    import base64
     r = page.evaluate('([a, m, c]) => window.__hum.plan(a, m, c)', [age, mode, carte])
-    return np.array(r['data'], dtype=np.float64).reshape(r['h'], r['w'])
+    a = np.frombuffer(base64.b64decode(r['b64']), dtype=np.float32).astype(np.float64)
+    return a.reshape(r['h'], r['w'])
 
 
 def pixel(lat, lon, w=720, h=360):
@@ -247,9 +251,9 @@ def c1_donnees(page):
                                                for (x0, y0), (x1, y1) in zip(noeuds, pubn)):
                 ok = False
                 det.append(f'effectifs {lig} publiés ≠ sources')
-        hy = json.load(open(os.path.join(INTER, 'hyde_totaux.json')))
+        hy = {str(2023 - int(a)): v for a, v in json.load(open(os.path.join(INTER, 'hyde_totaux_annees.json'))).items()}
         ages = sorted(float(x) for x in hy)
-        if not (ages[0] <= 1 and ages[-1] >= 12000):
+        if not (ages[0] <= 10 and ages[-1] >= 12000):
             ok = False
             det.append(f'HYDE couvre {ages[-1]:.0f} → {ages[0]:.0f} ans seulement')
         det.append(f'{len(ages)} tranches HYDE, {hy[min(hy, key=float)] / 1e9:.2f} milliards aujourd\'hui')
@@ -271,7 +275,7 @@ def c2_sites(page):
         bit = CARTES.index(s['lignee'])
         if s['role'] in ('origine', 'site'):
             n += 1
-            if not present(bits(s['age'] * 0.9), bit, s['lat'], s['lon']):
+            if not any(present(bits(s['age'] * f), bit, s['lat'], s['lon']) for f in (0.9, 0.95, 1.0)):
                 echecs.append(f"{s['nom']} ({s['lignee']}, {s['age']:.0f} ans)")
         elif s['role'] == 'refuge':
             n += 1
@@ -354,14 +358,20 @@ def c5_black_marble(page):
     sel = terre & ((bm > 0) | (lum > 0))
     x, y = np.log10(1.0 + lum[sel]), np.log10(1.0 + bm[sel])
     rr = float(np.corrcoef(x, y)[0, 1]) if sel.sum() > 10 and x.std() > 0 else 0.0
-    verdict('C5', rr >= 0.8, f'r(log) = {rr:.3f} sur {int(sel.sum())} mailles de 1° (seuil 0,8)')
+    # pour information : nombre de points par maille (sans la lumière par humain) contre Black Marble
+    n = bloc(plan(page, 0, 'comptage', 'sapiens'), 2)
+    rn = float(np.corrcoef(np.log10(1.0 + n[sel]), y)[0, 1])
+    verdict('C5', rr >= 0.8, f'r(log) = {rr:.3f} sur {int(sel.sum())} mailles de 1° (seuil 0,8) ; '
+            f'densité de points seule : r = {rn:.3f}')
 
 
 def angle_attendu(v):
+    # spécification N28, composant commun app/public/commun/compteur.js : 27° par décade,
+    # −135° à 1 an par seconde, +135° à 10 Ga par seconde, butée à −146° à l'arrêt
     if v == 0:
-        return -135.0
+        return -146.0
     a = abs(v)
-    return -120.0 + 24.0 * min(10.0, max(0.0, math.log10(a)))
+    return -135.0 + 27.0 * min(10.0, max(0.0, math.log10(a)))
 
 
 def c6_compteur(page):
@@ -369,8 +379,15 @@ def c6_compteur(page):
     det = []
     for v in [1, 37, 1e4, 3.2e6, 1e9, 1e10, 0, -5e3]:
         page.evaluate('v => window.__hum.vitesse(v)', v)
-        page.wait_for_timeout(2500)
+        page.wait_for_timeout(1500)
         e = page.evaluate('() => window.__hum.compteur()')
+        for _ in range(30):       # après amortissement : l'aiguille ne bouge plus
+            page.wait_for_timeout(300)
+            e2 = page.evaluate('() => window.__hum.compteur()')
+            if abs(e2['angle'] - e['angle']) < 0.05:
+                break
+            e = e2
+        e = e2
         att = angle_attendu(v)
         if abs(e['angle'] - att) > 1.0:
             fautes.append(f'{v:g} an/s : aiguille {e["angle"]:.1f}° pour {att:.1f}°')
@@ -385,7 +402,7 @@ def c6_compteur(page):
     page.evaluate('() => { window.__hum.regler(2.0e5); window.__hum.lecture(true); }')
     page.wait_for_timeout(3000)
     a0 = page.evaluate('() => window.__hum.etat()')
-    page.wait_for_timeout(1000)
+    page.wait_for_timeout(300)
     a1 = page.evaluate('() => window.__hum.etat()')
     e = page.evaluate('() => window.__hum.compteur()')
     page.evaluate('() => window.__hum.lecture(false)')

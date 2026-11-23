@@ -49,14 +49,14 @@ neandertal;site;Teshik-Tash, Ouzbékistan;38.3;67.3;60000;Krause et al. 2007, Na
 neandertal;site;Tchagyrskaïa, Altaï;51.4;83.2;59000;Kolobova et al. 2020, PNAS 117
 neandertal;site;Le Moustier, France;45.0;1.1;45000;Higham et al. 2014, Nature 512
 neandertal;site;Gorham, Gibraltar;36.1;-5.3;45000;Finlayson et al. 2006, Nature 443
-neandertal;site;Feldhofer (Neandertal), Allemagne;51.2;7.0;40000;Schmitz et al. 2002, PNAS 99
+neandertal;site;Feldhofer (Neandertal), Allemagne (≈ 40 000 ans ¹⁴C, ≈ 44 000 calibrés);51.2;7.0;44000;Schmitz et al. 2002, PNAS 99
 neandertal;refuge;Péninsule Ibérique (derniers Néandertaliens);37.2;-4.0;40000;Higham et al. 2014, Nature 512
 denisova;origine;Grotte de Denisova, Altaï;51.4;84.7;280000;Jacobs et al. 2019, Nature 565
 denisova;site;Grotte de Denisova, Altaï (fossiles);51.4;84.7;195000;Douka et al. 2019, Nature 565
 denisova;site;Baishiya, Xiahe, plateau tibétain;35.4;102.6;160000;Chen et al. 2019, Nature 569
 denisova;site;Harbin, Chine (Homo longi, dénisovien);45.8;126.6;146000;Shao et al. 2021, The Innovation 2 ; Fu et al. 2025, Science
 denisova;site;Tam Ngu Hao 2, Laos;20.2;103.4;131000;Demeter et al. 2022, Nat. Commun. 13
-denisova;refuge;Asie du Sud-Est (derniers Dénisoviens, hypothèse);20.0;103.0;40000;Jacobs et al. 2019, Cell 177 (introgression tardive)
+denisova;refuge;Baishiya, plateau tibétain (derniers Dénisoviens : ADN des sédiments);35.4;102.6;45000;Zhang et al. 2020, Science 370
 sapiens;origine;Jebel Irhoud, Maroc;31.9;-8.9;315000;Richter et al. 2017, Nature 546
 sapiens;site;Florisbad, Afrique du Sud;-28.8;26.1;259000;Grün et al. 1996, Nature 382
 sapiens;site;Omo Kibish, Éthiopie;5.4;35.9;233000;Vidal et al. 2022, Nature 601
@@ -65,7 +65,8 @@ sapiens;site;Pinnacle Point, Afrique du Sud;-34.2;22.1;164000;Marean et al. 2007
 sapiens;site;Klasies River, Afrique du Sud;-34.1;24.4;110000;Grine et al. 2017
 sapiens;site;Blombos, Afrique du Sud;-34.4;21.2;100000;Henshilwood et al. 2011, Science 334
 sapiens;site;Panga ya Saidi, Kenya (sépulture);-3.7;39.7;78000;Martinón-Torres et al. 2021, Nature 593
-sapiens1;origine;Misliya, mont Carmel (première sortie);32.7;35.0;194000;Hershkovitz et al. 2018, Science 359
+sapiens1;origine;Levant (première sortie, date d'après Apidima);31.5;35.0;215000;Harvati et al. 2019, Nature 571 ; Hershkovitz et al. 2018, Science 359
+sapiens1;site;Misliya, mont Carmel;32.7;35.0;194000;Hershkovitz et al. 2018, Science 359
 sapiens1;site;Apidima, Grèce (attribution discutée);36.4;22.4;210000;Harvati et al. 2019, Nature 571
 sapiens1;site;Qafzeh, Galilée;32.7;35.3;100000;Valladas et al. 1988, Nature 331
 sapiens1;refuge;Levant (fin de la première sortie);32.7;35.3;80000;Shea 2008

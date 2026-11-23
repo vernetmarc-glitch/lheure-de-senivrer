@@ -1,7 +1,8 @@
 # Effectifs avant l'Holocène : ESTIMATIONS d'ordre de grandeur tirées de la littérature
 # (signalées comme telles sur la page). Après 10 000 av. J.-C., HYDE 3.3 prend le relais
 # pour sapiens (hyde33_totaux.json). Interpolation log-linéaire entre les noeuds ; 0 hors
-# du premier et du dernier noeud (apparition et disparition de la lignée).
+# du premier et du dernier noeud (apparition et disparition de la lignée) ; le dernier
+# noeud d'une lignée éteinte vaut 0 (interpolation linéaire vers 0).
 # Sources : Takahata 1993 et Hawks et al. 2000 (effectifs efficaces des hominines, ~10⁴) ;
 # Hu et al. 2023, Science 381 (goulet vers 930–813 ka) ; Bocquet-Appel & Degioanni 2013,
 # Curr. Anthropol. 54 (Néandertaliens, 5 000–70 000) ; Prüfer et al. 2014, Nature 505 ;
@@ -15,7 +16,8 @@ hominines;3500000;100000
 hominines;2500000;150000
 hominines;1800000;100000
 hominines;1200000;30000
-hominines;1000000;8000
+hominines;1050000;8000
+hominines;1000000;0
 erectus;2800000;4000
 erectus;2000000;60000
 erectus;1500000;200000
@@ -26,23 +28,27 @@ erectus;400000;250000
 erectus;300000;150000
 erectus;200000;60000
 erectus;120000;10000
-erectus;108000;2000
+erectus;110000;2000
+erectus;108000;0
 neandertal;430000;6000
 neandertal;300000;30000
 neandertal;150000;50000
 neandertal;70000;70000
 neandertal;50000;40000
 neandertal;42000;10000
-neandertal;40000;2000
+neandertal;41000;2000
+neandertal;40000;0
 denisova;280000;6000
 denisova;150000;30000
 denisova;60000;30000
-denisova;45000;10000
-denisova;40000;2000
+denisova;50000;10000
+denisova;46000;2000
+denisova;45000;0
 insulaires;709000;1000
 insulaires;100000;1500
 insulaires;60000;800
-insulaires;50000;300
+insulaires;52000;300
+insulaires;50000;0
 sapiens;315000;10000
 sapiens;250000;50000
 sapiens;150000;100000
@@ -55,8 +61,10 @@ sapiens;30000;1000000
 sapiens;20000;1000000
 sapiens;15000;2000000
 sapiens;13000;3000000
-sapiens1;210000;2000
+sapiens1;215000;1000
+sapiens1;205000;2000
 sapiens1;194000;4000
 sapiens1;120000;10000
 sapiens1;100000;10000
-sapiens1;80000;2000
+sapiens1;85000;2000
+sapiens1;80000;0

@@ -1,0 +1,12 @@
+PASSE  C1  38 tranches HYDE, 7.41 milliards aujourd'hui ; 85 sites
+PASSE  C2  85/85 sites et refuges conformes
+PASSE  C3  seul sapiens après 30 000 ans
+PASSE  C4  K = 2000 humains par point ; 7000000:10 1000000:150 120000:118 20000:500 5000:22495 200:540951
+PASSE  C5  r(log) = 0.992 sur 11279 mailles de 1° (seuil 0,8) ; densité de points seule : r = 0.740
+PASSE  C6  1→-135.0° 37→-92.7° 10000→-27.0° 3.2e+06→40.6° 1e+09→108.0° 1e+10→135.0° 0→-146.0° -5000→-35.1°
+PASSE  C8  textes, légende, fenêtres, image
+PASSE  C9  200 points ; inchangés après 5 ans : 81% (≥ 70 %), après 60 ans : 0% (≤ 30 %)
+PASSE  C10  Béringie et Sonde émergées à 20 000 ans, submergées aujourd'hui
+PASSE  C11  JS médian 0.9 ms par image ; 6.51 Mo avant la première image
+PASSE  C7  aucune erreur
+11/11 contrôles passés

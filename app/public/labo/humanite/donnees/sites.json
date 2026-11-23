@@ -425,10 +425,10 @@
 {
 "lignee": "neandertal",
 "role": "site",
-"nom": "Feldhofer (Neandertal), Allemagne",
+"nom": "Feldhofer (Neandertal), Allemagne (≈ 40 000 ans ¹⁴C, ≈ 44 000 calibrés)",
 "lat": 51.2,
 "lon": 7.0,
-"age": 40000.0,
+"age": 44000.0,
 "source": "Schmitz et al. 2002, PNAS 99"
 },
 {
@@ -488,11 +488,11 @@
 {
 "lignee": "denisova",
 "role": "refuge",
-"nom": "Asie du Sud-Est (derniers Dénisoviens, hypothèse)",
-"lat": 20.0,
-"lon": 103.0,
-"age": 40000.0,
-"source": "Jacobs et al. 2019, Cell 177 (introgression tardive)"
+"nom": "Baishiya, plateau tibétain (derniers Dénisoviens : ADN des sédiments)",
+"lat": 35.4,
+"lon": 102.6,
+"age": 45000.0,
+"source": "Zhang et al. 2020, Science 370"
 },
 {
 "lignee": "sapiens",
@@ -569,7 +569,16 @@
 {
 "lignee": "sapiens1",
 "role": "origine",
-"nom": "Misliya, mont Carmel (première sortie)",
+"nom": "Levant (première sortie, date d'après Apidima)",
+"lat": 31.5,
+"lon": 35.0,
+"age": 215000.0,
+"source": "Harvati et al. 2019, Nature 571 "
+},
+{
+"lignee": "sapiens1",
+"role": "site",
+"nom": "Misliya, mont Carmel",
 "lat": 32.7,
 "lon": 35.0,
 "age": 194000.0,
