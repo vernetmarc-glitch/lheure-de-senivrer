@@ -219,7 +219,7 @@ def main(src, out, inter, W=1440, pas=1, tP=None, tM=None):
         if t % 50 == 0: log(f"P {t} Ma : terres {(h > 0).mean()*100:.1f} % des pixels")
     ecrire_rot(out / "rot-P.bin", QP[:, :541])
 
-    # ---------- segment M (Merdith, 1000 -> 540 Ma, raccord 580 -> 540 Ma)
+    # ---------- segment M (Merdith, 1000 -> 540 Ma, raccord 620 -> 540 Ma)
     # Pas d'états clés ici : un seul nuage de points en coordonnées ACTUELLES (la grille de
     # sortie, pixel = morceau de croûte), chacun avec sa rangée de rotation et de quoi
     # calculer son élévation à tout instant. La page le transporte d'un bloc : les mêmes
@@ -287,7 +287,7 @@ def main(src, out, inter, W=1440, pas=1, tP=None, tM=None):
     QH = np.zeros((nH, len(TM), 4)); QH[0, :, 3] = 1
     C = qmul(QP[ppx, 540], qconj(QM[mm, 540]))                     # Merdith-540 -> PALEOMAP-540
     for k, t in enumerate(TM):
-        s = np.clip((t - 540) / 40.0, 0, 1); s = s * s * (3 - 2 * s)
+        s = np.clip((t - 540) / 80.0, 0, 1); s = s * s * (3 - 2 * s)
         q = qmul(qslerp_id(C, s), QM[mm, t])
         QH[1:, k] = np.where((ppx == 0)[:, None], QM[mm, t], q)
     ecrire_rot(out / "rot-M.bin", QH)
@@ -328,7 +328,7 @@ def main(src, out, inter, W=1440, pas=1, tP=None, tM=None):
         "segments": {"P": {"t0": 0, "t1": 540, "rot": "rot-P.bin", "rangees": int(QP.shape[0]), "cols": 541},
                      "M": {"t0": 540, "t1": 1000, "rot": "rot-M.bin", "rangees": int(nH), "cols": len(TM),
                            "points": ["M-points-1.png", "M-points-2.png"], "fond": "cles/P0540.png",
-                           "pasDebut": 4, "raccord": [540, 580], "effacement": [540, 640]}},
+                           "pasDebut": 4, "raccord": [540, 620], "effacement": [540, 640]}},
         "cles": cles,
         "sources": ["Scotese & Wright 2018, PALEOMAP PaleoDEMs, Zenodo 5460860",
                     "Scotese 2016, PALEOMAP Global Plate Model (PaleoAtlas v3), Zenodo 5460860",

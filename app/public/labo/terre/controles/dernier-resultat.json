@@ -7,17 +7,17 @@
  {
   "code": "C3",
   "ok": false,
-  "detail": "plus grand bloc / terres : 320 Ma 83 %, 300 Ma 80 %, 280 Ma 81 %, 260 Ma 75 %, 240 Ma 99 %, 220 Ma 72 %, 200 Ma 99 % (seuil 80 %)"
+  "detail": "plus grand bloc / terres : 320 Ma 83 %, 300 Ma 80 %, 280 Ma 80 %, 260 Ma 75 %, 240 Ma 98 %, 220 Ma 71 %, 200 Ma 99 % (seuil 80 %)"
  },
  {
   "code": "C4",
   "ok": false,
-  "detail": "pixels plus sombres que leurs deux voisins : 0.669 % au pire (à 552.0 Ma ; seuil 0,2 %)"
+  "detail": "pixels plus sombres que leurs deux voisins : 0.357 % au pire (à 2.5 Ma ; seuil 0,2 %)"
  },
  {
   "code": "C5",
   "ok": false,
-  "detail": "plus grand saut de surface émergée : 5.66 % (vers 556 Ma ; seuil 1 %)"
+  "detail": "plus grand saut de surface émergée : 8.34 % (vers 557 Ma ; seuil 1 %)"
  },
  {
   "code": "C6",
@@ -32,22 +32,22 @@
  {
   "code": "C8",
   "ok": true,
-  "detail": "anneau RVB [0.249, 0.386, 0.622] ; au-delà [0.023, 0.035, 0.057]"
+  "detail": "anneau RVB [0.249, 0.386, 0.622] ; au-delà [0.028, 0.04, 0.062]"
  },
  {
   "code": "C9",
   "ok": true,
-  "detail": "glisser : lon 30.0→-0.5 ; lecture : 600→560.4 Ma"
+  "detail": "glisser : lon 30.0→-0.5 ; lecture : 600→558.0 Ma"
  },
  {
   "code": "C10",
   "ok": false,
-  "detail": "référence Blue Marble absente (controles/blue-marble-juin-2004.png)"
+  "detail": "terres ΔE 28.5 (rendu L*a*b* [38.4, 0.4, 3.3], Blue Marble [58.5, 4.1, 23.1]) ; mers ΔE 37.7 (rendu L*a*b* [38.0, 0.6, 2.7], Blue Marble [1.6, 1.7, -7.1]) ; L* mers 38.0 < terres 38.4"
  },
  {
   "code": "C11",
-  "ok": true,
-  "detail": "166 px, hors du globe True, dans l'écran True ; arrêt : aiguille -138.0° (butée -138°) ; lecture : 2.5e+07 ans/s -> attendu 57.6°, aiguille 57.6° ; « Ma100 Ma10 Ga25 millions d'années par seconde »"
+  "ok": false,
+  "detail": "84 px, hors du globe False, dans l'écran True ; arrêt : aiguille -146.0° (butée -146°) ; lecture : 2.5e+07 ans/s -> attendu 64.7°, aiguille 64.7° ; « Ma100 Ma10 Ga25 millions d'années par seconde »"
  },
  {
   "code": "C1",
