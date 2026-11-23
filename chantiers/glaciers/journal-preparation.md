@@ -79,6 +79,7 @@ déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N46_00_E
 déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N46_00_E005_00_DEM.tif 43597393 octets
 déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N46_00_E006_00_DEM.tif 38504837 octets
 relief GLO-30 : 9 tuiles, lacunes 0.0 % min 101.52166 max 3997.1606
+sortie moraines.bin.gz 26988 octets
 sortie glace.bin.gz 2721843 octets
 sortie meta.json 4609 octets
 sortie relief.bin.gz 2051777 octets
