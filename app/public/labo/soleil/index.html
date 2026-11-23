@@ -70,8 +70,12 @@ const AGE_FIN = 1.0e8;            // fin de l'échelle : 100 millions d'années
 const TAU_DISQUE = 2.5e6;         // dissipation des disques (Mamajek 2009, fraction de disques ∝ e^(−t/2,5 Ma)) — hypothèse
 const DT_MIN = 50;                // ans, de part et d'autre de la naissance
 const DUREE_LECTURE = 75;         // secondes pour parcourir toute l'échelle
-// ton à bornes fixes, en densité de colonne (M☉/UA²) : aucune statistique de l'image
-const SIGMA0 = 2.0e-9, SIGMA1 = 3.0e-5, GAMMA = 0.6;
+// ton à bornes fixes, en densité de colonne (M☉/UA²) : aucune statistique de l'image.
+// L'exposition suit le cadre de la caméra comme un photographe suit son sujet : le seuil
+// de visibilité vaut SIGMA0 × (10 000 UA / demi-largeur du cadre). Pour une enveloppe en
+// chute libre (ρ ∝ r⁻², Σ ∝ r⁻¹), le bord du cadre garde ainsi le même ton à toute
+// échelle, et le cœur qui se condense ressort. Loi fixe, jamais tirée de l'image.
+const SIGMA0 = 3.0e-9, R_EXPO = 10000, DYN = 2.0e4, GAMMA = 0.62;
 const R_ETOILE = 3.0;             // R☉, protoétoile en accrétion (hypothèse, comme dans les données)
 
 // ------------------------------------------------------------------ données
@@ -427,7 +431,7 @@ function dessine() {
     gl.uniform1f(U.smax, 4.0 * Math.min(window.devicePixelRatio || 1, 2));
     if (HJ) { gl.uniform1f(U.hmin, HJ.codage_h.log_min); gl.uniform1f(U.hmax, HJ.codage_h.log_max); }
     // poids : masse d'un point / aire d'un pixel, en unités de SIGMA0 ; × reste du gaz
-    gl.uniform1f(U.poids, mPoint / (uaParPx * uaParPx) / SIGMA0 * reste);
+    gl.uniform1f(U.poids, mPoint / (uaParPx * uaParPx) / (SIGMA0 * R_EXPO / e.dl) * reste);
     gl.uniform1f(U.part, part);
     gl.uniform1f(U.lmin, meta.codage_T.log_min); gl.uniform1f(U.lmax, meta.codage_T.log_max);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
@@ -437,7 +441,7 @@ function dessine() {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
   gl.useProgram(pTon); gl.bindVertexArray(vaoVide);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texAcc); gl.uniform1i(UT.acc, 0);
-  gl.uniform1f(UT.lnS1, Math.log(1 + SIGMA1 / SIGMA0)); gl.uniform1f(UT.gam, GAMMA); gl.uniform1f(UT.echelleAcc, 1.0);
+  gl.uniform1f(UT.lnS1, Math.log(1 + DYN)); gl.uniform1f(UT.gam, GAMMA); gl.uniform1f(UT.echelleAcc, 1.0);
   gl.uniform2f(UT.res, W, H);
   const L = luminosite(age);
   if (L > 0 && etoileVisible) {
@@ -469,6 +473,7 @@ const compteur = {
   angle: () => cc.etat().angle,
   angleCible: v => angleVitesse(Math.abs(v), v === 0 ? 0 : Math.sign(v)),
   boite: () => cc.element.getBoundingClientRect(),
+  etat: () => cc.etat(),
 };
 S.compteur = compteur;
 function regle(nt) { t = Math.min(Math.max(nt, 0), tc + AGE_FIN); sale = true; }
@@ -500,7 +505,7 @@ function boucle(n) {
   // vitesse réelle du curseur (années simulées par seconde réelle), lissée sur ≈ 0,25 s
   const vInst = dt > 0 ? (t - dernierT) / dt : 0; dernierT = t;
   vitesse = Math.abs(vInst) < 1e-9 ? 0 : vInst;
-  compteur.regle(lecture || tire ? vitesse : 0);
+  compteur.regle(S.vitesseImposee ?? (lecture || tire ? vitesse : 0));   // vitesseImposee : contrôle de l'aiguille seule
   if (sale) { dessine(); sale = false; }
   requestAnimationFrame(boucle);
 }

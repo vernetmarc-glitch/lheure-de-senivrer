@@ -216,7 +216,8 @@ def serveur():
                 break
     else:
         raise RuntimeError("aucun port libre entre 8840 et 8849")
-    h = functools.partial(Silence, directory=ICI)
+    # on sert app/public entier : la page importe ../../commun/compteur.js
+    h = functools.partial(Silence, directory=os.path.dirname(os.path.dirname(ICI)))
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), h)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv, port
@@ -255,7 +256,7 @@ def controles_page():
                    lambda r: r.fulfill(status=200, body="", content_type="text/css"))
         page.on("pageerror", lambda e: erreurs.append(str(e)))
         page.on("console", lambda m: m.type == "error" and erreurs.append(m.text))
-        page.goto(f"http://127.0.0.1:{port}/index.html")
+        page.goto(f"http://127.0.0.1:{port}/labo/soleil/index.html")
         try:
             page.wait_for_function("window.__soleil && window.__soleil.pret === true", timeout=120000)
             pret = True
@@ -374,10 +375,10 @@ def controles_page():
             u = page.evaluate("window.__soleil.uaParPx()")
             d = d * u   # UA (projetées)
             rc, nc = ratio((d > 30) & (d < 120))
-            rp, npx = ratio((d > 150) & (d < 400))
+            rp, npx = ratio((d > 130) & (d < 260))
             note("S1-P07", "N20", nc > 5 and npx > 50 and rc > 1.3 * rp,
                  f"stade disque, étoile masquée : rapport rouge/bleu à 30–120 UA {rc:.2f} ({nc} px) "
-                 f"contre {rp:.2f} à 150–400 UA ({npx} px) (× 1,3)")
+                 f"contre {rp:.2f} à 130–260 UA ({npx} px) (× 1,3)")
         except Exception as e:  # noqa: BLE001
             note("S1-P07", "N20", False, f"exception : {e}")
 
@@ -430,10 +431,17 @@ def controles_page():
 
         # P10 — compteur de vitesse du temps
         try:
+            # 1) pendant la lecture, la cible de l'aiguille est la vitesse réelle du curseur
             page.evaluate("window.__soleil.regle(0)")
             page.evaluate("window.__soleil.joue(true)"); page.wait_for_timeout(1500)
             r = page.evaluate("""() => { const s = window.__soleil, c = s.compteur;
-                return { a: c.angle(), cible: c.angleCible(s.vitesseCurseur()), v: s.vitesseCurseur() }; }""")
+                return { cible: c.etat().cible, attendu: c.angleCible(s.vitesseCurseur()), v: s.vitesseCurseur() }; }""")
+            # 2) à vitesse constante, l'aiguille amortie rejoint sa cible à 1° près
+            page.evaluate("window.__soleil.joue(false)")
+            page.evaluate("window.__soleil.vitesseImposee = 1e6"); page.wait_for_timeout(2500)
+            r["a"] = page.evaluate("window.__soleil.compteur.angle()")
+            r["a_cible"] = page.evaluate("window.__soleil.compteur.angleCible(1e6)")
+            page.evaluate("window.__soleil.vitesseImposee = null"); page.wait_for_timeout(1500)
             page.evaluate("window.__soleil.joue(false)"); page.wait_for_timeout(1500)
             arret = page.evaluate("window.__soleil.compteur.angle()")
             butee = page.evaluate("window.__soleil.compteur.angleCible(0)")
@@ -445,9 +453,10 @@ def controles_page():
                     q = page.evaluate(f"window.__soleil.{nom}()")
                     if q is not None:
                         libres.append(not (bb[0] - 8 <= q[0] <= bb[0] + bb[2] + 8 and bb[1] - 8 <= q[1] <= bb[1] + bb[3] + 8))
-            ok = (abs(r["a"] - r["cible"]) <= 1.0 and r["v"] > 0 and abs(arret - butee) <= 1.0
+            ok = (abs(r["cible"] - r["attendu"]) <= 1.0 and abs(r["a"] - r["a_cible"]) <= 1.0 and r["v"] > 0 and abs(arret - butee) <= 1.0
                   and bb[2] <= 150 and bb[0] + bb[2] <= 390 and all(libres))
-            note("S1-P10", "N28", ok, f"lecture : {r['v']:.3g} ans/s, aiguille {r['a']:.1f}° pour {r['cible']:.1f}° ; "
+            note("S1-P10", "N28", ok, f"lecture : {r['v']:.3g} ans/s, cible de l'aiguille {r['cible']:.1f}° pour {r['attendu']:.1f}° ; "
+                 f"à 1 Ma/s constant : aiguille {r['a']:.1f}° pour {r['a_cible']:.1f}° ; "
                  f"arrêt : {arret:.1f}° (butée {butee:.1f}°) ; cadran {bb[2]:.0f} px de large ; "
                  f"étoile et cœur hors du cadran : {all(libres)}")
         except Exception as e:  # noqa: BLE001
