@@ -39,6 +39,78 @@
 540,
 640
 ]
+},
+"C": {
+"t0": 540,
+"t1": 1800,
+"rot": "rot-C.bin",
+"rangees": 630,
+"cols": 631,
+"pasRot": 2,
+"points": [
+"C-points-1.png",
+"C-points-2.png"
+],
+"fond": "cles/P0540.png",
+"pasDebut": 8,
+"raccord": [
+540,
+620
+],
+"effacement": [
+540,
+640
+],
+"meca": {
+"t0": 540,
+"pas": 10,
+"n": 127,
+"fichiers": [
+"C-h-00.png",
+"C-h-01.png",
+"C-h-02.png",
+"C-h-03.png",
+"C-h-04.png",
+"C-h-05.png",
+"C-h-06.png",
+"C-h-07.png",
+"C-h-08.png",
+"C-h-09.png",
+"C-h-10.png",
+"C-h-11.png",
+"C-h-12.png",
+"C-h-13.png",
+"C-h-14.png",
+"C-h-15.png",
+"C-h-16.png",
+"C-h-17.png",
+"C-h-18.png",
+"C-h-19.png",
+"C-h-20.png",
+"C-h-21.png",
+"C-h-22.png",
+"C-h-23.png",
+"C-h-24.png",
+"C-h-25.png",
+"C-h-26.png",
+"C-h-27.png",
+"C-h-28.png",
+"C-h-29.png",
+"C-h-30.png",
+"C-h-31.png",
+"C-h-32.png",
+"C-h-33.png",
+"C-h-34.png",
+"C-h-35.png",
+"C-h-36.png",
+"C-h-37.png",
+"C-h-38.png",
+"C-h-39.png",
+"C-h-40.png",
+"C-h-41.png",
+"C-h-42.png"
+]
+}
 }
 },
 "cles": [
@@ -591,6 +663,7 @@
 "sources": [
 "Scotese & Wright 2018, PALEOMAP PaleoDEMs, Zenodo 5460860",
 "Scotese 2016, PALEOMAP Global Plate Model (PaleoAtlas v3), Zenodo 5460860",
-"Merdith et al. 2021, Earth-Science Reviews 214, 103477, Zenodo 13635864 (v1.2.4)"
+"Merdith et al. 2021, Earth-Science Reviews 214, 103477, Zenodo 13635864 (v1.2.4)",
+"Cao et al. 2024, Geoscience Frontiers 15, 101922, Zenodo 13628813"
 ]
 }
