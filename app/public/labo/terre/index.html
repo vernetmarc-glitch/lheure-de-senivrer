@@ -840,7 +840,8 @@ async function rendre() {
 // ------------------------------------------------------------------ textes et frise
 function formatT(t) {
   if (t < 0.5) return "Aujourd'hui";
-  if (t >= 999.5) return "Il y a 1 milliard d'années";
+  if (t >= 999.5) { const g = Math.round(t / 10) / 100;
+    return "Il y a " + g.toLocaleString("fr-FR") + (g >= 2 ? " milliards d'années" : " milliard d'années"); }
   return "Il y a " + Math.round(t).toLocaleString("fr-FR") + " millions d'années";
 }
 function majTextes() {
@@ -887,7 +888,7 @@ function placerFrise() {
   pg.style.left = (100 * (T_TERRE - PANGEE[0]) / T_TERRE) + "%";
   pg.style.width = (100 * (PANGEE[0] - PANGEE[1]) / T_TERRE) + "%";
   const rp = $("#rep-pangee");
-  rp.textContent = "chaîne hercynienne et Pangée ↓";
+  rp.textContent = "";   // la Pangée est nommée sur la ligne des réunions
   rp.style.right = (100 * PANGEE[1] / T_TERRE) + "%";
 }
 

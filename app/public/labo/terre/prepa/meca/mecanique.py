@@ -5,7 +5,8 @@ Modèle (grossier par choix : ~50 km, pas de 2 Ma ; hypothèses signalées) :
      continentale est un point en coordonnées ACTUELLES (pixel de la grille de la page), porté
      par la rotation de sa plaque. Les frontières topologiques résolues donnent la plaque de
      tout point du globe (océans compris) tous les 2 Ma.
-  2. Lithosphère en couche mince visqueuse : le champ de vitesse des plaques, imposé, est lissé
+  2. Lithosphère en couche mince visqueuse (champ pondéré par la croûte, couplage 0,05 des
+     marges actives ; racines épaissies relaxées vers 38 km en ~80 Ma, hypothèse) : le champ de vitesse des plaques, imposé, est lissé
      sur ~600 km (largeur des zones de déformation, nombre d'Argand ~ 1–3) ; la croûte s'épaissit
      là où ce champ converge (dH/dt = -H div v) et s'amincit là où il diverge (rifts, marges).
      L'étalement gravitaire de la croûte épaisse (viscosité non linéaire) est une diffusion
@@ -51,7 +52,8 @@ K_SPL, M_SPL = float(sys.argv[4]) if len(sys.argv) > 4 else 3.0e-7, 0.4
 KAPPA = 1500.0                            # km²/Ma, étalement de la croûte épaisse
 H_MAX, H_MIN = 75.0, 20.0                 # km : plateau du Tibet ; croûte amincie des rifts
 V_MAX = 200.0                             # km/Ma (20 cm/an)
-COUPLAGE = 0.15
+COUPLAGE = 0.05
+TAU_RACINE, H_REF = 80.0, 38.0          # Ma, km : effondrement et délamination des racines (hypothèse)
 AIRE_V = 4 * np.pi * R_KM ** 2 / hp.nside2npix(NV)
 
 
@@ -252,6 +254,10 @@ def main():
         th, ph = hp.vec2ang(pos)
         dv = hp.get_interp_val(div, th, ph)
         Hc[a] = np.clip(Hc[a] * np.exp(np.clip(-dv * DT, -0.3, 0.3)), H_MIN, H_MAX)
+        # les racines des chaînes ne durent pas : effondrement gravitaire, fluage de la croûte
+        # inférieure, délamination — la croûte épaissie revient vers 38 km en ~80 Ma
+        ep = Hc[a] > H_REF
+        Hc[a[ep]] = H_REF + (Hc[a[ep]] - H_REF) * np.exp(-DT / TAU_RACINE)
         # érosion et étalement sur la grille HEALPix fine
         px = hp.ang2pix(NE, th, ph)
         sa = np.bincount(px, weights=w_aire[a], minlength=len(PE))
