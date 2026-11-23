@@ -28,42 +28,37 @@ Départ (19/11/2026, 7 h 40) : `bake.py --check` sur `main` : 399 passés, 15 en
 Étape : lancé le 23/11 (globe de nuit autonome, HYDE 3.3, Black Marble).
 
 ## S7 — Alpes
-Étape : **passage 2 terminé (23/11)**, branche `chantier/alpes`, page `labo/alpes/`.
-Passage 1 publié sur main (0e4fe0e) ; licence s2cloudless 2024 tranchée (D-44).
-Contrôles `app/public/labo/alpes/controles.py` : **29/29 verts** sur la page servie.
-Planche : `chantiers/planches/alpes-2.png`.
+Étape : **passage 3 terminé**, branche `chantier/alpes`, page `labo/alpes/`. Périmètre
+redéfini (D-48) : S7 garde la fin (derniers Ma, relief réel, glaciers, allègement) ; S7b
+refait l'orogenèse ancienne (120 → ≈ 5 Ma) avec un modèle géodynamique.
+Contrôles `app/public/labo/alpes/controles.py` : **31/31 verts**. Planche :
+`chantiers/planches/alpes-3.png`.
 
-Passage 2 (retours du maître) :
-1. **Netteté.** Contrôle sur les données (part d'énergie à 1–5 km, tuiles montagneuses) :
-   il passait déjà (169 %), le flou venait donc du rendu. Ajout d'un contrôle sur l'image
-   rendue (ombrage d'un albédo gris, vue du zénith à 512², énergie à 1–5 km rapportée au
-   relief réel rendu de la même façon) : **en échec sur la version publiée** (44 % à
-   −30 Ma, 46 % à −12 Ma), puis vert : 102 à 132 % dès −30 Ma. Correction : film publié à
-   pleine résolution FastScape (512², 400 m, pas de 2 m), maillage 512². Le détail vient
-   de FastScape lui-même ; aucun détail réel n'est peint avant −2 Ma.
-2. **Machine à laver.** 1 500 grains suivis dans une tranche de ±3 km autour de la coupe
-   ONO → ESE par Grenoble (Vercors → Belledonne) : ils montent avec le soulèvement, sont
-   portés par le raccourcissement et gardent leur profondeur maximale ; 652 arrivent au
-   jour. Bouton « coupe » : la tranche, ses grains colorés par leur profondeur maximale,
-   l'éclat quand l'un d'eux sort. Contrôle : au jour, la couleur de surface vaut la
-   profondeur maximale du grain (écart médian 10 %).
-3. **Glaciers.** PISM de Seguinot et al. 2018 (même fichier que S8), repris à la source
-   par le workflow et reprojeté sur ma fenêtre de 204,8 km (la fenêtre S8 de 150 km ne la
-   couvre pas), 256² à 800 m, 120 tranches de 1 ka. La glace s'élève au-dessus du relief
-   sur les 120 derniers ka ; maximum à 24 ka (20 400 km²), Grésivaudan rempli. Contrôle :
-   étendue dessinée = données à une maille près (0,1 % manquant au plus, rien d'inventé),
-   rien avant 120 ka. Le froid des règles de couleur suit l'aire de glace PISM sur cette
-   période. Pas de vidéo : la glace est une grandeur mesurée (binaire quantifié).
+Passage 3 :
+1. **Poids.** Contrôles d'abord, en échec sur la version publiée (dossier 42,2 Mo ; poids
+   avant la première image non mesuré, ≈ 4,5 Mo), puis verts : dossier publié **13,0 Mo**
+   (seuil 15), **0,71 Mo** avant la première image, mesuré par le navigateur (seuil 4).
+   Paquet v3 : images clés 512² tous les 4 états (1 Ma, puis 200 ka à la fin), pas de
+   10 m, en différences d'une clé à l'autre ; entre deux clés, résidus 128² au pas de 8 m
+   par rapport à l'interpolation des clés. Seules les clés restent en mémoire ; l'état
+   affiché est reconstruit à la demande. Mosaïque et détail réel arrivent après la première
+   image. Film : 9,0 Mo ; écart final au relief réel 3,0 m ; netteté du rendu conservée,
+   y compris entre deux clés (84 % à −29,5 Ma, 95 % à −12,25 Ma ; seuil 50 %). Les scripts
+   de simulation sont dans `chantiers/alpes/` (plus rien dans app/public).
+2. **Glaciers au niveau de S8.** Vitesses de surface PISM (128², 1,6 km) et moraines
+   médianes calculées par la méthode de S8 (`chantiers/alpes/moraines.py`, copie adaptée aux
+   mailles de 800 m) à partir des données publiées. Rendu repris de S8 : surface de glace
+   lisse (lit lissé sur 2,8 km + épaisseur, plus de bosses), foliation le long du courant,
+   crevasses au-delà de 80 m/a, moraines médianes et latérales, reflet ; traînées advectées
+   (1 500 au plus, 40 ans d'écoulement par seconde). C5 : écart angulaire médian 0,1°,
+   95e centile ≤ 1,8°, 0 % hors glace ; C9 : moraines dessinées = moraines des données à
+   100 % dans les deux sens, deux flux 100 %, 225 km au total. Étendue de la glace : celle
+   des données à une maille près.
 
-Limites, prochaine étape :
-- Paquet de 32 Mo en tout (4,5 Mo avant la première image, le reste arrive pendant la
-  lecture) : lourd pour un téléphone ; piste : clés tous les 500 ka avec résidus, ou
-  états à 512² seulement sur les 10 derniers Ma.
-- Glaciers sans traînées d'écoulement ni moraines (à reprendre de S8 : vitesses de
-  surface dans le même fichier).
-- Fluidité non mesurable ici (rendu logiciel : 2 images/s) ; maillage de 512² à vérifier
-  sur un vrai téléphone.
-- Le dépôt du bassin d'avant-pays reste imposé.
+Ce qui reste (pour la fin, S7) : glace un peu trop blanche de près (foliation peu
+lisible) ; fluidité à mesurer sur un vrai téléphone (rendu logiciel ici : 2 images/s) ;
+raccord avec S7b quand ses états existeront (reprendre son relief à ≈ 5 Ma comme point de
+départ de l'ajustement vers le relief réel).
 
 ## S8 — Glaciers
 Étape : données Seguinot 2018 préparées, contrôles écrits (0/8 sur page vide) ; relancé le 23/11.

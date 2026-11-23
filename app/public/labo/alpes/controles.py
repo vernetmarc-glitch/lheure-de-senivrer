@@ -335,14 +335,14 @@ def controles_page(base):
             for t0 in (-20, -1.9, -1.2, -0.6, -0.2):
                 v = page.evaluate("""async (t0) => {
                     const A = window.ALPES; A.vitesse(1); A.aller(t0); A.lire();
-                    const image = () => new Promise(r => requestAnimationFrame(ts => r([ts, A.temps()])));
+                    const image = () => new Promise(r => requestAnimationFrame(ts => r([ts, A.temps(), A.compteur.etat().cible])));
                     await new Promise(r => setTimeout(r, 1200));          // amortissement de l'aiguille
-                    const [ta, a] = await image();
-                    let tb = ta, b = a, tp = ta, bp = a;
-                    while (tb - ta < 1500) { tp = tb; bp = b; [tb, b] = await image(); }
+                    const [ta, a, ca] = await image();
+                    let tb = ta, b = a, tp = ta, bp = a, cb = ca, cp = ca;
+                    while (tb - ta < 1500) { tp = tb; bp = b; cp = cb; [tb, b, cb] = await image(); }
                     const v = (b - a) / ((tb - ta) / 1000);             // vitesse moyenne
                     const vi = (b - bp) / ((tb - tp) / 1000);           // vitesse de la dernière image
-                    const ang = A.compteur.etat().cible; A.pause();
+                    const ang = (cp + cb) / 2; A.pause();          // cible moyenne sur la dernière image
                     return [v, ang, vi];
                 }""", t0)
                 mesures[t0], angles[t0], inst[t0] = v
