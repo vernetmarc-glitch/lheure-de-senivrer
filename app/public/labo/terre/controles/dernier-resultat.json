@@ -11,18 +11,18 @@
  },
  {
   "code": "C4",
-  "ok": false,
-  "detail": "pixels plus sombres que leurs deux voisins, 5 passes : 0.153 %, 0.471 %, 0.122 %, 0.151 %, 0.137 % (pire à 545.0 Ma ; seuil 0,2 %)"
+  "ok": true,
+  "detail": "pixels plus sombres que leurs deux voisins, 5 passes : 0.067 %, 0.066 %, 0.065 %, 0.065 %, 0.066 % (pire à 2.5 Ma ; seuil 0,2 %)"
  },
  {
   "code": "C5",
   "ok": false,
-  "detail": "plus grand saut de surface émergée : 3.01 % (vers 540.5 Ma ; seuil 1 %)"
+  "detail": "plus grand saut de surface émergée : 2.16 % (vers 6.5 Ma ; seuil 1 %)"
  },
  {
   "code": "C6",
   "ok": true,
-  "detail": "1 Ga→0 = 22.02 % (attendu 22.03 %) ; hypothèse hachurée = 77.97 % ; Pangée+hercynien = 4.51 % (attendu 4.52 %)"
+  "detail": "540 Ma→0 = 11.89 % (attendu 11.89 %) ; avant 540 Ma hachuré = 88.10 % (attendu 88.11 %), « à venir » ; borne : t demandé 4540 -> 540 Ma, glissière [0, 540] ; Pangée+hercynien = 4.51 % (attendu 4.52 %)"
  },
  {
   "code": "C7",
@@ -37,7 +37,7 @@
  {
   "code": "C9",
   "ok": true,
-  "detail": "glisser : lon 30.0→-2.0 ; lecture : 600→558.2 Ma"
+  "detail": "glisser : lon 30.0→-2.0 ; lecture : 540→493.0 Ma"
  },
  {
   "code": "C10",
@@ -52,7 +52,7 @@
  {
   "code": "C12",
   "ok": true,
-  "detail": "terres visibles éclairées : 0 Ma 95 %, 66 Ma 96 %, 250 Ma 97 %, 540 Ma 78 %, 700 Ma 96 %, 1000 Ma 79 % (seuil 60 %)"
+  "detail": "terres visibles éclairées : 0 Ma 95 %, 66 Ma 96 %, 250 Ma 97 %, 540 Ma 78 % (seuil 60 %)"
  },
  {
   "code": "C1",

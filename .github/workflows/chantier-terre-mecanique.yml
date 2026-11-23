@@ -1,0 +1,76 @@
+name: Chantier S3b — Terre en mécanique des roches (Cao et al. 2024, couche mince, FastScape)
+
+# Zenodo, EarthByte et la Paleobiology Database ne sont pas joignables du bac à sable :
+# ce workflow télécharge le modèle de plaques de Cao et al. 2024 (Zenodo 13628813), la
+# courbe de diversité des genres marins (PBDB), prépare les intermédiaires avec pyGPlates,
+# fait tourner la mécanique (couche mince visqueuse + isostasie + érosion FastScape) de
+# 1,8 Ga à 540 Ma et pousse sur la branche le paquet compact de la page.
+
+on:
+  push:
+    branches: [chantier/terre-mecanique]
+    paths:
+      - 'app/public/labo/terre/prepa/meca/**'
+      - '.github/workflows/chantier-terre-mecanique.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: chantier-terre-mecanique
+  cancel-in-progress: true
+
+jobs:
+  mecanique:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chantier/terre-mecanique
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Paquets
+        run: pip install pygplates numpy scipy pillow healpy fastscapelib
+      - name: Cache des sources
+        uses: actions/cache@v4
+        with:
+          path: /tmp/sources
+          key: terre-meca-sources-v1
+      - name: Cache des intermédiaires lourds (topologies résolues)
+        uses: actions/cache@v4
+        with:
+          path: /tmp/inter-meca
+          key: terre-meca-inter-${{ hashFiles('app/public/labo/terre/prepa/meca/preparer_cao.py') }}
+      - name: Téléchargement
+        run: python3 app/public/labo/terre/prepa/meca/telecharger.py /tmp/sources
+      - name: Préparation (pyGPlates)
+        run: |
+          python3 app/public/labo/terre/prepa/meca/preparer_cao.py /tmp/sources /tmp/inter-meca 2>&1 | tee app/public/labo/terre/prepa/meca/journal-preparation.txt
+          exit ${PIPESTATUS[0]}
+      - name: Mécanique et cuisson
+        run: |
+          if [ -f app/public/labo/terre/prepa/meca/mecanique.py ]; then
+            python3 app/public/labo/terre/prepa/meca/mecanique.py /tmp/sources /tmp/inter-meca app/public/labo/terre/donnees 2>&1 | tee app/public/labo/terre/prepa/meca/journal-mecanique.txt
+            exit ${PIPESTATUS[0]}
+          fi
+      - name: Intermédiaires en artefact (développement local)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inter-meca
+          path: /tmp/inter-meca/cao.npz
+          retention-days: 7
+      - name: Dépôt sur la branche
+        if: always()
+        run: |
+          git config user.name "Claude (workflow chantier-terre-mecanique)"
+          git config user.email noreply@anthropic.com
+          git add -A app/public/labo/terre/prepa/meca app/public/labo/terre/donnees 2>/dev/null || true
+          git commit -m "Terre, mécanique : données préparées par le workflow (run ${GITHUB_RUN_ID})" || exit 0
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin chantier/terre-mecanique && git push origin HEAD:chantier/terre-mecanique && break
+            sleep 5
+          done

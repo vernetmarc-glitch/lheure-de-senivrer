@@ -25,11 +25,11 @@
   #globe:active { cursor:grabbing; }
   footer { padding:0 20px 14px; }
   #frise { position:relative; display:flex; height:16px; margin:4px 0 0; border-radius:2px; }
-  #frise .hypothese { flex:0 0 calc(100% * 3540 / 4540); height:100%;
+  #frise .avenir { flex:0 0 calc(100% * 4000 / 4540); height:100%;
        background-image:repeating-linear-gradient(135deg, rgba(232,230,223,.28) 0 1.5px, transparent 1.5px 6px);
        border:1px solid rgba(232,230,223,.22); border-right:none; font-size:10px; letter-spacing:.12em;
        color:var(--doux); display:flex; align-items:center; justify-content:center; text-transform:uppercase; }
-  #frise .publie { flex:0 0 calc(100% * 1000 / 4540); height:100%; background:rgba(207,230,255,.55); }
+  #frise .publie { flex:0 0 calc(100% * 540 / 4540); height:100%; background:rgba(207,230,255,.55); }
   #frise .pangee { position:absolute; top:-5px; height:26px; border-left:1px solid #e0a46b;
        border-right:1px solid #e0a46b; background:rgba(224,164,107,.28); pointer-events:none; }
   #frise .curseur { position:absolute; top:-8px; width:2px; height:32px; margin-left:-1px;
@@ -64,23 +64,23 @@
   <footer>
     <div class="au-dessus"><span id="rep-pangee"></span></div>
     <div id="frise" aria-label="Les 4,54 milliards d'années de la Terre">
-      <div class="hypothese">hypothèse</div>
-      <div class="publie" title="1 milliard d'années reconstitué"></div>
+      <div class="avenir" title="4 milliards d'années encore à reconstituer">à venir</div>
+      <div class="publie" title="540 millions d'années reconstitués d'après les roches"></div>
       <div class="pangee"></div>
       <div class="curseur"></div>
     </div>
     <div class="reperes">
       <span style="left:0">4,54 milliards d'années<br>naissance de la Terre</span>
-      <span style="left:calc(100% * 3540 / 4540);transform:translateX(-50%)">1 Ga</span>
+      <span style="left:calc(100% * 4000 / 4540);transform:translateX(-50%)">540 Ma</span>
       <span style="right:0;text-align:right">aujourd'hui</span>
     </div>
     <div class="commandes">
       <button id="lecture" aria-label="Lecture">▶</button>
-      <input id="temps" type="range" min="0" max="1000" step="0.5" value="1000" aria-label="Temps">
+      <input id="temps" type="range" min="0" max="540" step="0.5" value="540" aria-label="Temps">
     </div>
-    <div class="bornes"><span>il y a 1 milliard d'années</span><span>aujourd'hui</span></div>
-    <p class="sources">Plaques : Merdith et al. 2021 (1 Ga → 540 Ma) et PALEOMAP, Scotese 2016 (540 Ma → aujourd'hui).
-      Relief : PaleoDEM, Scotese &amp; Wright 2018 ; avant 540 Ma, relief simplifié (hypothèse).
+    <div class="bornes"><span>il y a 540 millions d'années</span><span>aujourd'hui</span></div>
+    <p class="sources">Plaques : PALEOMAP, Scotese 2016. Relief : PaleoDEM, Scotese &amp; Wright 2018.
+      Avant 540 Ma : à venir (mécanique des roches, plaques de Cao et al. 2024).
       Soleil du solstice de juin, sans nuages.</p>
   </footer>
 </main>
@@ -89,15 +89,12 @@
 "use strict";
 (() => {
 const TEST = new URLSearchParams(location.search).has("test");
-const T_TERRE = 4540, PANGEE = [380, 175];           // chaîne hercynienne (≈ 380 Ma) -> fin de la Pangée (≈ 175 Ma)
+const T_TERRE = 4540, T_PUB = 540,             // plage publiée : 540 Ma -> aujourd'hui
+      PANGEE = [380, 175];           // chaîne hercynienne (≈ 380 Ma) -> fin de la Pangée (≈ 175 Ma)
 const OBLIQUITE = 23.44, LON_SOLEIL = -10;            // solstice de juin : Soleil au zénith du tropique du Cancer
 const HMIN = -11000, HMAX = 9000;                      // codage 16 bits de la texture d'état
 const RECITS = [
-  [1000, "Rodinia. Presque toutes les terres serrées en un seul bloc, nues, sans une herbe."],
-  [850,  "Rodinia se fend. Des océans naissent dans ses fêlures."],
-  [700,  "Les morceaux s'éparpillent ; le froid s'en mêle."],
-  [600,  "Au sud, le Gondwana s'assemble pièce à pièce."],
-  [540,  "Les mers montent sur les continents. Ici commencent les reliefs dessinés d'après les roches."],
+  [540,  "Il y a 540 millions d'années. Dans les mers, la vie explose ; sur les terres, rien encore que la pierre nue."],
   [440,  "Laurentia, Baltica, Avalonia : les petits continents du nord se rapprochent."],
   [380,  "Le Gondwana remonte et heurte le nord : la chaîne hercynienne se lève, haute comme l'Himalaya."],
   [330,  "La Pangée. Toutes les terres d'un seul tenant, d'un pôle à l'autre."],
@@ -106,14 +103,14 @@ const RECITS = [
   [100,  "L'Atlantique Sud s'élargit ; l'Inde file vers le nord."],
   [55,   "L'Inde heurte l'Asie. L'Himalaya, puis les Alpes, se soulèvent."],
   [15,   "La Terre prend le visage que nous lui connaissons."],
-  [0.4,  "Aujourd'hui. La part de ce milliard d'années dans l'histoire de la Terre : moins d'un quart."],
+  [0.4,  "Aujourd'hui. Ces 540 millions d'années ne sont qu'un huitième de l'histoire de la Terre."],
 ];
 
 const $ = s => document.querySelector(s);
 const canvas = $("#globe");
 const gl = canvas.getContext("webgl2", { antialias: false, premultipliedAlpha: false,
                                          preserveDrawingBuffer: TEST, alpha: false });
-const etat = { t: 1000, lon: 20, lat: 12, lecture: false, pret: false };
+const etat = { t: T_PUB, lon: 20, lat: 12, lecture: false, pret: false };
 
 // ------------------------------------------------------------------ shaders
 const VS = `#version 300 es
@@ -125,6 +122,12 @@ const float PI = 3.14159265358979;
 vec3 versXYZ(float lat, float lon){ float a = radians(lat), o = radians(lon);
   return vec3(cos(a)*cos(o), cos(a)*sin(o), sin(a)); }
 vec2 latLon(vec3 p){ return vec2(degrees(asin(clamp(p.z, -1., 1.))), degrees(atan(p.y, p.x))); }
+float hash3(vec3 p){ p = fract(p * .1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
+float bruit(vec3 x){   // bruit de valeur 3D lisse, dans [-1, 1]
+  vec3 i = floor(x), f = fract(x); f = f * f * (3. - 2. * f);
+  float n = mix(mix(mix(hash3(i), hash3(i + vec3(1,0,0)), f.x), mix(hash3(i + vec3(0,1,0)), hash3(i + vec3(1,1,0)), f.x), f.y),
+                mix(mix(hash3(i + vec3(0,0,1)), hash3(i + vec3(1,0,1)), f.x), mix(hash3(i + vec3(0,1,1)), hash3(i + vec3(1,1,1)), f.x), f.y), f.z);
+  return n * 2. - 1.; }
 `;
 
 // Passe de transport : chaque texel d'un état clé est un point, déplacé avec sa plaque de tk à t
@@ -326,9 +329,19 @@ void main(){
   vec4 a = texelFetch(A, ij, 0), b = texelFetch(B, ij, 0);
   float ca = step(.5, a.b), cb = step(.5, b.b);
   float h = ca * cb > 0. ? mix(hh(a), hh(b), wB) : ca > 0. ? hh(a) : cb > 0. ? hh(b) : -4000.;
+  o2 = (ca > 0. && (wB < .5 || cb == 0.)) ? texelFetch(A2, ij, 0) : texelFetch(B2, ij, 0);
+  // micro-relief des plaines côtières : les états clés codés sur 8 bits posent des plaines
+  // entières à une seule altitude, qui se noieraient toutes au même instant. Un relief
+  // lisse de ±25 m, attaché au morceau de croûte (sa position actuelle) et identique dans
+  // les deux états, étale la montée des eaux ; il s'éteint au-delà de 80 m (h -> h' monotone).
+  if (ca + cb > 0. && abs(h) < 80.) {
+    float lon = (o2.r * 255. * 256. + o2.g * 255.) / 65535. * 360. - 180.;
+    float lat = (o2.b * 255. * 256. + o2.a * 255.) / 65535. * 180. - 90.;
+    vec3 q = versXYZ(lat, lon);
+    h += 25. * (.65 * bruit(q * 24.) + .35 * bruit(q * 61. + 7.)) * (1. - smoothstep(0., 80., abs(h)));
+  }
   float c = floor(clamp((h - (${HMIN}.)) / (${HMAX}. - (${HMIN}.)), 0., 1.) * 65535. + .5);
-  o = vec4(floor(c / 256.) / 255., mod(c, 256.) / 255., 0., 1.);
-  o2 = (ca > 0. && (wB < .5 || cb == 0.)) ? texelFetch(A2, ij, 0) : texelFetch(B2, ij, 0); }`;
+  o = vec4(floor(c / 256.) / 255., mod(c, 256.) / 255., 0., 1.); }`;
 
 // Passe globe : vue lointaine (quasi orthographique), relief éclairé, mer teintée, atmosphère.
 const FS_GLOBE = COMMUN + `
@@ -740,7 +753,7 @@ function majTextes() {
   for (const [t, s] of RECITS) if (etat.t <= t) txt = s;
   if ($("#recit").textContent !== txt) $("#recit").textContent = txt;
   $("#frise .curseur").style.left = (100 * (T_TERRE - etat.t) / T_TERRE) + "%";
-  $("#temps").value = String(1000 - etat.t);
+  $("#temps").value = String(T_PUB - etat.t);
 }
 function placerFrise() {
   const pg = $("#frise .pangee");
@@ -764,7 +777,7 @@ function interaction() {
   });
   const fin = () => glisse = null;
   canvas.addEventListener("pointerup", fin); canvas.addEventListener("pointercancel", fin);
-  $("#temps").addEventListener("input", e => { if (etat.lecture) lancer(false); etat.t = 1000 - Number(e.target.value); majTextes(); sale = true; });
+  $("#temps").addEventListener("input", e => { if (etat.lecture) lancer(false); etat.t = T_PUB - Number(e.target.value); majTextes(); sale = true; });
   $("#lecture").addEventListener("click", () => lancer(!etat.lecture));
   window.addEventListener("resize", () => sale = true);
 }
@@ -774,12 +787,12 @@ function majBouton() { $("#lecture").textContent = etat.lecture ? "❚❚" : "�
 const VITESSE = 25;            // Ma par seconde : un milliard d'années en 40 s
 // La lecture est réglée sur l'horloge réelle : le curseur avance à vitesse exacte, même si
 // une image tarde ; le globe montre le dernier instant calculé.
-const lect = { t0: 1000, debut: 0 };
+const lect = { t0: T_PUB, debut: 0 };
 function tCourant(now = performance.now()) {
   return etat.lecture ? Math.max(0, lect.t0 - VITESSE * (now - lect.debut) / 1000) : etat.t;
 }
 function lancer(oui) {
-  if (oui) { if (etat.t <= 0) etat.t = 1000; lect.t0 = etat.t; lect.debut = performance.now(); }
+  if (oui) { if (etat.t <= 0) etat.t = T_PUB; lect.t0 = etat.t; lect.debut = performance.now(); }
   else etat.t = tCourant();
   etat.lecture = oui; majBouton();
 }
@@ -910,7 +923,7 @@ async function demarrer() {
 window.terre = {
   pret: false,
   async regler(o) {
-    if (o.t !== undefined) { etat.t = Math.min(1000, Math.max(0, o.t)); lect.t0 = etat.t; lect.debut = performance.now(); }
+    if (o.t !== undefined) { etat.t = Math.min(T_PUB, Math.max(0, o.t)); lect.t0 = etat.t; lect.debut = performance.now(); }
     if (o.lon !== undefined) { etat.lon = o.lon; CAM.auto = false; }
     if (o.lat !== undefined) { etat.lat = o.lat; CAM.auto = false; }
     if (o.auto) CAM.auto = true;
@@ -950,6 +963,7 @@ window.terre = {
   forcerPoids(w) { poidsForce = w; tCalcule = null; },   // diagnostic : un seul état clé porté
   disque() { const g = geometrie(); return { cx: g.w / 2, cy: g.h / 2, r: g.r }; },
   bornesPangee: () => PANGEE.slice(),
+  plage: () => [T_PUB, 0],
 };
 demarrer().catch(e => { console.error(e); $("#attente").textContent = "erreur : " + e.message; });
 })();

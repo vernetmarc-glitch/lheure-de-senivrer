@@ -10,13 +10,17 @@ pas un aperçu. Chaque mesure passe par le même shader que le globe : l'état d
   C3  Pangée : entre 320 et 200 Ma, au moins 80 % du bloc continental (croûte au-dessus de
       -200 m) d'un seul tenant (D-46, 23/11) ; la part des terres émergées d'un seul tenant
       reste affichée, indicateur non bloquant
+  Plage : les contrôles portent sur toute la plage que la page affiche (terre.plage(),
+  [T_PUB, 0]) ; la page ne doit permettre d'atteindre aucun instant hors de cette plage
+  (vérifié en C6). Décision du maître, 23/11 : on publie moins, on ne restreint aucun contrôle.
   C4  pas de fantôme : pendant une dérive, aucun pixel du globe plus sombre que ses deux
       états voisins (tolérance : 0,2 % des pixels du disque, écart de luminance > 0,05) ;
       rejoué 5 fois, aucun échec toléré (demande du maître, 23/11)
   C5  pas de saut : la surface émergée varie continûment (aucun saut > 1 % des terres
       entre deux instants distants de 0,5 Ma), raccord des deux modèles à 540 Ma compris
-  C6  frise : 1 Ga -> 0 occupe 1000/4540 de la frise (à 1 % près) ; avant 1 Ga, segment
-      hachuré « hypothèse » ; bande Pangée + chaîne hercynienne à sa proportion ;
+  C6  frise : la plage publiée T_PUB -> 0 occupe T_PUB/4540 de la frise (à 1 % près) ;
+      avant, segment hachuré « à venir » ou « hypothèse » ; curseur et glissière bornés à
+      T_PUB ; bande Pangée + chaîne hercynienne à sa proportion ;
       curseur à sa place
   C7  Soleil de juin, fixe : point subsolaire à 23,44° N à tout instant ; au terminateur,
       la calotte nord est éclairée et la calotte sud dans la nuit
@@ -183,6 +187,10 @@ async def main():
                 note(c, False, "page non chargée")
             await b.close(); srv.shutdown(); return 1
 
+        TPUB = float((await pg.evaluate("terre.plage ? terre.plage() : [1000, 0]"))[0])
+        print(f"plage publiée : {TPUB:g} Ma -> aujourd'hui", flush=True)
+        dans = lambda t: t <= TPUB + 1e-9
+
         # ---- C2 aujourd'hui
         e0 = await etat(pg, 0.0)
         ref = np.asarray(Image.open(ICI / "controles" / "terres-actuelles-ne50m.png")) > 127
@@ -217,7 +225,7 @@ async def main():
         pires4 = []
         for passe in range(5):
             pire = (0, None)
-            for t in (2.5, 52.5, 252.5, 302.5, 537.5, 541.0, 545.0, 552.0, 575.0, 755.0, 995.0):
+            for t in [x for x in (2.5, 52.5, 252.5, 302.5, 537.5, 541.0, 545.0, 552.0, 575.0, 755.0, 995.0, TPUB - 0.5) if dans(x + 0.5)]:
                 ims = []
                 for tt in (t - 0.5, t, t + 0.5):
                     await pg.evaluate("t => terre.regler({t})", tt)
@@ -233,13 +241,14 @@ async def main():
              ", ".join(f"{p[0]*100:.3f} %" for p in pires4) + f" (pire à {pp4[1]} Ma ; seuil 0,2 %)")
 
         # ---- C5 pas de saut
-        r = await pg.evaluate("""async () => {
+        r = await pg.evaluate("""async T => {
             const out = [];
-            for (const [a, b] of [[0, 12], [245, 257], [528, 562], [985, 1000]]) {
+            for (let [a, b] of [[0, 12], [245, 257], [528, 562], [985, 1000], [T - 12, T]]) {
+              b = Math.min(b, T); if (a >= b) continue;
               const s = [];
               for (let t = a; t <= b + 1e-9; t += 0.5) { await terre.regler({t}); s.push([t, terre.aireTerres()]); }
               out.push(s); }
-            return out; }""")
+            return out; }""", TPUB)
         sauts = [(s[i][0], abs(s[i][1] - s[i-1][1]) / max(s[i][1], s[i-1][1], 1e-9))
                  for s in r for i in range(1, len(s))]
         smax = max(sauts, key=lambda x: x[1])
@@ -247,29 +256,36 @@ async def main():
              f"(vers {smax[0]} Ma ; seuil 1 %)")
 
         # ---- C6 frise
-        fr = await pg.evaluate("""async () => {
+        fr = await pg.evaluate("""async T => {
             const box = s => { const e = document.querySelector(s); if (!e) return null;
                                const r = e.getBoundingClientRect(); return [r.left, r.width]; };
             const res = {frise: box('#frise'), publie: box('#frise .publie'),
-                         hyp: box('#frise .hypothese'), pangee: box('#frise .pangee'),
-                         texteHyp: (document.querySelector('#frise .hypothese') || {}).textContent || '',
-                         hachure: (() => { const e = document.querySelector('#frise .hypothese');
-                                    return e ? getComputedStyle(e).backgroundImage : ''; })(),
+                         avant: [...document.querySelectorAll('#frise .hypothese, #frise .avenir')].map(e => {
+                            const r = e.getBoundingClientRect();
+                            return [r.left, r.width, e.textContent, getComputedStyle(e).backgroundImage]; }),
+                         pangee: box('#frise .pangee'),
+                         glissiere: (() => { const e = document.querySelector('#temps');
+                                     return e ? [Number(e.min), Number(e.max)] : null; })(),
                          curseurs: [], bornes: terre.bornesPangee ? terre.bornesPangee() : null};
-            for (const t of [0, 250, 540, 1000]) { await terre.regler({t});
+            await terre.regler({t: 4540}); res.auDela = terre.etat().t;
+            for (const t of [0, 250, 540, 1000].filter(t => t <= T)) { await terre.regler({t});
               const c = document.querySelector('#frise .curseur'); const r = c ? c.getBoundingClientRect() : null;
               res.curseurs.push([t, r ? r.left + r.width / 2 : null]); }
-            return res; }""")
+            return res; }""", TPUB)
         ok6, det = True, []
-        if not fr["frise"] or not fr["publie"] or not fr["hyp"]:
+        if not fr["frise"] or not fr["publie"] or not fr["avant"]:
             ok6 = False; det.append("frise incomplète")
         else:
             L0, LW = fr["frise"]
-            rp = fr["publie"][1] / LW; ok = abs(rp - 1000 / 4540) <= 0.01 * (1000 / 4540)
-            ok6 &= ok; det.append(f"1 Ga→0 = {rp*100:.2f} % (attendu {1000/4540*100:.2f} %)")
-            rh = fr["hyp"][1] / LW; ok = abs(rh - 3540 / 4540) <= 0.01 * (3540 / 4540)
-            ok6 &= ok and "hypoth" in fr["texteHyp"].lower() and "gradient" in fr["hachure"]
-            det.append(f"hypothèse hachurée = {rh*100:.2f} %")
+            rp = fr["publie"][1] / LW; ok = abs(rp - TPUB / 4540) <= 0.01 * (TPUB / 4540)
+            ok6 &= ok; det.append(f"{TPUB:g} Ma→0 = {rp*100:.2f} % (attendu {TPUB/4540*100:.2f} %)")
+            rh = sum(a[1] for a in fr["avant"]) / LW; att = (4540 - TPUB) / 4540
+            ok = abs(rh - att) <= 0.01 * att and all(
+                ("hypoth" in a[2].lower() or "à venir" in a[2].lower()) and "gradient" in a[3] for a in fr["avant"])
+            ok6 &= ok; det.append(f"avant {TPUB:g} Ma hachuré = {rh*100:.2f} % (attendu {att*100:.2f} %), "
+                                  "« " + " / ".join(a[2].strip() for a in fr["avant"]) + " »")
+            ok = abs(fr["auDela"] - TPUB) < 1e-6 and fr["glissiere"] is not None and fr["glissiere"][1] - fr["glissiere"][0] == TPUB
+            ok6 &= ok; det.append(f"borne : t demandé 4540 -> {fr['auDela']:g} Ma, glissière {fr['glissiere']}")
             if fr["pangee"] and fr["bornes"]:
                 a_, b_ = fr["bornes"]; att = (a_ - b_) / 4540
                 rg = fr["pangee"][1] / LW; ok = abs(rg - att) <= 0.01 * att
@@ -318,12 +334,13 @@ async def main():
         for k in range(1, 11): await pg.mouse.move(x + 8 * k, y)
         await pg.mouse.up()
         v1 = await pg.evaluate("terre.etat()")
-        await pg.evaluate("terre.regler({t: 600})")
+        t9 = min(600.0, TPUB)
+        await pg.evaluate("t => terre.regler({t})", t9)
         await pg.click("#lecture"); await pg.wait_for_timeout(1500)
         v2 = await pg.evaluate("terre.etat()")
         await pg.click("#lecture")
-        ok9 = abs(v1["lon"] - v0["lon"]) > 5 and v2["t"] < 600 - 1
-        note("C9", ok9, f"glisser : lon {v0['lon']:.1f}→{v1['lon']:.1f} ; lecture : 600→{v2['t']:.1f} Ma")
+        ok9 = abs(v1["lon"] - v0["lon"]) > 5 and v2["t"] < t9 - 1
+        note("C9", ok9, f"glisser : lon {v0['lon']:.1f}→{v1['lon']:.1f} ; lecture : {t9:g}→{v2['t']:.1f} Ma")
 
         # ---- C10 signature Blue Marble de juin
         refbm = ICI / "controles" / "blue-marble-juin-2004.png"
@@ -381,7 +398,7 @@ async def main():
 
         # ---- C12 caméra automatique : terres visibles éclairées
         res12, ok12 = [], True
-        for t in (0, 66, 250, 540, 700, 1000):
+        for t in [x for x in (0, 66, 250, 540, 700, 1000, 1600, 2700) if dans(x)]:
             await pg.evaluate("t => terre.regler({t, auto: true})", float(t))
             e = await etat(pg, float(t)); v = await pg.evaluate("terre.etat()"); s0 = await pg.evaluate("terre.soleil()")
             geo = await pg.evaluate("terre.disque()")
