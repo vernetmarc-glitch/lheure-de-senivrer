@@ -73,6 +73,20 @@ Prochaine étape : pas de 100 ans (fichier `ex.100a`, 4 Go, par le workflow) pou
 écoulement plus continu ; ombres portées ; couleurs Sentinel-2 hors glace (en commun avec
 S7) ; même caméra que S7 puis intégration dans `alpes`.
 
+**Passage 3 (23/11)** : 11/11 contrôles verts (`chantiers/glaciers/controles-resultat.txt`),
+planche `chantiers/planches/glaciers-3.png` (quatre instants + gros plans Grésivaudan
+24 000 ans et Combe de Savoie 20 000 ans).
+- Compteur commun `../../commun/compteur.js` (copie locale supprimée) ; C10 conservé, butée
+  lue dans le composant (-146°).
+- Aspect Aletsch : ligne d'équilibre **tirée des données** (bilan ≈ ∂H/∂t + ∇·(0,8 H u_s),
+  `moraines.py`, ≈ 1 625 m au maximum, ≈ 2 900 m aujourd'hui) ; névé blanc au-dessus, glace
+  nue bleutée striée de foliation et de bandes de poussière au-dessous, crevasses, moraines
+  plus sombres. Contrôle C11 écrit d'abord (échec : contraste 0,027, névé −0,019, moraines
+  absentes), puis vert (contraste 0,050, névé +0,14, moraines −0,15).
+- Pas de 100 ans (`ex.100a`) **non fait** : ×10 en poids (≈ 27 Mo de glace) au-delà du budget
+  N27 (≤ 10 Mo avant la première image) ; il faudrait un chargement progressif par tranches
+  de 10 000 ans. Prochaine étape avec les ombres portées et la caméra commune avec S7.
+
 ## Questions au maître
 (aucune)
 

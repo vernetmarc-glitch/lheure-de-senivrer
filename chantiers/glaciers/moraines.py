@@ -159,6 +159,35 @@ def moraines(thk, u, v):
     return out
 
 
+def lignes_equilibre(thk, u, v, ages, socle):
+    """Altitude de la ligne d'équilibre (m) à chaque pas, tirée des données publiées par la
+    conservation de la masse : bilan de surface ≈ ∂H/∂t + ∇·(0,8 H u_surface) (vitesse
+    moyennée sur l'épaisseur ≈ 0,8 × vitesse de surface). La ligne d'équilibre est l'altitude
+    qui sépare au mieux les mailles en accumulation (au-dessus) et en ablation (au-dessous).
+    Médiane glissante sur 5 pas ; repli sur les pas voisins quand la glace est trop rare."""
+    nt = thk.shape[0]
+    surf = socle[None] + thk
+    ela = np.full(nt, np.nan)
+    zs = np.arange(300, 4000, 25)
+    for k in range(nt):
+        a, b = max(0, k - 1), min(nt - 1, k + 1)
+        if a == b:
+            continue
+        dhdt = (thk[b] - thk[a]) / max(1.0, float(ages[a] - ages[b]))
+        div = np.gradient(0.8 * thk[k] * u[k], 1000.0, axis=1) + np.gradient(0.8 * thk[k] * v[k], 1000.0, axis=0)
+        smb = dhdt + div
+        ice = (thk[k] >= 1) & (thk[a] >= 1) & (thk[b] >= 1)
+        if ice.sum() < 200:
+            continue
+        z, acc = surf[k][ice], smb[ice] > 0
+        score = [((z >= e) == acc).mean() for e in zs]
+        ela[k] = zs[int(np.argmax(score))]
+    ok = np.isfinite(ela)
+    ela = np.interp(np.arange(nt), np.flatnonzero(ok), ela[ok])
+    lisse = np.array([np.median(ela[max(0, k - 2):k + 3]) for k in range(nt)])
+    return lisse
+
+
 def main():
     ici = os.path.dirname(os.path.abspath(__file__))
     don = os.path.join(ici, '..', '..', 'app/public/labo/glaciers/donnees')
@@ -175,6 +204,15 @@ def main():
         sortie[k] = med * 255
         if k % 10 == 0:
             print(meta['ages'][k], 'ans : moraines médianes', med.sum() * 0.5, 'km', flush=True)
+    rel = np.frombuffer(gzip.open(os.path.join(don, 'relief.bin.gz')).read(), '<i2').astype('f8')
+    rel = rel.reshape(meta['relief']['ny'], meta['relief']['nx'])
+    fr = int(round(meta['dx'] / meta['relief']['dx']))
+    socle = rel.reshape(ny, fr, nx, fr).mean(axis=(1, 3))
+    ela = lignes_equilibre(thk, u, v, np.array(meta['ages']), socle)
+    meta['ligne_equilibre_m'] = [int(round(e)) for e in ela]
+    meta['ligne_equilibre_methode'] = ('chantiers/glaciers/moraines.py : bilan de surface ≈ ∂H/∂t + ∇·(0,8 H u_s), '
+                                       'altitude séparant au mieux accumulation et ablation, médiane sur 5 pas')
+    print('ligne d’équilibre :', {meta['ages'][k]: meta['ligne_equilibre_m'][k] for k in range(0, nt, 12)})
     with gzip.open(os.path.join(don, 'moraines.bin.gz'), 'wb', compresslevel=9) as f:
         f.write(sortie.tobytes())
     meta['moraines'] = {'fichier': 'moraines.bin.gz', 'nx': nx * R, 'ny': ny * R, 'dx': meta['dx'] / R,
