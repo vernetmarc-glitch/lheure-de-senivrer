@@ -1,26 +1,9 @@
 == HYDE : DANS (doi 10.17026/dans-25g-gez3)
-   5 fichiers
+   0 fichiers
 == HYDE : recherche de la version 3.3 sur DANS
-[200] https://archaeology.datastations.nl recherche (14997 car.)
-    doi:10.17026/DANS-25G-GEZ3 | Anthropogenic land-use estimates for the Holocene; HYDE 3.2 | 2025-06-02T14:41:52Z
-    doi:10.17026/DANS-ZNK-CFY3 | A historical land use data set for the Holocene; HYDE 3.2 (replaced) | 2016-05-10T22:00:00Z
-    doi:10.17026/DANS-2CT-FMUD | A historical land use data set for the Holocene; HYDE 3.2 (version 2, replaced) | 2025-06-03T11:19:05Z
-    doi:10.17026/DANS-ZKV-M27K | Bureau voor Archeologie Rapport 1054. Hyde Park blokken 20 en 21, Saturnusstraat en Planetenweg, Hoofddorp, gemeente Haarlemmermeer: een bureauonderzoek | 2021-12-20T23:00:00Z
+[503] https://archaeology.datastations.nl recherche (0 car.)
+    Expecting value: line 1 column 1 (char 0)
 [200] https://ssh.datastations.nl recherche (121 car.)
-HYDE 3.2.1 baseline : https://archaeology.datastations.nl/api/access/datafile/5490328 5339653974
-   2738 membres ; exemples : ['baseline/asc/', 'baseline/asc/0AD_lu/', 'baseline/asc/0AD_lu/conv_rangeland0AD.asc', 'baseline/asc/0AD_lu/cropland0AD.asc', 'baseline/asc/0AD_lu/grazing0AD.asc', 'baseline/asc/0AD_lu/ir_norice0AD.asc', 'baseline/asc/0AD_lu/ir_rice0AD.asc', 'baseline/asc/0AD_lu/pasture0AD.asc', 'baseline/asc/0AD_lu/rangeland0AD.asc', 'baseline/asc/0AD_lu/rf_norice0AD.asc', 'baseline/asc/0AD_lu/rf_rice0AD.asc', 'baseline/asc/0AD_lu/tot_irri0AD.asc']
-   HYDE échec : That compression method is not supported lcache/Python/3.11.18/x64/lib/python3.11/zipfile.py", line 1666, in open
-    return ZipExtFile(zef_file, mode, zinfo, pwd, True)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/zipfile.py", line 866, in __init__
-    self._decompressor = _get_decompressor(self._compress_type)
-                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/zipfile.py", line 765, in _get_decompressor
-    _check_compression(compress_type)
-  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/zipfile.py", line 745, in _check_compression
-    raise NotImplementedError("That compression method is not supported")
-NotImplementedError: That compression method is not supported
-
 == habitats (Timmermann et al. 2022) : THREDDS
 [200] catalogue (1758 car.)
 <?xml version="1.0" encoding="UTF-8"?>
@@ -137,18 +120,3 @@ NotImplementedError: That compression method is not supported
     </dataset>
     <dataset name="hominin_habitats_trev.nc" ID="hominin-habitats/hominin_habitats_trev.nc" urlPath="hominin-habitats/hom
    chemins : ['latest.xml', 'hominin-habitats/hominin_habitats_trev2.nc', 'hominin-habitats/hominin_habitats_trev.nc', 'hominin-habitats/hominin-habitats.nc', 'hominin-habitats/homin_test10.nc']
-   OPeNDAP https://climatedata.ibs.re.kr:8443/thredds/dodsC/latest.xml [Errno -72] NetCDF: Malformed or inaccessible DAP2 DDS or DAP4 DMR response: 'https://climatedata.ibs.re.kr:8443/thredds/dodsC/latest.xml'
-   ouvert https://climatedata.ibs.re.kr:8443/thredds/dodsC/hominin-habitats/hominin_habitats_trev2.nc
-      time ('time',) (2001,) Time variable
-      lon ('lon',) (360,) longitude
-      lat ('lat',) (180,) latitude
-      erectus ('time', 'lat', 'lon') (2001, 180, 360) Mahalanobis ERECTUS Niche
-      ergahabi ('time', 'lat', 'lon') (2001, 180, 360) Mahalanobis ERGAHABI Niche
-      neander ('time', 'lat', 'lon') (2001, 180, 360) Mahalanobis NEANDER Niche
-      heidelberg ('time', 'lat', 'lon') (2001, 180, 360) Mahalanobis HEIDELBERG Niche
-      sapiens ('time', 'lat', 'lon') (2001, 180, 360) Mahalanobis Sapiens Niche
-     -> erectus (129, 180, 360)
-     -> ergahabi (129, 180, 360)
-     -> neander (129, 180, 360)
-     -> heidelberg (129, 180, 360)
-     -> sapiens (129, 180, 360)
