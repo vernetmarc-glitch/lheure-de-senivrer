@@ -49,7 +49,10 @@ NV, NE = 64, 128                          # nside : vitesses, érosion
 LISSAGE = np.radians(5.0)                 # largeur à mi-hauteur du lissage des vitesses
 K_SPL, M_SPL = float(sys.argv[4]) if len(sys.argv) > 4 else 3.0e-7, 0.4
 KAPPA = 1500.0                            # km²/Ma, étalement de la croûte épaisse
-H_MAX = 80.0
+H_MAX, H_MIN = 75.0, 20.0                 # km : plateau du Tibet ; croûte amincie des rifts
+V_MAX = 200.0                             # km/Ma (20 cm/an)
+COUPLAGE = 0.15
+AIRE_V = 4 * np.pi * R_KM ** 2 / hp.nside2npix(NV)
 
 
 def log(*a): print(f"[méca {time.time()-T0:7.1f} s]", *a, flush=True)
@@ -175,7 +178,9 @@ def main():
     g = Grille(1440); N = g.H * g.W
     cao = np.load(INTER_L / "cao.npz"); topo = np.load(INTER_L / "topo.npz")
     ids = cao["ids"]; id2row = {int(p): r for r, p in enumerate(ids)}
-    QC = lisser_sauts(cao["q"].astype(np.float64), ids)                        # [rangée, Ma, 4]
+    # sauts de plus de 4°/Ma (≈ 45 cm/an, deux fois la plaque la plus rapide connue) : raccords
+    # de fichiers de rotation (1000 Ma) ou de plaques, étalés en rotation continue
+    QC = lisser_sauts(cao["q"].astype(np.float64), ids, seuil=4.0, demi=4)       # [rangée, Ma, 4]
     st, st_t = cao["statiques"].ravel().astype(np.int64), np.vstack([[0, 1e4, 0], cao["statiques_table"]])
     co = cao["continents"].ravel().astype(np.int64)
     co_t = np.vstack([np.zeros((1, 3)), cao["continents_table"].reshape(-1, 3)])
@@ -232,12 +237,21 @@ def main():
         x0 = qrot(qconj(QC[rv, t]), PV)
         v = (qrot(QC[rv, t - 1], x0) - PV) * R_KM / 1.0
         v[rv == 0] = 0
-        vs = np.stack([hp.smoothing(v[:, c], fwhm=LISSAGE, iter=1) for c in range(3)], -1)
+        nv = np.linalg.norm(v, axis=1, keepdims=True); v *= np.minimum(1, V_MAX / np.maximum(nv, 1e-9))
+        # couche mince : la croûte continentale, légère, ne plonge pas ; c'est elle qui se
+        # raccourcit. Le champ lissé est une moyenne pondérée par la croûte présente (poids 1)
+        # et l'océan (poids COUPLAGE : couplage d'une marge active, type Andes) : deux continents
+        # qui se rapprochent convergent ; une plaque océanique qui plonge raccourcit peu sa voisine.
+        pxv = hp.vec2pix(NV, pos[:, 0], pos[:, 1], pos[:, 2])
+        fc = np.minimum(np.bincount(pxv, weights=w_aire[a], minlength=len(PV)) / AIRE_V, 1.0)
+        poids = fc + COUPLAGE * (1 - fc)
+        den = hp.smoothing(poids, fwhm=LISSAGE, iter=1)
+        vs = np.stack([hp.smoothing(poids * v[:, c], fwhm=LISSAGE, iter=1) for c in range(3)], -1) / np.maximum(den, 1e-3)[:, None]
         vs -= (vs * PV).sum(-1, keepdims=True) * PV
         div = divergence(vs, voisV, e1, e2, Mp)
         th, ph = hp.vec2ang(pos)
         dv = hp.get_interp_val(div, th, ph)
-        Hc[a] *= np.exp(np.clip(-dv * DT, -0.5, 0.5))
+        Hc[a] = np.clip(Hc[a] * np.exp(np.clip(-dv * DT, -0.3, 0.3)), H_MIN, H_MAX)
         # érosion et étalement sur la grille HEALPix fine
         px = hp.ang2pix(NE, th, ph)
         sa = np.bincount(px, weights=w_aire[a], minlength=len(PE))
@@ -247,7 +261,7 @@ def main():
         e = np.where(cont, ISO * (Hs - H0), -4000.0)
         fixe = ~cont | (e <= 0)
         delta = spl(e, fixe, voisE, dE * 1e3, aireE, K_SPL, M_SPL, DT * 1e6)
-        Hn = np.minimum(Hs - delta / 1e3, H_MAX)
+        Hn = np.clip(Hs - delta / 1e3, H_MIN, H_MAX)
         f = np.where(cont & (Hp > 0), Hn / np.maximum(Hp, 1e-6), 1.0)
         Hc[a] *= f[px]
         if (t - T_BAS) % PAS_CLE == 0:

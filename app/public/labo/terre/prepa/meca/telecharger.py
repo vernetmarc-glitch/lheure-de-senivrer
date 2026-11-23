@@ -66,6 +66,13 @@ if not (pb / "diversite-genres-marins.txt").exists():
         log("PBDB : diversité téléchargée")
     else:
         log("PBDB : injoignable")
+# l'Édiacarien n'a pas d'étages : compté d'un bloc (période)
+url2 = ("https://paleobiodb.org/data1.2/occs/diversity.txt?base_name=Metazoa&count=genera"
+        "&time_reso=period&envtype=marine&interval=Ediacaran")
+if not (pb / "diversite-ediacarien.txt").exists():
+    get(url2, pb / "diversite-ediacarien.txt")
+if (pb / "diversite-ediacarien.txt").exists():
+    (ICI / "pbdb-diversite-ediacarien.txt").write_bytes((pb / "diversite-ediacarien.txt").read_bytes())
 if (pb / "diversite-genres-marins.txt").exists():
     (ICI / "pbdb-diversite-genres-marins.txt").write_bytes((pb / "diversite-genres-marins.txt").read_bytes())
 

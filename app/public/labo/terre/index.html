@@ -30,6 +30,15 @@
        border:1px solid rgba(232,230,223,.22); border-right:none; font-size:10px; letter-spacing:.12em;
        color:var(--doux); display:flex; align-items:center; justify-content:center; text-transform:uppercase; }
   #frise .publie { flex:0 0 calc(100% * 540 / 4540); height:100%; background:rgba(207,230,255,.55); }
+  .reunions { position:relative; height:24px; font-size:9.5px; color:#cfd2d8; letter-spacing:.02em; }
+  .reunions span { position:absolute; bottom:0; transform:translateX(-50%); white-space:nowrap; line-height:1;
+       padding-bottom:4px; border-bottom:1px solid rgba(232,230,223,.0); }
+  .reunions span::after { content:""; position:absolute; left:50%; bottom:-2px; width:1px; height:5px; background:rgba(232,230,223,.6); }
+  .reunions span.haut { bottom:11px; }
+  .reunions span.haut::after { height:16px; bottom:-13px; }
+  .reunions span[data-statut="hypothèse"], .reunions span[data-statut="débattue"] { color:var(--doux); font-style:italic; }
+  #ruban-vie { display:block; width:100%; height:16px; margin-top:2px; overflow:visible; }
+  .legende-vie { font-size:9.5px; color:#7fc8b0; margin-top:1px; height:12px; position:relative; }
   #frise .pangee { position:absolute; top:-5px; height:26px; border-left:1px solid #e0a46b;
        border-right:1px solid #e0a46b; background:rgba(224,164,107,.28); pointer-events:none; }
   #frise .curseur { position:absolute; top:-8px; width:2px; height:32px; margin-left:-1px;
@@ -62,6 +71,15 @@
   </header>
   <div id="scene"><canvas id="globe" aria-label="Globe terrestre, à faire tourner du doigt"></canvas></div>
   <footer>
+    <div class="reunions" aria-label="Les grandes réunions des continents">
+      <span data-reunion="Vaalbara" data-t="3300" data-statut="hypothèse" title="Vaalbara, ≈ 3,6–2,8 Ga : hypothèse" style="left:calc(100% * 1240 / 4540)">Vaalbara</span>
+      <span data-reunion="Ur" data-t="3000" data-statut="hypothèse" class="haut" title="Ur, ≈ 3 Ga : hypothèse" style="left:calc(100% * 1540 / 4540)">Ur</span>
+      <span data-reunion="Kenorland" data-t="2500" data-statut="hypothèse" title="Kenorland, ≈ 2,7–2,1 Ga : hypothèse" style="left:calc(100% * 2040 / 4540)">Kenorland</span>
+      <span data-reunion="Nuna" data-t="1600" data-statut="modèle" class="haut" title="Nuna (Columbia), ≈ 1,6 Ga" style="left:calc(100% * 2940 / 4540)">Nuna</span>
+      <span data-reunion="Rodinia" data-t="900" data-statut="modèle" title="Rodinia, ≈ 0,9 Ga" style="left:calc(100% * 3640 / 4540)">Rodinia</span>
+      <span data-reunion="Pannotia" data-t="600" data-statut="débattue" class="haut" title="Pannotia, ≈ 600 Ma : existence débattue" style="left:calc(100% * 3940 / 4540)">Pannotia ?</span>
+      <span data-reunion="Pangée" data-t="300" data-statut="modèle" title="Pangée, ≈ 320–175 Ma" style="left:calc(100% * 4240 / 4540)">Pangée</span>
+    </div>
     <div class="au-dessus"><span id="rep-pangee"></span></div>
     <div id="frise" aria-label="Les 4,54 milliards d'années de la Terre">
       <div class="avenir" title="4 milliards d'années encore à reconstituer">à venir</div>
@@ -69,17 +87,20 @@
       <div class="pangee"></div>
       <div class="curseur"></div>
     </div>
+    <svg id="ruban-vie" viewBox="0 0 1000 16" preserveAspectRatio="none" role="img"
+         title="Le ruban de la vie : nombre de genres d'animaux marins (Paleobiology Database)"><path></path></svg>
+    <div class="legende-vie"><span id="leg-vie"></span></div>
     <div class="reperes">
       <span style="left:0">4,54 milliards d'années<br>naissance de la Terre</span>
-      <span style="left:calc(100% * 4000 / 4540);transform:translateX(-50%)">540 Ma</span>
+      <span id="rep-pub" style="left:calc(100% * 4000 / 4540);transform:translateX(-50%)">540 Ma</span>
       <span style="right:0;text-align:right">aujourd'hui</span>
     </div>
     <div class="commandes">
       <button id="lecture" aria-label="Lecture">▶</button>
       <input id="temps" type="range" min="0" max="540" step="0.5" value="540" aria-label="Temps">
     </div>
-    <div class="bornes"><span>il y a 540 millions d'années</span><span>aujourd'hui</span></div>
-    <p class="sources">Plaques : PALEOMAP, Scotese 2016. Relief : PaleoDEM, Scotese &amp; Wright 2018.
+    <div class="bornes"><span id="borne-pub">il y a 540 millions d'années</span><span>aujourd'hui</span></div>
+    <p class="sources" id="sources">Plaques : PALEOMAP, Scotese 2016. Relief : PaleoDEM, Scotese &amp; Wright 2018.
       Avant 540 Ma : à venir (mécanique des roches, plaques de Cao et al. 2024).
       Soleil du solstice de juin, sans nuages.</p>
   </footer>
@@ -89,11 +110,19 @@
 "use strict";
 (() => {
 const TEST = new URLSearchParams(location.search).has("test");
-const T_TERRE = 4540, T_PUB = 540,             // plage publiée : 540 Ma -> aujourd'hui
+let SEGM = "M", T_PUB = 540;
+const T_TERRE = 4540,             // plage publiée : 540 Ma -> aujourd'hui
       PANGEE = [380, 175];           // chaîne hercynienne (≈ 380 Ma) -> fin de la Pangée (≈ 175 Ma)
 const OBLIQUITE = 23.44, LON_SOLEIL = -10;            // solstice de juin : Soleil au zénith du tropique du Cancer
 const HMIN = -11000, HMAX = 9000;                      // codage 16 bits de la texture d'état
 const RECITS = [
+  [1800, "Il y a 1,8 milliard d'années. Les continents se cherchent ; à leurs coutures, des montagnes."],
+  [1600, "Nuna, le premier grand continent que l'on sache reconstituer."],
+  [1350, "Nuna se défait lentement ; ses morceaux dérivent des centaines de millions d'années."],
+  [1100, "Les morceaux se referment : la chaîne de Grenville se lève, Rodinia naît."],
+  [900,  "Rodinia. Presque toutes les terres serrées en un seul bloc, nues, sans une herbe."],
+  [760,  "Rodinia se fend. Des océans naissent dans ses fêlures."],
+  [640,  "Le froid s'en mêle ; au sud, le Gondwana s'assemble pièce à pièce."],
   [540,  "Il y a 540 millions d'années. Dans les mers, la vie explose ; sur les terres, rien encore que la pierre nue."],
   [440,  "Laurentia, Baltica, Avalonia : les petits continents du nord se rapprochent."],
   [380,  "Le Gondwana remonte et heurte le nord : la chaîne hercynienne se lève, haute comme l'Himalaya."],
@@ -188,10 +217,12 @@ const VS_POINTS_M = COMMUN + `
 uniform sampler2D m1, m2; uniform sampler2D rot;
 uniform int rotCols, rotLarg; uniform float seg0, t; uniform vec2 taille; uniform float tailleMax, pasDebut;
 uniform vec2 codeT, codeM, eff;
+uniform sampler2D mecaA, mecaB; uniform int chA, chB; uniform float wMeca, avecMeca, rotPas;
 flat out float vh; flat out vec2 vpd; flat out vec3 vc; flat out float vfond; flat out float vw;
+float canal(vec4 c, int k){ return k == 0 ? c.r : k == 1 ? c.g : c.b; }
 vec4 Qf(int row, int c){ int k = row * rotCols + c; return texelFetch(rot, ivec2(k % rotLarg, k / rotLarg), 0); }
 vec4 Q(int row, float tt){
-  float u = clamp(tt - seg0, 0., float(rotCols - 1)); int c0 = int(floor(u)); float f = u - float(c0);
+  float u = clamp((tt - seg0) / rotPas, 0., float(rotCols - 1)); int c0 = int(floor(u)); float f = u - float(c0);
   int c1 = min(c0 + 1, rotCols - 1);
   vec4 a = Qf(row, c0), b = Qf(row, c1); if (dot(a, b) < 0.) b = -b; return normalize(mix(a, b, f)); }
 vec3 qr(vec4 q, vec3 v){ vec3 s = 2. * cross(q.xyz, v); return v + q.w * s + cross(q.xyz, s); }
@@ -207,7 +238,11 @@ void main(){
   // la croûte de Merdith apparaît (en remontant le temps : disparaît) à sa date de début ;
   // on l'étale sur ± 20 Ma (une croûte se forme en dizaines de Ma) au lieu d'un saut
   float vie = croute ? smoothstep(0., 1., clamp((a2.b * 255. * pasDebut - t) / 40. + .5, 0., 1.)) : 0.;
-  float hgen = dec(a1.g), h0 = dec(a1.r);
+  // relief : celui de la mécanique des roches (S3b), interpolé entre deux instants clés pour
+  // CE morceau de croûte ; à défaut, le relief générique de l'ancien segment
+  float hgen = avecMeca > .5 ? mix(dec(canal(texelFetch(mecaA, ivec2(i, j), 0), chA)),
+                                   dec(canal(texelFetch(mecaB, ivec2(i, j), 0), chB)), wMeca) : dec(a1.g);
+  float h0 = dec(a1.r);
   // la croûte absente du PaleoDEM de 540 Ma (type b) n'y est pas émergée : elle monte avec a
   // croûte qui n'existe pas encore : s'abaisse en plateau immergé (-200 m) puis s'efface par
   // son poids ; viser -3000 m faisait plonger d'un coup les plaines basses sous la mer
@@ -270,16 +305,17 @@ void main(){
   o2 = vec4(c16((l.y + 180.) / 360.), c16((l.x + 90.) / 180.)); }`;
 // cumul pondéré (segment M) : Σ w·h et Σ w, noyau au plus proche voisin adouci
 const FS_CUMUL = COMMUN + `
-flat in float vh; flat in vec3 vc; flat in float vw; out vec4 o;
+flat in float vh; flat in vec3 vc; flat in float vw; flat in vec2 vpd;
+layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
 void main(){
   vec2 d = gl_FragCoord.xy - vc.xy;
   if (abs(d.y) > 1.5 || abs(d.x) > .5 * vc.z + 1.) discard;
   d.x /= vc.z;
   float k = vw * max(0., 1. - length(d) / 1.25);
   if (k <= 1e-9) discard;
-  o = vec4(k * vh / 10000., k, 0., 0.); }`;
+  o = vec4(k * vh / 10000., k, 0., 0.); o2 = vec4(k * versXYZ(vpd.x, vpd.y), 0.); }`;
 const FS_RESOLU_M = COMMUN + `
-uniform sampler2D cumul, fond, cumulP540; uniform vec2 taille, codeT, codeM, eff; uniform float t, wP;
+uniform sampler2D cumul, cumul2, fond, cumulP540; uniform vec2 taille, codeT, codeM, eff; uniform float t, wP;
 layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
 float dec(float r){ float c = floor(r * 255. + .5);
   return c >= 128. ? 10. + codeT.x * pow((c - 128.) / 127., 2.)
@@ -298,7 +334,9 @@ void main(){
   if (wP > 0. && p.g > 1e-5) h = max(h, p.r / p.g * 10000. - 1500. * (1. - wP) * (1. - wP));   // réunion qui s'enfonce
   float lat = -90. + (float(ij.y) + .5) * 180. / taille.y, lon = -180. + (float(ij.x) + .5) * 360. / taille.x;
   o = vec4(c16((h - (${HMIN}.)) / (${HMAX}. - (${HMIN}.))), 0., 1.);
-  o2 = vec4(c16((lon + 180.) / 360.), c16((lat + 90.) / 180.)); }`;
+  vec3 q = texelFetch(cumul2, ij, 0).xyz;
+  vec2 l = (c.g > 1e-5 && dot(q, q) > 1e-12) ? latLon(normalize(q)) : vec2(lat, lon);
+  o2 = vec4(c16((l.y + 180.) / 360.), c16((l.x + 90.) / 180.)); }`;
 // fond immobile du segment M : les océans du PaleoDEM de 540 Ma, qui s'approfondissent
 const FS_FOND_M = COMMUN + `
 uniform sampler2D fond; uniform vec2 taille, codeT, codeM, eff; uniform float t;
@@ -345,7 +383,7 @@ void main(){
 
 // Passe globe : vue lointaine (quasi orthographique), relief éclairé, mer teintée, atmosphère.
 const FS_GLOBE = COMMUN + `
-uniform sampler2D etat, actuel, surface; uniform float vegetation; uniform vec2 taille, ecran; uniform float rayon; uniform mat3 vue; uniform vec3 soleil;
+uniform sampler2D etat, actuel, surface; uniform float vegetation, photoPoids; uniform vec2 taille, ecran; uniform float rayon; uniform mat3 vue; uniform vec3 soleil;
 in vec2 uv; out vec4 o;
 float h(vec2 ll){   // ll = (lat, lon) degrés -> élévation (m), bilinéaire
   float x = (ll.y + 180.) / 360. * taille.x - .5, y = (ll.x + 90.) / 180. * taille.y - .5;
@@ -371,6 +409,18 @@ vec3 terre(float z, float pente){
   c = mix(c, lin(vec3(.55,.50,.45)), smoothstep(600., 2200., z));
   c = mix(c, lin(vec3(.70,.67,.63)), smoothstep(2500., 5000., z));
   return mix(c, lin(vec3(.45,.42,.40)), smoothstep(.04, .18, pente)); }
+// couverture végétale du passé (hypothèse climatique simple) : forêts dans la ceinture
+// équatoriale humide et aux latitudes tempérées, steppes et déserts sous les anticyclones
+// subtropicaux (circulation de Hadley) ; la photographie d'aujourd'hui prend le relais
+// au Cénozoïque.
+vec3 couvert(float lat, float z){
+  float al = abs(lat);
+  float humide = clamp(exp(-pow(lat / 13., 2.)) + .85 * exp(-pow((al - 52.) / 13., 2.)), 0., 1.);
+  humide *= 1. - smoothstep(66., 80., al);                       // toundra, glace
+  vec3 foret = lin(vec3(.16,.26,.11)), steppe = lin(vec3(.52,.47,.32));
+  vec3 c = mix(steppe, foret, humide);
+  return mix(c, lin(vec3(.50,.47,.42)), smoothstep(1800., 3500., z));   // hautes terres dénudées
+}
 vec3 mer(float z){
   vec3 c = mix(lin(vec3(.16,.44,.52)), lin(vec3(.07,.24,.40)), smoothstep(-30., -260., z));
   c = mix(c, lin(vec3(.03,.11,.24)), smoothstep(-260., -2500., z));
@@ -396,10 +446,12 @@ void main(){
     float pente = length(vec2(dze, dzn));
     float mu = dot(P, S), dif = max(dot(N, S), 0.);
     float jour = smoothstep(-.10, .12, mu);
-    vec3 alb, ph = vegetation > .002 ? photo(ll) : vec3(0.);
-    if (z > 0.) { alb = mix(terre(z, pente), ph, vegetation); col = alb * (dif * 1.1 * jour + .015); }
+    vec3 alb, ph = photoPoids > .002 ? photo(ll) : vec3(0.);
+    if (z > 0.) {
+      alb = mix(terre(z, pente), couvert(ll.x, z), vegetation);
+      alb = mix(alb, ph, photoPoids); col = alb * (dif * 1.1 * jour + .015); }
     else {
-      alb = mix(mer(z), ph, vegetation);
+      alb = mix(mer(z), ph, photoPoids);
       vec3 V = vue * vec3(0., 0., 1.);
       vec3 Hh = normalize(S + V);
       float spec = pow(max(dot(P, Hh), 0.), 180.) * .35 * jour;
@@ -438,7 +490,15 @@ let horloge = 0;
 
 // La surface d'aujourd'hui (Blue Marble, juin) suit ses plaques en remontant le temps et
 // s'efface vers les couleurs minérales (e-folding 10 Ma) : la vie du passé viendra (S4, S5).
-const VEGETATION_MA = 10;
+// Couleur de la vie sur les terres (N37) : roche nue jusqu'à ≈ 470 Ma (premières plantes
+// terrestres, cryptospores de l'Ordovicien moyen) ; mousses à peine visibles jusqu'à 420 Ma ;
+// verdissement net de 420 à 300 Ma (plantes vasculaires, premières forêts au Dévonien, forêts
+// houillères du Carbonifère) ; la couverture actuelle est atteinte peu à peu ensuite.
+function vegetation(t) {
+  const s = (a, b, x) => { const u = Math.min(Math.max((x - a) / (b - a), 0), 1); return u * u * (3 - 2 * u); };
+  if (t >= 470) return 0;
+  return 0.06 * s(470, 420, t) + 0.76 * s(420, 300, t) + 0.18 * s(300, 0, t);
+}
 async function chargerSurface() {
   const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([90, 85, 70, 255]));
@@ -463,7 +523,39 @@ async function texRot(seg) {
   const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, larg, haut, 0, gl.RGBA, gl.FLOAT, f);
   for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
-  rotTex[seg] = { tex, cols: s.cols, larg, t0: s.t0 };
+  rotTex[seg] = { tex, cols: s.cols, larg, t0: s.t0, pas: s.pasRot || 1 };
+}
+// relief de la mécanique des roches : 3 instants clés par image (R, G, B), chargés à la demande
+const mecaTex = {};
+function texMeca(k) {
+  const S = man.segments[SEGM];
+  if (!mecaTex[k]) mecaTex[k] = (async () => {
+    const bm = await createImageBitmap(await (await fetch("donnees/" + S.meca.fichiers[k])).blob(),
+                                       { premultiplyAlpha: "none", colorSpaceConversion: "none" });
+    const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bm); bm.close && bm.close();
+    for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+    return tex; })();
+  return mecaTex[k];
+}
+const mecaPret = {};
+function clesMeca(t, S) {
+  const f = Math.min(Math.max((t - S.meca.t0) / S.meca.pas, 0), S.meca.n - 1);
+  const k0 = Math.min(Math.floor(f), S.meca.n - 1), k1 = Math.min(k0 + 1, S.meca.n - 1);
+  return { f, k0, k1, a: Math.floor(k0 / 3), b: Math.floor(k1 / 3) };
+}
+async function mecaPour(t) {      // à attendre AVANT toute commande GL du calcul d'état
+  const S = man.segments[SEGM]; if (!S.meca) return;
+  const c = clesMeca(t, S);
+  for (const k of [c.a, c.b]) if (!mecaPret[k]) mecaPret[k] = await texMeca(k);
+}
+function uniformsMeca(u, t, S) {
+  const R = rotTex[SEGM]; gl.uniform1f(u.rotPas, R.pas);
+  if (!S.meca) { gl.uniform1f(u.avecMeca, 0); return; }
+  const { f, k0, k1, a, b } = clesMeca(t, S); const ta = mecaPret[a], tb = mecaPret[b];
+  gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, ta); gl.uniform1i(u.mecaA, 5);
+  gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, tb); gl.uniform1i(u.mecaB, 6);
+  gl.uniform1i(u.chA, k0 % 3); gl.uniform1i(u.chB, k1 % 3); gl.uniform1f(u.wMeca, f - k0); gl.uniform1f(u.avecMeca, 1);
 }
 
 async function blob(c) {
@@ -504,8 +596,8 @@ function encadrer(t) {     // états clés du segment P qui encadrent t (t ≤ 5
 let enCours = null, tCalcule = null, poidsForce = null;
 async function calculerEtatM(t) {
   if (!cumul) return calculerEtatMProfondeur(t);
-  const fond = await texture(cles.P[cles.P.length - 1]);          // PaleoDEM de 540 Ma
-  const R = rotTex.M, S = man.segments.M;
+  const fond = await texture(cles.P[cles.P.length - 1]); await mecaPour(t);          // PaleoDEM de 540 Ma
+  const R = rotTex[SEGM], S = man.segments[SEGM];
   gl.bindFramebuffer(gl.FRAMEBUFFER, cumul.fb); gl.viewport(0, 0, man.W, man.H);
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
@@ -517,6 +609,7 @@ async function calculerEtatM(t) {
   gl.uniform1i(u.rotCols, R.cols); gl.uniform1i(u.rotLarg, R.larg); gl.uniform1f(u.seg0, R.t0);
   gl.uniform1f(u.t, t); gl.uniform2f(u.taille, man.W, man.H); gl.uniform1f(u.tailleMax, pointMax);
   gl.uniform1f(u.pasDebut, S.pasDebut); gl.uniform2f(u.eff, S.effacement[0], S.effacement[1]);
+  uniformsMeca(u, t, S);
   gl.uniform2f(u.codeT, man.codage.terre[0], 0); gl.uniform2f(u.codeM, man.codage.mer[0], man.codage.mer[1]);
   gl.drawArrays(gl.POINTS, 0, man.W * man.H);
   const wP = 0;   // (raccord par réunion : désactivé, le noyau étroit suffit)
@@ -537,6 +630,7 @@ async function calculerEtatM(t) {
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, cumulP ? cumulP[1].tex : cumul.tex); gl.uniform1i(u.cumulP540, 2);
   gl.uniform1f(u.wP, wP);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, cumul.tex); gl.uniform1i(u.cumul, 0);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, cumul.tex2); gl.uniform1i(u.cumul2, 3);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, fond); gl.uniform1i(u.fond, 1);
   gl.uniform2f(u.taille, man.W, man.H); gl.uniform1f(u.t, t); gl.uniform2f(u.eff, S.effacement[0], S.effacement[1]);
   gl.uniform2f(u.codeT, man.codage.terre[0], 0); gl.uniform2f(u.codeM, man.codage.mer[0], man.codage.mer[1]);
@@ -546,8 +640,8 @@ async function calculerEtatM(t) {
 }
 // repli sans tampon flottant : test de profondeur (visibilité par priorité)
 async function calculerEtatMProfondeur(t) {
-  const fond = await texture(cles.P[cles.P.length - 1]);
-  const R = rotTex.M, S = man.segments.M;
+  const fond = await texture(cles.P[cles.P.length - 1]); await mecaPour(t);
+  const R = rotTex[SEGM], S = man.segments[SEGM];
   gl.bindFramebuffer(gl.FRAMEBUFFER, porte[1].fb); gl.viewport(0, 0, man.W, man.H);
   gl.clearColor(0, 0, 0, 0); gl.clearDepth(1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.bindFramebuffer(gl.FRAMEBUFFER, porte[0].fb);
@@ -566,6 +660,7 @@ async function calculerEtatMProfondeur(t) {
   gl.uniform1i(u.rotCols, R.cols); gl.uniform1i(u.rotLarg, R.larg); gl.uniform1f(u.seg0, R.t0);
   gl.uniform1f(u.t, t); gl.uniform2f(u.taille, man.W, man.H); gl.uniform1f(u.tailleMax, pointMax);
   gl.uniform1f(u.pasDebut, S.pasDebut); gl.uniform2f(u.eff, S.effacement[0], S.effacement[1]);
+  uniformsMeca(u, t, S);
   gl.uniform2f(u.codeT, man.codage.terre[0], 0); gl.uniform2f(u.codeM, man.codage.mer[0], man.codage.mer[1]);
   gl.drawArrays(gl.POINTS, 0, man.W * man.H);
   gl.bindVertexArray(vaoPlein);
@@ -725,7 +820,8 @@ function dessinerGlobe() {
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texEtat); gl.uniform1i(u.etat, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texActuel); gl.uniform1i(u.actuel, 1);
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texSurface); gl.uniform1i(u.surface, 2);
-  gl.uniform1f(u.vegetation, Math.exp(-(tCalcule ?? etat.t) / VEGETATION_MA));
+  { const tv = tCalcule ?? etat.t;   // photographie d'aujourd'hui : s'efface en ~10 Ma (dérive)
+    gl.uniform1f(u.vegetation, vegetation(tv)); gl.uniform1f(u.photoPoids, Math.exp(-tv / 10)); }
   gl.uniform2f(u.taille, man.W, man.H); gl.uniform2f(u.ecran, canvas.width, canvas.height);
   gl.uniform1f(u.rayon, g.r * g.dpr); gl.uniformMatrix3fv(u.vue, false, matVue());
   gl.uniform3fv(u.soleil, soleilXYZ());
@@ -754,6 +850,37 @@ function majTextes() {
   if ($("#recit").textContent !== txt) $("#recit").textContent = txt;
   $("#frise .curseur").style.left = (100 * (T_TERRE - etat.t) / T_TERRE) + "%";
   $("#temps").value = String(T_PUB - etat.t);
+}
+let VIE = null;
+async function chargerVie() {     // genres d'animaux marins par étage (Paleobiology Database)
+  try { VIE = await (await fetch("donnees/genres-marins.json")).json(); } catch (e) { VIE = null; return; }
+  // données par étage : marches (valeur constante sur l'étage), sans lisser entre étages
+  const pts = [];
+  for (const [t0, t1, n] of [...VIE.etages].sort((a, b) => b[0] - a[0])) pts.push([t0, n], [t1 + 1e-6, n]);
+  const nmax = Math.max(...pts.map(p => p[1]));
+  const x = t => 1000 * (T_TERRE - t) / T_TERRE, y = n => 16 - 15 * Math.sqrt(n / nmax);
+  let d = `M${x(pts[0][0]).toFixed(1)},16`;
+  for (const [t, n] of pts) d += ` L${x(t).toFixed(1)},${y(n).toFixed(2)}`;
+  d += ` L${x(pts[pts.length - 1][0]).toFixed(1)},16 Z`;
+  const path = $("#ruban-vie path"); path.setAttribute("d", d);
+  path.setAttribute("fill", "rgba(127,200,176,.55)"); path.setAttribute("stroke", "rgba(127,200,176,.9)");
+  path.setAttribute("stroke-width", ".6"); path.setAttribute("vector-effect", "non-scaling-stroke");
+  const leg = $("#leg-vie"); leg.textContent = "↑ explosion cambrienne · la vie des mers, en genres";
+  leg.style.position = "absolute"; leg.style.right = (100 * 470 / T_TERRE) + "%"; leg.style.whiteSpace = "nowrap";
+  VIE.points = pts;
+}
+function reglerPlage() {
+  etat.t = T_PUB; lect.t0 = T_PUB; $("#temps").max = String(T_PUB);
+  $("#frise .avenir").style.flex = `0 0 calc(100% * ${T_TERRE - T_PUB} / ${T_TERRE})`;
+  $("#frise .publie").style.flex = `0 0 calc(100% * ${T_PUB} / ${T_TERRE})`;
+  const r = $("#rep-pub"); r.style.left = `calc(100% * ${T_TERRE - T_PUB} / ${T_TERRE})`;
+  r.textContent = T_PUB >= 1000 ? (T_PUB / 1000).toLocaleString("fr-FR") + " Ga" : T_PUB + " Ma";
+  $("#borne-pub").textContent = "il y a " + (T_PUB >= 1000 ? (T_PUB / 1000).toLocaleString("fr-FR") + " milliard d'années"
+                                                           : T_PUB + " millions d'années");
+  if (SEGM === "C" && T_PUB > 540) $("#sources").innerHTML = "Plaques : Cao et al. 2024 (1,8 Ga → 540 Ma), PALEOMAP, Scotese 2016 " +
+    "(540 Ma → aujourd'hui). Relief : avant 540 Ma, mécanique des roches (couche mince visqueuse, isostasie, érosion " +
+    "FastScape ; modèle grossier, épaisseurs initiales en hypothèse) ; ensuite PaleoDEM, Scotese &amp; Wright 2018. " +
+    "Vie : Paleobiology Database. Soleil du solstice de juin, sans nuages.";
 }
 function placerFrise() {
   const pg = $("#frise .pangee");
@@ -834,7 +961,9 @@ async function demarrer() {
   if (!gl) { $("#attente").textContent = "WebGL2 indisponible sur cet appareil"; return; }
   man = await (await fetch("donnees/manifeste.json")).json();
   for (const c of man.cles) cles[c.seg].push({ t: c.t, f: "donnees/" + c.f });
-  for (const s of ["P", "M"]) { cles[s].sort((a, b) => a.t - b.t); man.segments[s].rot = "donnees/" + man.segments[s].rot; }
+  SEGM = man.segments.C ? "C" : "M";
+  T_PUB = man.publie || 540;
+  for (const s of ["P", SEGM]) { (cles[s] || []).sort((a, b) => a.t - b.t); man.segments[s].rot = "donnees/" + man.segments[s].rot; }
   pEtat = prog(FS_ETAT); pGlobe = prog(FS_GLOBE); pPorter = prog(FS_PORTER, VS_PORTER);
   pReduit = prog(FS_REDUIT);
   texReduit = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texReduit);
@@ -851,9 +980,15 @@ async function demarrer() {
     if (f32) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, man.W, man.H, 0, gl.RGBA, gl.FLOAT, null);
     else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, man.W, man.H, 0, gl.RGBA, gl.HALF_FLOAT, null);
     for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+    const tex2 = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex2);
+    if (f32) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, man.W, man.H, 0, gl.RGBA, gl.FLOAT, null);
+    else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, man.W, man.H, 0, gl.RGBA, gl.HALF_FLOAT, null);
+    for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
     const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) cumul = { tex, fb };
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, tex2, 0);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) cumul = { tex, tex2, fb };
     pCumulP = prog(FS_CUMUL_P, VS_PORTER); pEtatC = prog(FS_ETAT_C);
     const flot = () => { const x = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, x);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, man.W, man.H, 0, gl.RGBA, gl.HALF_FLOAT, null);
@@ -900,14 +1035,14 @@ async function demarrer() {
   gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
   texSurface = await chargerSurface();
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  await Promise.all([texRot("P"), texRot("M")]);
-  texM = await Promise.all(man.segments.M.points.map(async f => {
+  await Promise.all([texRot("P"), texRot(SEGM)]);
+  texM = await Promise.all(man.segments[SEGM].points.map(async f => {
     const bm = await createImageBitmap(await (await fetch("donnees/" + f)).blob(), { premultiplyAlpha: "none", colorSpaceConversion: "none" });
     const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bm); bm.close && bm.close();
     for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
     return tex; }));
-  placerFrise(); interaction(); majTextes();
+  reglerPlage(); placerFrise(); await chargerVie(); interaction(); majTextes();
   const C = await import("../../commun/compteur.js");
   angleVitesse = C.angleVitesse; ANGLE_BUTEE = C.ANGLE_BUTEE;
   compteur = C.creeCompteur($("#scene"), { coin: "haut-droite", marge: 6, taille: "84px" });
@@ -963,6 +1098,15 @@ window.terre = {
   forcerPoids(w) { poidsForce = w; tCalcule = null; },   // diagnostic : un seul état clé porté
   disque() { const g = geometrie(); return { cx: g.w / 2, cy: g.h / 2, r: g.r }; },
   bornesPangee: () => PANGEE.slice(),
+  rubanVie: () => VIE ? VIE.points.map(p => p.slice()) : null,
+  actuelEquirect() {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat); gl.readBuffer(gl.COLOR_ATTACHMENT1);
+    const b = new Uint8Array(man.W * man.H * 4);
+    gl.readPixels(0, 0, man.W, man.H, gl.RGBA, gl.UNSIGNED_BYTE, b);
+    gl.readBuffer(gl.COLOR_ATTACHMENT0); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+    return { w: man.W, h: man.H, rgba: btoa(s), basEnHaut: true };
+  },
   plage: () => [T_PUB, 0],
 };
 demarrer().catch(e => { console.error(e); $("#attente").textContent = "erreur : " + e.message; });
