@@ -25,14 +25,15 @@ sys.path.insert(0, ICI)
 import scenario as sc
 
 TAILLE_KM = 204.8
-N_PUB = 256
+N_PUB = 512                                  # publié à pleine résolution FastScape (400 m)
 K_F, M_EXP, N_EXP = 1.2e-5, 0.45, 1.0      # m^(1-2m)/an
 K_D = 0.05                                   # m²/an
-H_ZERO, H_PAS = -1000.0, 1.0                 # quantification du relief (m)
+H_ZERO, H_PAS = -1000.0, 2.0                 # quantification du relief (m)
 TAUX_MAX = 8.0                               # mm/an, codage racine carrée
 X_MAX = 20000.0                              # m, profondeur d'origine des roches
-PAR_PAQUET = 16
-N_X, N_UE = 128, 64                         # résolution des roches, du soulèvement et de l'érosion
+PAR_PAQUET = 8
+N_GRAINS = 1500
+N_X, N_UE = 256, 64                         # résolution des roches, du soulèvement et de l'érosion
 
 
 def bloc(a, n):
@@ -53,6 +54,8 @@ def main():
     ap.add_argument("--dt", type=float, default=10000.0)
     args = ap.parse_args()
     N = args.n
+    global N_PUB, N_X
+    N_PUB = min(N_PUB, N); N_X = min(N_X, N_PUB)
     pas = TAILLE_KM * 1000 / N
     os.makedirs(args.sortie, exist_ok=True)
 
@@ -85,6 +88,23 @@ def main():
     h = h0 + 15 * bruit * coeur
     Xr = np.zeros((N, N))                       # profondeur d'origine des roches au jour (m)
 
+    # Grains de roche suivis, dans une tranche de ±3 km autour de la coupe
+    # ouest-nord-ouest → est-sud-est passant par Grenoble (axe du raccourcissement)
+    axe = -sc.DIRECTION                          # vers l'ESE
+    nrm = np.array([-axe[1], axe[0]])
+    rg = np.random.default_rng(7)
+    gs = rg.uniform(-85, 85, N_GRAINS); gq = rg.uniform(-3, 3, N_GRAINS)
+    gx = gs * axe[0] + gq * nrm[0]; gy = gs * axe[1] + gq * nrm[1]
+    def idx(xk, yk):
+        j = np.clip(np.round((xk + TAILLE_KM / 2) / (pas / 1000) - 0.5).astype(int), 0, N - 1)
+        i = np.clip(np.round((TAILLE_KM / 2 - yk) / (pas / 1000) - 0.5).astype(int), 0, N - 1)
+        return i, j
+    gi, gj = idx(gx, gy)
+    gz = h[gi, gj] - rg.uniform(0, 18000, N_GRAINS)     # altitude du grain (m)
+    gdmax = h[gi, gj] - gz
+    gvif = np.ones(N_GRAINS, bool); gtex = np.full(N_GRAINS, 1e9)
+    grains = []
+
     T = temps_etats()
     dt = args.dt
     t = -45.0
@@ -96,7 +116,9 @@ def main():
 
     def enregistrer():
         U = accU / max(acc_t, 1) * 1e3; E = accE / max(acc_t, 1) * 1e3
-        etats.append((bloc(h, N_PUB), bloc(U, N_PUB), bloc(E, N_PUB), bloc(Xr, N_PUB)))
+        etats.append((bloc(h, N_PUB).astype(np.float32), bloc(U, N_UE).astype(np.float32),
+                      bloc(E, N_UE).astype(np.float32), bloc(Xr, N_X).astype(np.float32)))
+        grains.append(((gx * axe[0] + gy * axe[1]).copy(), gz.copy(), gdmax.copy()))
 
     enregistrer()
     k_suiv = 1
@@ -124,6 +146,9 @@ def main():
             ii, jj = np.meshgrid(np.arange(N), np.arange(N), indexing="ij")
             src = [ii + dy, jj - dx]          # ligne 0 = nord : y positif = vers le haut
             h = map_coordinates(h, src, order=1, mode="nearest")
+            gi, gj = idx(gx, gy)
+            gx = gx + sc.DIRECTION[0] * depl / 1000 * fr[gi, gj] * gvif
+            gy = gy + sc.DIRECTION[1] * depl / 1000 * fr[gi, gj] * gvif
             Xr = map_coordinates(Xr, src, order=1, mode="nearest")
             depl = 0.0
 
@@ -134,6 +159,8 @@ def main():
         h[bord] = ((1 - wf) * hb + wf * cible)[bord]
 
         hu = h + U * dty
+        gi, gj = idx(gx, gy)
+        gz = gz + U[gi, gj] * dty * gvif               # la roche monte avec le soulèvement
         fg.update_routes(hu); fg.accumulate(A, 1.0)
         es = spl.erode(hu, A, dty)
         ed = dif.erode(hu - es, dty)
@@ -143,6 +170,7 @@ def main():
         # bassin d'avant-pays : la surface suit le niveau imposé (subsidence ou dépôt)
         db = (nb - h) * min(dty / 1e6, 1.0) * wb * coeur
         h = h + db
+        gz = gz + np.minimum(db, 0)[gi, gj] * gvif      # subsidence : la roche descend aussi
         Xr = np.where(db > 1.0, 0.0, Xr)          # sédiment frais : roches de surface
         accU += U * dty + np.minimum(db, 0); accE += e - np.maximum(db, 0)
 
@@ -150,9 +178,14 @@ def main():
             reste = max(t_fin_ajust - t, pas_t)
             C = (cible - h) * min(pas_t / reste, 1.0) * coeur
             h = h + C
+            gz = gz + np.maximum(C, 0)[gi, gj] * gvif
             accU += np.maximum(C, 0); accE += np.maximum(-C, 0)
             Xr = Xr + np.maximum(-C, 0)
 
+        prof = h[gi, gj] - gz
+        gdmax = np.where(gvif, np.maximum(gdmax, prof), gdmax)
+        sort = gvif & (prof <= 0)
+        gtex[sort] = t + pas_t; gz[sort] = h[gi, gj][sort]; gvif &= ~sort
         t = round(t + pas_t, 9)
         acc_t += dty
         if abs(t - tn) < 1e-7:
@@ -169,7 +202,8 @@ def main():
             k_suiv += 1
 
     print(f"fin : écart moyen au réel {np.abs(h - cible).mean():.1f} m", flush=True)
-    ecrire(args.sortie, T, etats, racc_etat, reel1024)
+    print(f"grains : {int((~gvif).sum())} / {N_GRAINS} arrivés au jour", flush=True)
+    ecrire(args.sortie, T, etats, racc_etat, reel1024, (grains, gtex, gq, axe))
 
 
 def q_h(a):
@@ -184,9 +218,9 @@ def q_x(x):
     return np.round(255 * np.log1p(np.clip(x, 0, X_MAX) / 200) / np.log1p(X_MAX / 200)).astype(np.uint8)
 
 
-def ecrire(sortie, T, etats, racc, reel1024):
+def ecrire(sortie, T, etats, racc, reel1024, gr):
     for f in os.listdir(sortie):
-        if f.startswith("etats_"):
+        if f.startswith("etats_") or f.startswith("reel_"):
             os.remove(os.path.join(sortie, f))
     paquets = []
     for p0 in range(0, len(T), PAR_PAQUET):
@@ -202,7 +236,13 @@ def ecrire(sortie, T, etats, racc, reel1024):
         with gzip.open(os.path.join(sortie, nom), "wb", 9) as f:
             f.write(d.tobytes() + x.tobytes() + u.tobytes() + ee.tobytes())
         paquets.append({"fichier": nom, "debut": p0, "nombre": len(lot)})
-    for n in (256, 1024):
+    grains, gtex, gq, axe = gr
+    with gzip.open(os.path.join(sortie, "grains.bin.gz"), "wb", 9) as f:
+        f.write(gtex.astype("<f4").tobytes() + gq.astype("<f4").tobytes())
+        for s_, z_, d_ in grains:
+            f.write(np.round(s_ * 100).astype("<i2").tobytes() + np.clip(np.round(z_), -32000, 32000).astype("<i2").tobytes()
+                    + np.clip(np.round(d_ / 100), 0, 255).astype(np.uint8).tobytes())
+    for n in sorted({N_PUB, 1024}):
         with gzip.open(os.path.join(sortie, f"reel_{n}.bin.gz"), "wb", 9) as f:
             f.write(q_h(bloc(reel1024, n)).astype("<u2").tobytes())
     meta = {
@@ -213,7 +253,9 @@ def ecrire(sortie, T, etats, racc, reel1024):
         "x_max_m": X_MAX, "x_codage": "v = 255·ln(1+x/200 m)/ln(1+x_max/200 m) ; n_x², différences successives mod 256 dans le paquet",
         "h_codage": "par paquet : k×n² octets bas puis k×n² octets hauts d'entiers int16 ; différences successives (le premier état absolu) ; h = cumul·h_pas + h_zero",
         "taux_codage": "v = 255·√(taux/taux_max) ; n_ue², moyenne de l'intervalle précédent",
-        "paquets": paquets,
+        "paquets": paquets, "reel": f"reel_{N_PUB}.bin.gz",
+        "grains": {"fichier": "grains.bin.gz", "nombre": int(len(gtex)), "axe_est": [float(axe[0]), float(axe[1])],
+                   "codage": "G float32 âge d'arrivée au jour (Ma, 1e9 = jamais) | G float32 écart à la coupe (km) | par état : G int16 abscisse (10 m) | G int16 altitude (m) | G uint8 profondeur maximale (100 m)"},
         "modele": f"fastscapelib {fs.__version__} — K_f {K_F}, m {M_EXP}, n {N_EXP}, K_d {K_D} m²/an",
         "source_relief": "Copernicus DEM GLO-90 (© DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018, programme Copernicus)",
     }

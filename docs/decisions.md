@@ -478,3 +478,8 @@ du temps à aiguille dans chaque scène. Détails : `docs/references-visuelles-r
 La couche EOX s2cloudless 2024 (CC BY-NC-SA 4.0) est gardée pour la fin du film des Alpes :
 le site est non commercial, l'attribution est affichée. La couche 2016 (CC BY), moins belle,
 reste le repli si l'œuvre devait un jour être exploitée commercialement.
+
+## D-45 — Densités humaines : HYDE 3.2.1 *(23/11/2026, maître)*
+HYDE 3.3 est derrière une page anti-robots à Utrecht ; on ne la contourne pas. On garde
+HYDE 3.2.1 (DANS, jusqu'en 2017) ; 2023 = effectif des Nations unies réparti comme en 2017,
+signalé comme hypothèse. À reprendre si HYDE 3.3 devient accessible.

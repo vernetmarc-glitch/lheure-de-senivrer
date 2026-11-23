@@ -53,7 +53,9 @@ function recitDe(t) { let r = RECIT[0][1]; for (const [a, s] of RECIT) if (t >= 
 // Climat schématique (hypothèse signalée) : refroidissement cénozoïque, puis cycles
 // glaciaires de 41 ka et de 100 ka. Décalage d'altitude « climatique » (m) appliqué aux
 // règles de couleur : positif = plus froid (neige et roche plus bas).
+let climatGlace = () => null;      // part du froid tirée des glaciers PISM (120 derniers ka)
 function froid(t) {
+  const g = climatGlace(t); if (g !== null) return g;
   if (t < -2.6 || t > -0.012) return 0;
   const ka = t * 1000, montee = Math.min(1, (t + 2.6) / 0.6);
   let c;
@@ -148,11 +150,13 @@ function texture(gl, w, h, src, mip, filtre = true) {
 
 // Ombre portée d'un état : marche vers le Soleil fixe sur le relief affiché (exagéré),
 // maille par maille ; même calcul dans controles.py (ombre_python).
-function ombreEtat(q, n, meta) {
-  const az = SOLEIL_AZ * Math.PI / 180, el = SOLEIL_EL * Math.PI / 180, pasM = meta.pas_m;
+function ombreEtat(q, nq, meta) {
+  const n = Math.min(256, nq), f = nq / n;      // calcul sur 256² (800 m), texture filtrée
+  const az = SOLEIL_AZ * Math.PI / 180, el = SOLEIL_EL * Math.PI / 180, pasM = meta.pas_m * f;
   const dx = Math.sin(az), dy = Math.cos(az), l = Math.hypot(dx, dy), tg = Math.tan(el);
   const h = new Float32Array(n * n);
-  for (let i = 0; i < n * n; i++) h[i] = Math.max(q[i] * meta.h_pas_m + meta.h_zero_m, 0) * EXAGERATION;
+  for (let i = 0; i < nq; i++) for (let j = 0; j < nq; j++)
+    h[((i / f) | 0) * n + ((j / f) | 0)] += Math.max(q[i * nq + j] * meta.h_pas_m + meta.h_zero_m, 0) * EXAGERATION / (f * f);
   const di = [], dj = [], seuil = [];
   for (let s = 1; s <= PAS_OMBRE; s++) { dj.push(Math.floor(dx / l * s + 0.5)); di.push(Math.floor(-dy / l * s + 0.5)); seuil.push(s * pasM * tg); }
   const o = new Uint8Array(n * n);
@@ -172,10 +176,11 @@ function ombreEtat(q, n, meta) {
 const VS = `#version 300 es
 precision highp float; precision highp int; precision highp usampler2D;
 layout(location=0) in vec2 ij;
-uniform usampler2D hA, hB; uniform sampler2D xA, xB, oA, oB;
-uniform float f, pz, z0, pasKm, tailleKm, exa;
+uniform usampler2D hA, hB; uniform sampler2D xA, xB, oA, oB, gA, gB;
+uniform float f, pz, z0, pasKm, tailleKm, exa, fg, wGlace;
 uniform mat4 mvp; uniform vec3 soleil;
-out vec3 vPos; out vec2 vGrad; out float vH; out float vX; out vec2 vUV; out float vOmbre;
+out vec3 vPos; out vec2 vGrad; out float vH; out float vX; out vec2 vUV; out float vOmbre; out float vGlace;
+float G(vec2 uv) { float v = mix(texture(gA, uv).r, texture(gB, uv).r, fg); return v * v * 2500.0 * wGlace; }
 float H(ivec2 c) { c = clamp(c, ivec2(0), textureSize(hA, 0) - 1);
   return mix(float(texelFetch(hA, c, 0).r), float(texelFetch(hB, c, 0).r), f) * pz + z0; }
 void main() {
@@ -183,17 +188,23 @@ void main() {
   float h = H(c), pasM = pasKm * 1000.0;
   vGrad = vec2((H(c + ivec2(1, 0)) - H(c - ivec2(1, 0))) / (2.0 * pasM),
                (H(c - ivec2(0, 1)) - H(c + ivec2(0, 1))) / (2.0 * pasM));
-  vOmbre = mix(texelFetch(oA, c, 0).r, texelFetch(oB, c, 0).r, f);   // ombre portée (calculée par état)
   vX = mix(texelFetch(xA, c / 2, 0).r, texelFetch(xB, c / 2, 0).r, f);
   float x = (ij.x + 0.5) * pasKm - tailleKm * 0.5, y = tailleKm * 0.5 - (ij.y + 0.5) * pasKm;
   vH = h; vUV = (ij + 0.5) / vec2(textureSize(hA, 0));
-  vPos = vec3(x, y, max(h, 0.0) * exa / 1000.0);
+  vOmbre = mix(texture(oA, vUV).r, texture(oB, vUV).r, f);          // ombre portée (calculée par état)
+  float e = G(vUV), du = 1.0 / float(textureSize(hA, 0).x);
+  vGlace = mix(texture(gA, vUV).r, texture(gB, vUV).r, fg) * step(0.5, wGlace);
+  if (e > 1.0) {                    // surface de la glace : pente propre
+    vGrad += vec2(G(vUV + vec2(du, 0.0)) - G(vUV - vec2(du, 0.0)), G(vUV - vec2(0.0, du)) - G(vUV + vec2(0.0, du))) / (2.0 * pasM);
+    vOmbre = max(vOmbre, 0.85);
+  }
+  vPos = vec3(x, y, (max(h, 0.0) + e) * exa / 1000.0);
   gl_Position = mvp * vec4(vPos, 1.0);
 }`;
 
 const FS = `#version 300 es
 precision highp float;
-in vec3 vPos; in vec2 vGrad; in float vH; in float vX; in vec2 vUV; in float vOmbre;
+in vec3 vPos; in vec2 vGrad; in float vH; in float vX; in vec2 vUV; in float vOmbre; in float vGlace;
 uniform sampler2D detail, regles, mosaique;
 uniform float wDetail, wMosaique, climat, exa, tailleKm, modeRoches, xMaxLog;
 uniform int sortieMode;            // 0 image ; 1 couleur de surface ; 2 ombre ; 3 éclairé sans brume (mesures, planche)
@@ -226,8 +237,18 @@ void main() {
     if (modeRoches > 0.5) c = roche(xm) * (0.9 + 0.1 * bn);
   }
   c = mix(c, texture(mosaique, vUV).rgb, wMosaique * (1.0 - modeRoches));
+  float glace = step(5.5 / 255.0, vGlace);                       // ≥ 1 m de glace (données PISM)
+  if (glace > 0.5 && modeRoches < 0.5) {
+    float ep = vGlace * vGlace * 2500.0;
+    vec3 gl = mix(vec3(0.70, 0.80, 0.88), vec3(0.93, 0.95, 0.97), smoothstep(5.0, 120.0, ep));
+    c = gl * (0.94 + 0.06 * vnoise(vPos.xy * 14.0));
+  }
+  if (sortieMode == 4) { sortie = vec4(vec3(glace), 1.0); return; }
   if (sortieMode == 1) { sortie = vec4(c, 1.0); return; }
   if (sortieMode == 2) { sortie = vec4(vec3(vOmbre), 1.0); return; }
+  if (sortieMode == 5) {            // relief seul : albédo gris uniforme, éclairé (mesure de netteté)
+    float l = max(dot(n, soleil), 0.0) * vOmbre;
+    sortie = vec4(vec3(pow(0.18 * (1.9 * l + 0.5 * (0.36 + 0.20 * n.z)), 1.0 / 2.2)), 1.0); return; }
   vec3 a = lin(c);
   float lum = max(dot(n, soleil), 0.0) * vOmbre;
   float ambiant = 0.36 + 0.20 * n.z;
@@ -294,7 +315,7 @@ async function demarrer() {
   const xMaxLog = Math.log1p(meta.x_max_m / 200);
 
   const prog = programme(gl, VS, FS);
-  const U = {}; for (const nom of ["hA", "hB", "xA", "xB", "oA", "oB", "f", "pz", "z0", "pasKm", "tailleKm", "exa", "mvp", "oeil",
+  const U = {}; for (const nom of ["gA", "gB", "fg", "wGlace", "hA", "hB", "xA", "xB", "oA", "oB", "f", "pz", "z0", "pasKm", "tailleKm", "exa", "mvp", "oeil",
     "detail", "regles", "mosaique", "wDetail", "wMosaique", "climat", "soleil", "ciel", "modeRoches", "xMaxLog", "sortieMode"])
     U[nom] = gl.getUniformLocation(prog, nom);
 
@@ -312,7 +333,9 @@ async function demarrer() {
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
   const texH = [0, 1].map(() => texture(gl, 1, 1, new Uint8Array(4), false, false));
   const texX = [0, 1].map(() => texture(gl, 1, 1, new Uint8Array(4), false, true));
-  const texO = [0, 1].map(() => texture(gl, 1, 1, new Uint8Array(4), false, false));
+  const texO = [0, 1].map(() => texture(gl, 1, 1, new Uint8Array(4), false, true));
+  const texG = [0, 1].map(() => texture(gl, 1, 1, new Uint8Array(4), false, true));
+  const nO = Math.min(256, n);
   const ombres = new Map();
   const ombreDe = k => { if (!ombres.has(k)) { if (ombres.size > 8) ombres.delete(ombres.keys().next().value); ombres.set(k, ombreEtat(H[k], n, meta)); } return ombres.get(k); };
   const charges = [-1, -1];
@@ -323,12 +346,72 @@ async function demarrer() {
     gl.bindTexture(gl.TEXTURE_2D, texX[slot]);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, meta.n_x, meta.n_x, 0, gl.RED, gl.UNSIGNED_BYTE, X[k]);
     gl.bindTexture(gl.TEXTURE_2D, texO[slot]);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, n, n, 0, gl.RED, gl.UNSIGNED_BYTE, ombreDe(k));
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, nO, nO, 0, gl.RED, gl.UNSIGNED_BYTE, ombreDe(k));
   }
   const reel = new Uint16Array(r1024.buffer, r1024.byteOffset, r1024.byteLength / 2);
   const texD = texDetail(gl, reel, meta);
   const texR = texture(gl, 0, 0, imRegles, false, true);
   const texM = texture(gl, 0, 0, imMos, true, true);
+
+  // Machine à laver : grains de roche suivis, vus en coupe ONO → ESE par Grenoble
+  let GR = null, coupeVue = false, coupeInfo = { dessines: 0, vivants: 0 };
+  const cv = $("coupe"), cx2 = cv.getContext("2d");
+  const COULEURS_PROF = [[0, [216, 201, 163]], [600, [168, 164, 154]], [4000, [160, 101, 122]], [10000, [79, 127, 134]]];
+  function couleurProf(d) {
+    let i = 0; while (i < COULEURS_PROF.length - 2 && d > COULEURS_PROF[i + 1][0]) i++;
+    const [a, ca] = COULEURS_PROF[i], [b, cb] = COULEURS_PROF[i + 1], u = Math.min(Math.max((d - a) / (b - a), 0), 1);
+    return `rgb(${ca.map((v, k) => Math.round(v + (cb[k] - v) * u)).join(",")})`;
+  }
+  function dessinerCoupe() {
+    const r = window.devicePixelRatio || 1, W = cv.clientWidth, Hc = cv.clientHeight;
+    if (cv.width !== Math.round(W * r)) { cv.width = Math.round(W * r); cv.height = Math.round(Hc * r); }
+    const c = cx2; c.setTransform(r, 0, 0, r, 0, 0); c.clearRect(0, 0, W, Hc);
+    const S0 = -85, S1 = 85, Z0 = -20000, Z1 = 6000, mg = 8;
+    const X = sk => mg + (sk - S0) / (S1 - S0) * (W - 2 * mg), Y = z => mg + (Z1 - z) / (Z1 - Z0) * (Hc - 2 * mg - 14);
+    const [k, f] = indice(t), k2 = Math.min(k + 1, T.length - 1), ax = GR.axe;
+    const prof = [];
+    for (let i = 0; i <= 200; i++) { const sk = S0 + (S1 - S0) * i / 200; prof.push([sk, hauteurEn(sk * ax[0], sk * ax[1])]); }
+    c.fillStyle = "rgba(10,14,22,.80)"; c.fillRect(0, 0, W, Hc);
+    const gr = c.createLinearGradient(0, Y(Z1), 0, Y(Z0)); gr.addColorStop(0, "#6b5a48"); gr.addColorStop(1, "#231a17");
+    c.beginPath(); c.moveTo(X(S0), Y(Z0)); for (const [sk, z] of prof) c.lineTo(X(sk), Y(Math.max(z, -500))); c.lineTo(X(S1), Y(Z0)); c.closePath();
+    c.fillStyle = gr; c.fill();
+    c.beginPath(); for (const [sk, z] of prof) { const yz = Y(0); if (z < 0) { c.moveTo(X(sk), yz); c.lineTo(X(sk), Y(z)); } } c.strokeStyle = "rgba(60,120,150,.9)"; c.stroke();
+    c.beginPath(); prof.forEach(([sk, z], i) => i ? c.lineTo(X(sk), Y(z)) : c.moveTo(X(sk), Y(z))); c.strokeStyle = "#f3efe6"; c.lineWidth = 1.2; c.stroke();
+    let nd = 0, nv = 0; const G = GR.n, A = GR.etats[k], B = GR.etats[k2], fen = 4 * vitesseGeo(t);
+    for (let g = 0; g < G; g++) {
+      const tex = GR.tex[g];
+      if (tex <= t) {                                    // arrivé au jour : brille un instant
+        if (t - tex < fen) { const sk = A.s[g] / 100; c.fillStyle = couleurProf(A.d[g] * 100); c.globalAlpha = 1 - (t - tex) / fen;
+          c.beginPath(); c.arc(X(sk), Y(hauteurEn(sk * ax[0], sk * ax[1])), 3.2, 0, 7); c.fill(); c.globalAlpha = 1; }
+        continue;
+      }
+      nv++;
+      const sk = (A.s[g] * (1 - f) + B.s[g] * f) / 100, z = A.z[g] * (1 - f) + B.z[g] * f;
+      if (sk < S0 || sk > S1) continue;
+      c.fillStyle = couleurProf(Math.max(A.d[g], B.d[g]) * 100); c.fillRect(X(sk) - 1.2, Y(z) - 1.2, 2.4, 2.4); nd++;
+    }
+    coupeInfo = { dessines: nd, vivants: nv };
+    c.fillStyle = "rgba(243,239,230,.75)"; c.font = "11px -apple-system, system-ui, sans-serif";
+    c.fillText("ONO · Vercors", mg, Hc - 4); c.textAlign = "center"; c.fillText("Grenoble", X(0), Hc - 4);
+    c.textAlign = "right"; c.fillText("Belledonne · ESE", W - mg, Hc - 4); c.textAlign = "left";
+    c.fillText("−20 km", mg + 2, Y(Z0) - 3);
+  }
+
+  // Glaciers (Seguinot et al. 2018), sur les 120 derniers ka, chargés après le film
+  let GL = null; const glPose = [-1, -1];
+  function glaceEn(tt) {
+    if (!GL) return { f: 0, w: 0 };
+    const ans = -tt * 1e6, A = GL.ages;              // âges décroissants
+    if (ans > A[0] + 1e-6) return { f: 0, w: 0 };
+    let k = 0; while (k < A.length - 2 && A[k + 1] >= ans) k++;
+    const fk = Math.min(Math.max((A[k] - ans) / (A[k] - A[k + 1]), 0), 1);
+    for (const [slot, kk] of [[0, k], [1, k + 1]]) if (glPose[slot] !== kk) {
+      glPose[slot] = kk; gl.bindTexture(gl.TEXTURE_2D, texG[slot]);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, GL.n, GL.n, 0, gl.RED, gl.UNSIGNED_BYTE, GL.v.subarray(kk * GL.n * GL.n, (kk + 1) * GL.n * GL.n));
+    }
+    return { f: fk, w: 1, aire: GL.aires[k] * (1 - fk) + GL.aires[k + 1] * fk };
+  }
+  climatGlace = tt => { const g = glaceEn(tt); return g.w ? 0.9 * g.aire / GL.aireMax : null; };
 
   const cam = { azimut: 248 * Math.PI / 180, hauteur: 37 * Math.PI / 180, distance: 118, cible: [6, 2, 0.8] };
   let t = -45, enLecture = false, allure = 1, roches = false, glisse = false;
@@ -378,7 +461,7 @@ async function demarrer() {
     const [k, f] = indice(t), k2 = Math.min(k + 1, T.length - 1);
     poser(0, k); poser(1, H[k2] ? k2 : k);
     gl.useProgram(prog); gl.bindVertexArray(vao);
-    [[texH[0], "hA"], [texH[1], "hB"], [texX[0], "xA"], [texX[1], "xB"], [texO[0], "oA"], [texO[1], "oB"], [texD, "detail"], [texR, "regles"], [texM, "mosaique"]]
+    [[texH[0], "hA"], [texH[1], "hB"], [texX[0], "xA"], [texX[1], "xB"], [texO[0], "oA"], [texO[1], "oB"], [texG[0], "gA"], [texG[1], "gB"], [texD, "detail"], [texR, "regles"], [texM, "mosaique"]]
       .forEach(([tx, nom], i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, tx); gl.uniform1i(U[nom], i); });
     gl.uniform1f(U.f, f); gl.uniform1f(U.pz, meta.h_pas_m); gl.uniform1f(U.z0, meta.h_zero_m);
     gl.uniform1f(U.pasKm, meta.pas_m / 1000); gl.uniform1f(U.tailleKm, meta.taille_km); gl.uniform1f(U.exa, EXAGERATION);
@@ -386,6 +469,7 @@ async function demarrer() {
     gl.uniform1f(U.wDetail, Math.min(Math.max((t + 2) / 1.99, 0), 1));
     gl.uniform1f(U.wMosaique, forcerMosaique ?? wMos(t)); gl.uniform1f(U.climat, decalageClimat(t));
     gl.uniform3fv(U.soleil, SOLEIL); gl.uniform3fv(U.ciel, CIEL);
+    const g = glaceEn(t); gl.uniform1f(U.fg, g.f); gl.uniform1f(U.wGlace, g.w);
     gl.uniform1f(U.modeRoches, roches ? 1 : 0); gl.uniform1f(U.xMaxLog, xMaxLog); gl.uniform1i(U.sortieMode, mode);
     gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CCW);
     gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_INT, 0);
@@ -410,14 +494,16 @@ async function demarrer() {
     $("date").textContent = dateTexte(t);
     const r = recitDe(t); if ($("recit").textContent !== r) $("recit").textContent = r;
     if (!glisse) $("curseur").value = positionDe(t);
+    if (coupeVue && GR) dessinerCoupe();
   }
 
   // Mesure (contrôles) : couleurs de surface ou ombre vues du zénith, sur la grille du film
   let fbo = null;
-  function couleurs(tt, mode, forcerMosaique) {
+  let fboN = 0;
+  function couleurs(tt, mode, forcerMosaique, taille = 256) {
     const sauve = t; t = tt;
-    const N = n;
-    if (!fbo) {
+    const N = taille;
+    if (!fbo || fboN !== N) { fboN = N;
       fbo = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
       const c = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, c);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, N, N, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -464,6 +550,8 @@ async function demarrer() {
   const ALLURES = [0.5, 1, 2, 4];
   $("allure").onclick = () => { allure = ALLURES[(ALLURES.indexOf(allure) + 1) % ALLURES.length]; $("allure").textContent = "×" + String(allure).replace(".", ","); };
   $("roches").onclick = () => { roches = !roches; $("roches").style.background = roches ? "rgba(243,239,230,.25)" : ""; $("legende").classList.toggle("vue", roches); };
+  $("bcoupe").onclick = () => { coupeVue = !coupeVue; document.body.classList.toggle("en-coupe", coupeVue);
+    $("bcoupe").style.background = coupeVue ? "rgba(243,239,230,.25)" : ""; $("legende").classList.toggle("vue", coupeVue || roches); };
   $("infos").onclick = () => $("apropos").classList.add("ouvert");
   $("fermer").onclick = () => $("apropos").classList.remove("ouvert");
   for (const [tg, txt] of [[-45, "45 Ma"], [-30, "30"], [-15, "15"], [-5, "5"], [-2, "2 Ma"], [-1, "1"], [-0.3, "300 ka"], [0, "0"]]) {
@@ -496,7 +584,7 @@ async function demarrer() {
     aller: tt => { t = Math.min(Math.max(tt, -45), 0); tPrec = t; dessiner(); },
     lire: () => { enLecture = true; $("lecture").textContent = "❚❚"; },
     pause: arreter, vitesse: a => { allure = a; }, temps: () => t, camera: () => ({ ...cam }),
-    dessiner, couleurs, compteur, decalage: decalageClimat, positionDe, tempsDe, vitesseGeo,
+    dessiner, couleurs, compteur, coupe: v => { if (v !== coupeVue) $("bcoupe").click(); dessiner(); return coupeInfo; }, decalage: decalageClimat, positionDe, tempsDe, vitesseGeo,
     soleil: { azimut: SOLEIL_AZ, hauteur: SOLEIL_EL, pas: PAS_OMBRE, exageration: EXAGERATION },
   };
   dessiner();
@@ -506,6 +594,20 @@ async function demarrer() {
 
   // le reste du film arrive pendant qu'on regarde
   for (const p of meta.paquets.slice(1)) decoderPaquet(await decompresser("donnees/" + p.fichier), p.nombre, meta, H, X);
+  {
+    const b = await decompresser("donnees/" + meta.grains.fichier), G = meta.grains.nombre, dv = new DataView(b.buffer, b.byteOffset);
+    const tex = new Float32Array(G); for (let g = 0; g < G; g++) tex[g] = dv.getFloat32(4 * g, true);
+    const etats = []; let o = 8 * G;
+    for (let k = 0; k < T.length; k++) {
+      const s_ = new Int16Array(G), z_ = new Int16Array(G);
+      for (let g = 0; g < G; g++) { s_[g] = dv.getInt16(o + 2 * g, true); z_[g] = dv.getInt16(o + 2 * G + 2 * g, true); }
+      etats.push({ s: s_, z: z_, d: b.slice(o + 4 * G, o + 5 * G) }); o += 5 * G;
+    }
+    GR = { n: G, tex, etats, axe: meta.grains.axe_est };
+  }
+  const gj = await (await fetch("donnees/glace.json")).json();
+  const gv = await decompresser("donnees/glace.bin.gz");
+  GL = { ages: gj.ages_ans, n: gj.n, v: gv, aires: gj.aires_km2, aireMax: Math.max(...gj.aires_km2) };
   window.ALPES.pret = true;
 }
 
