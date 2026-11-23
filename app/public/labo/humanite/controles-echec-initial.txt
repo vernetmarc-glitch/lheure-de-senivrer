@@ -1,0 +1,15 @@
+ÉCHEC  C1  paquet absent : ['donnees/meta.json', 'donnees/sites.json', 'donnees/population.json']
+ÉCHEC  C2  page non prête (window.__hum absent)
+ÉCHEC  C3  page non prête (window.__hum absent)
+ÉCHEC  C4  page non prête (window.__hum absent)
+ÉCHEC  C5  page non prête (window.__hum absent)
+ÉCHEC  C6  page non prête (window.__hum absent)
+ÉCHEC  C8  page non prête (window.__hum absent)
+ÉCHEC  C9  page non prête (window.__hum absent)
+ÉCHEC  C10  page non prête (window.__hum absent)
+ÉCHEC  C11  page non prête (window.__hum absent)
+ÉCHEC  C7  console.error: Failed to load resource: the server responded with a status of 404 (File not found) | console.error: Failed to load resource: the server responded with a status of 404 (File not found) | page non prête : Page.wait_for_function: Timeout 180000ms exceeded.
+
+0/11 contrôles passés
+
+[exited with code 0]

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="../../favicon-32.png">
+<title>Compteur de vitesse du temps — labo</title>
+<style>
+:root { --nuit: #04050a; --texte: #e8e6df; --doux: #9a9fab; --accent: #cfe6ff; }
+html, body { height: 100%; margin: 0; background: var(--nuit); color: var(--texte); overflow: hidden;
+  font-family: Jost, "Helvetica Neue", Arial, sans-serif; }
+#ciel { position: fixed; inset: 0; width: 100%; height: 100%; }
+header { position: absolute; left: 18px; top: calc(16px + env(safe-area-inset-top, 0px)); right: 18px; pointer-events: none; }
+h1 { font-family: Cinzel, Georgia, serif; font-weight: 600; font-size: 16px; letter-spacing: 0.03em; margin: 0; text-shadow: 0 1px 4px #000; }
+header p { margin: 4px 0 0; font-size: 13px; color: var(--doux); max-width: 32em; }
+#scene { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); text-align: center; width: min(86vw, 520px); }
+#scene .etoile { width: 14px; height: 14px; margin: 0 auto 22px; border-radius: 50%; background: #fff2dc;
+  box-shadow: 0 0 18px 6px rgba(255,214,140,0.55), 0 0 60px 18px rgba(255,200,130,0.18); }
+#scene .dit { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doux); }
+#scene .duree { font-family: Cinzel, Georgia, serif; font-weight: 500; font-size: clamp(20px, 6vw, 30px); margin-top: 8px; line-height: 1.3; min-height: 2.6em; text-shadow: 0 1px 8px #000; }
+#galerie { display: none; position: absolute; inset: 0; padding: 70px 30px 30px; box-sizing: border-box;
+  grid-template-columns: repeat(3, 190px); grid-auto-rows: 230px; gap: 18px 34px; justify-content: center; }
+#galerie > div { position: relative; }
+body.planche #galerie { display: grid; }
+body.planche #scene { display: none; }
+</style>
+</head>
+<body>
+<canvas id="ciel"></canvas>
+<header>
+  <h1>Compteur de vitesse du temps</h1>
+  <p>Un faux temps accélère d'un an à dix milliards d'années par seconde, ralentit, s'arrête, puis remonte.</p>
+</header>
+<div id="scene">
+  <div class="etoile"></div>
+  <div class="dit">temps écoulé</div>
+  <div class="duree" id="duree">—</div>
+</div>
+<div id="galerie"></div>
+<script type="module">
+import { creeCompteur, lectureEnClair } from "../../commun/compteur.js";
+
+const q = new URLSearchParams(location.search);
+
+// Ciel discret : quelques étoiles fixes, dessinées une fois
+const ciel = document.getElementById("ciel");
+function dessineCiel() {
+  const d = Math.min(2, devicePixelRatio || 1), w = ciel.width = innerWidth * d, h = ciel.height = innerHeight * d;
+  const g = ciel.getContext("2d");
+  let s = 7;
+  const alea = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 260; i++) {
+    const a = 0.15 + 0.6 * alea() ** 3;
+    g.fillStyle = `rgba(${220 + 35 * alea() | 0},${225 + 20 * alea() | 0},255,${a.toFixed(3)})`;
+    g.beginPath(); g.arc(alea() * w, alea() * h, (0.4 + alea() * 0.8) * d, 0, 7); g.fill();
+  }
+}
+dessineCiel();
+addEventListener("resize", dessineCiel);
+
+if (q.has("planche")) {
+  // Galerie : le cadran à plusieurs vitesses
+  document.body.classList.add("planche");
+  const cas = [[0, 0], [1, 1], [1e4, 1], [2.5e6, 1], [1e8, -1], [1e10, 1]];
+  const gal = document.getElementById("galerie");
+  window.compteurs = cas.map(([v, s]) => {
+    const boite = document.createElement("div");
+    gal.appendChild(boite);
+    return creeCompteur(boite, { coin: "haut-gauche", marge: 0, taille: "190px", vitesse: v, sens: s });
+  });
+} else {
+  const compteur = window.compteur = creeCompteur(document.body, { coin: "bas-droite" });
+  if (!q.has("essai")) {
+    // Faux temps : 12 s d'accélération (log), 2 s au plus vite, 10 s de ralentissement,
+    // 2,5 s d'arrêt, 6 s à rebours (de 100 ans à 1 Ma par seconde et retour), 1,5 s d'arrêt.
+    const CYCLE = 34;
+    const profil = t => {
+      if (t < 12) return [10 ** (10 * t / 12), 1];
+      if (t < 14) return [1e10, 1];
+      if (t < 24) return [10 ** (10 * (24 - t) / 10), 1];
+      if (t < 26.5) return [0, 0];
+      if (t < 32.5) { const u = (t - 26.5) / 6; return [10 ** (2 + 4 * Math.sin(Math.PI * u)), -1]; }
+      return [0, 0];
+    };
+    const duree = document.getElementById("duree");
+    let ecoule = 0, t0 = performance.now(), tPrec = t0, dernierTexte = "";
+    const enClair = ans => lectureEnClair(ans, 1).replace(" par seconde", "");
+    const boucle = now => {
+      const t = ((now - t0) / 1000) % CYCLE, dt = Math.min(0.1, (now - tPrec) / 1000);
+      tPrec = now;
+      const [v, s] = profil(t);
+      compteur.vitesse(v, s);
+      ecoule = Math.max(0, ecoule + v * s * dt);
+      if (t < 0.05) ecoule = 0;
+      const txt = ecoule < 1 ? "un instant" : enClair(ecoule);
+      if (txt !== dernierTexte) { duree.textContent = txt; dernierTexte = txt; }
+      requestAnimationFrame(boucle);
+    };
+    requestAnimationFrame(boucle);
+  }
+}
+</script>
+</body>
+</html>

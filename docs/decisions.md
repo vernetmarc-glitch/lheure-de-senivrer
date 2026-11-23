@@ -473,3 +473,46 @@ avancées et leurs retraits, sur environ 100 000 ans, d'après les publications
 Une référence visuelle par chantier avec signature chiffrée ; matière en points, surfaces
 en photographie ; vidéo seulement pour les couleurs à projection fixe ; compteur de vitesse
 du temps à aiguille dans chaque scène. Détails : `docs/references-visuelles-refonte.md`.
+
+## D-44 — Mosaïque Sentinel-2 des Alpes : s2cloudless 2024 *(23/11/2026, maître)*
+La couche EOX s2cloudless 2024 (CC BY-NC-SA 4.0) est gardée pour la fin du film des Alpes :
+le site est non commercial, l'attribution est affichée. La couche 2016 (CC BY), moins belle,
+reste le repli si l'œuvre devait un jour être exploitée commercialement.
+
+## D-45 — Densités humaines : HYDE 3.2.1 *(23/11/2026, maître)*
+HYDE 3.3 est derrière une page anti-robots à Utrecht ; on ne la contourne pas. On garde
+HYDE 3.2.1 (DANS, jusqu'en 2017) ; 2023 = effectif des Nations unies réparti comme en 2017,
+signalé comme hypothèse. À reprendre si HYDE 3.3 devient accessible.
+
+## D-46 — La Pangée se mesure en bloc continental *(23/11/2026, maître)*
+Un supercontinent se définit par sa croûte continentale d'un seul tenant, mers intérieures
+et plateaux peu profonds compris, pas par ses seules terres émergées. Le contrôle C3 de S3
+mesure donc la croûte au-dessus de −200 m, seuil inchangé (80 % en un bloc entre 320 et
+200 Ma) ; la part des terres émergées reste affichée comme indicateur. Ce n'est pas un
+desserrement : l'ancienne mesure ne testait pas ce que l'exigence N8 décrit.
+
+## D-47 — La part de la Pangée est montrée telle qu'elle est *(23/11/2026, maître)*
+De l'orogenèse hercynienne à la dislocation de la Pangée (≈ 380 → 175 Ma), on couvre
+environ 4,5 % de l'histoire de la Terre, et non « environ un dixième ». La frise montre la
+vraie proportion ; N8 est lu ainsi.
+
+## D-48 — L'orogenèse devient une simulation géodynamique *(23/11/2026, Marc)*
+Retour de Marc sur la page Alpes : on doit voir des fragments de plaque se déplacer, se
+heurter, se chevaucher, monter et s'user, avec un modèle de mécanique des solides et des
+fluides. Nouveau chantier S7b : cinématique publiée (van Hinsbergen et al. 2020, GPlates ;
+Le Breton et al. 2021 : 680 km de convergence Europe–Adria depuis 84 Ma) imposée à un
+modèle thermo-mécanique en couches (LaMEM 3D ou ASPECT) couplé à FastScape ; vue des
+Alpes entières, puis zoom sur Grenoble ; coupe = vraie machine à laver. Altitudes : celles
+que la physique produit, confrontées aux estimations publiées (moyennes miocènes
+1 900–2 850 m, sommets estimés 2 500 à plus de 5 000 m) ; 10 000 m n'est pas imposé.
+
+## D-49 — La Terre entière en mécanique des roches *(23/11/2026, Marc)*
+Nouveau chantier S3b. De 1,8 Ga à aujourd'hui : plaques du modèle complet de Cao et al.
+2024 (Geoscience Frontiers 15, 101922 ; Nuna, Rodinia, Gondwana/Pangée), qui remplace
+Merdith 2021 pour cette période. Les montagnes ne sont pas dessinées : un modèle de
+lithosphère en couche mince visqueuse sur la sphère, poussé par ces plaques, épaissit la
+croûte aux collisions ; le relief en sort par isostasie et s'use par érosion (FastScape sur
+grille sphérique). Avant 1,8 Ga : Vaalbara, Ur, Kenorland en hypothèses de la littérature,
+continents surtout immergés à l'Archéen (Zhou et al. 2026). Pannotia est débattue et
+montrée comme telle. La liste classique compte six réunions avant la Pangée (sept avec
+elle) ; les trois plus anciennes sont des hypothèses.

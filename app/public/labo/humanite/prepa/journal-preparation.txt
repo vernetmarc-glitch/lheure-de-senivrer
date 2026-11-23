@@ -1,0 +1,145 @@
+== relief (GMT earth_relief_06m, gridline 0,1°)
+  (cache) earth_relief_06m_g.grd
+  ok earth_relief_06m_g.grd 8093288
+== Black Marble 2016
+  (cache) BlackMarble_2016_01deg_gray_geo.tif
+  ok BlackMarble_2016_01deg_gray_geo.tif 856529
+  forme (1800, 3600, 3) uint8 0 255
+  (cache) BlackMarble_2016_01deg.jpg
+  ok BlackMarble_2016_01deg.jpg 779638
+== niveau marin
+  (cache) spratt2016.txt
+  ok spratt2016.txt 52553
+  (cache) bintanja2008.txt
+  ok bintanja2008.txt 2944909
+== Timmermann et al. 2022, tables supplémentaires
+  (cache) timmermann2022_S1.xlsx
+  ok timmermann2022_S1.xlsx 765984
+  (cache) timmermann2022_S2.xlsx
+  ok timmermann2022_S2.xlsx 10212
+== HYDE : DANS (doi 10.17026/dans-25g-gez3)
+   5 fichiers
+== HYDE : recherche de la version 3.3 sur DANS
+[200] https://archaeology.datastations.nl recherche (14997 car.)
+    doi:10.17026/DANS-25G-GEZ3 | Anthropogenic land-use estimates for the Holocene; HYDE 3.2 | 2025-06-02T14:41:52Z
+    doi:10.17026/DANS-ZNK-CFY3 | A historical land use data set for the Holocene; HYDE 3.2 (replaced) | 2016-05-10T22:00:00Z
+    doi:10.17026/DANS-2CT-FMUD | A historical land use data set for the Holocene; HYDE 3.2 (version 2, replaced) | 2025-06-03T11:19:05Z
+    doi:10.17026/DANS-ZKV-M27K | Bureau voor Archeologie Rapport 1054. Hyde Park blokken 20 en 21, Saturnusstraat en Planetenweg, Hoofddorp, gemeente Haarlemmermeer: een bureauonderzoek | 2021-12-20T23:00:00Z
+[200] https://ssh.datastations.nl recherche (121 car.)
+== habitats (Timmermann et al. 2022) : THREDDS
+[200] catalogue (1758 car.)
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0" xmlns:xlink="http://www.w3.org/1999/xlink" name="HOMININ-HABITATS" version="1.0.1">
+  <service name="latest" serviceType="Resolver" base="" />
+  <service name="both" serviceType="Compound" base="">
+    <service name="ncdods" serviceType="OPENDAP" base="/thredds/dodsC/" />
+    <service name="HTTPServer" serviceType="HTTPServer" base="/thredds/fileServer/" />
+  </service>
+  <dataset name="HOMININ-HABITATS Data">
+    <metadata inherited="true">
+      <serviceName>both</serviceName>
+      <authority>iccp.ibs.re.kr</authority>
+      <dataType>GRID</dataType>
+      <dataFormat>netCDF</dataFormat>
+      <documentation type="rights">Freely available</documentation>
+      <documentation xlink:href="https://climatedata.ibs.re.kr/data/hominin-habitats" xlink:title="HOMININ-HABITATS" />
+      <creator>
+        <name vocabulary="DIF">ICCP</name>
+        <contact url="http://www.iccp.ibs.re.kr/" email="ibsclimate@pusan.ac.kr" />
+      </creator>
+      <publisher>
+        <name vocabulary="DIF">ICCP</name>
+        <contact url="https://www.iccp.ibs.re.kr/" email="ibsclimate@pusan.ac.kr" />
+      </publisher>
+      <timeCoverage>
+        <end>present</end>
+        <duration>14 days</duration>
+      </timeCoverage>
+    </metadata>
+    <catalogRef name="" harvest="true" ID="hominin-habitats" xlink:href="/thredds/catalog/hominin-habitats/catalog.xml" xlink:title="HOMININ-HABITATS">
+      <metadata inherited="true">
+        <documentation type="summary">Hominin-habitats:</documentation>
+      </metadata>
+      <property name="DatasetScan" value="true" />
+    </catalogRef>
+  </dataset>
+</catalog>
+
+[200] sous-catalogue https://climatedata.ibs.re.kr/data/hominin-habitats (5717 car.)
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+            <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <meta name="generator" content="GravCMS" />
+    <meta name="description" content="Grav is an easy to use, yet powerful, open source flat-file CMS" />
+        <title>2Ma hominin habitat model simulation | Climate Data</title>
+        <link rel="icon" type="image/png" href="" />
+        
+                                        
+                                
+                    
+                    <link href="/user/plugins/bootstrapper/css/v3/bootstrap.min.css" type="text/css" rel="stylesheet">
+<link href="/user/plugins/bootstrapper/css/v3/bootstrap-theme.min.css" type="text/css" rel="stylesheet">
+<link href="/user/themes/bootstrap/css/font-awesome.min.css" type="text/css" rel="stylesheet">
+<link href="/user/themes/bootstrap/css-compiled/theme.css" type="text/css" rel="stylesheet">
+<link href="/user/plugins/markdown-notices/assets/notices.css" type="text/css" rel="stylesheet">
+<link href="/user/plugins/form/assets/form-styles.css" type="text/css" rel="stylesheet">
+<link href="/user/plugins/login/css/login.css" type="text/css" rel="stylesheet">
+
+            <script src="/system/assets/jquery/jquery-3.x.min.js"></script>
+<script src="/user/plugins/bootstrapper/js/v3/bootstrap.min.js"></script>
+<script src="/user/themes/bootstrap/js/modernizr.custom.71422.js"></script>
+
+        
+        </head>
+
+    <body class="">
+                            <nav class="navbar navbar-default navbar-static-top" role="navigation">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></spa
+[200] sous-catalogue /thredds/catalog/hominin-habitats/catalog.xml (2679 car.)
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.0.1">
+  <service name="both" serviceType="Compound" base="">
+    <service name="ncdods" serviceType="OPENDAP" base="/thredds/dodsC/" />
+    <service name="HTTPServer" serviceType="HTTPServer" base="/thredds/fileServer/" />
+  </service>
+  <service name="latest" serviceType="Resolver" base="" />
+  <dataset name="HOMININ-HABITATS" harvest="true" ID="hominin-habitats">
+    <metadata inherited="true">
+      <serviceName>both</serviceName>
+      <authority>iccp.ibs.re.kr</authority>
+      <dataType>GRID</dataType>
+      <dataFormat>netCDF</dataFormat>
+      <documentation type="summary">Hominin-habitats:</documentation>
+      <documentation type="rights">Freely available</documentation>
+      <documentation xlink:href="https://climatedata.ibs.re.kr/data/hominin-habitats" xlink:title="HOMININ-HABITATS" />
+      <creator>
+        <name vocabulary="DIF">ICCP</name>
+        <contact url="http://www.iccp.ibs.re.kr/" email="ibsclimate@pusan.ac.kr" />
+      </creator>
+      <publisher>
+        <name vocabulary="DIF">ICCP</name>
+        <contact url="https://www.iccp.ibs.re.kr/" email="ibsclimate@pusan.ac.kr" />
+      </publisher>
+      <timeCoverage>
+        <end>present</end>
+        <duration>14 days</duration>
+      </timeCoverage>
+    </metadata>
+    <dataset name="latest.xml" ID="hominin-habitats/latest.xml" urlPath="latest.xml">
+      <serviceName>latest</serviceName>
+    </dataset>
+    <dataset name="hominin_habitats_trev2.nc" ID="hominin-habitats/hominin_habitats_trev2.nc" urlPath="hominin-habitats/hominin_habitats_trev2.nc">
+      <dataSize units="Gbytes">2.593</dataSize>
+      <date type="modified">2022-04-08T00:19:25.825Z</date>
+    </dataset>
+    <dataset name="hominin_habitats_trev.nc" ID="hominin-habitats/hominin_habitats_trev.nc" urlPath="hominin-habitats/hom
+   chemins : ['latest.xml', 'hominin-habitats/hominin_habitats_trev2.nc', 'hominin-habitats/hominin_habitats_trev.nc', 'hominin-habitats/hominin-habitats.nc', 'hominin-habitats/homin_test10.nc']
+fin
