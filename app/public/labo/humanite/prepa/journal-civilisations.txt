@@ -18,7 +18,9 @@ Cliopatria : cliopatria_polities_only_v021.geojson 13412 enregistrements
   wikidata HTTP Error 429: Too Many Requests
   wikidata HTTP Error 429: Too Many Requests
   wikidata HTTP Error 429: Too Many Requests
-noms français : 1100 / 1409
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+noms français : 1045 / 1409
 248 pas de temps
   -10000 : 3 entités
   -6000 : 12 entités
@@ -34,5 +36,5 @@ noms français : 1100 / 1409
   1880 : 103 entités
   1990 : 160 entités
 paires voisines à ΔE < 30 : 0 / 5178
-paquet : 248 pas, 2.045704 Mo de cartes, 0.569759 Mo de méta
+paquet : 248 pas, 2.045704 Mo de cartes, 0.568196 Mo de méta
 Natural Earth 50 m : 242 pays
