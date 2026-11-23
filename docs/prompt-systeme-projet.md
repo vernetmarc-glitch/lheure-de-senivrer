@@ -58,6 +58,13 @@ L'état courant est dans `chantiers/ETAT.md`.
 | Décisions | `docs/decisions.md` |
 | Impasses | `docs/approches-ecartees.md` |
 
+## Références, styles, vidéo, compteur (Marc, 23/11/2026)
+
+Chaque chantier vise un visuel de référence et le mesure par une signature chiffrée ;
+matière en points lumineux, surfaces en photographie ; vidéo pour les couleurs à
+projection fixe, jamais pour les grandeurs mesurées ; compteur de vitesse du temps à
+aiguille dans un coin de chaque scène. Tout est dans `docs/references-visuelles-refonte.md`.
+
 ## Règles 0 — inchangées, elles valent pour chaque chantier
 
 0. **Rien n'est publié sans la batterie de contrôles complète** de ce qu'on publie

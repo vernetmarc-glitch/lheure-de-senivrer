@@ -26,9 +26,31 @@ Règles communes à tous les chantiers : `CLAUDE.md`. Chaque chantier :
 Vagues : **vague 1** (lancée le 19/11) S7, S8, S3, S1. **Vague 2** S0, S2. **Vague 3**
 S4, S5, S6 (ont besoin du globe de S3).
 
+## Directives du 23/11/2026 (Marc, 5 h 48) — valent pour tous les chantiers
+
+- **Une référence visuelle par chantier**, objectif esthétique du rendu, avec sa
+  signature chiffrée qui devient un contrôle : `docs/references-visuelles-refonte.md`
+  (N25). Le style de rendu y est fixé : matière en points lumineux, surfaces en
+  photographie (N26).
+- **Vidéo** pour les couleurs qui changent à projection fixe (H.264/AV1, image clé toutes
+  les 8 images, WebCodecs) ; jamais pour les grandeurs mesurées ; jamais pour le zoom (N27).
+- **Compteur de vitesse du temps** dans un coin de chaque scène : cadran de voiture,
+  aiguille log de 1 an à 10 Ga par seconde (N28). Composant commun
+  `app/public/commun/compteur.js`, construit par S0 ; chaque page labo l'intègre dès
+  qu'il existe (en attendant, une copie conforme à sa spécification).
+- **Humanité** : lignées en couleurs, densité croissante en nombre de points (HYDE 3.3),
+  Terre de nuit à la manière de Black Marble pour aujourd'hui.
+
+Vague de relance du 23/11 : S1, S3, S7, S8 reprennent ; S0 (avec le compteur) et S6
+démarrent.
+
 ---
 
-## S0 — Fondations de la carte (maître, sur `fond-de-carte`)
+## S0 — Fondations de la carte et composants communs (sur `fond-de-carte` et `chantier/fondations`)
+- Compteur de vitesse du temps (`app/public/commun/compteur.js`, page de démonstration
+  `labo/compteur`), selon `docs/references-visuelles-refonte.md` (N28).
+- Lecteur de texture vidéo commun (`app/public/commun/video.js` : WebCodecs H.264/AV1,
+  repli `<video>`) (N27).
 - Horloge à loupe : frise fine des 13,8 Ga au-dessus du curseur, fenêtre lumineuse
   reliée au curseur ; fenêtre par scène et par récit (N19).
 - Récits en chapitres : le panneau ouvre le chapitre de l'échelle courante (N18).
@@ -78,7 +100,11 @@ S4, S5, S6 (ont besoin du globe de S3).
 - Contrôles : aucune terre verte avant 420 Ma ; aujourd'hui proche des photographies
   sans nuages de la NASA.
 
-## S6 — Les vagues humaines (`labo/humanite`, après S3)
+## S6 — Les vagues humaines (`labo/humanite`)
+- Démarre sur un globe de nuit autonome (relief simple + Black Marble pour aujourd'hui),
+  rejoint le globe de S3 ensuite. Densité : HYDE 3.3 (10 000 av. J.-C. → 2023, 5′),
+  avant l'Holocène : effectifs estimés de la littérature, signalés comme estimations.
+  Un point = un nombre fixe d'humains ; une couleur par lignée.
 - Sites datés (ROAD), habitats (Timmermann et al. 2022) ; croissance aléatoire de proche
   en proche dans les terres habitables, ponts de terre selon le niveau marin ; une carte
   « date d'arrivée / date de disparition » par espèce ; remplacement par *sapiens*,
