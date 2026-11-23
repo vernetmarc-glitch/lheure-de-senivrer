@@ -1,13 +1,8 @@
 == HYDE 3.3
-[200] https://geo.public.data.uu.nl/vault-hyde/ -> https://geo.public.data.uu.nl/vault-hyde/ (None o)
-   (page Anubis : protection anti-robots)
-   -> https://geo.public.data.uu.nl/.within.website/x/cmd/anubis/api/honeypot/ef1e23dd-516f-4702-835c-2a8df67ff55f/init
-   -> https://geo.public.data.uu.nl/.within.website/x/xess/xess.min.css?cachebuster=v1.27.0
-   -> https://github.com/TecharoHQ/anubis
-   -> https://techaro.lol
+[500] https://geo.public.data.uu.nl/vault-hyde/ -> https://geo.public.data.uu.nl/vault-hyde/ (None o)
 [200] https://geo.public.data.uu.nl/vault-hyde-data/ -> https://geo.public.data.uu.nl/vault-hyde-data/ (None o)
    (page Anubis : protection anti-robots)
-   -> https://geo.public.data.uu.nl/.within.website/x/cmd/anubis/api/honeypot/c322ccad-5218-4c49-860f-8d3d8142ee2f/init
+   -> https://geo.public.data.uu.nl/.within.website/x/cmd/anubis/api/honeypot/e0080579-6a95-4f98-8675-83e394dcf4f0/init
    -> https://geo.public.data.uu.nl/.within.website/x/xess/xess.min.css?cachebuster=v1.27.0
    -> https://github.com/TecharoHQ/anubis
    -> https://techaro.lol
@@ -46,7 +41,7 @@
 [200] https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM2_ESM.pdf (6707027 o)
 [200] https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM3_ESM.xlsx (765984 o)
 [200] https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM4_ESM.xlsx (10212 o)
-[200] https://www.nature.com/articles/s41586-022-04600-9 -> https://www.nature.com/articles/s41586-022-04600-9?error=cookies_not_supported&code=cc4aee7b-567e-49f9-8624-cbbbbd46d335 (None o)
+[200] https://www.nature.com/articles/s41586-022-04600-9 -> https://www.nature.com/articles/s41586-022-04600-9?error=cookies_not_supported&code=c197d020-a8af-45b0-97ad-3fd4594d0905 (None o)
 == Niveau marin
 [200] https://www.ncei.noaa.gov/pub/data/paleo/contributions_by_author/spratt2016/spratt2016.txt (52553 o) b'# Global Sea Level Reconstruction using Stacked Records from 0-800 ka\r\n#------------------------------------------------'
 [200] https://www.ncei.noaa.gov/pub/data/paleo/contributions_by_author/bintanja2008/bintanja2008.txt (2944909 o) b'Global 3Ma Temperature, Sea Level, and Ice Volume Reconstructions \n-----------------------------------------------------'
@@ -55,7 +50,7 @@
 [404] https://oceania.generic-mapping-tools.org/server/earth/earth_relief/earth_relief_05m_g.grd (None o)
 [200] https://oceania.generic-mapping-tools.org/server/earth/earth_relief/earth_relief_06m_g.grd (8093288 o)
 [200] https://oceania.generic-mapping-tools.org/server/earth/earth_relief/earth_relief_10m_g.grd (3065504 o)
-[200] https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf/ETOPO_2022_v1_60s_N90W180_surface.nc (None o)
+[503] https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf/ETOPO_2022_v1_60s_N90W180_surface.nc (None o)
 [200] https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO1/data/ice_surface/grid_registered/netcdf/ETOPO1_Ice_g_gmt4.grd.gz (395148066 o)
 == ROAD
 [ERR URLError: <urlopen error timed out>] https://www.roceeh.uni-tuebingen.de/roadweb/smarty_road_simple_search.php -> https://www.roceeh.uni-tuebingen.de/roadweb/smarty_road_simple_search.php (None o)
