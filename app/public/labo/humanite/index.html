@@ -68,8 +68,8 @@ const COULEUR = { hominines: [1.0, 0.22, 0.80], erectus: [1.0, 0.42, 0.06], nean
 const LIGNEE_DE = m => (m === 'sapiens1' ? 'sapiens' : m);
 const APLAT = 0.0;        // retour de Marc (23/11) : plus d'aplat de couleur, seulement des points
 const A0 = 20;
-// N39 : la lecture ralentit fortement à l'époque historique (× 0,08 après −3000, raccord sur 600 ans)
-function ralenti(age) { const an = 2023 - age; const w = Math.min(1, Math.max(0, (an + 3300) / 600)); return Math.exp(Math.log(0.08) * w * w * (3 - 2 * w)); }            // décalage de la loi de lecture (ans)
+// N39 : la lecture ralentit fortement à l'époque historique (× 0,06 après −3000, raccord sur 600 ans)
+function ralenti(age) { const an = 2023 - age; const w = Math.min(1, Math.max(0, (an + 3300) / 600)); return Math.exp(Math.log(0.06) * w * w * (3 - 2 * w)); }            // décalage de la loi de lecture (ans)
 const C_LECTURE = 0.13;   // la lecture divise l'âge par e toutes les 7,7 s
 
 // ------------------------------------------------------------------ chargement
@@ -284,17 +284,20 @@ const texCiv = texture(1440, 720, gl.R16UI, gl.RED_INTEGER, gl.UNSIGNED_SHORT, n
 const NPAL = 2048, palData = new Uint8Array(NPAL * 4);
 for (const e of CIV.entites) if (e.id < NPAL) palData.set([...e.couleur, 255], e.id * 4);
 const texPal = texture(NPAL, 1, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, palData, false);
-let civPas = -2, civActif = false;
-async function majCiv(age) {
+let civPas = -2, civActif = false, civCharge = -2, civAttente = Promise.resolve();
+function majCiv(age) {
+  // la carte affichée (civCharge) ne change qu'une fois la tranche chargée : jamais de carte vide
   const k = pasCiv(age);
-  if (k === civPas) return;
-  civPas = k; civActif = k >= 0;
-  if (!civActif) return;
-  const m = await carteCiv(k);
-  if (civPas !== k) return;
-  gl.bindTexture(gl.TEXTURE_2D, texCiv); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1440, 720, gl.RED_INTEGER, gl.UNSIGNED_SHORT, m);
-  etat.sale = true;
+  if (k === civPas) return civAttente;
+  civPas = k;
+  if (k < 0) { civActif = false; civCharge = -1; civAttente = Promise.resolve(); return civAttente; }
+  civAttente = carteCiv(k).then(m => {
+    if (civPas !== k) return;
+    gl.bindTexture(gl.TEXTURE_2D, texCiv); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1440, 720, gl.RED_INTEGER, gl.UNSIGNED_SHORT, m);
+    civCharge = k; civActif = true; etat.sale = true;
+  });
+  return civAttente;
 }
 const bruitTex = (() => { const n = 128, d = new Uint8Array(n * n); for (let i = 0; i < n * n; i++) d[i] = Math.round(255 * hash(i, 17, 5, 3));
   const t = texture(n, n, gl.R8, gl.RED, gl.UNSIGNED_BYTE, d, true);
@@ -695,6 +698,8 @@ function placerEtiquettes(force) {
   const haut = document.getElementById('haut').getBoundingClientRect(), bas = document.getElementById('panneau').getBoundingClientRect();
   const cad = compteur.element.getBoundingClientRect();
   const pris = [cad];
+  for (const o of ETIQC.values()) if (o.el.style.display !== 'none' && +o.el.style.opacity > 0.05) {
+    const b = o.el.getBoundingClientRect(); pris.push({ left: b.left - 2, top: b.top - 2, right: b.right + 2, bottom: b.bottom + 2 }); }
   const actives = LIGNEES.map(l => [l, effectif(l, age) + (l === 'sapiens' ? effectif('sapiens1', age) : 0)]).filter(x => x[1] > 0)
     .sort((a, b) => a[1] - b[1]);
   for (const l of LIGNEES) if (!actives.find(x => x[0] === l)) { ETIQ[l].style.opacity = '0'; ETIQ[l].style.display = 'none'; }
@@ -750,7 +755,6 @@ function placerCiv(force) {
   const RT = rotation().RT;
   const haut = document.getElementById('haut').getBoundingClientRect(), bas = document.getElementById('panneau').getBoundingClientRect();
   const pris = [compteur.element.getBoundingClientRect(), haut];
-  for (const l of LIGNEES) { const e = ETIQ[l]; if (e.style.display !== 'none' && +e.style.opacity > 0) { const b = e.getBoundingClientRect(); pris.push({ left: b.left - 2, top: b.top - 2, right: b.right + 2, bottom: b.bottom + 2 }); } }
   const vus = new Set();
   let n = 0;
   for (const [id, lo, la, aire] of liste) {
@@ -772,9 +776,13 @@ function placerCiv(force) {
     o.el.style.font = `500 ${taille}px Jost, sans-serif`; o.el.style.display = 'block';
     const w = o.el.offsetWidth, h = o.el.offsetHeight;
     const cx = geo.cx + ex * geo.r, cy = geo.cy - ey * geo.r;
-    const bx = { left: cx - w / 2, top: cy - h / 2, right: cx + w / 2, bottom: cy + h / 2 };
-    const dedans = bx.left >= 2 && bx.right <= innerWidth - 2 && bx.top >= haut.bottom && bx.bottom <= bas.top;
-    if (!dedans || pris.some(p => !(bx.right <= p.left || p.right <= bx.left || bx.bottom <= p.top || p.bottom <= bx.top))) continue;
+    let bx = null;
+    for (const [dx, dy] of [[0, 0], [0, -h], [0, h], [-w / 3, 0], [w / 3, 0], [0, -2 * h], [0, 2 * h]]) {
+      const c = { left: cx + dx - w / 2, top: cy + dy - h / 2, right: cx + dx + w / 2, bottom: cy + dy + h / 2 };
+      const dedans = c.left >= 2 && c.right <= innerWidth - 2 && c.top >= haut.bottom && c.bottom <= bas.top;
+      if (dedans && !pris.some(p => !(c.right <= p.left || p.right <= c.left || c.bottom <= p.top || p.bottom <= c.top))) { bx = c; break; }
+    }
+    if (!bx) continue;
     pris.push(bx); vus.add(id); n++;
     o.el.style.transform = `translate(${bx.left.toFixed(1)}px, ${bx.top.toFixed(1)}px)`;
     o.el.style.opacity = '0.92';
@@ -804,7 +812,7 @@ function image(now) {
   compteur.vitesse(Math.abs(vLisse), Math.sign(vLisse));
   const np = pasGeneration(vLisse); if (np !== periode) { periode = np; etat.sale = true; }
   majCiv(etat.age);
-  if (etat.sale) { textes(); rendre(); placerEtiquettes(false); placerCiv(false); etat.sale = false; }
+  if (etat.sale) { textes(); rendre(); placerCiv(false); placerEtiquettes(false); etat.sale = false; }
   msJS.push(performance.now() - t0); if (msJS.length > 90) msJS.shift();
   requestAnimationFrame(image);
 }
@@ -821,14 +829,15 @@ function lirePlan(w = W, h = H, lum = false) { const px = new Float32Array(w * h
 window.__hum = {
   pret: true, K, lignees: LIGNEES,
   async regler(age) { etat.jouer = false; etat.vdemo = null; etat.age = Math.max(0, age); agePrec = etat.age; await majCiv(etat.age);
-    placerCurseur(); textes(); rendre(); placerEtiquettes(true); placerCiv(true); return etat.age; },
+    placerCurseur(); textes(); rendre(); placerCiv(true); placerEtiquettes(true); return etat.age; },
+  dbgCiv() { return { civPas, civCharge, civActif }; },
   civ() { return { entites: CIV.entites.map(e => ({ id: e.id, nom: e.nom, nom_en: e.nom_en, couleur: e.couleur })) }; },
   visible(lon, lat) { const RT = rotation().RT, la = lat * Math.PI / 180, lo = lon * Math.PI / 180;
     return RT[2] * Math.cos(la) * Math.sin(lo) + RT[5] * Math.sin(la) + RT[8] * Math.cos(la) * Math.cos(lo) > 0.35; },
   etiquettesCiv() { return [...ETIQC.values()].map(({ el, id, ancre }) => { const b = el.getBoundingClientRect(), cs = getComputedStyle(el);
     return { id, texte: el.textContent, x: b.x, y: b.y, w: b.width, h: b.height, ancre, visible: el.style.display !== 'none' && +el.style.opacity > 0.05,
       fondu: parseFloat(cs.transitionDuration) > 0 }; }); },
-  vue(lon, lat) { etat.lon = lon; etat.lat = lat; rendre(); placerEtiquettes(true); placerCiv(true); },
+  vue(lon, lat) { etat.lon = lon; etat.lat = lat; rendre(); placerCiv(true); placerEtiquettes(true); },
   isoler(l) { isole = l ? LIGNEES.indexOf(l) : -1; coucheEtiq.style.display = l ? 'none' : ''; etat.sale = true; rendre(); },
   etiquettes() { return LIGNEES.map(l => { const e = ETIQ[l], b = e.getBoundingClientRect(), cs = getComputedStyle(e);
     return { lignee: l, texte: e.textContent, x: b.x, y: b.y, w: b.width, h: b.height, taille: parseFloat(cs.fontSize),
@@ -846,15 +855,16 @@ window.__hum = {
       textes: [rect('titre', document.getElementById('titre')), rect('date', elDate), rect('récit', elRecit), rect('panneau', document.getElementById('panneau'))] }; },
   async plan(age, mode, lignee) {
     if (!plan) throw new Error('pas de cible flottante');
+    const sauve = etat.age; etat.age = age;          // la boucle d'animation garde la même tranche pendant le chargement
     await majCiv(age);
-    const sauve = etat.age; ageCalcule = -1; const perio = periode; periode = 25;
+    ageCalcule = -1; const perio = periode; periode = 25;
     if (mode === 'entite' || mode === 'couleur3') {
       gl.bindFramebuffer(gl.FRAMEBUFFER, plan2.f); gl.viewport(0, 0, 2 * W, 2 * H); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
       if (mode === 'entite') {
         gl.disable(gl.BLEND); gl.useProgram(progCiv.p); gl.uniform1i(progCiv.u.u_civ, civActif ? 1 : 0);
         gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, texCiv); gl.uniform1i(progCiv.u.u_civmap, 6);
         gl.bindVertexArray(vaoCiv); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.bindVertexArray(null);
-        const r = lirePlan(2 * W, 2 * H); gl.bindFramebuffer(gl.FRAMEBUFFER, null); periode = perio; etat.sale = true;
+        const r = lirePlan(2 * W, 2 * H); gl.bindFramebuffer(gl.FRAMEBUFFER, null); periode = perio; etat.age = sauve; etat.sale = true;
         return { w: 2 * W, h: 2 * H, b64: b64(r) };
       }
       preparerPoints(age);
@@ -876,7 +886,7 @@ window.__hum = {
       gl.uniform2f(pg.u.u_res, 2 * W, 2 * H); gl.uniform3fv(pg.u.u_coul, COUL); gl.uniform1f(pg.u.u_age, age);
       gl.uniform1f(pg.u.u_tau, Math.max(150, 0.05 * age)); gl.uniform1i(pg.u.u_eq, 1); gl.uniform1f(pg.u.u_terr, APLAT);
       gl.bindVertexArray(vaoGlobe); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.bindVertexArray(null);
-      const r = lirePlan(2 * W, 2 * H, true); gl.bindFramebuffer(gl.FRAMEBUFFER, null); periode = perio; etat.sale = true;
+      const r = lirePlan(2 * W, 2 * H, true); gl.bindFramebuffer(gl.FRAMEBUFFER, null); periode = perio; etat.age = sauve; etat.sale = true;
       return { w: 2 * W, h: 2 * H, b64: b64(r) };
     }
     preparerPoints(age);

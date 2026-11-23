@@ -898,7 +898,9 @@ def c18_entites(page):
     noms_page = {}
     for e in civ['entites']:
         noms_page[e['nom_en']] = e['id']
-    nom_id = {e['nom']: e['id'] for e in civ['entites']}
+    nom_id = {}
+    for e in civ['entites']:
+        nom_id.setdefault(e['nom'], set()).add(e['id'])
     A = aire_025()
     fautes, det = [], []
     for an in TEMOINS:
@@ -913,13 +915,13 @@ def c18_entites(page):
         page.wait_for_timeout(500)
         et = [e for e in page.evaluate('() => window.__hum.etiquettesCiv()') if e['visible']]
         for e in et:
-            i = nom_id.get(e['texte'])
-            if i is None or not (ref == i).any():
+            ids = nom_id.get(e['texte'], set())
+            if not ids or not np.isin(ref, list(ids)).any():
                 fautes.append(f'{an} : « {e["texte"]} » absente des données')
             elif e.get('ancre') is not None:
                 la, lo = e['ancre']
                 y, x = int((90 - la) / 0.25), int((lo + 180) / 0.25) % 1440
-                if not (ref[max(0, y - 2):y + 3, max(0, x - 2):x + 3] == i).any():
+                if not np.isin(ref[max(0, y - 2):y + 3, max(0, x - 2):x + 3], list(ids)).any():
                     fautes.append(f'{an} : « {e["texte"]} » posée hors de sa zone')
         noms_vus = {e['texte'] for e in et}
         for e in civ['entites']:
