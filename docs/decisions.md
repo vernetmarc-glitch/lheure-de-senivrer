@@ -468,3 +468,8 @@ soulèvement converge vers le relief réel, et la barre de temps ralentit pour l
 Depuis la même vue d'avion, voir s'écouler les glaciers dans les vallées, avec leurs
 avancées et leurs retraits, sur environ 100 000 ans, d'après les publications
 (simulations PISM de Seguinot et al. 2018, 120–0 ka). Chantier S8.
+
+## D-43 — Références visuelles, styles, vidéo, compteur *(23/11/2026, Marc)*
+Une référence visuelle par chantier avec signature chiffrée ; matière en points, surfaces
+en photographie ; vidéo seulement pour les couleurs à projection fixe ; compteur de vitesse
+du temps à aiguille dans chaque scène. Détails : `docs/references-visuelles-refonte.md`.
