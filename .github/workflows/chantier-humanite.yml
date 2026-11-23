@@ -1,0 +1,62 @@
+name: Chantier humanité — données publiées
+
+# Chantier S6 (les vagues humaines). Le bac à sable ne joint ni Utrecht (HYDE 3.3), ni
+# la NASA (Black Marble), ni la NOAA (niveau marin, relief), ni l'IBS (Timmermann et
+# al. 2022) : cette machine les télécharge, les prépare en grilles compactes et dépose
+# le paquet sur la branche.
+
+on:
+  push:
+    branches: [chantier/humanite]
+    paths:
+      - '.github/workflows/chantier-humanite.yml'
+      - 'app/public/labo/humanite/prepa/*.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: chantier-humanite
+  cancel-in-progress: false
+
+jobs:
+  preparer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      HUM_DL: /home/runner/humanite-dl
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chantier/humanite
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Cache des téléchargements
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/humanite-dl
+          key: humanite-dl-v1-${{ github.run_id }}
+          restore-keys: humanite-dl-v1-
+      - name: Paquets
+        run: pip install numpy scipy netCDF4 rasterio pillow openpyxl xarray
+      - name: Reconnaissance des sources
+        run: python app/public/labo/humanite/prepa/reconnaitre.py app/public/labo/humanite/prepa/reconnaissance.txt
+      - name: Télécharger et préparer
+        run: |
+          if [ -f app/public/labo/humanite/prepa/preparer.py ]; then
+            python app/public/labo/humanite/prepa/preparer.py "$HUM_DL" app/public/labo/humanite/prepa/intermediaires 2>&1 | tee app/public/labo/humanite/prepa/journal-preparation.txt
+          fi
+      - name: Déposer sur la branche
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A app/public/labo/humanite/prepa || true
+          git commit -m "Humanité : données préparées par le workflow (run ${{ github.run_id }})" || exit 0
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin chantier/humanite && git push origin HEAD:chantier/humanite && exit 0
+            sleep 10
+          done
+          exit 1
