@@ -21,8 +21,14 @@ les données de la simulation à 1e5 particules ne sont pas encore déposées.
   par critère écrit ; dépôt des données + `diagnostic/etape_N.txt` après chaque étape.
 - 1ᵉʳ lancement (23/11, 4 h 52) : les trois étapes 1 ont échoué après 5 h — disque plein
   (plus d'un millier de sorties de 12 Mo). Corrigé (extraction et effacement au fil de
-  l'eau, particules relaxées `shuffle_parts`), relancé le 23/11 à 10 h 48 (run 45159388255).
-  Données attendues vers 16 h UTC (étape 1), puis ≈ 21 h et ≈ 2 h.
+  l'eau, particules relaxées `shuffle_parts`), relancé le 23/11 à ≈ 11 h 20 dans un groupe de
+  concurrence neuf (`chantier-soleil-v2`) : l'ancien run 45114321078 ne s'annulait pas et
+  bloquait le run 45159388255 en attente. Données attendues ≈ 16 h 30 UTC (étape 1), puis
+  ≈ 21 h 30 et ≈ 2 h 30.
+- **Question au maître** : si tu as un jeton GitHub, annule les runs 45114321078 (ancien
+  code, échouera de même et pourrait déposer des données sans longueurs de lissage) et
+  45159388255 (doublon du nouveau). Sans cela, rien de grave : le dernier dépôt l'emporte,
+  je revérifie au prochain passage.
 - **Page** : WebGL2, densité de colonne en noyaux de largeur physique (h), couleur par la
   température (palette de la carte), ton à bornes fixes avec exposition liée au cadre
   (loi fixe Σ ∝ 1/R, jamais tirée de l'image), caméra sur le rayon de 10 % de la masse,

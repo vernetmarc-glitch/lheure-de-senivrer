@@ -18,7 +18,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: chantier-soleil
+  group: chantier-soleil-v2   # le run 45114321078 (groupe « chantier-soleil ») ne s'annulait pas
   cancel-in-progress: true
 
 env:
