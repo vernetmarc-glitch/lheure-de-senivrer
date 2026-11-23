@@ -14,13 +14,18 @@
   #ciel { position: fixed; inset: 0;
     background: linear-gradient(#1b2b44 0%, #4d6a8c 34%, #a9bccd 58%, #c9d3dc 72%, #c9d3dc 100%); }
   canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
-  #titre { position: fixed; top: calc(env(safe-area-inset-top) + 14px); left: 18px; right: 60px; pointer-events: none;
+  #titre { position: fixed; top: calc(env(safe-area-inset-top) + 14px); left: 18px; right: 104px; pointer-events: none;
     text-shadow: 0 1px 8px rgba(0,0,0,.45); }
   #titre h1 { margin: 0; font-size: 22px; font-weight: 500; letter-spacing: .01em; }
   #titre p { margin: 3px 0 0; font-size: 13px; color: var(--pale); font-style: italic; }
   #info-btn { position: fixed; top: calc(env(safe-area-inset-top) + 14px); right: 14px; width: 34px; height: 34px;
     border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(13,20,32,.35); color: var(--encre);
     font: italic 17px Georgia, serif; }
+  #compteur { position: fixed; top: calc(env(safe-area-inset-top) + 58px); right: 6px; width: 96px; pointer-events: none;
+    text-align: center; }
+  #compteur svg { width: 96px; height: 96px; display: block; }
+  #compteur .compteur-lecture { font: 10.5px/1.2 -apple-system, system-ui, sans-serif; color: rgba(238,243,248,.85);
+    text-shadow: 0 1px 4px rgba(0,0,0,.6); margin-top: 1px; }
   #lieux { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
   .lieu { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; font-size: 12px;
     color: #fff; text-shadow: 0 0 4px rgba(0,0,0,.9), 0 0 10px rgba(0,0,0,.5); letter-spacing: .03em; }
@@ -59,6 +64,7 @@
 <div id="lieux"></div>
 <div id="titre"><h1>Les glaciers respirent</h1><p>Alpes du Nord, Grenoble au centre — 120 000 ans de glace</p></div>
 <button id="info-btn" aria-label="À propos">i</button>
+<div id="compteur"></div>
 <div id="attente">La glace se rassemble…</div>
 <div id="bas">
   <div id="age">—</div>
@@ -79,9 +85,12 @@
   <p>Les Alpes du Nord vues d’avion, Grenoble au centre : la Chartreuse au nord, le Vercors au sud-ouest, Belledonne à l’est, et entre eux le sillon du Grésivaudan.</p>
   <p>La glace n’est pas dessinée à la main. C’est celle d’une simulation publiée du dernier cycle glaciaire des Alpes : un état tous les mille ans, de 119 000 ans à aujourd’hui, sur une maille d’un kilomètre. Entre deux états, la glace avance ou recule continûment.</p>
   <p>Les filets de lumière suivent les vitesses de surface calculées par le modèle : là où ils filent, la glace coule vite, souvent plusieurs centaines de mètres par an ; là où ils dorment, elle s’écoule de quelques mètres. Une seconde d’écran montre quarante ans de ce mouvement.</p>
-  <p class="src">Glace : J. Seguinot, S. Ivy-Ochs, G. Jouvet, M. Huss, M. Funk, F. Preusser (2018), « Modelling last glacial cycle ice dynamics in the Alps », The Cryosphere 12, 3265–3285 — modèle PISM, 1 km, forçage EPICA, précipitations paléo réduites ; Zenodo doi 10.5281/zenodo.1423176. Relief : Copernicus DEM GLO-30, moyenné à 125 m, exagéré 1,5 fois verticalement. Simplification : la glace est posée sur le relief actuel, sans l’enfoncement de la croûte sous son poids. Les glaciers d’aujourd’hui, plus petits que la maille, n’apparaissent presque pas.</p>
+  <p>Les traits sombres sur la glace sont des moraines médianes : là où deux glaciers se rejoignent, les débris de l’éperon qui les séparait suivent le courant, comme sur l’Aletsch aujourd’hui. Ils ne sont pas observés : ils sont tracés le long des lignes de courant du modèle, depuis les pointes rocheuses qui séparent deux flux.</p>
+  <p>Le cadran, en haut à droite, dit à quelle vitesse passe le temps : de un an à dix milliards d’années par seconde.</p>
+  <p class="src">Glace : J. Seguinot, S. Ivy-Ochs, G. Jouvet, M. Huss, M. Funk, F. Preusser (2018), « Modelling last glacial cycle ice dynamics in the Alps », The Cryosphere 12, 3265–3285 — modèle PISM, 1 km, forçage EPICA, précipitations paléo réduites ; Zenodo doi 10.5281/zenodo.1423176. Relief : Copernicus DEM GLO-30, moyenné à 125 m, exagéré 1,5 fois verticalement. Simplification : la glace est posée sur le relief actuel, sans l’enfoncement de la croûte sous son poids. Les glaciers d’aujourd’hui, plus petits que la maille, n’apparaissent presque pas. Au-delà de 600 m/a (marges minces du modèle), le pas des filets est borné ; leur direction reste celle du modèle.</p>
 </div>
 
+<script src="compteur.js"></script>
 <script>
 'use strict';
 (async function () {
@@ -92,7 +101,7 @@ const K_ECOULEMENT = 40;          // années d'écoulement par seconde d'écran
 const L = 20;                     // points par traînée
 const PAS_HIST = 0.05;            // s entre deux points de traînée
 const P_MAX = 2400;
-const DECALAGE = 0.2;             // décalage vertical de l'image (NDC)
+const DECALAGE = 0.13;            // décalage vertical de l'image (NDC)
 const DENSITE = 1 / 5;            // traînées par km² de glace
 const V_BORNE = 600;              // m/a : au-delà, le pas des filets est borné (le sens reste celui du modèle)
 const api = window.glaciers = { pret: false };
@@ -110,7 +119,9 @@ async function charger(url) {
   return buf;
 }
 const meta = await (await fetch('donnees/meta.json')).json();
-const [gBrut, rBrut] = await Promise.all([charger('donnees/' + meta.glace.fichier), charger('donnees/' + meta.relief.fichier)]);
+const [gBrut, rBrut, mBrut] = await Promise.all([charger('donnees/' + meta.glace.fichier), charger('donnees/' + meta.relief.fichier),
+  charger('donnees/' + meta.moraines.fichier)]);
+const MX = meta.moraines.nx, MY = meta.moraines.ny, MOR = mBrut;
 api.meta = meta;
 const NX = meta.nx, NY = meta.ny, NT = meta.nt, DX = meta.dx;
 const NC = NX * NY;
@@ -153,6 +164,10 @@ function surfaceGlace(xm, ym, k) {         // même B-spline que le shader, bord
       s += wx[a] * wy[b] * (RL1[c] + THK[o + c]); } }
   return s;
 }
+
+// qualité adaptative (voir adapter())
+const DPR_MAX = Math.min(window.devicePixelRatio || 1, 2);
+let echelle = DPR_MAX, moyenne = 16, attente = 0, partFils = 1, sobre = false;
 
 // ---------- temps ----------
 function cadre(age) {
@@ -254,8 +269,8 @@ void main() {
 const FS_TERRE = `#version 300 es
 precision highp float;
 ${COMMUN}
-uniform sampler2D uNorm;
-uniform int uControle; uniform vec3 uCam; uniform vec3 uSoleil; uniform vec3 uBrume; uniform vec2 uTexel;
+uniform sampler2D uNorm; uniform sampler2D uMa; uniform sampler2D uMb;   // moraines médianes
+uniform int uControle; uniform int uSobre; uniform vec3 uCam; uniform vec3 uSoleil; uniform vec3 uBrume; uniform vec2 uTexel;
 in vec2 vUV; in vec3 vPos; out vec4 o;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float bruit(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -263,21 +278,29 @@ float bruit(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * 
 float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 3; i++) { s += a * bruit(p); p *= 2.03; a *= 0.5; } return s / 0.875; }
 void main() {
   float m; vec4 g; float h = surface(vUV, m, g);
+  float mor = mix(texture(uMa, vUV).r, texture(uMb, vUV).r, uF);
   if (uControle == 1) { o = m >= 0.5 ? vec4(1.0, 0.0, 1.0, 1.0) : vec4(0.0, 0.0, 0.0, 1.0); return; }
+  if (uControle == 2) { o = (m >= 0.5 && mor >= 0.5) ? vec4(1.0, 0.0, 1.0, 1.0) : vec4(0.0, 0.0, 0.0, 1.0); return; }
   vec2 nr = texture(uNorm, vUV).rg * 2.0 - 1.0;             // normale du relief, précalculée
   vec3 N = vec3(nr.x, sqrt(max(0.0, 1.0 - dot(nr, nr))), nr.y);
   if (m > 0.3) {                                              // surface de glace : normale calculée
     float m2; vec4 g2;
-    float hE = surface(vUV + vec2(uTexel.x, 0.0), m2, g2), hW = surface(vUV - vec2(uTexel.x, 0.0), m2, g2);
-    float hN = surface(vUV + vec2(0.0, uTexel.y), m2, g2), hS = surface(vUV - vec2(0.0, uTexel.y), m2, g2);
-    vec2 d = 2.0 * uTexel * uTaille * 1000.0;
-    N = normalize(vec3(-(hE - hW) / d.x * uExag, 1.0, (hN - hS) / d.y * uExag));
+    if (uSobre == 1) {                                        // qualité réduite : différences avant
+      float hE = surface(vUV + vec2(uTexel.x, 0.0), m2, g2), hN = surface(vUV + vec2(0.0, uTexel.y), m2, g2);
+      vec2 d = uTexel * uTaille * 1000.0;
+      N = normalize(vec3(-(hE - h) / d.x * uExag, 1.0, (hN - h) / d.y * uExag));
+    } else {
+      float hE = surface(vUV + vec2(uTexel.x, 0.0), m2, g2), hW = surface(vUV - vec2(uTexel.x, 0.0), m2, g2);
+      float hN = surface(vUV + vec2(0.0, uTexel.y), m2, g2), hS = surface(vUV - vec2(0.0, uTexel.y), m2, g2);
+      vec2 d = 2.0 * uTexel * uTaille * 1000.0;
+      N = normalize(vec3(-(hE - hW) / d.x * uExag, 1.0, (hN - hS) / d.y * uExag));
+    }
   }
   float pente = 1.0 - N.y;
   vec2 xy = vUV * uTaille;                // km
   float r = texture(uRel, vUV).r;
   // roche, landes, forêts basses
-  float n = fbm(xy * 1.7);
+  float n = uSobre == 1 ? bruit(xy * 1.7) : fbm(xy * 1.7);
   vec3 bas = mix(vec3(0.22, 0.27, 0.15), vec3(0.34, 0.35, 0.22), n);
   vec3 mi = mix(vec3(0.30, 0.31, 0.24), vec3(0.42, 0.40, 0.34), n);
   vec3 haut = vec3(0.56, 0.54, 0.51);
@@ -294,9 +317,12 @@ void main() {
     vec2 q = vec2(dot(xy, dir), dot(xy, vec2(-dir.y, dir.x)));
     float stries = fbm(vec2(q.x * 0.25, q.y * 3.2));           // foliation étirée dans le sens du courant
     float crev = s > 80.0 ? smoothstep(0.62, 0.8, bruit(vec2(q.x * 6.0, q.y * 0.9))) * smoothstep(80.0, 400.0, s) : 0.0;
-    vec3 glaceC = mix(vec3(0.60, 0.70, 0.80), vec3(0.84, 0.90, 0.95), stries);
-    glaceC = mix(glaceC, vec3(0.55, 0.70, 0.84), 0.35 * crev);
-    glaceC = mix(glaceC, vec3(0.66, 0.74, 0.80), 0.3 * (1.0 - smoothstep(0.5, 0.95, m)));   // marges minces
+    vec3 glaceC = mix(vec3(0.74, 0.81, 0.88), vec3(0.93, 0.95, 0.97), stries);
+    glaceC = mix(glaceC, vec3(0.34, 0.48, 0.62), 0.45 * crev);                                  // crevasses
+    float debris = smoothstep(0.06, 0.4, mor) * (0.75 + 0.25 * bruit(vec2(q.x * 1.5, q.y * 8.0)));
+    glaceC = mix(glaceC, vec3(0.24, 0.22, 0.20), debris);                                     // moraines médianes
+    float lat = 1.0 - smoothstep(0.5, 0.62, m);                                               // moraines latérales
+    glaceC = mix(glaceC, vec3(0.36, 0.34, 0.31), 0.7 * lat);
     c = mix(c, glaceC, a);
   }
   // lumière
@@ -340,7 +366,7 @@ void main() {
 const FS_FIL = `#version 300 es
 precision highp float;
 in float vA; out vec4 o;
-void main() { float a = vA * 0.7; o = vec4(vec3(1.0, 0.98, 0.92) * a, a * 0.45); }`;
+void main() { float a = vA * 0.6; o = vec4(vec3(0.72, 0.90, 1.0) * a, a * 0.55); }`;
 
 const pT = programme(VS_TERRE, FS_TERRE);
 const pF = programme(VS_FIL, FS_FIL);
@@ -365,6 +391,8 @@ const texNorm = tex(RX, RY, gl.RG8, gl.RG, gl.UNSIGNED_BYTE, normRG, gl.LINEAR);
 const texGa = tex(NX, NY, gl.RGBA16F, gl.RGBA, gl.FLOAT, null, gl.LINEAR);
 const texGb = tex(NX, NY, gl.RGBA16F, gl.RGBA, gl.FLOAT, null, gl.LINEAR);
 const tampon = new Float32Array(NC * 4);
+const texMa = tex(MX, MY, gl.R8, gl.RED, gl.UNSIGNED_BYTE, null, gl.LINEAR);
+const texMb = tex(MX, MY, gl.R8, gl.RED, gl.UNSIGNED_BYTE, null, gl.LINEAR);
 function etat(k) {
   const o = k * NC;
   for (let i = 0; i < NC; i++) { const t = THK[o + i];
@@ -376,6 +404,9 @@ function chargerEtats(k) {
   if (chargeA === k && chargeB === k + 1) return;
   gl.bindTexture(gl.TEXTURE_2D, texGa); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, NX, NY, gl.RGBA, gl.FLOAT, etat(k));
   gl.bindTexture(gl.TEXTURE_2D, texGb); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, NX, NY, gl.RGBA, gl.FLOAT, etat(k + 1));
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  gl.bindTexture(gl.TEXTURE_2D, texMa); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, MX, MY, gl.RED, gl.UNSIGNED_BYTE, MOR.subarray(k * MX * MY, (k + 1) * MX * MY));
+  gl.bindTexture(gl.TEXTURE_2D, texMb); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, MX, MY, gl.RED, gl.UNSIGNED_BYTE, MOR.subarray((k + 1) * MX * MY, (k + 2) * MX * MY));
   chargeA = k; chargeB = k + 1;
 }
 
@@ -389,7 +420,7 @@ function indices(pas) {
     out[q++] = a; out[q++] = a + dx; out[q++] = a + dy; out[q++] = a + dx; out[q++] = a + dx + dy; out[q++] = a + dy; }
   return out;
 }
-const NIVEAUX = [1, 2, 3, 4].map(pas => indices(pas));
+const NIVEAUX = [1, 2, 3, 4, 6].map(pas => indices(pas));
 const decalNiv = []; { let o = 0; for (const n of NIVEAUX) { decalNiv.push(o); o += n.length; } }
 const idx = new Uint32Array(NIVEAUX.reduce((s, n) => s + n.length, 0));
 NIVEAUX.forEach((n, i) => idx.set(n, decalNiv[i]));
@@ -414,8 +445,12 @@ const alpha = new Float32Array(P_MAX), vivant = new Uint8Array(P_MAX);
 let tete = 0, depuisPas = 0, actifs = 0;
 
 // ---------- état de la scène ----------
-let age = AGES[0], lecture = !CONTROLE, vitesse = 1500;
+let age = AGES[0], lecture = !CONTROLE, vitesse = 1500, sens = 1;
 const cam = { az: 22 * Math.PI / 180, el: 27 * Math.PI / 180, dist: 95, cible: [77, 0, -78] };
+if (PARAMS.get('cam')) {                    // ?cam=x_km,y_km,distance_km,azimut°,élévation° (planches)
+  const [x, y, d, az, el] = PARAMS.get('cam').split(',').map(Number);
+  Object.assign(cam, { cible: [x, 1.5, -y], dist: d, az: az * Math.PI / 180, el: el * Math.PI / 180 });
+}
 
 function cellulesGlace(k) {
   const o = k * NC, l = [];
@@ -443,7 +478,7 @@ function borne(c) { const s = Math.hypot(c[0], c[1]); if (s > V_BORNE) { c[0] *=
 function aireEn(age) { const [k, f] = cadre(age); return (1 - f) * meta.aires_km2[k] + f * meta.aires_km2[k + 1]; }
 function avancer(dt) {
   const [k, f] = cadre(age);
-  actifs = Math.min(P_MAX, Math.round(aireEn(age) * DENSITE));
+  actifs = Math.min(P_MAX, Math.round(aireEn(age) * DENSITE * partFils));
   const pasHist = (depuisPas += dt) >= PAS_HIST;
   if (pasHist) { depuisPas = 0; tete = (tete + 1) % L; }
   const ya = K_ECOULEMENT * dt;
@@ -487,10 +522,12 @@ function uniformsTerre(VP, plan, controle, eye) {
   gl.uniformMatrix4fv(u.uVP, false, VP); gl.uniform1i(u.uPlan, plan); gl.uniform1i(u.uControle, controle);
   gl.uniform1f(u.uF, cadre(age)[1]); gl.uniform2f(u.uTaille, LARG, HAUT); gl.uniform1f(u.uExag, EXAG);
   gl.uniform3fv(u.uCam, eye); gl.uniform3fv(u.uSoleil, soleil); gl.uniform3fv(u.uBrume, BRUME);
-  gl.uniform2f(u.uTexel, 2 / RX, 2 / RY); gl.uniform2f(u.uNG, NX, NY);
+  gl.uniform2f(u.uTexel, 2 / RX, 2 / RY); gl.uniform1i(u.uSobre, sobre ? 1 : 0); gl.uniform2f(u.uNG, NX, NY);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texRel); gl.uniform1i(u.uRel, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texGa); gl.uniform1i(u.uGa, 1);
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texGb); gl.uniform1i(u.uGb, 2);
+  gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, texMa); gl.uniform1i(u.uMa, 5);
+  gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, texMb); gl.uniform1i(u.uMb, 6);
   gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, texNorm); gl.uniform1i(u.uNorm, 4);
 }
 
@@ -530,10 +567,11 @@ function nombre(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d
 const PHRASES = [
   [119000, 'L’Éémien s’achève. Il fait presque aussi doux qu’aujourd’hui ; la glace dort sur les sommets.'],
   [112000, 'Le froid revient par à-coups. Les glaciers descendent, hésitent, remontent.'],
-  [72000, 'Une première grande avancée : la glace sort des montagnes.'],
+  [72000, 'Une première grande avancée : la glace déborde des massifs de l’est.'],
   [58000, 'Un long entre-deux. Pendant trente mille ans, la glace va et vient dans les vallées.'],
-  [30000, 'Le grand froid. Le Grésivaudan devient un fleuve de glace ; seules les crêtes émergent.'],
-  [19000, 'La débâcle. En quelques milliers d’années, la glace se retire vers les sommets.'],
+  [27000, 'Le grand froid. Vers 24 000 ans, le glacier de l’Isère emplit le Grésivaudan et touche Grenoble — un millénaire à peine.'],
+  [23000, 'La glace quitte le Grésivaudan ; elle tient encore les massifs, striée de moraines.'],
+  [16000, 'La débâcle. En quelques milliers d’années, la glace se retire vers les sommets.'],
   [11700, 'L’Holocène. Il ne reste que des glaciers blottis dans les cirques, plus petits que la maille du modèle.'],
 ];
 function phrase(a) { let t = PHRASES[0][1]; for (const [d, p] of PHRASES) if (a <= d) t = p; return t; }
@@ -612,18 +650,22 @@ canvas.addEventListener('wheel', e => { e.preventDefault(); cam.dist = Math.max(
 // ---------- boucle ----------
 let tPrec = performance.now(), mesure = null;
 // résolution adaptative : le téléphone garde sa fluidité, la netteté suit ce qu'il peut
-const DPR_MAX = Math.min(window.devicePixelRatio || 1, 2);
-let echelle = DPR_MAX, moyenne = 16, attente = 0;
 function adapter(iv) {
   moyenne = 0.9 * moyenne + 0.1 * Math.min(iv, 250);
   if (++attente < 8) return;
   if (moyenne > 30) {                       // trop lent : netteté, puis maillage, puis netteté encore
     if (echelle > 1) echelle = Math.max(1, echelle * 0.8);
     else if (niveau < NIVEAUX.length - 1) niveau++;
-    else if (echelle > 0.4) echelle = Math.max(0.4, echelle * 0.8);
+    else if (partFils > 0.5) partFils = 0.5;
+    else if (echelle > 0.33) echelle = Math.max(0.33, echelle * 0.8);
+    else if (!sobre) sobre = true;
+    else if (partFils > 0.25) partFils = 0.25;
     attente = 0;
   } else if (moyenne < 18) {                // de la marge : on rend dans l'ordre inverse
-    if (echelle < 1) echelle = Math.min(1, echelle * 1.15);
+    if (partFils < 0.5) partFils = 0.5;
+    else if (sobre) sobre = false;
+    else if (echelle < 1) echelle = Math.min(1, echelle * 1.15);
+    else if (partFils < 1) partFils = 1;
     else if (niveau > 0) niveau--;
     else if (echelle < DPR_MAX) echelle = Math.min(DPR_MAX, echelle * 1.1);
     attente = 0;
@@ -635,16 +677,42 @@ function image(t) {
   if (mesure) { mesure.intervalles.push(t - tPrec); }
   if (!CONTROLE) adapter(t - tPrec);
   tPrec = t;
-  if (lecture) { age -= vitesse * dt; if (age <= 0) { age = 0; lecture = false; } }
+  const agePrec = age;
+  if (lecture) { age -= sens * vitesse * dt; if (age <= 0) { age = 0; lecture = false; } if (age >= AGES[0]) { age = AGES[0]; lecture = false; } }
+  vitesseReelle(agePrec, dt);
   avancer(dt);
   dessiner(); placerLieux(); majInterface();
   if (mesure) mesure.js.push(performance.now() - t0);
   requestAnimationFrame(image);
 }
 
+// ---------- compteur de vitesse du temps (N28) ----------
+const compteur = api.compteur = new CompteurTemps(document.getElementById('compteur'));
+let vLisse = 0, sensLisse = 0, dernierAge = age, dernierT = performance.now();
+function vitesseReelle() {
+  // vitesse réelle du curseur (lecture ou doigt), en années par seconde, lissée sur ≈ 0,25 s
+  const t = performance.now(), dt = (t - dernierT) / 1000;
+  if (dt <= 0) return;
+  const v = Math.abs(age - dernierAge) / dt, s = age < dernierAge ? 1 : (age > dernierAge ? -1 : sensLisse);
+  const k = Math.min(1, dt / 0.25);
+  vLisse = v === 0 ? 0 : vLisse + (v - vLisse) * k; sensLisse = s;
+  dernierAge = age; dernierT = t;
+  compteur.regler(vLisse, sensLisse);
+}
+api.age = () => age;
+api.couvertureSous = function (x, y, w, h) {      // part du relief dessiné sous un rectangle (px CSS)
+  const ech = canvas.width / canvas.clientWidth;
+  const X = Math.round(x * ech), W = Math.max(1, Math.round(w * ech)), H = Math.max(1, Math.round(h * ech));
+  const Y = Math.round(canvas.height - (y + h) * ech);
+  dessiner();
+  const px4 = new Uint8Array(W * H * 4); gl.readPixels(X, Y, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px4);
+  let n = 0; for (let i = 3; i < px4.length; i += 4) if (px4[i] > 8) n++;
+  return n / (W * H);
+};
+
 // ---------- interface de contrôle (mesure de ce qui est dessiné) ----------
 let fbo = null, fboN = 0;
-api.masquePlan = function (a, N) {
+api.masquePlan = function (a, N, couche) {
   const ageAvant = age; age = a; const [k] = cadre(age); chargerEtats(k);
   if (fboN !== N) {
     fbo = gl.createFramebuffer(); const rb = gl.createRenderbuffer();
@@ -654,7 +722,7 @@ api.masquePlan = function (a, N) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.viewport(0, 0, N, N);
   gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND);
   gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
-  uniformsTerre(VPcourant || new Array(16).fill(0), 1, 1, [0, 0, 0]);
+  uniformsTerre(VPcourant || new Array(16).fill(0), 1, couche === 'moraine' ? 2 : 1, [0, 0, 0]);
   gl.bindVertexArray(vaoT); gl.drawElements(gl.TRIANGLES, NIVEAUX[0].length, gl.UNSIGNED_INT, 0); gl.bindVertexArray(null);
   const px4 = new Uint8Array(N * N * 4); gl.readPixels(0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, px4);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -666,7 +734,8 @@ api.airesPlan = function (ages, N) {
   return ages.map(a => { const m = api.masquePlan(a, N); let s = 0; for (let i = 0; i < m.length; i++) s += m[i]; return s * aireP; });
 };
 api.regler = function (o) { if (o.age !== undefined) age = o.age; if (o.lecture !== undefined) lecture = o.lecture;
-  for (let p = 0; p < P_MAX; p++) { vivant[p] = 0; } majInterface(); };
+  if (o.vitesse !== undefined) vitesse = o.vitesse; if (o.sens !== undefined) sens = o.sens < 0 ? -1 : 1;
+  for (let p = 0; p < P_MAX; p++) { vivant[p] = 0; } for (let i = 3; i < POS.length; i += 4) POS[i] = 0; majInterface(); };
 api.traineesDessinees = function () {       // segments (ancien → récent), en mètres depuis le coin sud-ouest
   const out = [], n = Math.min(P_MAX, actifs + 64);
   for (let p = 0; p < n; p++) for (let s = 0; s < L - 1; s++) {
@@ -680,7 +749,7 @@ api.traineesDessinees = function () {       // segments (ancien → récent), en
   return out;
 };
 api.nombreTrainees = function () { let n = 0; for (let p = 0; p < P_MAX; p++) if (vivant[p]) n++; return n; };
-api.qualite = () => ({ echelle, niveau });
+api.qualite = () => ({ echelle, niveau, partFils, sobre });
 api.mesureImages = function (debut) { if (debut) { mesure = { js: [], intervalles: [] }; return null; } const m = mesure; mesure = null; return m; };
 
 document.getElementById('attente').remove();

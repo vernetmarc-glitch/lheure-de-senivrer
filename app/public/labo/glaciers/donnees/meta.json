@@ -368,5 +368,13 @@
   "ny": 1200,
   "dx": 125.0,
   "disposition": "i16 mètres, [ny][nx], rangée 0 = sud"
+ },
+ "moraines": {
+  "fichier": "moraines.bin.gz",
+  "nx": 300,
+  "ny": 300,
+  "dx": 500.0,
+  "disposition": "u8 (255 = moraine médiane), [nt][ny][nx], rangée 0 = sud",
+  "methode": "chantiers/glaciers/moraines.py : lignes de courant issues des pointes d’éperons et de nunataks qui séparent deux flux"
  }
 }

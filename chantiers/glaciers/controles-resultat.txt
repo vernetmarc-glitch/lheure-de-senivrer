@@ -1,0 +1,12 @@
+PASSE  C1  120 pas de 119000 à 0 ans, masques identiques=True, écart vitesses max 0.050 m/a, fenêtre 150×150 mailles de 1000 m
+PASSE  C2  âge, % dessiné dans les données, % des données dessiné, mailles : 110000: 100.0/100.0 (3426); 60000: 100.0/100.0 (4967); 25000: 100.0/100.0 (10675); 20000: 100.0/100.0 (9388); 15000: 100.0/100.0 (2661); 5000: 100.0/100.0 (168)
+PASSE  C3  60500: inventé 0.00 %, perdu 0.00 %; 24500: inventé 0.00 %, perdu 0.00 %; 15500: inventé 0.00 %, perdu 0.00 %
+PASSE  C4  maximum dessiné à 24000 ans (11726 km² ; données 11726 km² à 24000 ans), Grésivaudan englacé=True, écart d’aire max 0.00 %
+PASSE  C5  25000: hors glace 0.00 %; 25000: 2130 traînées, 6863 segments, écart médian 0.1°, 95e c. 1.0°; 60000: hors glace 0.00 %; 60000: 989 traînées, 4443 segments, écart médian 0.2°, 95e c. 6.3°
+PASSE  C9  60000: 112 km (données), dessinées dans les données 100.0 %, données dessinées 100.0 %, deux flux 100 % (262 pts); 15000: 36 km (données), dessinées dans les données 96.0 %, données dessinées 100.0 %, deux flux 97 % (272 pts); 110000: 58 km (données), dessinées dans les données 100.0 %, données dessinées 100.0 %, deux flux 99 % (265 pts); 20000: 295 km (données), dessinées dans les données 100.0 %, données dessinées 100.0 %, deux flux 99 % (285 pts)
+PASSE  C7  199 images, JS médian 1.90 ms, intervalle médian 33.3 ms (rendu logiciel SwiftShader, 2 cœurs partagés ; qualité atteinte {'echelle': 0.33, 'niveau': 4, 'partFils': 0.25, 'sobre': True})
+PASSE  C8  âge lisible=True, lieux ['Grenoble', 'Chartreuse', 'Vercors', 'Belledonne'], contraste 58.9
+PASSE  C10  1505 a/s → -49.3° (attendu -49.2°); 404 a/s → -64.8° (attendu -64.6°); 4845 a/s → -35.1° (attendu -35.5°); 5103 a/s → -35.2° (attendu -34.9°) flèche; 0 a/s → -150.0° (attendu -150.0°); cadran 96 px, coin=True, recouvre 0 texte(s), relief sous le cadran 1.6 %
+PASSE  C6  0 erreur(s) 
+
+10/10 contrôles passés

@@ -11,6 +11,7 @@ on:
     paths:
       - '.github/workflows/chantier-glaciers.yml'
       - 'chantiers/glaciers/prepare.py'
+      - 'chantiers/glaciers/moraines.py'
   workflow_dispatch:
 
 permissions:
@@ -42,6 +43,8 @@ jobs:
         run: pip install numpy scipy netCDF4 pyproj rasterio
       - name: Préparer
         run: python chantiers/glaciers/prepare.py
+      - name: Moraines médianes (à partir des vitesses publiées)
+        run: python chantiers/glaciers/moraines.py
       - name: Déposer sur la branche
         if: always()
         run: |

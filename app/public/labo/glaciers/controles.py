@@ -18,12 +18,24 @@ Seguinot et al. 2018), jamais de la page elle-même.
                           Grésivaudan
   C5 écoulement         : les traînées dessinées vont dans le sens des vitesses de
                           surface publiées (écart angulaire médian < 15°, 95e centile
-                          < 45°), au moins 400 traînées sur la glace
+                          < 45°), au moins 400 traînées, aucune hors de la glace (< 1 %,
+                          y compris juste après un saut dans le temps)
   C6 erreurs            : aucune erreur JavaScript ni de console
   C7 fluidité           : téléphone 390 × 844 : temps JavaScript médian par image
                           < 8 ms ; intervalle médian entre images < 50 ms même en
                           rendu logiciel
   C8 lecture            : la page montre l'âge, les noms des lieux, et une image non vide
+  C9 moraines médianes  : signature de la référence visuelle (Aletsch, Mer de Glace) :
+                          les moraines dessinées sont celles que donnent les vitesses
+                          publiées (≥ 85 % dans les deux sens, à 1 km près) et elles sont
+                          là où deux flux se rejoignent : de part et d'autre d'une moraine,
+                          en remontant le courant, les deux glaces viennent de part et
+                          d'autre d'un éperon ou d'un nunatak (points à ± 750 m, remontés
+                          sur 80 km ; ≥ 70 % des points)
+  C10 compteur          : cadran de vitesse du temps (N28) dans un coin, lisible sur
+                          390 px, ne masquant ni relief ni texte ; angle de l'aiguille =
+                          vitesse réelle du curseur en échelle log, à 1° près après
+                          amortissement ; butée à l'arrêt ; flèche quand le temps remonte
 
 Usage : python3 app/public/labo/glaciers/controles.py [--port 8810]
 Code de sortie 0 si tout passe.
@@ -45,6 +57,7 @@ ICI = os.path.dirname(os.path.abspath(__file__))
 PUBLIC = os.path.abspath(os.path.join(ICI, '..', '..'))
 RACINE = os.path.abspath(os.path.join(PUBLIC, '..', '..'))
 REF = os.path.join(RACINE, 'chantiers/glaciers/reference/reference.npz')
+sys.path.insert(0, os.path.join(RACINE, 'chantiers/glaciers'))
 DONNEES = os.path.join(ICI, 'donnees')
 
 resultats = []
@@ -106,7 +119,7 @@ def charger_reference():
     masques = np.unpackbits(z['masques'], axis=1)[:, :ny * nx].reshape(nt, ny, nx).astype(bool)
     return {'nt': nt, 'ny': ny, 'nx': nx, 'masques': masques, 'ages': z['ages'],
             'aires': z['aires_km2'], 'ref_ages': list(z['ref_ages']), 'ref_u': z['ref_u'],
-            'ref_v': z['ref_v']}
+            'ref_v': z['ref_v'], 'ref_thk': z['ref_thk']}
 
 
 def agrandir(m, f):
@@ -260,6 +273,13 @@ def main():
                 sel = rapide & bouge
                 ang = np.degrees(np.abs(np.angle(np.exp(1j * (np.arctan2(ds[sel, 1], ds[sel, 0])
                                                               - np.arctan2(vr[sel], ur[sel]))))))
+                # aucune traînée hors de la glace (ex. traînées périmées après un saut dans le temps)
+                mref = dilate(ref['masques'][list(ref['ages']).index(a)], 1)
+                ci = np.clip(mx.astype(int), 0, ref['nx'] - 1)
+                cj = np.clip(my.astype(int), 0, ref['ny'] - 1)
+                hors = float((~mref[cj, ci]).mean())
+                ok5 &= hors < 0.01
+                det.append(f'{a}: hors glace {100 * hors:.2f} %')
                 ntr = int(page.evaluate('window.glaciers.nombreTrainees()'))
                 med = float(np.median(ang)) if len(ang) else 180.0
                 p95 = float(np.percentile(ang, 95)) if len(ang) else 180.0
@@ -267,20 +287,71 @@ def main():
                 det.append(f'{a}: {ntr} traînées, {sel.sum()} segments, écart médian {med:.1f}°, 95e c. {p95:.1f}°')
             verdict('C5', ok5, '; '.join(det))
 
+            # C9 moraines médianes
+            import moraines as MOR
+            ok9, det = True, []
+            total_ref = 0.0
+            for a in [60000, 15000, 110000, 20000]:
+                k = ref['ref_ages'].index(a)
+                t = ref['ref_thk'][k].astype('f8')
+                u, v = ref['ref_u'][k].astype('f8'), ref['ref_v'][k].astype('f8')
+                r_fin = MOR.moraines(t, u, v)                        # grille de 500 m
+                fr = F // MOR.R
+                r_px = agrandir(r_fin, fr)
+                d_px = np.array(page.evaluate(f'Array.from(window.glaciers.masquePlan({a}, {N}, "moraine"))'),
+                                bool).reshape(N, N)
+                km_ref = r_fin.sum() / MOR.R
+                total_ref += km_ref
+                if r_fin.sum() == 0 and d_px.sum() == 0:
+                    det.append(f'{a}: aucune (données) / aucune (dessin)')
+                    continue
+                prec = (d_px & dilate(r_px, F)).sum() / max(1, d_px.sum())
+                rapp = (r_px & dilate(d_px, F)).sum() / max(1, r_px.sum())
+                # deux flux : de part et d'autre de la moraine dessinée, on remonte le courant
+                masque = (t >= 1).astype('f8')
+                jj, ii = np.nonzero(d_px)
+                rng = np.random.default_rng(1)
+                pick = rng.choice(len(jj), size=min(300, len(jj)), replace=False) if len(jj) else []
+                x = (ii[pick] + 0.5) / F
+                y = (jj[pick] + 0.5) / F
+                uu, vv = MOR.bil(u, x, y), MOR.bil(v, x, y)
+                sp = np.maximum(np.hypot(uu, vv), 1e-9)
+                nxv, nyv = -vv / sp, uu / sp
+                gx, gy, dx_, dy_ = x + 0.75 * nxv, y + 0.75 * nyv, x - 0.75 * nxv, y - 0.75 * nyv
+                surg = (MOR.bil(masque, gx, gy) >= 0.5) & (MOR.bil(masque, dx_, dy_) >= 0.5)
+                separe = np.zeros(len(x), bool)
+                for _ in range(320):
+                    for P in ('g', 'd'):
+                        X, Y = (gx, gy) if P == 'g' else (dx_, dy_)
+                        a_u, a_v = MOR.bil(u, X, Y), MOR.bil(v, X, Y)
+                        s_ = np.maximum(np.hypot(a_u, a_v), 1e-9)
+                        X -= a_u / s_ * 0.25
+                        Y -= a_v / s_ * 0.25
+                    for q in np.linspace(0.05, 0.95, 16):
+                        mx, my = gx + q * (dx_ - gx), gy + q * (dy_ - gy)
+                        separe |= MOR.bil(masque, mx, my) < 0.5
+                frac = separe[surg].mean() if surg.any() else 0.0
+                ok9 &= prec >= 0.85 and rapp >= 0.85 and frac >= 0.70
+                det.append(f'{a}: {km_ref:.0f} km (données), dessinées dans les données {100 * prec:.1f} %, '
+                           f'données dessinées {100 * rapp:.1f} %, deux flux {100 * frac:.0f} % ({surg.sum()} pts)')
+            ok9 &= total_ref >= 100
+            verdict('C9', ok9, '; '.join(det))
+
         # C7 fluidité
         if pret:
             page.goto(url, wait_until='load')
             page.wait_for_function('window.glaciers && window.glaciers.pret === true', timeout=90000)
             page.evaluate('window.glaciers.regler({age: 40000, lecture: true})')
-            page.wait_for_timeout(6000)          # la page adapte sa résolution
+            page.wait_for_timeout(9000)          # la page adapte sa qualité (netteté, maillage, filets)
             page.evaluate('window.glaciers.mesureImages(true)')
-            page.wait_for_timeout(5000)
+            page.wait_for_timeout(6000)
             st = page.evaluate('window.glaciers.mesureImages(false)')
+            qual = page.evaluate('window.glaciers.qualite()')
             js = float(np.median(st['js'])) if st['js'] else 1e9
             iv = float(np.median(st['intervalles'])) if st['intervalles'] else 1e9
             verdict('C7', js < 8 and iv < 50,
                     f'{len(st["js"])} images, JS médian {js:.2f} ms, intervalle médian {iv:.1f} ms '
-                    f'(rendu logiciel SwiftShader, 2 cœurs partagés)')
+                    f'(rendu logiciel SwiftShader, 2 cœurs partagés ; qualité atteinte {qual})')
             # C8
             page.evaluate('window.glaciers.regler({age: 25000, lecture: false})')
             page.wait_for_timeout(1500)
@@ -294,16 +365,60 @@ def main():
             lieux = [n for n in ['Grenoble', 'Chartreuse', 'Vercors', 'Belledonne'] if n in txt]
             ok8 = ('25 000' in txt) and len(lieux) == 4 and im.std() > 20
             verdict('C8', ok8, f'âge lisible={"25 000" in txt}, lieux {lieux}, contraste {im.std():.1f}')
+
+            # C10 compteur de vitesse du temps
+            det, ok10 = [], True
+            existe = page.evaluate('!!(window.glaciers.compteur && document.getElementById("compteur"))')
+            if not existe:
+                ok10 = False
+                det.append('cadran absent')
+            else:
+                def angle_attendu(vit):
+                    if vit <= 0:
+                        return -150.0
+                    return -135 + min(10, max(0, np.log10(vit))) / 10 * 270
+                for vit, sens in [(1500, 1), (400, 1), (5000, 1), (5000, -1), (0, 0)]:
+                    page.evaluate(f'window.glaciers.regler({{age: {90000 if sens >= 0 else 30000}, '
+                                  f'lecture: {"true" if vit else "false"}, vitesse: {vit or 1500}, sens: {sens or 1}}})')
+                    page.wait_for_timeout(1500)
+                    t0, a0 = page.evaluate('[performance.now(), window.glaciers.age()]')
+                    page.wait_for_timeout(1500)
+                    t1, a1, ang, fl = page.evaluate('[performance.now(), window.glaciers.age(), '
+                                                   'window.glaciers.compteur.angleAffiche(), '
+                                                   'document.querySelector("#compteur .fleche-passe").getAttribute("visibility")]')
+                    reelle = abs(a1 - a0) / ((t1 - t0) / 1000)
+                    att = angle_attendu(reelle)
+                    ecart = abs(ang - att)
+                    fl_ok = (fl == 'visible') == (sens < 0 and vit > 0)
+                    ok10 &= ecart <= 1.0 and fl_ok
+                    det.append(f'{reelle:.0f} a/s → {ang:.1f}° (attendu {att:.1f}°){" flèche" if fl == "visible" else ""}')
+                page.evaluate('window.glaciers.regler({age: 25000, lecture: false})')
+                page.wait_for_timeout(800)
+                boite = page.evaluate('''(() => { const r = document.getElementById("compteur").getBoundingClientRect();
+                    const autres = [...document.querySelectorAll(".lieu, #titre, #bas, #info-btn")]
+                      .filter(e => getComputedStyle(e).visibility !== "hidden")
+                      .map(e => e.getBoundingClientRect()).filter(b => b.width > 0 &&
+                        b.left < r.right && b.right > r.left && b.top < r.bottom && b.bottom > r.top).length;
+                    return {l: r.left, t: r.top, w: r.width, h: r.height, autres,
+                            sous: window.glaciers.couvertureSous(r.left, r.top, r.width, r.height)}; })()''')
+                coin = min(boite['l'], 390 - boite['l'] - boite['w']) <= 16
+                ok_b = boite['w'] >= 64 and boite['l'] >= 0 and boite['l'] + boite['w'] <= 390 and coin \
+                    and boite['autres'] == 0 and boite['sous'] <= 0.05
+                ok10 &= ok_b
+                det.append(f"cadran {boite['w']:.0f} px, coin={coin}, recouvre {boite['autres']} texte(s), "
+                           f"relief sous le cadran {100 * boite['sous']:.1f} %")
+            verdict('C10', ok10, '; '.join(det))
         else:
             verdict('C7', False, 'page non prête')
             verdict('C8', False, 'page non prête')
+            verdict('C10', False, 'page non prête')
         nav.close()
     srv.shutdown()
     if ref is None:
-        for c in ['C2', 'C3', 'C4', 'C5']:
+        for c in ['C2', 'C3', 'C4', 'C5', 'C9']:
             verdict(c, False, 'références absentes (le workflow n’a pas encore déposé les données)')
     elif not any(r[0] == 'C2' for r in resultats):
-        for c in ['C2', 'C3', 'C4', 'C5']:
+        for c in ['C2', 'C3', 'C4', 'C5', 'C9']:
             verdict(c, False, 'page non prête')
     verdict('C6', not erreurs, f'{len(erreurs)} erreur(s) ' + ' | '.join(erreurs[:5]))
     nb = sum(ok for _, ok, _ in resultats)
