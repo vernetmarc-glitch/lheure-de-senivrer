@@ -1,7 +1,7 @@
 [    0.0 s] fichiers .rot : 
   cao/13628813/x/1.8Ga_model_GSF/1000_0_rotfile.rot 
   cao/13628813/x/1.8Ga_model_GSF/1800_1000_rotfile.rot
-[    0.2 s] cao/13628813/x/1.8Ga_model_GSF/shapes_continents.gpmlz : 872 objets ; ClosedContinentalBoundary 651, UnclassifiedFeature 153, IslandArc 34, TerraneBoundary 15, Craton 5, ContinentalFragment 5
+[    0.3 s] cao/13628813/x/1.8Ga_model_GSF/shapes_continents.gpmlz : 872 objets ; ClosedContinentalBoundary 651, UnclassifiedFeature 153, IslandArc 34, TerraneBoundary 15, Craton 5, ContinentalFragment 5
 [    0.3 s] cao/13628813/x/1.8Ga_model_GSF/1800-1000_plate_boundaries.gpml : 739 objets ; TopologicalClosedPlateBoundary 318, MidOceanRidge 196, SubductionZone 157, Transform 68
 [    0.3 s] cao/13628813/x/1.8Ga_model_GSF/Paleomagnetic_poles.gpml : 208 objets ; VirtualGeomagneticPole 208
 [    0.6 s] cao/13628813/x/1.8Ga_model_GSF/1000-410_plate_boundaries.gpml : 2223 objets ; TopologicalClosedPlateBoundary 947, Transform 568, SubductionZone 414, MidOceanRidge 294
@@ -14,12 +14,12 @@
 [    2.8 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_metamorphic_gradient_smaller_than_375_SZ.gpml : 102 objets ; UnclassifiedFeature 102
 [    2.9 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_metamorphic_gradient_larger_than_775_rift.gpml : 328 objets ; UnclassifiedFeature 328
 [    2.9 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_metamorphic_gradient_375_775_Orogen.gpml : 173 objets ; UnclassifiedFeature 173
-[   16.1 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_geochemistry_SIA-I_and-magnesian-type.gpmlz : 43364 objets ; UnclassifiedFeature 43364
-[   16.1 s] topologies : ['1800-1000_plate_boundaries.gpml', '1000-410_plate_boundaries.gpml', '250-0_plate_boundaries.gpml', '410-250_plate_boundaries.gpml']
-[   16.1 s] statiques : ['static_polygons.gpmlz']
-[   16.1 s] continents : ['shapes_continents.gpmlz', 'COBfile_1800_0.gpml']
-[   16.4 s] polygones statiques : 2422 polygones, couverture 100.0 % des pixels
-[   16.7 s] croûte continentale : 2290 polygones, couverture 57.2 % des pixels
-[   18.2 s] topologies en cache : 901 instants
-[   68.8 s] rotations : 620 plaques × 1801 Ma
-[   69.0 s] fin
+[   15.9 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_geochemistry_SIA-I_and-magnesian-type.gpmlz : 43364 objets ; UnclassifiedFeature 43364
+[   15.9 s] topologies : ['1800-1000_plate_boundaries.gpml', '1000-410_plate_boundaries.gpml', '250-0_plate_boundaries.gpml', '410-250_plate_boundaries.gpml']
+[   15.9 s] statiques : ['static_polygons.gpmlz']
+[   15.9 s] continents : ['shapes_continents.gpmlz', 'COBfile_1800_0.gpml']
+[   16.3 s] polygones statiques : 2422 polygones, couverture 100.0 % des pixels
+[   16.6 s] croûte continentale : 2290 polygones, couverture 57.2 % des pixels
+[   18.0 s] topologies en cache : 901 instants
+[   61.5 s] rotations : 620 plaques × 1801 Ma
+[   61.7 s] fin
