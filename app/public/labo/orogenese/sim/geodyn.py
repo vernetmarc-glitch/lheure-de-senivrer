@@ -13,6 +13,7 @@ Conditions aux limites : l'Europe est fixe (bord gauche) ; l'Adria entre par le 
 420 km de 84 à 35 Ma puis 260 km de 35 à 0 Ma ; le manteau ressort sous l'Adria.
 
 Usage : python3 geodyn.py coupes.json <nom> <sortie.npz> [--pas-km 5] [--budget-s 20000]
+Les calculs complets tournent sur GitHub (chantier-orogenese.yml) ; ici, essais courts seulement.
 """
 import argparse, json, os, sys, time
 import numpy as np

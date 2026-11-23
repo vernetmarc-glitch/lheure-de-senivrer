@@ -505,3 +505,21 @@ modèle thermo-mécanique en couches (LaMEM 3D ou ASPECT) couplé à FastScape ;
 Alpes entières, puis zoom sur Grenoble ; coupe = vraie machine à laver. Altitudes : celles
 que la physique produit, confrontées aux estimations publiées (moyennes miocènes
 1 900–2 850 m, sommets estimés 2 500 à plus de 5 000 m) ; 10 000 m n'est pas imposé.
+
+## Proposition S7b-1 au maître — le code géodynamique de l'orogenèse *(23/11/2026, agent S7b)*
+Choix : **un code 2D maison** (`app/public/labo/orogenese/sim/geodyn.py`) plutôt que LaMEM
+ou ASPECT pour ce premier passage. Stokes incompressible visco-plastique en différences
+finies sur grille décalée, marqueurs (lithologie, domaine, température, déformation
+plastique), air collant stabilisé (FSSA), chaleur implicite, érosion **FastScape**
+(fastscapelib 0.3, loi de puissance du courant le long du profil, Hack) et sédimentation
+marine ; convergence de Le Breton et al. 2021 imposée au bord (Europe fixe). Quatre coupes
+le long de l'arc (Argentera, Grenoble–Turin, Valais, Grisons), calculées en parallèle sur
+les machines GitHub (`chantier-orogenese.yml`, 5 km, deux étapes de 5 h 30 avec reprise),
+raccordées en plan par l'arc alpin actuel.
+Raison : le court essai montre que le bac à sable n'atteint ni Julia (LaMEM.jl), ni un
+démon Docker (image ASPECT) ; ces codes ne pourraient être mis au point que par allers-
+retours de plusieurs heures sur les machines GitHub, incompatibles avec la limite d'usage
+partagée. Le code maison se vérifie pas à pas ici (≈ 0,4 s par pas à 10 km), puis tourne à
+5 km sur GitHub. Ce qu'il ne fait pas encore : 3D, élasticité, fusion partielle, rotation
+de l'Adria. Si la page doit aller au-delà (3D, nappes fines), passer à ASPECT 2D + FastScape
+par workflow, avec ce code comme référence de contrôle.
