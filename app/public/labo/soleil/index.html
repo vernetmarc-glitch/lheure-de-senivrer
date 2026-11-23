@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Naissance du Soleil — L'Heure de s'enivrer (labo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Jost:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --nuit: #000; --texte: #e6e8f0; --doux: rgba(210,214,228,0.72); --trait: rgba(150,170,220,0.28);
+  --voile: rgba(6, 8, 14, 0.72);
+  --f-titre: "Cinzel", "Times New Roman", serif;
+  --f-corps: "Jost", "Helvetica Neue", Arial, sans-serif;
+}
+html, body { height: 100%; margin: 0; background: var(--nuit); color: var(--texte); font-family: var(--f-corps); overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+#ciel { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#tete { position: absolute; top: 12px; left: 14px; right: 118px; pointer-events: none; }
+h1 { font-family: var(--f-titre); font-weight: 600; font-size: 16px; letter-spacing: 0.03em; margin: 0; text-shadow: 0 1px 4px #000; }
+#recit { margin-top: 8px; font-size: 14px; line-height: 1.38; color: var(--texte); text-shadow: 0 1px 4px #000, 0 0 12px #000;
+  transition: opacity 0.6s; min-height: 58px; }
+#bas { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--voile) 65%, rgba(6,8,14,0)); }
+#ligne { display: flex; align-items: center; gap: 12px; }
+#lecture { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--trait); background: rgba(20,22,30,0.7);
+  color: var(--texte); font: 500 16px var(--f-corps); display: flex; align-items: center; justify-content: center; padding: 0; }
+#curseur { position: relative; flex: 1; height: 44px; touch-action: none; }
+#rail { position: absolute; left: 0; right: 0; top: 21px; height: 2px; background: rgba(120,130,150,0.35); border-radius: 1px; }
+#fait { position: absolute; left: 0; top: 21px; height: 2px; background: rgba(255,200,130,0.85); border-radius: 1px; }
+#naiss { position: absolute; left: 50%; top: 14px; width: 1px; height: 16px; background: rgba(255,210,150,0.6); }
+#poignee { position: absolute; top: 13px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%;
+  background: #ffd9a0; box-shadow: 0 0 10px rgba(255,190,110,0.8); }
+#temps { font: 500 14px var(--f-corps); margin: 2px 0 0; }
+#age { font-size: 12px; color: var(--doux); margin-top: 2px; }
+#echelle { position: absolute; right: 16px; bottom: calc(118px + env(safe-area-inset-bottom)); text-align: right; font-size: 11px; color: var(--doux);
+  pointer-events: none; text-shadow: 0 1px 3px #000; }
+#barre { height: 2px; background: rgba(230,232,240,0.8); margin: 0 0 4px auto; }
+#source { position: absolute; left: 16px; bottom: calc(118px + env(safe-area-inset-bottom)); width: 52%; font-size: 10px; line-height: 1.3;
+  color: rgba(200,205,225,0.5); pointer-events: none; }
+#charge { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--doux); pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="ciel"></canvas>
+<div id="tete">
+  <h1>Naissance du Soleil</h1>
+  <div id="recit"></div>
+</div>
+<div id="echelle"><div id="barre"></div><span id="barreTxt"></span></div>
+<div id="source">Simulation Phantom (hydrodynamique à particules). Luminosité : Baraffe et al. 2015.
+  Au-delà de la simulation, le disque tourne et se dissipe selon une loi moyenne observée : hypothèse.</div>
+<div id="bas">
+  <div id="ligne">
+    <button id="lecture" aria-label="lecture">▶</button>
+    <div id="curseur"><div id="rail"></div><div id="fait"></div><div id="naiss"></div><div id="poignee"></div></div>
+  </div>
+  <div id="temps"></div>
+  <div id="age">il y a 4,57 milliards d'années</div>
+</div>
+<div id="charge">le nuage se rassemble…</div>
+
+<script type="module">
+import { creeCompteur } from "./compteur.js";
+
+const S = window.__soleil = { pret: false, erreurs: [] };
+const $ = id => document.getElementById(id);
+const G = 39.478;                 // UA³ / (M☉ an²)
+const AGE_FIN = 1.0e8;            // fin de l'échelle : 100 millions d'années
+const TAU_DISQUE = 2.5e6;         // dissipation des disques (Mamajek 2009, fraction de disques ∝ e^(−t/2,5 Ma)) — hypothèse
+const DT_MIN = 50;                // ans, de part et d'autre de la naissance
+const DUREE_LECTURE = 75;         // secondes pour parcourir toute l'échelle
+// ton à bornes fixes, en densité de colonne (M☉/UA²) : aucune statistique de l'image
+const SIGMA0 = 6.0e-9, SIGMA1 = 4.0e-5, GAMMA = 0.62;
+const R_ETOILE = 3.0;             // R☉, protoétoile en accrétion (hypothèse, comme dans les données)
+
+// ------------------------------------------------------------------ données
+const meta = await (await fetch("donnees/soleil.json")).json();
+S.meta = meta;
+const N = meta.n_points, K = meta.instants.length, INS = meta.instants;
+const tc = meta.t_naissance, tFinSim = INS[K - 1].t;
+const masseSphere = 1.2, mPoint = masseSphere / N;
+// étoile principale (la plus massive) à chaque instant ; avant la naissance, le futur centre
+const premier = INS.find(i => i.puits.length);
+const centreNaiss = premier ? principal(premier) : { x: 0, y: 0, z: 0, m: 0 };
+function principal(i) { return i.puits.reduce((a, b) => (b.m > a.m ? b : a)); }
+const SINK = INS.map(i => i.puits.length ? principal(i) : { x: centreNaiss.x, y: centreNaiss.y, z: centreNaiss.z, m: 0 });
+
+// trajectoire publiée (BHAC15)
+const TR = meta.trajectoire;
+const lA = TR.age_an.map(Math.log10), lL = TR.L.map(Math.log10), lTe = TR.Teff.map(Math.log10), lR = TR.R.map(Math.log10);
+// âge où la contraction cesse (R à 2 % de son minimum) : l'hydrogène a pris le relais
+const Rmin = Math.min(...TR.R); const iZ = TR.R.findIndex(r => r <= 1.02 * Rmin); const AGE_H = TR.age_an[iZ];
+function interp(xs, ys, x) {
+  if (x <= xs[0]) return ys[0];
+  if (x >= xs[xs.length - 1]) return ys[ys.length - 1];
+  let a = 0, b = xs.length - 1;
+  while (b - a > 1) { const m = (a + b) >> 1; if (xs[m] <= x) a = m; else b = m; }
+  return ys[a] + (ys[b] - ys[a]) * (x - xs[a]) / (xs[b] - xs[a]);
+}
+// luminosité d'accrétion pendant la simulation (données), puis raccord log–log vers la trajectoire
+const tauFin = tFinSim - tc;
+const accA = [], accL = [];
+INS.forEach(i => { if (i.t > tc && i.Lacc > 0) { accA.push(Math.log10(i.t - tc)); accL.push(Math.log10(i.Lacc)); } });
+function luminosite(age) {
+  if (!(age > 0)) return 0;
+  const la = Math.log10(age);
+  if (age >= TR.age_an[0]) return Math.pow(10, interp(lA, lL, la));
+  const lFin = accL.length ? interp(accA, accL, Math.log10(Math.min(age, tauFin))) : lL[0];
+  if (age <= tauFin) return Math.pow(10, lFin);
+  const l0 = accL.length ? accL[accL.length - 1] : lL[0], a0 = Math.log10(tauFin);
+  return Math.pow(10, l0 + (lL[0] - l0) * (la - a0) / (lA[0] - a0));
+}
+function temperature(age) {
+  if (!(age > 0)) return 0;
+  if (age >= TR.age_an[0]) return Math.pow(10, interp(lA, lTe, Math.log10(age)));
+  const Lp = luminosite(Math.min(age, tauFin));
+  const Tacc = 5772 * Math.pow(Lp / (R_ETOILE * R_ETOILE), 0.25);
+  if (age <= tauFin) return Tacc;
+  const a0 = Math.log10(tauFin), f = (Math.log10(age) - a0) / (lA[0] - a0);
+  return Math.pow(10, Math.log10(Tacc) + (lTe[0] - Math.log10(Tacc)) * f);
+}
+S.luminosite = luminosite; S.temperatureEtoile = temperature;
+
+// ------------------------------------------------------------------ échelle de temps (curseur s ∈ [0,1])
+// avant la naissance : log du temps qui reste ; après : log de l'âge de l'étoile
+const lAvant = Math.log10(tc), lMin = Math.log10(DT_MIN), lApres = Math.log10(AGE_FIN);
+function tDeS(s) {
+  if (s < 0.5) { const u = lAvant + (lMin - lAvant) * (s / 0.5); return s <= 0 ? 0 : tc - Math.pow(10, u); }
+  const u = lMin + (lApres - lMin) * ((s - 0.5) / 0.5); return tc + Math.pow(10, u);
+}
+function sDeT(t) {
+  if (t < tc) { const d = Math.max(tc - t, DT_MIN); return t <= 0 ? 0 : 0.5 * (Math.log10(d) - lAvant) / (lMin - lAvant); }
+  const d = Math.max(t - tc, DT_MIN); return Math.min(1, 0.5 + 0.5 * (Math.log10(d) - lMin) / (lApres - lMin));
+}
+S.tDisque = Math.min(tc + 1.0e6, tFinSim + 1.0e6);   // âge d'HL Tauri : ≈ 1 million d'années
+
+// ------------------------------------------------------------------ WebGL
+const cv = $("ciel");
+const gl = cv.getContext("webgl2", { antialias: false, alpha: false, preserveDrawingBuffer: true, premultipliedAlpha: false });
+if (!gl) { $("charge").textContent = "WebGL2 est nécessaire pour cette page."; throw new Error("WebGL2 indisponible"); }
+const flottant = !!(gl.getExtension("EXT_color_buffer_float") || gl.getExtension("EXT_color_buffer_half_float"));
+function prog(vs, fs) {
+  const p = gl.createProgram();
+  for (const [ty, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+    const sh = gl.createShader(ty); gl.shaderSource(sh, src); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+    gl.attachShader(p, sh);
+  }
+  gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+// palette de la carte (Millennium) parcourue par log T, bornes fixes : 10 K indigo, 20 K violet,
+// 40 K rouge, 100 K or, 400 K blanc (le gaz reste à 10 K tant qu'il n'est pas très dense)
+const PAL = `
+  vec3 palette(float t) {
+    vec3 c1 = vec3(0.20, 0.16, 0.62), c2 = vec3(0.52, 0.20, 0.66), c3 = vec3(0.92, 0.34, 0.30),
+         c4 = vec3(1.0, 0.70, 0.32), c5 = vec3(1.0, 0.93, 0.70), c6 = vec3(1.0);
+    if (t < 0.25) return mix(c1, c2, t / 0.25);
+    if (t < 0.50) return mix(c2, c3, (t - 0.25) / 0.25);
+    if (t < 0.72) return mix(c3, c4, (t - 0.50) / 0.22);
+    if (t < 0.88) return mix(c4, c5, (t - 0.72) / 0.16);
+    return mix(c5, c6, clamp((t - 0.88) / 0.12, 0.0, 1.0));
+  }`;
+const pPts = prog(`#version 300 es
+  in vec3 q0; in vec3 q1; in float T0; in float T1; in float rang;
+  uniform float L0, L1, f, dtKep, Msink, sigma, poids, part, lmin, lmax, apres;
+  uniform vec3 c0, c1, cam;
+  uniform mat3 rot; uniform vec2 res; uniform float demiLarg;
+  out vec3 vc; out float vw;
+  ${PAL}
+  void main() {
+    bool a0 = q0.x * 65535.0 < 0.5 || q0.y * 65535.0 < 0.5 || q0.z * 65535.0 < 0.5;
+    bool a1 = q1.x * 65535.0 < 0.5 || q1.y * 65535.0 < 0.5 || q1.z * 65535.0 < 0.5;
+    if (a0 || a1 || rang > part) { gl_Position = vec4(2.0, 2.0, 0.0, 1.0); gl_PointSize = 0.0; vw = 0.0; vc = vec3(0.0); return; }
+    vec3 p0 = ((q0 * 65535.0 - 32768.0) / 32767.0) * L0 - c0;
+    vec3 p1 = ((q1 * 65535.0 - 32768.0) / 32767.0) * L1 - c1;
+    // interpolation en coordonnées cylindriques autour de l'étoile, angle avancé d'un nombre
+    // entier de tours pour suivre la rotation képlérienne entre deux instants
+    float r0 = length(p0.xy), r1 = length(p1.xy);
+    float ph0 = atan(p0.y, p0.x), ph1 = atan(p1.y, p1.x);
+    float dph = ph1 - ph0; dph -= 6.2831853 * floor((dph + 3.14159265) / 6.2831853);
+    float rm = max(0.5 * (r0 + r1), 1.0);
+    float om = Msink > 0.0 ? sqrt(${G.toFixed(3)} * Msink / (rm * rm * rm)) : 0.0;
+    float tours = floor((om * dtKep - dph) / 6.2831853 + 0.5);
+    if (om * dtKep < 3.14159265) tours = 0.0;
+    float ph = ph0 + (dph + 6.2831853 * tours) * f;
+    float r = mix(r0, r1, f); float z = mix(p0.z, p1.z, f);
+    if (apres > 0.0) {
+      // au-delà de la simulation : dernier état, chaque point tourne autour de l'étoile à
+      // sa vitesse képlérienne (hypothèse : plus de chute, plus d'étalement)
+      float rs = max(length(p1), 1.0);
+      float om1 = Msink > 0.0 ? sqrt(${G.toFixed(3)} * Msink / (rs * rs * rs)) : 0.0;
+      ph = ph1 + mod(om1 * apres, 6.2831853); r = r1; z = p1.z;
+    }
+    vec3 p = vec3(r * cos(ph), r * sin(ph), z);
+    vec3 v = rot * (p - cam);
+    gl_Position = vec4(v.x / demiLarg, v.y / demiLarg * res.x / res.y, 0.0, 1.0);
+    gl_PointSize = sigma * 6.0;
+    float lt = mix(T0, T1, f);
+    vc = palette(clamp(((lt * 255.0 - 1.0) / 254.0 * (lmax - lmin) + lmin - 1.0) / 1.6, 0.0, 1.0));
+    vw = poids / (6.2831853 * sigma * sigma);
+  }`, `#version 300 es
+  precision highp float; in vec3 vc; in float vw; out vec4 o;
+  void main() {
+    vec2 d = gl_PointCoord * 2.0 - 1.0; float r2 = 9.0 * dot(d, d);
+    if (r2 > 9.0) discard;
+    float g = vw * exp(-0.5 * r2);
+    o = vec4(vc * g, g);
+  }`);
+// ton : densité de colonne → luminance, bornes fixes ; puis l'étoile
+const pTon = prog(`#version 300 es
+  out vec2 uv; void main() { vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); uv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`,
+  `#version 300 es
+  precision highp float; in vec2 uv; uniform sampler2D acc; uniform float lnS1, gam, echelleAcc;
+  uniform vec2 etoile; uniform float eclat, halo; uniform vec3 couleur; uniform vec2 res; out vec4 o;
+  void main() {
+    vec4 a = texture(acc, uv);
+    float s = a.a * echelleAcc;
+    vec3 c = s > 0.0 ? a.rgb / a.a : vec3(0.0);
+    float b = pow(clamp(log(1.0 + s) / lnS1, 0.0, 1.0), gam);
+    vec3 col = c * b;
+    if (eclat > 0.0) {
+      float d = length((uv - etoile) * res);
+      float coeur = exp(-0.5 * d * d / 2.2);
+      float h = halo * halo;
+      float aur = eclat * (0.55 * exp(-d / h) + 0.25 * h * h / (h * h + d * d));
+      col += vec3(3.0) * coeur + couleur * aur;
+    }
+    col = 1.0 - exp(-col * 1.15);  // épaule douce, fixe
+    o = vec4(pow(col, vec3(1.0 / 1.1)), 1.0);
+  }`);
+
+// tampon de toutes les positions et températures (paquets chargés au fil de l'eau)
+const taille = INS.map(i => i.octet + 7 * N);
+const fichiers = [...new Set(INS.map(i => i.fichier))];
+const debutFichier = {}; let cumul = 0;
+for (const f of fichiers) { debutFichier[f] = cumul; cumul += Math.max(...INS.filter(i => i.fichier === f).map(i => i.octet + 7 * N)); }
+const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, cumul, gl.STATIC_DRAW);
+const charge = new Array(K).fill(false);
+const rangs = new Float32Array(N); for (let i = 0; i < N; i++) rangs[i] = ((i * 2654435761) >>> 0) / 4294967296;
+const vboR = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vboR); gl.bufferData(gl.ARRAY_BUFFER, rangs, gl.STATIC_DRAW);
+const vao = gl.createVertexArray();
+const LOC = {}; for (const n of ["q0", "q1", "T0", "T1", "rang"]) LOC[n] = gl.getAttribLocation(pPts, n);
+const U = {}; for (const n of ["apres", "L0", "L1", "f", "dtKep", "Msink", "sigma", "poids", "part", "lmin", "lmax", "c0", "c1", "cam", "rot", "res", "demiLarg"]) U[n] = gl.getUniformLocation(pPts, n);
+const UT = {}; for (const n of ["acc", "lnS1", "gam", "echelleAcc", "etoile", "eclat", "halo", "couleur", "res"]) UT[n] = gl.getUniformLocation(pTon, n);
+gl.bindVertexArray(vao);
+gl.bindBuffer(gl.ARRAY_BUFFER, vboR); gl.enableVertexAttribArray(LOC.rang); gl.vertexAttribPointer(LOC.rang, 1, gl.FLOAT, false, 0, 0);
+for (const n of ["q0", "q1", "T0", "T1"]) gl.enableVertexAttribArray(LOC[n]);
+const vaoVide = gl.createVertexArray();
+
+async function chargePaquets() {
+  for (const f of fichiers) {
+    const buf = await (await fetch("donnees/" + f)).arrayBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferSubData(gl.ARRAY_BUFFER, debutFichier[f], new Uint8Array(buf));
+    INS.forEach((ins, k) => { if (ins.fichier === f) charge[k] = true; });
+    sale = true;
+    if (charge[0] && charge[1] && $("charge")) $("charge").remove();
+  }
+}
+
+let fbo = null, texAcc = null, W = 0, H = 0;
+function redim() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
+  if (w === W && h === H) return;
+  W = cv.width = w; H = cv.height = h;
+  if (texAcc) gl.deleteTexture(texAcc);
+  texAcc = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texAcc);
+  if (flottant) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, W, H, 0, gl.RGBA, gl.HALF_FLOAT, null);
+  else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  if (!fbo) fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texAcc, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  sale = true;
+}
+
+// ------------------------------------------------------------------ vue
+const INCL0 = 50 * Math.PI / 180, AZ0 = 0.35;   // vue oblique, comme HL Tauri (inclinaison ≈ 47°)
+let incl = INCL0, az = AZ0, part = 1.0, etoileVisible = true;
+function matrice() {
+  // on regarde le plan du disque (xy) depuis une inclinaison incl, tourné de az autour de z
+  // axes de l'écran dans le repère du nuage : ex dans le plan du disque, ey incliné de incl
+  const ca = Math.cos(az), sa = Math.sin(az), ci = Math.cos(incl), si = Math.sin(incl);
+  const ex = [ca, sa, 0], ey = [-sa * ci, ca * ci, si];
+  const ez = [ex[1] * ey[2] - ex[2] * ey[1], ex[2] * ey[0] - ex[0] * ey[2], ex[0] * ey[1] - ex[1] * ey[0]];
+  return [ex[0], ey[0], ez[0], ex[1], ey[1], ez[1], ex[2], ey[2], ez[2]];
+}
+function versEcran(p, cam, dl) {
+  const m = matrice(), d = [p[0] - cam[0], p[1] - cam[1], p[2] - cam[2]];
+  const x = m[0] * d[0] + m[3] * d[1] + m[6] * d[2], y = m[1] * d[0] + m[4] * d[1] + m[7] * d[2];
+  const cw = cv.clientWidth, ch = cv.clientHeight;
+  return [cw / 2 + x / dl * cw / 2, ch / 2 - y / dl * cw / 2];
+}
+
+// ------------------------------------------------------------------ état temporel
+let t = 0, lecture = false, sale = true, dernierT = 0, dernierInst = performance.now(), vitesse = 0, dureeImage = 0;
+function instant(t) {
+  const tt = Math.min(t, tFinSim);
+  let k = 0; while (k < K - 2 && INS[k + 1].t <= tt) k++;
+  const f = Math.min(1, Math.max(0, (tt - INS[k].t) / (INS[k + 1].t - INS[k].t)));
+  return [k, f];
+}
+function etat(t) {
+  const [k, f] = instant(t);
+  const a = SINK[k], b = SINK[k + 1];
+  const c = [a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f, a.z + (b.z - a.z) * f];
+  const m = a.m + (b.m - a.m) * f;
+  const dl = Math.exp(Math.log(INS[k].R_vue) * (1 - f) + Math.log(INS[k + 1].R_vue) * f);
+  return { k, f, c, m, dl };
+}
+
+const textes = [
+  [-Infinity, "Un cœur de nuage, froid : dix degrés au-dessus du zéro absolu. Un peu plus d'une masse de Soleil, sur un tiers d'année-lumière."],
+  [-8.0e4, "La gravité l'emporte sur la chaleur. Le nuage tombe sur lui-même, d'abord par le centre."],
+  [-3.0e3, "Au centre, le gaz se serre et s'échauffe ; il tourne de plus en plus vite."],
+  [0, "Une étoile naît. Elle ne brille encore que de ce qu'elle avale."],
+  [3.0e3, "Ce qui tourne trop vite pour tomber s'aplatit en disque : la matière des futures planètes."],
+  [3.0e5, "Le jeune Soleil se contracte. Il brille plus qu'aujourd'hui, de la seule chaleur de sa chute ; le deutérium s'y consume, brièvement."],
+  [2.0e6, "En quelques millions d'années, le gaz du disque se dissipe."],
+  [1.2e7, "Le Soleil se contracte encore, lentement ; son cœur approche des dix millions de degrés."],
+  [AGE_H, "L'hydrogène s'allume au cœur. La contraction cesse : le Soleil a trouvé l'équilibre qu'il gardera dix milliards d'années."],
+];
+const nb = x => Math.round(x).toLocaleString("fr-FR").replace(/ | /g, " ");
+function duree(x) {
+  if (x < 1e6) { const p = Math.pow(10, Math.max(0, Math.floor(Math.log10(x)) - 1)); return `${nb(Math.round(x / p) * p)} ans`; }
+  const m = x / 1e6, s = m < 10 ? m.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : nb(m);
+  return `${s} million${m >= 2 ? "s" : ""} d'années`;
+}
+function etiquettes() {
+  const d = t - tc;
+  $("temps").textContent = t <= 0 ? "le nuage, avant l'effondrement" :
+    d < 0 ? `${duree(-d)} avant la naissance du Soleil` : `le Soleil a ${duree(Math.max(d, 1))}`;
+  let txt = textes[0][1]; for (const [a, x] of textes) if (d >= a) txt = x;
+  if ($("recit").textContent !== txt) $("recit").textContent = txt;
+  const s = sDeT(t);
+  $("poignee").style.left = `${100 * s}%`; $("fait").style.width = `${100 * s}%`;
+}
+function barre(dl) {
+  const cw = cv.clientWidth, uaParPx = 2 * dl / cw, cible = 90 * uaParPx;
+  const p = Math.pow(10, Math.floor(Math.log10(cible)));
+  const v = [1, 2, 5, 10].map(x => x * p).filter(x => x <= cible * 1.3).pop() || p;
+  $("barre").style.width = `${v / uaParPx}px`;
+  $("barreTxt").textContent = v >= 5000 ? `${(v / 63241).toLocaleString("fr-FR", { maximumSignificantDigits: 2 })} année-lumière (${nb(v)} UA)`
+    : `${nb(v)} UA — distance Terre–Soleil × ${nb(v)}`;
+}
+
+function dessine() {
+  const t0 = performance.now();
+  redim();
+  const e = etat(t);
+  const k = e.k, f = e.f;
+  const age = t - tc;
+  const apres = Math.max(0, t - tFinSim);
+  // dissipation du gaz après la fin de la simulation (hypothèse publiée-moyenne)
+  const reste = Math.exp(-apres / TAU_DISQUE);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.viewport(0, 0, W, H);
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  if (charge[k] && charge[k + 1] && reste > 1e-4) {
+    gl.useProgram(pPts); gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    const o0 = debutFichier[INS[k].fichier] + INS[k].octet, o1 = debutFichier[INS[k + 1].fichier] + INS[k + 1].octet;
+    gl.vertexAttribPointer(LOC.q0, 3, gl.UNSIGNED_SHORT, true, 0, o0);
+    gl.vertexAttribPointer(LOC.q1, 3, gl.UNSIGNED_SHORT, true, 0, o1);
+    gl.vertexAttribPointer(LOC.T0, 1, gl.UNSIGNED_BYTE, true, 0, o0 + 6 * N);
+    gl.vertexAttribPointer(LOC.T1, 1, gl.UNSIGNED_BYTE, true, 0, o1 + 6 * N);
+    const a = SINK[k], b = SINK[k + 1];
+    gl.uniform1f(U.L0, INS[k].L); gl.uniform1f(U.L1, INS[k + 1].L);
+    gl.uniform1f(U.f, apres > 0 ? 1.0 : f);
+    gl.uniform1f(U.dtKep, INS[k + 1].t - INS[k].t);
+    gl.uniform1f(U.apres, apres);
+    gl.uniform1f(U.Msink, e.m);
+    gl.uniform3f(U.c0, a.x, a.y, a.z); gl.uniform3f(U.c1, b.x, b.y, b.z);
+    gl.uniform3f(U.cam, 0, 0, 0);   // positions déjà relatives à l'étoile
+    gl.uniformMatrix3fv(U.rot, false, new Float32Array(matrice()));
+    gl.uniform2f(U.res, W, H);
+    gl.uniform1f(U.demiLarg, e.dl);
+    const sigma = 0.85 * Math.min(window.devicePixelRatio || 1, 2);
+    const uaParPx = 2 * e.dl / W;
+    gl.uniform1f(U.sigma, sigma);
+    // poids : masse d'un point / aire d'un pixel, en unités de SIGMA0 ; × reste du gaz
+    gl.uniform1f(U.poids, mPoint / (uaParPx * uaParPx) / SIGMA0 * reste);
+    gl.uniform1f(U.part, part);
+    gl.uniform1f(U.lmin, meta.codage_T.log_min); gl.uniform1f(U.lmax, meta.codage_T.log_max);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    gl.drawArrays(gl.POINTS, 0, N);
+    gl.disable(gl.BLEND);
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
+  gl.useProgram(pTon); gl.bindVertexArray(vaoVide);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texAcc); gl.uniform1i(UT.acc, 0);
+  gl.uniform1f(UT.lnS1, Math.log(1 + SIGMA1 / SIGMA0)); gl.uniform1f(UT.gam, GAMMA); gl.uniform1f(UT.echelleAcc, 1.0);
+  gl.uniform2f(UT.res, W, H);
+  const L = luminosite(age);
+  if (L > 0 && etoileVisible) {
+    const pe = versEcran([0, 0, 0], [0, 0, 0], e.dl);
+    gl.uniform2f(UT.etoile, pe[0] / cv.clientWidth, 1 - pe[1] / cv.clientHeight);
+    const l = Math.log10(L);
+    gl.uniform1f(UT.eclat, Math.min(1.6, Math.max(0.25, 0.55 + 0.3 * l)));
+    gl.uniform1f(UT.halo, Math.sqrt(Math.max(1.5, (3 + 2.2 * l) * Math.min(window.devicePixelRatio || 1, 2))));
+    const c = corpsNoir(temperature(age)); gl.uniform3f(UT.couleur, c[0], c[1], c[2]);
+  } else gl.uniform1f(UT.eclat, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  etiquettes(); barre(e.dl);
+  dureeImage = 0.9 * dureeImage + 0.1 * (performance.now() - t0);
+}
+// couleur d'un corps noir (approximation de Planck intégrée sur sRGB, 2 000–10 000 K)
+function corpsNoir(T) {
+  const x = Math.min(Math.max(T, 1500), 12000) / 100;
+  let r = x <= 66 ? 1 : 1.2929 * Math.pow(x - 60, -0.1332);
+  let g = x <= 66 ? 0.3901 * Math.log(x) - 0.6318 : 1.1298 * Math.pow(x - 60, -0.0755);
+  let b = x >= 66 ? 1 : x <= 19 ? 0 : 0.5432 * Math.log(x - 10) - 1.1963;
+  return [r, g, b].map(v => Math.min(1, Math.max(0, v)));
+}
+
+// ------------------------------------------------------------------ interaction
+const compteur = creeCompteur(document.body, { coin: "haut-droite", taille: 92 });
+S.compteur = compteur;
+function regle(nt) { t = Math.min(Math.max(nt, 0), tc + AGE_FIN); sale = true; }
+function joue(on) { lecture = on; $("lecture").textContent = on ? "❚❚" : "▶"; $("lecture").setAttribute("aria-label", on ? "pause" : "lecture"); dernierInst = performance.now(); }
+$("lecture").addEventListener("click", () => { if (!lecture && t >= tc + AGE_FIN * 0.999) regle(0); joue(!lecture); });
+const cur = $("curseur");
+function versS(ev) { const b = cur.getBoundingClientRect(); return Math.min(1, Math.max(0, (ev.clientX - b.left) / b.width)); }
+let tire = false;
+cur.addEventListener("pointerdown", ev => { tire = true; cur.setPointerCapture(ev.pointerId); regle(tDeS(versS(ev))); });
+cur.addEventListener("pointermove", ev => { if (tire) regle(tDeS(versS(ev))); });
+cur.addEventListener("pointerup", () => { tire = false; });
+let glisse = null;
+cv.addEventListener("pointerdown", ev => { glisse = [ev.clientX, ev.clientY, az, incl]; cv.setPointerCapture(ev.pointerId); });
+cv.addEventListener("pointermove", ev => {
+  if (!glisse) return;
+  az = glisse[2] - (ev.clientX - glisse[0]) * 0.008;
+  incl = Math.min(Math.PI * 0.5, Math.max(0, glisse[3] - (ev.clientY - glisse[1]) * 0.008));
+  sale = true;
+});
+cv.addEventListener("pointerup", () => { glisse = null; });
+addEventListener("resize", () => { sale = true; });
+
+function boucle(n) {
+  const dt = Math.min((n - dernierInst) / 1000, 0.1); dernierInst = n;
+  if (lecture) {
+    const s = sDeT(t) + dt / DUREE_LECTURE;
+    if (s >= 1) { regle(tc + AGE_FIN); joue(false); } else regle(tDeS(s));
+  }
+  // vitesse réelle du curseur (années simulées par seconde réelle), lissée sur ≈ 0,25 s
+  const vInst = dt > 0 ? (t - dernierT) / dt : 0; dernierT = t;
+  vitesse = Math.abs(vInst) < 1e-9 ? 0 : vInst;
+  compteur.regle(lecture || tire ? vitesse : 0);
+  if (sale) { dessine(); sale = false; }
+  requestAnimationFrame(boucle);
+}
+
+S.regle = x => { regle(x); dessine(); sale = false; };
+S.joue = joue;
+Object.defineProperty(S, "t", { get: () => t });
+S.masque = x => { part = x; dessine(); };
+S.vitesseCurseur = () => vitesse;
+S.etoile = on => { etoileVisible = on; dessine(); };
+S.inclinaison = () => incl;
+S.uaParPx = () => 2 * etat(t).dl / cv.clientWidth;
+S.dureeImage = () => dureeImage;
+S.vueParDefaut = () => { incl = INCL0; az = AZ0; dessine(); };
+S.ecranEtoile = () => { if (!(luminosite(t - tc) > 0)) return null; const e = etat(t); return versEcran([0, 0, 0], [0, 0, 0], e.dl); };
+S.ecranCentre = () => { const e = etat(t); return versEcran([0, 0, 0], [0, 0, 0], e.dl); };
+S.ecranGrandAxe = () => [1, 0];   // ex est dans le plan du disque : le grand axe est l'horizontale
+
+redim();
+chargePaquets().then(() => { S.pret = true; sale = true; }).catch(e => { S.erreurs.push(String(e)); throw e; });
+requestAnimationFrame(boucle);
+</script>
+</body>
+</html>

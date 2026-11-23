@@ -16,12 +16,21 @@ Seuils fixés le 19/11/2026, avant toute construction :
   D05 disque : rapport d'aspect (épaisseur / rayon) < 0,3, rayon ≥ 20 UA ;
   D08 luminosité de la page = trajectoire publiée (BHAC15, 1 M☉) à 5 % ;
   P02 vides noirs ≥ 45 % des pixels, ≥ 300 pixels brillants, à trois instants.
+
+Ajoutés le 23/11/2026 (directives de Marc, docs/references-visuelles-refonte.md, N25, N28) :
+  P09 signature de la référence (disque de HL Tauri, ALMA 2014) : au stade disque, le long
+      d'un rayon, au moins 3 anneaux et sillons alternés (contraste sillon/anneau ≥ 2) ;
+      fond noir ≥ 60 % du cadre ;
+  P10 compteur de vitesse du temps : angle de l'aiguille = vitesse réelle du curseur
+      (échelle log, à 1° près après amortissement), butée à l'arrêt, cadran ≤ 110 px sur
+      390 px de large, ne masque ni l'étoile ni le cœur du nuage.
 """
 import functools
 import http.server
 import json
 import math
 import os
+import re
 import socket
 import sys
 import threading
@@ -218,10 +227,16 @@ def luma(img):
 
 
 def capture(page):
+    """Image du canevas WebGL seul (ce que la page dessine), sans les textes posés dessus."""
     from PIL import Image
+    import base64
     import io
-    png = page.locator("#ciel").screenshot()
-    return np.array(Image.open(io.BytesIO(png)).convert("RGB"))
+    url = page.evaluate("document.getElementById('ciel').toDataURL('image/png')")
+    img = Image.open(io.BytesIO(base64.b64decode(url.split(",", 1)[1]))).convert("RGB")
+    w = page.evaluate("document.getElementById('ciel').clientWidth")
+    if img.width != w:   # écran à haute densité : on mesure à la taille CSS
+        img = img.resize((w, round(img.height * w / img.width)), Image.BILINEAR)
+    return np.array(img)
 
 
 def controles_page():
@@ -235,6 +250,8 @@ def controles_page():
         ctx = nav.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=1,
                               has_touch=True, is_mobile=True)
         page = ctx.new_page()
+        page.route(re.compile(r"https://fonts\.(googleapis|gstatic)\.com/.*"),
+                   lambda r: r.fulfill(status=200, body="", content_type="text/css"))
         page.on("pageerror", lambda e: erreurs.append(str(e)))
         page.on("console", lambda m: m.type == "error" and erreurs.append(m.text))
         page.goto(f"http://127.0.0.1:{port}/index.html")
@@ -337,11 +354,14 @@ def controles_page():
         except Exception as e:  # noqa: BLE001
             note("S1-P06", "N4", False, f"exception : {e}")
 
-        # P07 — couleur par la température : le cœur chaud est plus rouge-or que la périphérie froide
+        # P07 — couleur par la température : au stade disque, étoile masquée, le gaz du disque
+        # intérieur (plus dense, donc plus chaud) est plus rouge-or que le gaz froid du dehors
         try:
             page.evaluate("window.__soleil.vueParDefaut()")
-            page.evaluate(f"window.__soleil.regle({meta['t_naissance'] * 0.9995})"); page.wait_for_timeout(300)
+            page.evaluate("window.__soleil.etoile(false)")
+            page.evaluate(f"window.__soleil.regle({meta['instants'][-1]['t']})"); page.wait_for_timeout(300)
             img = capture(page).astype(float)
+            page.evaluate("window.__soleil.etoile(true)")
             y = luma(img.astype(np.uint8))
             xy = page.evaluate("window.__soleil.ecranCentre()")
             H, W = y.shape
@@ -350,10 +370,13 @@ def controles_page():
             def ratio(m):
                 m = m & (y > 0.05)
                 return float(img[m][:, 0].sum() / max(img[m][:, 2].sum(), 1.0)), int(m.sum())
-            rc, nc = ratio(d < 12)
-            rp, npx = ratio((d > 60) & (d < 400))
+            u = page.evaluate("window.__soleil.uaParPx()")
+            d = d * u   # UA (projetées)
+            rc, nc = ratio((d > 30) & (d < 120))
+            rp, npx = ratio((d > 150) & (d < 400))
             note("S1-P07", "N20", nc > 5 and npx > 50 and rc > 1.3 * rp,
-                 f"rapport rouge/bleu au cœur {rc:.2f} ({nc} px) contre {rp:.2f} en périphérie ({npx} px) (× 1,3)")
+                 f"stade disque, étoile masquée : rapport rouge/bleu à 30–120 UA {rc:.2f} ({nc} px) "
+                 f"contre {rp:.2f} à 150–400 UA ({npx} px) (× 1,3)")
         except Exception as e:  # noqa: BLE001
             note("S1-P07", "N20", False, f"exception : {e}")
 
@@ -372,6 +395,62 @@ def controles_page():
                  f"{med:.1f} ms sous rendu logiciel (indicatif)")
         except Exception as e:  # noqa: BLE001
             note("S1-P08", "N20", False, f"exception : {e}")
+
+        # P09 — signature HL Tauri : anneaux et sillons concentriques. Profil radial de la
+        # luminance en ellipses déprojetées (inclinaison de la vue), moyenné en azimut : un
+        # anneau est un tour complet, pas un amas de points sur un rayon. Étoile masquée.
+        try:
+            page.evaluate("window.__soleil.vueParDefaut()")
+            page.evaluate("window.__soleil.etoile(false)")
+            t_d = page.evaluate("window.__soleil.tDisque")
+            page.evaluate(f"window.__soleil.regle({t_d})"); page.wait_for_timeout(400)
+            y = luma(capture(page))
+            page.evaluate("window.__soleil.etoile(true)")
+            noir = float(np.mean(y < 0.03))
+            xy = page.evaluate("window.__soleil.ecranCentre()")
+            inc = page.evaluate("window.__soleil.inclinaison()")
+            H, W = y.shape
+            jj, ii = np.meshgrid(np.arange(W), np.arange(H))
+            rr = np.hypot(jj - xy[0], (ii - xy[1]) / max(np.cos(inc), 0.2))
+            nb = int(min(W / 2, 300) // 3)
+            prof = np.array([y[(rr >= 3 * i) & (rr < 3 * i + 3)].mean() if np.any((rr >= 3 * i) & (rr < 3 * i + 3)) else 0.0
+                             for i in range(nb)])
+            prof = np.convolve(prof, np.ones(3) / 3, mode="same")
+            # extrema alternés ; une paire anneau/sillon compte si anneau ≥ 2 × sillon et anneau visible
+            ext = [(i, prof[i]) for i in range(2, nb - 1) if (prof[i] - prof[i-1]) * (prof[i+1] - prof[i]) < 0]
+            paires = sum(1 for (i, a), (j, b) in zip(ext, ext[1:])
+                         if max(a, b) > 0.04 and max(a, b) >= 2 * max(min(a, b), 1e-3) and j - i >= 2)
+            n_ann = paires // 2
+            note("S1-P09", "N25", n_ann >= 3 and noir >= 0.60,
+                 f"stade disque ({t_d:.3g} ans), profil azimutal déprojeté : {n_ann} anneaux séparés de sillons "
+                 f"de contraste ≥ 2 (≥ 3) ; fond noir {100*noir:.0f} % (≥ 60 %)")
+        except Exception as e:  # noqa: BLE001
+            note("S1-P09", "N25", False, f"exception : {e}")
+
+        # P10 — compteur de vitesse du temps
+        try:
+            page.evaluate("window.__soleil.regle(0)")
+            page.evaluate("window.__soleil.joue(true)"); page.wait_for_timeout(1500)
+            r = page.evaluate("""() => { const s = window.__soleil, c = s.compteur;
+                return { a: c.angle(), cible: c.angleCible(s.vitesseCurseur()), v: s.vitesseCurseur() }; }""")
+            page.evaluate("window.__soleil.joue(false)"); page.wait_for_timeout(1500)
+            arret = page.evaluate("window.__soleil.compteur.angle()")
+            butee = page.evaluate("window.__soleil.compteur.angleCible(0)")
+            bb = page.evaluate("(() => { const b = window.__soleil.compteur.boite(); return [b.left, b.top, b.width, b.height]; })()")
+            libres = []
+            for t in [0.0, meta["t_naissance"] * 0.999, meta["t_naissance"] + 2e4]:
+                page.evaluate(f"window.__soleil.regle({t})"); page.wait_for_timeout(100)
+                for nom in ("ecranEtoile", "ecranCentre"):
+                    q = page.evaluate(f"window.__soleil.{nom}()")
+                    if q is not None:
+                        libres.append(not (bb[0] - 8 <= q[0] <= bb[0] + bb[2] + 8 and bb[1] - 8 <= q[1] <= bb[1] + bb[3] + 8))
+            ok = (abs(r["a"] - r["cible"]) <= 1.0 and r["v"] > 0 and abs(arret - butee) <= 1.0
+                  and bb[2] <= 110 and bb[0] + bb[2] <= 390 and all(libres))
+            note("S1-P10", "N28", ok, f"lecture : {r['v']:.3g} ans/s, aiguille {r['a']:.1f}° pour {r['cible']:.1f}° ; "
+                 f"arrêt : {arret:.1f}° (butée {butee:.1f}°) ; cadran {bb[2]:.0f} px de large ; "
+                 f"étoile et cœur hors du cadran : {all(libres)}")
+        except Exception as e:  # noqa: BLE001
+            note("S1-P10", "N28", False, f"exception : {e}")
 
         # D08 — luminosité de la page = trajectoire publiée à 5 %
         try:
@@ -405,7 +484,7 @@ def main():
     except Exception as e:  # noqa: BLE001
         note("S1-P01", "N20", False, f"page non contrôlable : {e}")
     attendus = ["S1-D01", "S1-D02", "S1-D03", "S1-D04", "S1-D05", "S1-D06", "S1-D08", "S1-D09",
-                "S1-P01", "S1-P02", "S1-P03", "S1-P04", "S1-P05", "S1-P06", "S1-P07", "S1-P08"]
+                "S1-P01", "S1-P02", "S1-P03", "S1-P04", "S1-P05", "S1-P06", "S1-P07", "S1-P08", "S1-P09", "S1-P10"]
     vus = {r[0]: r for r in RES}
     for c in attendus:
         if c not in vus:
