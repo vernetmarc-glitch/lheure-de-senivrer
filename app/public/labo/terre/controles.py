@@ -7,9 +7,12 @@ pas un aperçu. Chaque mesure passe par le même shader que le globe : l'état d
   C1  aucune erreur JavaScript ; WebGL2 disponible
   C2  aujourd'hui : terres et mers coïncident à 95 % (en aire) avec le relief actuel
       (référence indépendante : Natural Earth 1:50 m, controles/terres-actuelles-ne50m.png)
-  C3  Pangée : entre 320 et 200 Ma, au moins 80 % des terres émergées en un seul bloc
+  C3  Pangée : entre 320 et 200 Ma, au moins 80 % du bloc continental (croûte au-dessus de
+      -200 m) d'un seul tenant (D-46, 23/11) ; la part des terres émergées d'un seul tenant
+      reste affichée, indicateur non bloquant
   C4  pas de fantôme : pendant une dérive, aucun pixel du globe plus sombre que ses deux
-      états voisins (tolérance : 0,2 % des pixels du disque, écart de luminance > 0,05)
+      états voisins (tolérance : 0,2 % des pixels du disque, écart de luminance > 0,05) ;
+      rejoué 5 fois, aucun échec toléré (demande du maître, 23/11)
   C5  pas de saut : la surface émergée varie continûment (aucun saut > 1 % des terres
       entre deux instants distants de 0,5 Ma), raccord des deux modèles à 540 Ma compris
   C6  frise : 1 Ga -> 0 occupe 1000/4540 de la frise (à 1 % près) ; avant 1 Ga, segment
@@ -26,6 +29,9 @@ pas un aperçu. Chaque mesure passe par le même shader que le globe : l'état d
   C11 compteur de vitesse du temps (N28) : présent, lisible (≥ 56 px), hors du globe ;
       aiguille sur la butée à l'arrêt ; en lecture, angle = vitesse réelle du curseur
       (échelle log, à 1° près après amortissement) ; lecture chiffrée en clair
+  C12 caméra : la vue par défaut montre des continents éclairés à toutes les époques — au
+      moins 60 % des terres visibles du côté jour (Soleil de juin), à 0, 66, 250, 540, 700
+      et 1000 Ma (relecture du maître, 23/11)
 
 Usage : python3 app/public/labo/terre/controles.py   (code de sortie 0 si tout passe)
 """
@@ -173,7 +179,7 @@ async def main():
             await pg.wait_for_function("window.terre && window.terre.pret === true", timeout=120000)
         except Exception as e:
             note("C1", False, f"page non chargée : {e}".splitlines()[0])
-            for c in ("C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11"):
+            for c in ("C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12"):
                 note(c, False, "page non chargée")
             await b.close(); srv.shutdown(); return 1
 
@@ -201,26 +207,30 @@ async def main():
             labc, _ = composantes(mc_)
             ac = np.bincount(labc[mc_].ravel(), weights=ww[mc_].ravel())
             pires.append((t, part, ac.max() / ac.sum() if ac.sum() > 0 else 0))
-        mini = min(p for _, p, _ in pires)
-        note("C3", mini >= 0.80, "plus grand bloc / terres émergées : " +
-             ", ".join(f"{t} Ma {p*100:.0f} %" for t, p, _ in pires) + " (seuil 80 %) ; pour information, "
-             "bloc continental (> -200 m) : " + ", ".join(f"{t} Ma {q*100:.0f} %" for t, _, q in pires))
+        mini = min(q for _, _, q in pires)
+        note("C3", mini >= 0.80, "bloc continental (> -200 m) d'un seul tenant : " +
+             ", ".join(f"{t} Ma {q*100:.0f} %" for t, _, q in pires) + " (seuil 80 %) ; indicateur, "
+             "terres émergées : " + ", ".join(f"{t} Ma {p*100:.0f} %" for t, p, _ in pires))
 
-        # ---- C4 pas de fantôme (sur l'écran, globe tel que vu)
+        # ---- C4 pas de fantôme (sur l'écran, globe tel que vu), rejoué 5 fois
         await pg.evaluate("terre.regler({lon: 10, lat: 15})")
-        pire = (0, None)
-        for t in (2.5, 52.5, 252.5, 302.5, 537.5, 541.0, 545.0, 552.0, 575.0, 755.0, 995.0):
-            ims = []
-            for tt in (t - 0.5, t, t + 0.5):
-                await pg.evaluate("t => terre.regler({t})", tt)
-                ims.append(lum(await ecran(pg)))
-            a, m_, c = ims
-            disque = (a > 0.02) | (c > 0.02)
-            sombre = (m_ < np.minimum(a, c) - 0.05) & disque
-            frac = sombre.sum() / max(disque.sum(), 1)
-            if frac >= pire[0]: pire = (frac, t)
-        note("C4", pire[0] < 0.002, f"pixels plus sombres que leurs deux voisins : "
-             f"{pire[0]*100:.3f} % au pire (à {pire[1]} Ma ; seuil 0,2 %)")
+        pires4 = []
+        for passe in range(5):
+            pire = (0, None)
+            for t in (2.5, 52.5, 252.5, 302.5, 537.5, 541.0, 545.0, 552.0, 575.0, 755.0, 995.0):
+                ims = []
+                for tt in (t - 0.5, t, t + 0.5):
+                    await pg.evaluate("t => terre.regler({t})", tt)
+                    ims.append(lum(await ecran(pg)))
+                a_, m_, c_ = ims
+                disque = (a_ > 0.02) | (c_ > 0.02)
+                sombre = (m_ < np.minimum(a_, c_) - 0.05) & disque
+                frac = sombre.sum() / max(disque.sum(), 1)
+                if frac >= pire[0]: pire = (frac, t)
+            pires4.append(pire)
+        pp4 = max(pires4, key=lambda x: x[0])
+        note("C4", all(p[0] < 0.002 for p in pires4), "pixels plus sombres que leurs deux voisins, 5 passes : " +
+             ", ".join(f"{p[0]*100:.3f} %" for p in pires4) + f" (pire à {pp4[1]} Ma ; seuil 0,2 %)")
 
         # ---- C5 pas de saut
         r = await pg.evaluate("""async () => {
@@ -368,6 +378,30 @@ async def main():
             det11.append(f"lecture : {m['v']:.3g} ans/s -> attendu {m['attendu']:.1f}°, aiguille {m['angle']:.1f}° ; « {m['txt'].strip()[-45:]} »")
             note("C11", ok11, " ; ".join(det11))
         await p2.close()
+
+        # ---- C12 caméra automatique : terres visibles éclairées
+        res12, ok12 = [], True
+        for t in (0, 66, 250, 540, 700, 1000):
+            await pg.evaluate("t => terre.regler({t, auto: true})", float(t))
+            e = await etat(pg, float(t)); v = await pg.evaluate("terre.etat()"); s0 = await pg.evaluate("terre.soleil()")
+            geo = await pg.evaluate("terre.disque()")
+            n = 160; yy, xx = np.mgrid[0:n, 0:n]
+            x = (xx + .5) / n * 2 - 1; y = 1 - (yy + .5) / n * 2; r2 = x * x + y * y; d = r2 < 1
+            z = np.sqrt(np.clip(1 - r2, 0, 1))
+            la, lo = np.radians(v["lat"]), np.radians(v["lon"])
+            ee = np.array([-np.sin(lo), np.cos(lo), 0]); nn = np.array([-np.sin(la) * np.cos(lo), -np.sin(la) * np.sin(lo), np.cos(la)])
+            cc = np.array([np.cos(la) * np.cos(lo), np.cos(la) * np.sin(lo), np.sin(la)])
+            P = x[..., None] * ee + y[..., None] * nn + z[..., None] * cc
+            lat = np.degrees(np.arcsin(np.clip(P[..., 2], -1, 1))); lon = np.degrees(np.arctan2(P[..., 1], P[..., 0]))
+            H, W = e.shape
+            terre_ = e[np.clip(((90 - lat) / 180 * H).astype(int), 0, H - 1), np.clip(((lon + 180) / 360 * W).astype(int), 0, W - 1)] > 0
+            sl, so = np.radians(s0["lat"]), np.radians(s0["lon"])
+            S = np.array([np.cos(sl) * np.cos(so), np.cos(sl) * np.sin(so), np.sin(sl)])
+            w = z                                                    # poids : aire apparente
+            vis = d & terre_
+            frac = (w * (vis & (P @ S > 0.05))).sum() / max((w * vis).sum(), 1e-9)
+            ok12 &= frac >= 0.60; res12.append(f"{t} Ma {frac*100:.0f} %")
+        note("C12", ok12, "terres visibles éclairées : " + ", ".join(res12) + " (seuil 60 %)")
 
         # ---- C1 (en dernier : couvre toute la session)
         gl2 = await pg.evaluate("!!document.createElement('canvas').getContext('webgl2')")

@@ -16,58 +16,38 @@ Départ (19/11/2026, 7 h 40) : `bake.py --check` sur `main` : 399 passés, 15 en
 Étape : à lancer (vague 2).
 
 ## S3 — Terre, continents
-Étape (23/11) : première page labo `app/public/labo/terre/` complète, **8 contrôles sur 11
-verts** au dernier passage — pas encore publiable (C3, C5, et C4 instable). Planche : `chantiers/planches/terre-1.png`.
+Étape (passage 2) : **10 contrôles sur 12 verts**, page pas encore publiable (C4, C5 :
+segment Merdith seulement). Planche : `chantiers/planches/terre-2.png` (aujourd'hui,
+66, 250, 540 Ma, 1 Ga, caméra automatique).
 
-Ce qui marche :
-- Données publiées, préparées par `.github/workflows/chantier-terre.yml` (pyGPlates sur le
-  runner) : PaleoDEM Scotese & Wright 2018 à 0,1° (109 états, 540 Ma → 0), modèle de plaques
-  PALEOMAP livré avec eux (PaleoAtlas v3, Zenodo 5460860), Merdith et al. 2021 v1.2.4
-  (Zenodo 13635864), Blue Marble NG juin 2004. Paquet `donnees/` : 35 Mo (≈ 5 Mo avant la
-  première image).
-- 540 Ma → 0 : rotations **PALEOMAP** (les PaleoDEM ont été dessinés sur ces plaques ; avec
-  Merdith ils glisseraient hors de leurs propres reconstructions). États clés tous les 5 Ma
-  (élévation + plaque par pixel) ; entre deux, chaque pixel est **transporté** par sa
-  plaque (points WebGL2, rééchantillonnage au plus proche) et l'on interpole l'élévation
-  de deux champs co-localisés : aucun fondu d'images.
-- 1 Ga → 540 Ma : un seul nuage de points en coordonnées actuelles transporté par Merdith ;
-  relief de 540 Ma qui s'efface (540 → 640 Ma) vers un relief générique signalé comme
-  hypothèse ; raccord Merdith → PALEOMAP par rotation par morceau, étalé de 620 à 540 Ma.
-  Sauts de rotation non physiques de Merdith (> 15°/Ma, ex. 610 Ma) lissés sur ± 5 Ma.
-- Rendu : globe photoréaliste, Soleil fixe au solstice de juin, aujourd'hui = Blue Marble
-  portée par les plaques et s'effaçant en remontant le temps (e-folding 10 Ma) vers des
-  couleurs minérales (place laissée à S4/S5) ; liseré d'atmosphère ; frise 4,54 Ga avec
-  segment hachuré « hypothèse » ; compteur commun (`commun/compteur.js`).
-- Contrôles verts : C1 erreurs JS, C2 aujourd'hui 98,5 % (Natural Earth),
-  C6 frise, C7 Soleil de juin, C8 atmosphère, C9 interaction, C10 Blue Marble (terres
-  ΔE 1,7, mers ΔE 3,0), C11 compteur.
+Fait au passage 2 :
+- D-46 : C3 mesure le bloc continental (croûte > -200 m) : 96–100 % de 320 à 200 Ma, vert ;
+  les terres émergées (71–82 %) restent affichées comme indicateur non bloquant.
+- D-47 : frise à la vraie proportion (4,5 %), inchangée.
+- Caméra automatique : le point subsolaire de juin, tourné d'au plus 30° vers le barycentre
+  des continents (latitude bornée -20°/55°), suivi en douceur, libéré 8 s par le doigt.
+  Nouveau contrôle C12 (≥ 60 % des terres visibles éclairées) : 95, 96, 97, 78, 96, 79 % à
+  0, 66, 250, 540, 700 Ma et 1 Ga. (C12 a été écrit en même temps que la caméra : il n'a
+  pas été montré en échec sur l'ancienne vue — il l'aurait été : 20 % à 1 Ga au premier essai.)
+- Segment Merdith (1 Ga → 540 Ma) : cumul pondéré des morceaux (tampons flottants 32 bits
+  quand le mélange flottant existe), poids continus (croûte qui naît, croûte qui s'enfonce
+  en plateau à -200 m) : plus de bascule de visibilité ; empreinte des points corrigée près
+  des pôles. C4 est rejoué 5 fois.
 
-Ce qui manque :
-- **C5** (aucun saut > 1 % de surface émergée en 0,5 Ma) échoue dans le segment Merdith :
-  5,8 % vers 557 Ma, 2,6 % à 620 Ma, ≈ 1–2 % ailleurs. Cause : morceaux de croûte qui se
-  chevauchent pendant le raccord des deux modèles et les mouvements très rapides de Merdith
-  à l'Édiacarien (jusqu'à 8°/Ma) ; la règle de visibilité entre morceaux superposés bascule.
-  Le segment PALEOMAP (540 → 0) passe.
-- **C4** (pas de fantôme) est instable d'un passage à l'autre près du raccord : 0,12 à
-  0,17 % (vert) sur trois passages, 0,77 % à 541 Ma (rouge) au dernier ; même cause que C5
-  (morceaux superposés, égalités de profondeur entre points).
-- **C3** (Pangée : 80 % des terres émergées en un bloc entre 320 et 200 Ma) échoue sur les
-  données publiées elles-mêmes : 71 % à 220 Ma, 76 % à 260 Ma, 78 % à 300 Ma (mers
-  épicontinentales et détroits des PaleoDEM, Chine du Nord et du Sud encore séparées). Le
-  bloc continental (au-dessus de -200 m) fait 96–100 % à toutes ces dates.
-- Vidéo de texture : non utilisée (la couleur vient de Blue Marble + relief calculé ; rien
-  à décoder) ; à reconsidérer quand S5 apportera des couleurs changeantes.
-- Proportion N8 : la Pangée et la chaîne hercynienne (380 → 175 Ma) couvrent 4,5 % de
-  l'histoire de la Terre, pas « environ un dixième » ; la frise montre la vraie proportion.
+Ce qui reste rouge (tout dans le segment Merdith, que S3b remplacera, D-49) :
+- C5 : 3,0 % de surface émergée perdue entre 540 et 540,5 Ma — le nuage Merdith, ramené
+  au présent puis reporté à 540 Ma, a 2,7 % de terres de moins que le PaleoDEM de 540 Ma
+  (pixels de terre qu'aucun pixel actuel n'atteint) ; vers 593 Ma ≈ 2,5 % (morceaux
+  superposés qui changent de poids ensemble). Le segment PALEOMAP (540 → 0) passe.
+- C4 : 4 passes sur 5 vertes (0,12–0,15 %), une à 0,47 % (vers 545 Ma) : même zone.
 
-Question au maître : C3 mesure-t-il les terres émergées (le texte du plan) ou le bloc
-continental (croûte au-dessus de -200 m, la « Pangée » des géologues) ? Recommandation :
-mesurer le bloc continental — les PaleoDEM publiés ne donnent jamais 80 % d'émergé d'un
-seul tenant entre 300 et 220 Ma. C'est un changement de définition (à Marc s'il juge que
-cela desserre l'exigence) ; en attendant, C3 reste strict et en échec.
+Question au maître : pour publier sans attendre S3b, appliquer C4 et C5 au seul segment
+publié avec des reliefs (540 Ma → aujourd'hui) et afficher le segment 1 Ga → 540 Ma comme
+« raccord provisoire » ? C'est restreindre un contrôle, donc à décider par Marc ;
+recommandation : oui, S3b reprendra ce segment avec Cao et al. 2024.
 
-Prochaine étape : C5 dans le segment Merdith (visibilité continue entre morceaux superposés,
-raccord plus lent), puis publication ; ensuite S4 (glaces, climat) sur ce globe.
+Prochaine étape : S3b (Cao 2024, couche mince + FastScape) sur ce globe ; si l'on garde
+Merdith d'ici là, combler les terres du PaleoDEM de 540 Ma non atteintes par le nuage.
 
 ## S4 — Climat et glaces
 Étape : attend S3.

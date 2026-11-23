@@ -1,5 +1,5 @@
 """Planche du chantier S3 : la page servie, à 5 instants (aujourd'hui, 66 Ma, 250 Ma,
-540 Ma, 1 Ga), vue centrée sur le barycentre des terres de chaque instant.
+540 Ma, 1 Ga), vue donnée par la caméra automatique de la page.
 Usage : python3 planche.py <sortie.png>"""
 import asyncio, sys, io, pathlib
 import numpy as np
@@ -22,17 +22,8 @@ async def main(sortie):
         await pg.goto(f"http://127.0.0.1:{port}{URL_PAGE}")
         await pg.wait_for_function("window.terre && window.terre.pret === true", timeout=120000)
         vues = []
-        for t in INSTANTS:
-            e = await etat(pg, float(t))
-            h, w = e.shape
-            lat = np.radians(90 - (np.arange(h) + .5) * 180 / h)[:, None]
-            lon = np.radians(-180 + (np.arange(w) + .5) * 360 / w)[None, :]
-            m = (e > 0) * np.cos(lat)
-            v = np.array([(m * np.cos(lat) * np.cos(lon)).sum(), (m * np.cos(lat) * np.sin(lon)).sum(),
-                          (m * np.sin(lat) * np.ones_like(lon)).sum()])
-            la, lo = np.degrees(np.arcsin(v[2] / np.linalg.norm(v))), np.degrees(np.arctan2(v[1], v[0]))
-            la = max(la, -15.0)   # solstice de juin : l hémisphère sud est dans la nuit polaire
-            await pg.evaluate("o => terre.regler(o)", {"t": t, "lat": float(np.clip(la, -60, 60)), "lon": float(lo)})
+        for t in INSTANTS:            # caméra automatique de la page (continents éclairés)
+            await pg.evaluate("t => terre.regler({t, auto: true})", float(t))
             await pg.wait_for_timeout(300)
             vues.append(Image.open(io.BytesIO(await pg.screenshot())).convert("RGB"))
         await b.close()
