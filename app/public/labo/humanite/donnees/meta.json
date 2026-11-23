@@ -1,0 +1,61 @@
+{
+ "grille": {
+  "w": 720,
+  "h": 360,
+  "pas_deg": 0.5,
+  "ligne0": "nord",
+  "colonne0": "180°W"
+ },
+ "relief": {
+  "w": 1800,
+  "h": 900,
+  "codage": "u8 : 0-39 = −11 000…−200 m ; 40-165 = −200…+50 m (2 m) ; 166-255 = log"
+ },
+ "cartes": [
+  "hominines",
+  "erectus",
+  "neandertal",
+  "denisova",
+  "insulaires",
+  "sapiens",
+  "sapiens1"
+ ],
+ "codage_age": "u16 = 65535 · log10(âge) / 7.0 ; 0 = jamais",
+ "niveau_marin": {
+  "pas_ans": 1000,
+  "n": 7001,
+  "sources": "Spratt & Lisiecki 2016 (0–798 ka) ; Bintanja & van de Wal 2008 (→ 3 Ma)"
+ },
+ "K": 2000,
+ "aujourdhui": 2023,
+ "info": {
+  "hominines": {
+   "origines": 1,
+   "contraintes": 11
+  },
+  "sapiens": {
+   "origines": 1,
+   "contraintes": 24
+  },
+  "sapiens1": {
+   "origines": 1,
+   "contraintes": 2
+  },
+  "neandertal": {
+   "origines": 1,
+   "contraintes": 10
+  },
+  "denisova": {
+   "origines": 1,
+   "contraintes": 4
+  },
+  "insulaires": {
+   "origines": 2,
+   "contraintes": 2
+  },
+  "erectus": {
+   "origines": 1,
+   "contraintes": 17
+  }
+ }
+}
