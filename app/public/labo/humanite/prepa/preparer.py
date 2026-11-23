@@ -186,6 +186,8 @@ for base in ([f"https://{hote}"] if hote else []) + ["https://archaeology.datast
         except Exception as e:
             note("   lecture api", e)
 note(f"   {len(fichiers)} fichiers")
+if not fichiers:   # DANS parfois indisponible (503) : identifiant connu du zip de base
+    fichiers = [["https://archaeology.datastations.nl", 5490328, "", "HYDE3_2_1-baseline.zip", 5339653974]]
 (OUT / "hyde33_fichiers.json").write_text(json.dumps(fichiers, ensure_ascii=False, indent=0))
 
 # ---------------------------------------------------------------- HYDE
