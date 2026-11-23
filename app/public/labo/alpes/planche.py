@@ -44,18 +44,17 @@ def main(sortie):
             px = np.array(pg.evaluate(f"Array.from(window.ALPES.couleurs(0, {mode}, {mos}))"), np.uint8).reshape(n, n, 3)
             nadir.append(Image.fromarray(px))
         nav.close()
-    srv.shutdown()
     # référence : DEM ombré drapé de la mosaïque
     reel = np.frombuffer(C.gzip.decompress(C.lire(base + "donnees/reel_1024.bin.gz")), "<u2").astype(float)
     reel = (reel * meta["h_pas_m"] + meta["h_zero_m"]).reshape(1024, 1024)
     mos = np.asarray(Image.open(io.BytesIO(C.lire(base + "donnees/mosaique_2048.jpg"))).convert("RGB"), float)
     mos = mos.reshape(1024, 2, 1024, 2, 3).mean(axis=(1, 3))
     gy, gx = np.gradient(reel * 1.5, 200.0)
-    az, el = np.radians(205), np.radians(28)
+    az, el = np.radians(145), np.radians(34)
     L = np.array([np.sin(az) * np.cos(el), np.cos(az) * np.cos(el), np.sin(el)])
     sh = (-gx * L[0] + gy * L[1] + L[2]) / np.sqrt(gx ** 2 + gy ** 2 + 1)
     lin = (mos / 255) ** 2.2
-    ref = lin * (1.55 * np.clip(sh, 0, 1)[..., None] * np.array([1, .95, .86]) + 0.5 * np.array([.42, .52, .68]))
+    ref = lin * (1.9 * np.clip(sh, 0, 1)[..., None] * np.array([1, .95, .86]) + 0.5 * np.array([.42, .52, .68]))
     ref = Image.fromarray((np.clip(ref, 0, 1) ** (1 / 2.2) * 255).astype(np.uint8))
 
     W = 390 * 6
@@ -71,6 +70,7 @@ def main(sortie):
         x = 60 + i * 760
         plan.paste(im.resize((420, 420), Image.LANCZOS), (x, y + 30))
         d.text((x, y), titres[i], font=police(20), fill=(243, 239, 230))
+    srv.shutdown()
     plan.save(sortie)
     print("planche :", sortie)
 

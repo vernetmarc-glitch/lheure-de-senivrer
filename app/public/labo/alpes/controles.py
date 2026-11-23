@@ -12,7 +12,7 @@ from functools import partial
 import numpy as np
 
 ICI = os.path.dirname(os.path.abspath(__file__))
-RACINE = os.path.abspath(os.path.join(ICI, "..", "..", ".."))   # app/public
+RACINE = os.path.abspath(os.path.join(ICI, "..", ".."))   # app/public
 CHEMIN = "/labo/alpes/"
 resultats = []
 
@@ -224,26 +224,28 @@ def controles_page(base):
         if pret:
             controles_couleurs(page, base)
             # Vitesse réelle de la barre : temps géologique écoulé par seconde de lecture
-            mesures, angles = {}, {}
+            mesures, angles, inst = {}, {}, {}
             for t0 in (-20, -1.9, -1.2, -0.6, -0.2):
                 v = page.evaluate("""async (t0) => {
                     const A = window.ALPES; A.vitesse(1); A.aller(t0); A.lire();
-                    await new Promise(r => setTimeout(r, 200));
-                    const a = A.temps(), ta = performance.now();
-                    await new Promise(r => setTimeout(r, 1500));
-                    const b = A.temps(), tb = performance.now();
-                    const v = (b - a) / ((tb - ta) / 1000);
+                    const image = () => new Promise(r => requestAnimationFrame(ts => r([ts, A.temps()])));
+                    await new Promise(r => setTimeout(r, 1200));          // amortissement de l'aiguille
+                    const [ta, a] = await image();
+                    let tb = ta, b = a, tp = ta, bp = a;
+                    while (tb - ta < 1500) { tp = tb; bp = b; [tb, b] = await image(); }
+                    const v = (b - a) / ((tb - ta) / 1000);             // vitesse moyenne
+                    const vi = (b - bp) / ((tb - tp) / 1000);           // vitesse de la dernière image
                     const ang = A.compteur.angle(); A.pause();
-                    return [v, ang];
+                    return [v, ang, vi];
                 }""", t0)
-                mesures[t0], angles[t0] = v
+                mesures[t0], angles[t0], inst[t0] = v
             r = [mesures[k] for k in (-1.9, -1.2, -0.6, -0.2)]
             ok("N23 la barre ralentit : vitesse décroissante sur les 2 derniers Ma",
                all(r[i] > r[i + 1] > 0 for i in range(3)) and mesures[-20] > 3 * r[0],
                " ; ".join(f"{k} Ma : {v*1000:.0f} ka/s" for k, v in mesures.items()))
 
             from math import log10
-            attendu = {k: -125 + 250 * min(max(log10(v * 1e6), 0), 10) / 10 for k, v in mesures.items()}
+            attendu = {k: -125 + 250 * min(max(log10(v * 1e6), 0), 10) / 10 for k, v in inst.items()}
             ecart_ang = max(abs(angles[k] - attendu[k]) for k in mesures)
             ra = [angles[k] for k in (-1.9, -1.2, -0.6, -0.2)]
             ok("N28 compteur : l'aiguille vaut la vitesse réelle (log, à 1° près) et redescend sur les 2 derniers Ma",

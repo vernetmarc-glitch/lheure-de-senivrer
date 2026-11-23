@@ -68,7 +68,7 @@ export class Compteur {
   regler(ansParSeconde, dt) {
     this.v = ansParSeconde;
     const cible = angleCible(ansParSeconde), w = this.omega;
-    dt = Math.min(Math.max(dt || 0, 0), 0.1);
+    dt = Math.min(Math.max(dt || 0, 0), 1.0);
     const n = Math.max(1, Math.ceil(dt / 0.004)), h = dt / n;     // ressort critique
     for (let i = 0; i < n; i++) { const acc = w * w * (cible - this.a) - 2 * w * this.va; this.va += acc * h; this.a += this.va * h; }
     this._dessiner();

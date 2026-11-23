@@ -4,7 +4,7 @@
 import { Compteur } from "./compteur.js";
 
 const EXAGERATION = 1.5;
-const SOLEIL_AZ = 205, SOLEIL_EL = 28;           // degrés ; Soleil fixe (milieu d'après-midi)
+const SOLEIL_AZ = 145, SOLEIL_EL = 34;           // degrés ; Soleil fixe, celui de la mosaïque (matin d'été, vers 10 h 30)
 const SOLEIL = (() => { const az = SOLEIL_AZ * Math.PI / 180, el = SOLEIL_EL * Math.PI / 180;
   return [Math.sin(az) * Math.cos(el), Math.cos(az) * Math.cos(el), Math.sin(el)]; })();
 const PAS_OMBRE = 40;                            // mailles parcourues vers le Soleil (32 km)
@@ -146,11 +146,33 @@ function texture(gl, w, h, src, mip, filtre = true) {
   return t;
 }
 
+// Ombre portée d'un état : marche vers le Soleil fixe sur le relief affiché (exagéré),
+// maille par maille ; même calcul dans controles.py (ombre_python).
+function ombreEtat(q, n, meta) {
+  const az = SOLEIL_AZ * Math.PI / 180, el = SOLEIL_EL * Math.PI / 180, pasM = meta.pas_m;
+  const dx = Math.sin(az), dy = Math.cos(az), l = Math.hypot(dx, dy), tg = Math.tan(el);
+  const h = new Float32Array(n * n);
+  for (let i = 0; i < n * n; i++) h[i] = Math.max(q[i] * meta.h_pas_m + meta.h_zero_m, 0) * EXAGERATION;
+  const di = [], dj = [], seuil = [];
+  for (let s = 1; s <= PAS_OMBRE; s++) { dj.push(Math.floor(dx / l * s + 0.5)); di.push(Math.floor(-dy / l * s + 0.5)); seuil.push(s * pasM * tg); }
+  const o = new Uint8Array(n * n);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const hz = h[i * n + j]; let marge = 1e9;
+    for (let s = 0; s < PAS_OMBRE; s++) {
+      const ii = Math.min(Math.max(i + di[s], 0), n - 1), jj = Math.min(Math.max(j + dj[s], 0), n - 1);
+      const m = (hz + seuil[s] - h[ii * n + jj]) / ((s + 1) * pasM); if (m < marge) marge = m;
+    }
+    const x = Math.min(Math.max((marge + 0.02) / 0.04, 0), 1);
+    o[i * n + j] = Math.round(255 * x * x * (3 - 2 * x));
+  }
+  return o;
+}
+
 // ------------------------------------------------------------------ shaders
 const VS = `#version 300 es
 precision highp float; precision highp int; precision highp usampler2D;
 layout(location=0) in vec2 ij;
-uniform usampler2D hA, hB; uniform sampler2D xA, xB;
+uniform usampler2D hA, hB; uniform sampler2D xA, xB, oA, oB;
 uniform float f, pz, z0, pasKm, tailleKm, exa;
 uniform mat4 mvp; uniform vec3 soleil;
 out vec3 vPos; out vec2 vGrad; out float vH; out float vX; out vec2 vUV; out float vOmbre;
@@ -161,15 +183,7 @@ void main() {
   float h = H(c), pasM = pasKm * 1000.0;
   vGrad = vec2((H(c + ivec2(1, 0)) - H(c - ivec2(1, 0))) / (2.0 * pasM),
                (H(c - ivec2(0, 1)) - H(c + ivec2(0, 1))) / (2.0 * pasM));
-  // ombre portée : marche vers le Soleil sur le relief affiché (exagéré), maille par maille
-  vec2 d = normalize(soleil.xy); float tg = soleil.z / length(soleil.xy);
-  float hz = max(h, 0.0) * exa, marge = 1e9;
-  for (int s = 1; s <= ${PAS_OMBRE}; s++) {
-    vec2 p = ij + vec2(d.x, -d.y) * float(s);
-    float hs = max(H(ivec2(floor(p + 0.5))), 0.0) * exa;
-    marge = min(marge, (hz + float(s) * pasM * tg - hs) / (float(s) * pasM));
-  }
-  vOmbre = smoothstep(-0.02, 0.02, marge);
+  vOmbre = mix(texelFetch(oA, c, 0).r, texelFetch(oB, c, 0).r, f);   // ombre portée (calculée par état)
   vX = mix(texelFetch(xA, c / 2, 0).r, texelFetch(xB, c / 2, 0).r, f);
   float x = (ij.x + 0.5) * pasKm - tailleKm * 0.5, y = tailleKm * 0.5 - (ij.y + 0.5) * pasKm;
   vH = h; vUV = (ij + 0.5) / vec2(textureSize(hA, 0));
@@ -205,7 +219,7 @@ void main() {
   float bn = vnoise(vPos.xy * 2.5) * 0.6 + vnoise(vPos.xy * 9.0) * 0.4;
   vec3 c;                                                         // couleur de surface, sRGB
   if (h < 0.0) {
-    c = mix(vec3(0.16, 0.33, 0.40), vec3(0.06, 0.18, 0.28), clamp(-h / 150.0, 0.0, 1.0));
+    c = mix(vec3(0.20, 0.42, 0.45), vec3(0.05, 0.17, 0.27), clamp(-h / 120.0, 0.0, 1.0));
   } else {
     float ha = h + climat + (bn - 0.5) * 120.0;                   // altitude « climatique »
     c = texture(regles, vec2(clamp(ha / 5000.0, 0.0, 0.999), clamp(penteDeg / 64.0, 0.0, 0.999))).rgb;
@@ -217,14 +231,14 @@ void main() {
   vec3 a = lin(c);
   float lum = max(dot(n, soleil), 0.0) * vOmbre;
   float ambiant = 0.36 + 0.20 * n.z;
-  vec3 col = a * (vec3(1.0, 0.95, 0.86) * 1.55 * lum + vec3(0.42, 0.52, 0.68) * ambiant);
+  vec3 col = a * (vec3(1.0, 0.95, 0.87) * 1.9 * lum + vec3(0.40, 0.50, 0.66) * ambiant);
   if (h < 0.0) {
     vec3 v = normalize(oeil - vPos); vec3 rf = reflect(-v, vec3(0, 0, 1));
     col += 0.25 * lin(ciel) * pow(1.0 - max(v.z, 0.0), 3.0) + 0.6 * pow(max(dot(rf, soleil), 0.0), 80.0) * vOmbre;
   }
   if (sortieMode == 3) { sortie = vec4(pow(col, vec3(1.0 / 2.2)), 1.0); return; }
   float dist = length(oeil - vPos);
-  float brume = 0.75 * (1.0 - exp(-max(dist - 60.0, 0.0) / 420.0));
+  float brume = 0.55 * (1.0 - exp(-max(dist - 70.0, 0.0) / 380.0));
   float bord = max(abs(vPos.x), abs(vPos.y)) / (tailleKm * 0.5);
   brume = max(brume, smoothstep(0.88, 1.0, bord));
   col = mix(col, lin(ciel), brume);
@@ -280,7 +294,7 @@ async function demarrer() {
   const xMaxLog = Math.log1p(meta.x_max_m / 200);
 
   const prog = programme(gl, VS, FS);
-  const U = {}; for (const nom of ["hA", "hB", "xA", "xB", "f", "pz", "z0", "pasKm", "tailleKm", "exa", "mvp", "oeil",
+  const U = {}; for (const nom of ["hA", "hB", "xA", "xB", "oA", "oB", "f", "pz", "z0", "pasKm", "tailleKm", "exa", "mvp", "oeil",
     "detail", "regles", "mosaique", "wDetail", "wMosaique", "climat", "soleil", "ciel", "modeRoches", "xMaxLog", "sortieMode"])
     U[nom] = gl.getUniformLocation(prog, nom);
 
@@ -298,6 +312,9 @@ async function demarrer() {
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
   const texH = [0, 1].map(() => texture(gl, 1, 1, new Uint8Array(4), false, false));
   const texX = [0, 1].map(() => texture(gl, 1, 1, new Uint8Array(4), false, true));
+  const texO = [0, 1].map(() => texture(gl, 1, 1, new Uint8Array(4), false, false));
+  const ombres = new Map();
+  const ombreDe = k => { if (!ombres.has(k)) { if (ombres.size > 8) ombres.delete(ombres.keys().next().value); ombres.set(k, ombreEtat(H[k], n, meta)); } return ombres.get(k); };
   const charges = [-1, -1];
   function poser(slot, k) {
     if (charges[slot] === k) return; charges[slot] = k;
@@ -305,13 +322,15 @@ async function demarrer() {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16UI, n, n, 0, gl.RED_INTEGER, gl.UNSIGNED_SHORT, H[k]);
     gl.bindTexture(gl.TEXTURE_2D, texX[slot]);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, meta.n_x, meta.n_x, 0, gl.RED, gl.UNSIGNED_BYTE, X[k]);
+    gl.bindTexture(gl.TEXTURE_2D, texO[slot]);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, n, n, 0, gl.RED, gl.UNSIGNED_BYTE, ombreDe(k));
   }
   const reel = new Uint16Array(r1024.buffer, r1024.byteOffset, r1024.byteLength / 2);
   const texD = texDetail(gl, reel, meta);
   const texR = texture(gl, 0, 0, imRegles, false, true);
   const texM = texture(gl, 0, 0, imMos, true, true);
 
-  const cam = { azimut: 250 * Math.PI / 180, hauteur: 26 * Math.PI / 180, distance: 150, cible: [4, 4, 0.6] };
+  const cam = { azimut: 248 * Math.PI / 180, hauteur: 37 * Math.PI / 180, distance: 118, cible: [6, 2, 0.8] };
   let t = -45, enLecture = false, allure = 1, roches = false, glisse = false;
   const CIEL = [0.72, 0.80, 0.90];
   const compteur = new Compteur(document.body);
@@ -359,7 +378,7 @@ async function demarrer() {
     const [k, f] = indice(t), k2 = Math.min(k + 1, T.length - 1);
     poser(0, k); poser(1, H[k2] ? k2 : k);
     gl.useProgram(prog); gl.bindVertexArray(vao);
-    [[texH[0], "hA"], [texH[1], "hB"], [texX[0], "xA"], [texX[1], "xB"], [texD, "detail"], [texR, "regles"], [texM, "mosaique"]]
+    [[texH[0], "hA"], [texH[1], "hB"], [texX[0], "xA"], [texX[1], "xB"], [texO[0], "oA"], [texO[1], "oB"], [texD, "detail"], [texR, "regles"], [texM, "mosaique"]]
       .forEach(([tx, nom], i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, tx); gl.uniform1i(U[nom], i); });
     gl.uniform1f(U.f, f); gl.uniform1f(U.pz, meta.h_pas_m); gl.uniform1f(U.z0, meta.h_zero_m);
     gl.uniform1f(U.pasKm, meta.pas_m / 1000); gl.uniform1f(U.tailleKm, meta.taille_km); gl.uniform1f(U.exa, EXAGERATION);
