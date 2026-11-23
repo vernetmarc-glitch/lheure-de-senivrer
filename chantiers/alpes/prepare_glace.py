@@ -59,8 +59,13 @@ def crs_de(ds):
 def main():
     from netCDF4 import Dataset
     f = os.path.join("/tmp", NOM)
-    if not os.path.exists(f):
-        subprocess.run(["curl", "-L", "--fail", "--retry", "6", "--retry-delay", "10", "-o", f, URL], check=True)
+    for essai in range(10):                      # Zenodo coupe parfois : on reprend où on en était
+        r = subprocess.run(["curl", "-L", "--fail", "-C", "-", "--retry", "6", "--retry-all-errors",
+                            "--retry-delay", "10", "-o", f, URL])
+        if r.returncode in (0, 33) and os.path.getsize(f) > 4e8:
+            break
+    else:
+        raise SystemExit("téléchargement PISM incomplet")
     ds = Dataset(f)
     crs = crs_de(ds)
     print("projection", crs.to_string()[:80], flush=True)
