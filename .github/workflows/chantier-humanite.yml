@@ -11,6 +11,7 @@ on:
     paths:
       - '.github/workflows/chantier-humanite.yml'
       - 'app/public/labo/humanite/prepa/*.py'
+      - 'app/public/labo/humanite/prepa/neolithique.csv'
   workflow_dispatch:
 
 permissions:
@@ -48,12 +49,15 @@ jobs:
           if [ -f app/public/labo/humanite/prepa/preparer.py ]; then
             python app/public/labo/humanite/prepa/preparer.py "$HUM_DL" app/public/labo/humanite/prepa/intermediaires 2>&1 | tee app/public/labo/humanite/prepa/journal-preparation.txt
           fi
+      - name: Civilisations et empires (Cliopatria)
+        run: |
+          python app/public/labo/humanite/prepa/civilisations.py "$HUM_DL" app/public/labo/humanite/donnees/civ app/public/labo/humanite/prepa/intermediaires 2>&1 | tee app/public/labo/humanite/prepa/journal-civilisations.txt
       - name: Déposer sur la branche
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A app/public/labo/humanite/prepa || true
+          git add -A app/public/labo/humanite/prepa app/public/labo/humanite/donnees/civ || true
           git commit -m "Humanité : données préparées par le workflow (run ${{ github.run_id }})" || exit 0
           for i in 1 2 3 4 5; do
             git pull --rebase origin chantier/humanite && git push origin HEAD:chantier/humanite && exit 0

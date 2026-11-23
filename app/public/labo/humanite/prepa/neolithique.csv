@@ -1,0 +1,40 @@
+# Foyers et cultures néolithiques et chalcolithiques avant les entités de Cliopatria (−10 000 → −3 400,
+# et au-delà là où Cliopatria ne dit rien). Zones aux CONTOURS FLOUS : disques d'extension
+# approximative autour du foyer (hypothèse signalée sur la page), d'après les synthèses citées.
+nom;lon;lat;rayon_km;debut;fin;source
+Natoufien;35.5;32.5;250;-12500;-9500;Bar-Yosef 1998, Evol. Anthropol. 6
+Néolithique précéramique du Croissant fertile;38.5;35.5;550;-10000;-6500;Kuijt & Goring-Morris 2002, J. World Prehist. 16
+Göbekli Tepe;38.9;37.2;120;-9600;-8200;Dietrich et al. 2012, Antiquity 86
+Çatal Höyük;32.8;37.7;120;-7100;-5700;Hodder 2014, Antiquity 88
+Sesklo, Néolithique égéen;22.5;39.4;220;-6800;-5300;Perlès 2001, The Early Neolithic in Greece
+Starčevo-Körös;20.5;45.5;350;-6200;-5200;Whittle 1996, Europe in the Neolithic
+Halaf;40.0;36.5;350;-6100;-5100;Akkermans & Schwartz 2003
+Samarra;44.0;34.2;200;-5700;-4900;Akkermans & Schwartz 2003
+Obeid;45.8;31.5;300;-6500;-3800;Carter & Philip 2010, Beyond the Ubaid
+Uruk;45.6;31.3;300;-4000;-3100;Algaze 2008, Ancient Mesopotamia at the Dawn of Civilization
+Mehrgarh;67.6;29.4;250;-7000;-2600;Jarrige 2008, Pragdhara 18
+Jiahu, Peiligang;113.7;33.6;250;-7000;-5000;Zhang et al. 2004 ; Liu & Chen 2012, The Archaeology of China
+Cishan;114.2;36.6;200;-6500;-5000;Liu & Chen 2012
+Yangshao;110.5;34.7;550;-5000;-3000;Liu & Chen 2012
+Hongshan;120.0;42.0;300;-4700;-2900;Liu & Chen 2012
+Hemudu, Majiabang;121.0;30.0;300;-5000;-3300;Liu & Chen 2012
+Liangzhu;120.0;30.4;250;-3300;-2300;Renfrew & Liu 2018, Antiquity 92
+Dawenkou;117.5;35.8;280;-4100;-2600;Liu & Chen 2012
+Longshan;115.0;35.5;500;-3000;-1900;Liu & Chen 2012
+Rubané;13.0;50.0;650;-5500;-4500;Gronenborn 1999, J. World Prehist. 13
+Cardial;3.0;41.5;500;-5500;-4500;Zilhão 2001, PNAS 98
+Vinča;21.0;44.5;300;-5700;-4500;Chapman 2000
+Cucuteni-Trypillia;27.5;48.0;350;-5000;-2750;Menotti & Korvin-Piotrovskiy 2012
+Culture des vases à entonnoir;11.0;54.5;450;-4300;-2800;Midgley 1992, TRB Culture
+Mégalithes atlantiques (Carnac);-3.1;47.6;180;-4700;-2500;Cassen et al. 2019
+Mérimdé, Fayoum;30.8;29.4;150;-5200;-4000;Wendrich & Cappers 2005
+Badarien;31.3;27.0;150;-4400;-4000;Hendrickx & Vermeersch 2000
+Naqada;32.7;26.0;300;-4000;-3000;Hendrickx & Vermeersch 2000
+Néolithique saharien (Sahara vert);10.0;23.0;900;-7000;-3500;di Lernia 2006 ; Kuper & Kröpelin 2006, Science 313
+Jōmon;137.0;36.5;550;-14000;-300;Habu 2004, Ancient Jomon of Japan
+Kuk, Nouvelle-Guinée;144.3;-5.8;200;-7000;-1000;Denham et al. 2003, Science 301
+Mésoamérique archaïque (premier maïs);-96.4;17.0;300;-8000;-2000;Piperno et al. 2009, PNAS 106
+Norte Chico (Caral);-77.5;-10.9;180;-3500;-1800;Shady Solís et al. 2001, Science 292
+Valdivia;-80.7;-2.2;150;-3500;-1800;Zeidler 2003
+Hakra, Kot Diji (Indus pré-urbain);72.0;29.5;400;-3500;-2600;Kenoyer 1998, Ancient Cities of the Indus
+Botaï;67.7;53.3;250;-3700;-3100;Outram et al. 2009, Science 323
