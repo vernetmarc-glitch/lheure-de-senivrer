@@ -49,6 +49,16 @@ recommandation : oui, S3b reprendra ce segment avec Cao et al. 2024.
 Prochaine étape : S3b (Cao 2024, couche mince + FastScape) sur ce globe ; si l'on garde
 Merdith d'ici là, combler les terres du PaleoDEM de 540 Ma non atteintes par le nuage.
 
+## S3b — Terre en mécanique des roches (branche `chantier/terre-mecanique`)
+**Étape 1 publiable, commit 5cadbeb** : page `labo/terre` bornée à 540 Ma → aujourd'hui
+(curseur, lecture, `terre.regler` ; frise : 4,54 Ga → 540 Ma hachuré « à venir »), 12/12
+contrôles verts sur toute la plage affichée (C4, C5, C6, C9, C12 lisent `terre.plage()`).
+Corrigé en route : C5 échouait aussi dans le segment PALEOMAP (2,2 % vers 6,5 Ma : plaines
+codées sur 8 bits à une seule altitude, noyées d'un coup) -> micro-relief de ±25 m attaché à
+la croûte, éteint au-delà de 80 m ; lecture à 15 Ma/s (C11 n'avait plus le temps de mesurer).
+
+Étape 2 (en cours) : voir plus bas, mis à jour en fin de passage.
+
 ## S4 — Climat et glaces
 Étape : attend S3.
 
