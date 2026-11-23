@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import controles as C
 
-INSTANTS = [(-30, "−30 Ma"), (-18, "−18 Ma"), (-8, "−8 Ma"), (-1, "−1 Ma"), (-0.024, "−24 000 ans (glaciers)"), (0, "aujourd'hui")]
+INSTANTS = [(-8, "−8 Ma"), (-1, "−1 Ma"), (-0.06, "−60 000 ans"), (-0.024, "−24 000 ans (maximum glaciaire)"), (-0.015, "−15 000 ans"), (0, "aujourd'hui")]
 
 
 def police(t):
@@ -37,23 +37,26 @@ def main(sortie):
         pg.wait_for_function("window.ALPES && window.ALPES.pret", timeout=180000)
         pg.evaluate("window.ALPES.pause()")
         for t, _ in INSTANTS:
-            pg.evaluate(f"window.ALPES.aller({t})")
-            pg.wait_for_timeout(1600)
+            pg.evaluate(f"window.ALPES.aller({t}); window.ALPES.avancerTrainees(3); window.ALPES.dessiner()")
+            pg.wait_for_timeout(300)
             vues.append(Image.open(io.BytesIO(pg.screenshot())).convert("RGB").resize((390, 844), Image.LANCZOS))
-        pg.evaluate("window.ALPES.aller(-10); window.ALPES.coupe(true)")
-        pg.wait_for_timeout(1600)
+        cam0 = pg.evaluate("window.ALPES.camera()")
+        pg.evaluate("window.ALPES.regarder({distance: 42, hauteur: 0.55, cible: [14, 10, 1.2]}); window.ALPES.aller(-0.024); window.ALPES.avancerTrainees(3); window.ALPES.dessiner()")
+        pg.wait_for_timeout(300)
         vues.append(Image.open(io.BytesIO(pg.screenshot())).convert("RGB").resize((390, 844), Image.LANCZOS))
-        pg.evaluate("window.ALPES.coupe(false)")
+        pg.evaluate(f"window.ALPES.regarder({json.dumps(cam0)})")
         for mode, mos in ((3, 0), (3, "undefined")):
             px = np.array(pg.evaluate(f"Array.from(window.ALPES.couleurs(0, {mode}, {mos}, 512))"), np.uint8).reshape(512, 512, 3)
             nadir.append(Image.fromarray(px))
         nav.close()
     # référence : DEM ombré drapé de la mosaïque
-    reel = np.frombuffer(C.gzip.decompress(C.lire(base + "donnees/reel_1024.bin.gz")), "<u2").astype(float)
-    reel = (reel * meta["h_pas_m"] + meta["h_zero_m"]).reshape(1024, 1024)
+    nr = meta["n"]
+    reel = np.frombuffer(C.gzip.decompress(C.lire(base + "donnees/" + meta["reel"])), "<u2").astype(float)
+    reel = (reel * meta["h_pas_m"] + meta["h_zero_m"]).reshape(nr, nr)
     mos = np.asarray(Image.open(io.BytesIO(C.lire(base + "donnees/mosaique_2048.jpg"))).convert("RGB"), float)
-    mos = mos.reshape(1024, 2, 1024, 2, 3).mean(axis=(1, 3))
-    gy, gx = np.gradient(reel * 1.5, 200.0)
+    f_ = mos.shape[0] // nr
+    mos = mos.reshape(nr, f_, nr, f_, 3).mean(axis=(1, 3))
+    gy, gx = np.gradient(reel * 1.5, meta["pas_m"])
     az, el = np.radians(145), np.radians(34)
     L = np.array([np.sin(az) * np.cos(el), np.cos(az) * np.cos(el), np.sin(el)])
     sh = (-gx * L[0] + gy * L[1] + L[2]) / np.sqrt(gx ** 2 + gy ** 2 + 1)
@@ -64,7 +67,7 @@ def main(sortie):
     W = 390 * 7
     plan = Image.new("RGB", (W, 844 + 60 + 420 + 50), (14, 18, 26))
     d = ImageDraw.Draw(plan)
-    for i, (im, (_, lab)) in enumerate(zip(vues, INSTANTS + [(-10, "−10 Ma, coupe : grains suivis")])):
+    for i, (im, (_, lab)) in enumerate(zip(vues, INSTANTS + [(-0.024, "Grésivaudan, −24 000 ans, de près")])):
         plan.paste(im, (390 * i, 40))
         d.text((390 * i + 12, 8), lab, font=police(22), fill=(243, 239, 230))
     y = 844 + 60

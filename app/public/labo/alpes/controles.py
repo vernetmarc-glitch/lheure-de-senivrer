@@ -8,6 +8,7 @@ Exigences servies : N16 (compression et érosion simultanées), N17 (relief réa
 N20 (fluide sur téléphone), N23 / D-41 (fin sur le relief réel, barre qui ralentit).
 """
 import gzip, http.server, json, os, socket, sys, threading, time, urllib.request
+from scipy.ndimage import binary_dilation
 from functools import partial
 import numpy as np
 
@@ -50,25 +51,62 @@ def lire(url):
 
 
 # ---------------------------------------------------------------- paquet publié
+CHANTIER = os.path.abspath(os.path.join(ICI, "..", "..", "..", "..", "chantiers", "alpes"))
+
+
+def agrandir(a, n):
+    """Bilinéaire aux centres de mailles, bords répétés (identique à alpes.js et simuler.py)."""
+    m = a.shape[0]
+    c = np.clip((np.arange(n) + 0.5) * m / n - 0.5, 0, m - 1)
+    i0 = np.floor(c).astype(int); i1 = np.minimum(i0 + 1, m - 1); w = c - i0
+    a = a[i0] * (1 - w)[:, None] + a[i1] * w[:, None]
+    return a[:, i0] * (1 - w)[None, :] + a[:, i1] * w[None, :]
+
+
 def decoder_paquet(base, meta):
-    """Décode les états exactement comme la page (voir alpes.js, charger)."""
-    nn, nx, nu = meta["n"] ** 2, meta["n_x"] ** 2, meta["n_ue"] ** 2
-    H, U, E, X = [], [], [], []
+    """Décode le paquet v3 exactement comme la page (alpes.js, classe Film) : relief de chaque
+    état (m), soulèvement et érosion (octets), roches (octets, interpolées entre clés)."""
+    n, nr, nx, nu = meta["n"], meta["n_res"], meta["n_x"], meta["n_ue"]
+    nn, K = n * n, len(meta["temps_Ma"])
+    Q, QR = meta["q_cle_m"], meta["q_res_m"]
+    qk, xk, res, U, E = {}, {}, {}, [None] * K, [None] * K
+    qprev = xprev = None; kprev = -1
     for p in meta["paquets"]:
-        brut = gzip.decompress(lire(base + "donnees/" + p["fichier"]))
-        k = p["nombre"]
-        b = np.frombuffer(brut[: 2 * nn * k], np.uint8).reshape(2, k, nn)   # plans bas / haut
-        d = (b[0].astype(np.uint16) | (b[1].astype(np.uint16) << 8)).view(np.int16).astype(np.int32)
-        q = np.cumsum(d, axis=0)                       # différences sans perte dans le paquet
-        o = 2 * nn * k
-        x = np.cumsum(np.frombuffer(brut[o:o + nx * k], np.uint8).reshape(k, nx).astype(np.int32), axis=0) % 256
-        o += nx * k
-        u = np.frombuffer(brut[o:o + nu * k], np.uint8).reshape(k, nu); o += nu * k
-        e = np.frombuffer(brut[o:o + nu * k], np.uint8).reshape(k, nu)
-        for i in range(k):
-            H.append(q[i] * meta["h_pas_m"] + meta["h_zero_m"])
-            U.append(u[i]); E.append(e[i]); X.append(x[i].astype(np.uint8))
-    return np.array(H, np.float32), np.array(U), np.array(E), np.array(X)
+        b = np.frombuffer(gzip.decompress(lire(base + "donnees/" + p["fichier"])), np.uint8)
+        o = 0
+        for k in p["cles"]:
+            d = (b[o:o + nn].astype(np.uint16) | (b[o + nn:o + 2 * nn].astype(np.uint16) << 8)).view(np.int16).astype(np.int64)
+            o += 2 * nn
+            q = d if qprev is None else qprev + d
+            for j in range(kprev + 1, k):
+                res[j] = b[o:o + nr * nr].view(np.int8).reshape(nr, nr).astype(np.float64); o += nr * nr
+            x = b[o:o + nx * nx].astype(np.int64); o += nx * nx
+            x = x if xprev is None else (xprev + x) % 256
+            for j in (range(0, 1) if kprev < 0 else range(kprev + 1, k + 1)):
+                U[j] = b[o:o + nu * nu]; E[j] = b[o + nu * nu:o + 2 * nu * nu]; o += 2 * nu * nu
+            qk[k], xk[k] = q, x; qprev, xprev, kprev = q, x, k
+    cles = sorted(qk)
+    H = np.zeros((K, nn), np.float32); X = np.zeros((K, nx * nx), np.uint8)
+    for a_, b_ in zip(cles[:-1], cles[1:]):
+        H[a_] = qk[a_] * Q; X[a_] = xk[a_]
+        for j in range(a_ + 1, b_):
+            f = (j - a_) / (b_ - a_)
+            H[j] = (qk[a_] * (1 - f) + qk[b_] * f) * Q + agrandir(res[j] * QR, n).ravel()
+            X[j] = np.round(xk[a_] * (1 - f) + xk[b_] * f)
+    H[cles[-1]] = qk[cles[-1]] * Q; X[cles[-1]] = xk[cles[-1]]
+    return H, np.array(U), np.array(E), X
+
+
+def glaciers(base):
+    gm = json.loads(lire(base + "donnees/glace.json"))
+    nt, N, nv, nm = len(gm["ages_ans"]), gm["n"], gm["n_v"], gm["n_moraines"]
+    cum = lambda b, nn, o=0: np.cumsum(b[o:o + nt * nn].reshape(nt, nn).astype(np.int64), axis=0) % 256
+    e = cum(np.frombuffer(gzip.decompress(lire(base + "donnees/glace.bin.gz")), np.uint8), N * N).reshape(nt, N, N)
+    vb = np.frombuffer(gzip.decompress(lire(base + "donnees/vitesses.bin.gz")), np.uint8)
+    ve = cum(vb, nv * nv).astype(np.uint8).view(np.int8).reshape(nt, nv, nv)
+    vn = cum(vb, nv * nv, nt * nv * nv).astype(np.uint8).view(np.int8).reshape(nt, nv, nv)
+    mo = cum(np.frombuffer(gzip.decompress(lire(base + "donnees/moraines.bin.gz")), np.uint8), nm * nm).reshape(nt, nm, nm)
+    return gm, e.astype(np.uint8), ve, vn, mo
 
 
 def lab(rgb):
@@ -152,10 +190,8 @@ def controles_donnees(base):
        f"avant {avant.max() if len(avant) else '–'} Ma, après {apres.max() if len(apres) else '–'} Ma")
     taille = sum(int(urllib.request.urlopen(urllib.request.Request(base + "donnees/" + p["fichier"], method="HEAD")).headers["Content-Length"])
                  for p in meta["paquets"])
-    ok("D4 paquet léger (< 40 Mo)", taille < 40e6, f"{taille/1e6:.1f} Mo")
-    premiere = sum(len(lire(base + "donnees/" + f)) for f in
-                   ("meta.json", meta["paquets"][0]["fichier"], "reel_1024.bin.gz", "regles.png", "mosaique_2048.jpg"))
-    ok("N27 poids avant la première image ≤ 10 Mo", premiere <= 10e6, f"{premiere/1e6:.1f} Mo")
+    total = sum(os.path.getsize(os.path.join(r, f)) for r, _, fs in os.walk(ICI) for f in fs)
+    ok("D4 poids de tout le dossier publié (film, glaciers, page) ≤ 15 Mo", total <= 15e6, f"{total/1e6:.1f} Mo")
 
     H, U8, E8, X8 = decoder_paquet(base, meta)
     n = meta["n"]
@@ -228,10 +264,14 @@ def controles_donnees(base):
     G = meta["grains"]["nombre"]
     gb = gzip.decompress(lire(base + "donnees/" + meta["grains"]["fichier"]))
     tex = np.frombuffer(gb[:4 * G], "<f4"); gq = np.frombuffer(gb[4 * G:8 * G], "<f4")
-    o = 8 * G; GS, GZ, GD = [], [], []
-    for k in range(len(t)):
-        GS.append(np.frombuffer(gb[o:o + 2 * G], "<i2") / 100); GZ.append(np.frombuffer(gb[o + 2 * G:o + 4 * G], "<i2"))
-        GD.append(np.frombuffer(gb[o + 4 * G:o + 5 * G], np.uint8) * 100.0); o += 5 * G
+    K = len(t)
+    def plan16(o):
+        lo = np.frombuffer(gb[o:o + K * G], np.uint8).astype(np.uint16); hi = np.frombuffer(gb[o + K * G:o + 2 * K * G], np.uint8).astype(np.uint16)
+        d = (lo | (hi << 8)).view(np.int16).astype(np.int64).reshape(K, G)
+        return np.cumsum(d, axis=0).astype(np.int16)
+    GS = plan16(8 * G) / 100.0; GZ = plan16(8 * G + 2 * K * G)
+    od = 8 * G + 4 * K * G
+    GD = (np.cumsum(np.frombuffer(gb[od:od + K * G], np.uint8).reshape(K, G).astype(np.int64), axis=0) % 256) * 100.0
     ax = np.array(meta["grains"]["axe_est"]); nr = np.array([-ax[1], ax[0]])
     nx_ = meta["n_x"]; ecarts = []
     xm = lambda v: (np.exp(v / 255 * np.log1p(meta["x_max_m"] / 200)) - 1) * 200
@@ -283,6 +323,9 @@ def controles_page(base):
         except Exception:
             pret = False
         ok("P1 page prête (paquet chargé, WebGL2)", pret)
+        pp = page.evaluate("window.ALPES && window.ALPES.poidsPremiereImage")
+        ok("N27 poids téléchargé avant la première image ≤ 4 Mo (mesuré par le navigateur)",
+           pp is not None and pp <= 4e6, f"{pp/1e6:.2f} Mo" if pp is not None else "non mesuré")
         if pret:
             meta_ = json.loads(lire(base + "donnees/meta.json"))
             controles_nettete_rendu(page, base, meta_, decoder_paquet(base, meta_)[0])
@@ -292,14 +335,14 @@ def controles_page(base):
             for t0 in (-20, -1.9, -1.2, -0.6, -0.2):
                 v = page.evaluate("""async (t0) => {
                     const A = window.ALPES; A.vitesse(1); A.aller(t0); A.lire();
-                    const image = () => new Promise(r => requestAnimationFrame(ts => r([ts, A.temps()])));
+                    const image = () => new Promise(r => requestAnimationFrame(ts => r([ts, A.temps(), A.compteur.etat().cible])));
                     await new Promise(r => setTimeout(r, 1200));          // amortissement de l'aiguille
-                    const [ta, a] = await image();
-                    let tb = ta, b = a, tp = ta, bp = a;
-                    while (tb - ta < 1500) { tp = tb; bp = b; [tb, b] = await image(); }
+                    const [ta, a, ca] = await image();
+                    let tb = ta, b = a, tp = ta, bp = a, cb = ca, cp = ca;
+                    while (tb - ta < 1500) { tp = tb; bp = b; cp = cb; [tb, b, cb] = await image(); }
                     const v = (b - a) / ((tb - ta) / 1000);             // vitesse moyenne
                     const vi = (b - bp) / ((tb - tp) / 1000);           // vitesse de la dernière image
-                    const ang = A.compteur.etat().cible; A.pause();
+                    const ang = (cp + cb) / 2; A.pause();          // cible moyenne sur la dernière image
                     return [v, ang, vi];
                 }""", t0)
                 mesures[t0], angles[t0], inst[t0] = v
@@ -401,7 +444,7 @@ def controles_nettete_rendu(page, base, meta, H):
     T = np.array(meta["temps_Ma"])
     ref = energie(0, H[-1])
     res = []
-    for tt in (-30, -25, -18, -12, -6, -3):
+    for tt in (-30, -29.5, -25, -18, -12.25, -6, -3):   # clés et instants entre deux clés
         k = int(np.argmin(abs(T - tt)))
         res.append((energie(T[k], H[k]) / ref, tt))
     pire = min(res)
@@ -456,9 +499,7 @@ def controles_couleurs(page, base):
     accord = (attendu == rendu)[2:-2, 2:-2].mean()
     part = 1 - rendu.mean()
     # Glaciers du dernier cycle : l'étendue dessinée est celle des données (à une maille près)
-    from scipy.ndimage import binary_dilation
-    gm = json.loads(lire(base + "donnees/glace.json"))
-    gv = np.frombuffer(gzip.decompress(lire(base + "donnees/glace.bin.gz")), np.uint8).reshape(len(gm["ages_ans"]), gm["n"], gm["n"])
+    gm, gv, gve, gvn, gmo = glaciers(base)
     res = []
     for age in (110000, 60000, 24000, 15000):
         k = gm["ages_ans"].index(age)
@@ -475,6 +516,58 @@ def controles_couleurs(page, base):
     ok("S8→S7 maximum glaciaire entre 30 et 18 ka, glace dans le Grésivaudan",
        18000 <= gmax <= 30000 and gv[gm["ages_ans"].index(gmax)].reshape(n, n)[int((102.4 - 15) / 0.8), int((102.4 + 12) / 0.8)] >= 6,
        f"maximum à {gmax} ans")
+
+    # C5 (de S8) : traînées dans le sens des vitesses publiées
+    sys.path.insert(0, CHANTIER)
+    import moraines as MOR
+    L_ = meta["taille_km"]; nv = gm["n_v"]; vmax = gm["v_max_m_a"]
+    deq = lambda q: np.sign(q) * (q.astype(np.float64) / 127) ** 2 * vmax
+    def bil(a, x, y):                     # x, y en km -> bilinéaire aux centres (comme vitesseAu)
+        m = a.shape[0]
+        c = np.clip((x + L_ / 2) / L_ * m - 0.5, 0, m - 1.001); r = np.clip((L_ / 2 - y) / L_ * m - 0.5, 0, m - 1.001)
+        j, i = c.astype(int), r.astype(int); u, v = c - j, r - i
+        return (a[i, j] * (1 - u) + a[i, j + 1] * u) * (1 - v) + (a[i + 1, j] * (1 - u) + a[i + 1, j + 1] * u) * v
+    det, ok5 = [], True
+    for age in (25000, 60000):
+        k = gm["ages_ans"].index(age)
+        page.evaluate(f"window.ALPES.aller({-age / 1e6}); window.ALPES.avancerTrainees(3)")
+        seg = np.array(page.evaluate("window.ALPES.traineesDessinees()"), np.float64).reshape(-1, 4)
+        ntr = page.evaluate("window.ALPES.nombreTrainees()")
+        mx, my = (seg[:, 0] + seg[:, 2]) / 2, (seg[:, 1] + seg[:, 3]) / 2
+        ur, vr = bil(deq(gve[k]), mx, my), bil(deq(gvn[k]), mx, my)
+        sel = np.hypot(ur, vr) >= 1.0
+        ang = np.degrees(np.abs(np.angle(np.exp(1j * (np.arctan2(seg[sel, 3] - seg[sel, 1], seg[sel, 2] - seg[sel, 0]) - np.arctan2(vr[sel], ur[sel]))))))
+        masque = binary_dilation(gv[k] >= 6)
+        ci = np.clip(((mx + L_ / 2) / L_ * gm["n"]).astype(int), 0, gm["n"] - 1); ri = np.clip(((L_ / 2 - my) / L_ * gm["n"]).astype(int), 0, gm["n"] - 1)
+        hors = float((~masque[ri, ci]).mean()) if len(seg) else 1.0
+        med = float(np.median(ang)) if len(ang) else 180.0; p95 = float(np.percentile(ang, 95)) if len(ang) else 180.0
+        ok5 &= med < 15 and p95 < 45 and ntr >= 400 and hors < 0.01
+        det.append(f"{age // 1000} ka : {ntr} traînées, écart médian {med:.1f}°, 95e c. {p95:.1f}°, hors glace {100 * hors:.2f} %")
+    ok("C5 (S8) traînées dans le sens des vitesses publiées (médiane < 15°, 95e c. < 45°, ≥ 400, hors glace < 1 %)", ok5, " ; ".join(det))
+
+    # C9 (de S8) : moraines médianes dessinées = celles que donnent les vitesses publiées, là où deux flux se rejoignent
+    det, ok9, total = [], True, 0.0
+    nm = gm["n_moraines"]; F = 3                       # tolérance ≈ 1,2 km
+    for age in (60000, 15000, 110000, 20000):
+        k = gm["ages_ans"].index(age)
+        e_ = (gv[k].astype(np.float64) / 255) ** 2 * gm["e_max_m"] * (gv[k] >= 6)
+        u_, v_ = agrandir(deq(gve[k]), gm["n"]), agrandir(deq(gvn[k]), gm["n"])
+        ref = MOR.moraines(e_, u_, -v_)
+        des = np.array(page.evaluate(f"Array.from(window.ALPES.couleurs({-age / 1e6}, 6, 0, {nm}))"), np.float64).reshape(nm, nm, 3)[..., 0] > 127
+        km = ref.sum() / MOR.R * MOR.MAILLE_KM; total += km
+        if ref.sum() == 0 and des.sum() == 0:
+            det.append(f"{age // 1000} ka : aucune"); continue
+        dil = lambda m_: binary_dilation(m_, iterations=F)
+        prec = (des & dil(ref)).sum() / max(1, des.sum()); rapp = (ref & dil(des)).sum() / max(1, ref.sum())
+        jj, ii = np.nonzero(des)
+        pick = np.random.default_rng(1).choice(len(jj), size=min(300, len(jj)), replace=False) if len(jj) else np.array([], int)
+        x_, y_ = (ii[pick] + 0.5) / MOR.R, (jj[pick] + 0.5) / MOR.R
+        deux = MOR.deux_flux(u_, -v_, (e_ >= 1).astype(np.float64), x_, y_)
+        frac = float(np.mean(deux)) if len(pick) else 0.0
+        ok9 &= prec >= 0.85 and rapp >= 0.85 and frac >= 0.70
+        det.append(f"{age // 1000} ka : {km:.0f} km, dessinées ⊂ données {100 * prec:.0f} %, données ⊂ dessinées {100 * rapp:.0f} %, deux flux {100 * frac:.0f} %")
+    ok9 &= total >= 100
+    ok("C9 (S8) moraines médianes : celles des vitesses publiées (≥ 85 % dans les deux sens), là où deux flux se rejoignent (≥ 70 %)", ok9, " ; ".join(det))
 
     ok("S7 ombres portées : accord ≥ 95 % avec la marche vers le Soleil fixe, 2–40 % du relief à l'ombre",
        accord >= 0.95 and 0.02 <= part <= 0.40, f"accord {100*accord:.1f} %, ombre {100*part:.1f} %")
