@@ -369,14 +369,6 @@
   "dx": 125.0,
   "disposition": "i16 mètres, [ny][nx], rangée 0 = sud"
  },
- "moraines": {
-  "fichier": "moraines.bin.gz",
-  "nx": 300,
-  "ny": 300,
-  "dx": 500.0,
-  "disposition": "u8 (255 = moraine médiane), [nt][ny][nx], rangée 0 = sud",
-  "methode": "chantiers/glaciers/moraines.py : lignes de courant issues des pointes d’éperons et de nunataks qui séparent deux flux"
- },
  "ligne_equilibre_m": [
   2900,
   2900,
@@ -499,5 +491,13 @@
   2975,
   2975
  ],
- "ligne_equilibre_methode": "chantiers/glaciers/moraines.py : bilan de surface ≈ ∂H/∂t + ∇·(0,8 H u_s), altitude séparant au mieux accumulation et ablation, médiane sur 5 pas"
+ "ligne_equilibre_methode": "chantiers/glaciers/moraines.py : bilan de surface ≈ ∂H/∂t + ∇·(0,8 H u_s), altitude séparant au mieux accumulation et ablation, médiane sur 5 pas",
+ "moraines": {
+  "fichier": "moraines.bin.gz",
+  "nx": 300,
+  "ny": 300,
+  "dx": 500.0,
+  "disposition": "u8 (255 = moraine médiane), [nt][ny][nx], rangée 0 = sud",
+  "methode": "chantiers/glaciers/moraines.py : lignes de courant issues des pointes d’éperons et de nunataks qui séparent deux flux"
+ }
 }
