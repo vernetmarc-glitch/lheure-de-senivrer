@@ -175,22 +175,21 @@ export function creeCompteur(conteneur, options = {}) {
   racine.append(lecture, sensTxt);
   conteneur.appendChild(racine);
 
-  // Étiquettes : chacune glisse le long de son rayon jusqu'à tenir à l'intérieur des
-  // graduations (cercle de rayon 73), une fois la police chargée.
+  // Étiquettes : chacune glisse le long de son rayon jusqu'à ne plus toucher sa
+  // graduation ni l'arc de l'échelle, une fois la police chargée.
   const placeEtiquettes = () => {
     if (!racine.isConnected) return;
     for (const t of svg.querySelectorAll(".etiquette")) {
       const a = +t.dataset.angle;
-      let r = 62;
-      for (let i = 0; i < 40; i++) {
+      const trait = Array.from({ length: 12 }, (_, i) => polaire(a, 74 + 16 * i / 11));
+      for (let r = 66; r >= 34; r -= 0.5) {
         const [x, y] = polaire(a, r);
         t.setAttribute("x", x.toFixed(2)); t.setAttribute("y", y.toFixed(2));
         const b = t.getBBox();
         if (!b.width) break;
+        const m = 2.5, touche = trait.some(([u, v]) => u > b.x - m && u < b.x + b.width + m && v > b.y - m && v < b.y + b.height + m);
         const coins = [[b.x, b.y], [b.x + b.width, b.y], [b.x, b.y + b.height], [b.x + b.width, b.y + b.height]];
-        const loin = Math.max(...coins.map(([u, v]) => Math.hypot(u - 100, v - 100)));
-        if (loin <= 73.5 || r < 30) break;
-        r -= Math.max(0.5, loin - 73.5);
+        if (!touche && Math.max(...coins.map(([u, v]) => Math.hypot(u - 100, v - 100))) <= 82) break;
       }
     }
   };
