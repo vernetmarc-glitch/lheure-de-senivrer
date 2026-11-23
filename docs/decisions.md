@@ -516,3 +516,12 @@ grille sphérique). Avant 1,8 Ga : Vaalbara, Ur, Kenorland en hypothèses de la 
 continents surtout immergés à l'Archéen (Zhou et al. 2026). Pannotia est débattue et
 montrée comme telle. La liste classique compte six réunions avant la Pangée (sept avec
 elle) ; les trois plus anciennes sont des hypothèses.
+
+## D-50 — Civilisations et empires : Cliopatria *(23/11/2026, maître)*
+Frontières des entités politiques de 3400 av. J.-C. à 2024 : Cliopatria (Seshat Global
+History Databank ; Bennett et al. 2025, Scientific Data 12, 247 ; GeoJSON sur GitHub).
+Entre −10 000 et −3400 : foyers et cultures néolithiques tirés de la littérature
+archéologique (zones aux contours flous, signalés comme tels). Les points restent les
+points de population (un point = 2 000 humains) ; c'est leur couleur qui dit
+l'appartenance, avec le nom de l'entité posé sur sa zone. Le temps ralentit fortement
+après −3000.

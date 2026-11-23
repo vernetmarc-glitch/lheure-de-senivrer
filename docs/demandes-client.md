@@ -1128,3 +1128,5 @@ s'enivrer — Refonte : du cosmos aux Alpes ».*
 - **N35.** La dérive des continents, depuis la formation de la Terre et l'impact de la Lune, repose sur un modèle de mécanique des roches, plus grossier que celui des Alpes, qui fait apparaître les chaînes de montagnes lors des collisions et rend compte de l'évolution des continents (23/11, Marc).
 - **N36.** On voit, avec un rendu réaliste, les grandes réunions continentales qui ont précédé la Pangée (Marc en compte sept) (23/11).
 - **N37.** Les continents changent de couleur et verdissent quand la vie colonise les terres ; l'explosion cambrienne est rendue visible d'une manière ou d'une autre (23/11).
+- **N38.** À partir de −10 000 ans, les points de densité humaine prennent un code couleur par zones qui représentent et nomment toutes les civilisations et empires connus ; on voit leur apparition, leur expansion et leur disparition (23/11, 22 h 19, Marc).
+- **N39.** La simulation ralentit à l'époque historique pour qu'on voie le détail des empires et civilisations depuis l'Antiquité jusqu'à l'établissement des États actuels (23/11).

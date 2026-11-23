@@ -40,3 +40,4 @@ Départ (19/11/2026, 7 h 40) : `bake.py --check` sur `main` : 399 passés, 15 en
 - 19/11 7 h 40 : vague 1 lancée ; 19/11 ≈ 8 h : tous les agents arrêtés par la limite d'usage hebdomadaire.
 - 23/11 5 h 50 : directives de Marc (références visuelles, styles, vidéo, compteur) ; vague 1 relancée, S0 et S6 lancés.
 - 23/11 ≈ 7 h 30 : limite de 5 h atteinte (remise à 10 h 40). Publiés : compteur et vidéo (S0), puis glaciers (S8, 10/10). 11 h 45 : reprise de S7, S3, S1 ; S6 et S8 au réveil suivant.
+- 23/11 soir : publiés S7 passage 3, S6 passages 2 et 3, S8 passage 3. Limite de 5 h atteinte vers 18 h (remise 21 h 40). 22 h 20 : reprise S7b, S3, et S6 passage 4 (civilisations, N38–N39). S1 : run Phantom 45160564099 toujours en cours.
