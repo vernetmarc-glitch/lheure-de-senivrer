@@ -83,8 +83,8 @@ log('noms français :', len(fr), '/', len(qids))
 # ------------------------------------------------------------------ pas de temps
 pas = list(range(-10000, -3400, 200)) + list(range(-3400, -1000, 50)) + list(range(-1000, 1500, 25)) + \
       list(range(1500, 1900, 10)) + list(range(1900, 2025, 5))
-if pas[-1] != 2024:
-    pas.append(2024)
+TEMOINS = [-9000, -5000, -2500, -500, 100, 800, 1279, 1500, 1900, 2024]   # dates témoins des contrôles
+pas = sorted(set(pas) | set(TEMOINS))
 log(len(pas), 'pas de temps')
 
 from rasterio import features as rf
