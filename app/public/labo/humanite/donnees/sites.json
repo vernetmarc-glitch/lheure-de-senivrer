@@ -1,0 +1,767 @@
+[
+{
+"lignee": "hominines",
+"role": "origine",
+"nom": "Toros-Menalla, Tchad (Sahelanthropus)",
+"lat": 16.3,
+"lon": 17.9,
+"age": 7000000.0,
+"source": "Brunet et al. 2002, Nature 418 "
+},
+{
+"lignee": "hominines",
+"role": "site",
+"nom": "Collines de Tugen, Kenya (Orrorin)",
+"lat": 0.8,
+"lon": 35.9,
+"age": 6000000.0,
+"source": "Senut et al. 2001, C. R. Acad. Sci. 332"
+},
+{
+"lignee": "hominines",
+"role": "site",
+"nom": "Moyen Awash, Éthiopie (Ardipithecus kadabba)",
+"lat": 10.3,
+"lon": 40.5,
+"age": 5600000.0,
+"source": "Haile-Selassie 2001, Nature 412"
+},
+{
+"lignee": "hominines",
+"role": "site",
+"nom": "Kanapoi, Kenya (Australopithecus anamensis)",
+"lat": 2.3,
+"lon": 36.1,
+"age": 4200000.0,
+"source": "Leakey et al. 1995, Nature 376"
+},
+{
+"lignee": "hominines",
+"role": "site",
+"nom": "Koro Toro, Tchad (A. bahrelghazali)",
+"lat": 16.0,
+"lon": 18.6,
+"age": 3500000.0,
+"source": "Brunet et al. 1995, Nature 378"
+},
+{
+"lignee": "hominines",
+"role": "site",
+"nom": "Laetoli, Tanzanie (empreintes)",
+"lat": -3.2,
+"lon": 35.2,
+"age": 3660000.0,
+"source": "Leakey & Hay 1979, Nature 278 "
+},
+{
+"lignee": "hominines",
+"role": "site",
+"nom": "Hadar, Éthiopie (Lucy)",
+"lat": 11.1,
+"lon": 40.6,
+"age": 3200000.0,
+"source": "Johanson & Taieb 1976, Nature 260"
+},
+{
+"lignee": "hominines",
+"role": "site",
+"nom": "Sterkfontein, Afrique du Sud (Little Foot, datation discutée)",
+"lat": -26.0,
+"lon": 27.7,
+"age": 3670000.0,
+"source": "Granger et al. 2015, Nature 522"
+},
+{
+"lignee": "hominines",
+"role": "site",
+"nom": "Taung, Afrique du Sud",
+"lat": -27.6,
+"lon": 24.6,
+"age": 2800000.0,
+"source": "Dart 1925, Nature 115 "
+},
+{
+"lignee": "hominines",
+"role": "site",
+"nom": "Chiwondo, Malawi (Paranthropus boisei)",
+"lat": -9.9,
+"lon": 33.9,
+"age": 2400000.0,
+"source": "Kullmer et al. 1999, Nature 397"
+},
+{
+"lignee": "hominines",
+"role": "site",
+"nom": "Malapa, Afrique du Sud (A. sediba)",
+"lat": -25.9,
+"lon": 27.8,
+"age": 1980000.0,
+"source": "Pickering et al. 2011, Science 333"
+},
+{
+"lignee": "hominines",
+"role": "site",
+"nom": "Konso, Éthiopie (P. boisei)",
+"lat": 5.3,
+"lon": 37.4,
+"age": 1400000.0,
+"source": "Suwa et al. 1997, Nature 389"
+},
+{
+"lignee": "hominines",
+"role": "refuge",
+"nom": "Swartkrans, Afrique du Sud (derniers Paranthropus)",
+"lat": -26.0,
+"lon": 27.7,
+"age": 1000000.0,
+"source": "Herries et al. 2009 "
+},
+{
+"lignee": "erectus",
+"role": "origine",
+"nom": "Ledi-Geraru, Éthiopie (premier Homo)",
+"lat": 11.3,
+"lon": 40.8,
+"age": 2800000.0,
+"source": "Villmoare et al. 2015, Science 347"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Koobi Fora, Kenya",
+"lat": 3.9,
+"lon": 36.2,
+"age": 1900000.0,
+"source": "Leakey et al. 2012, Nature 488"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Drimolen, Afrique du Sud (H. erectus)",
+"lat": -26.0,
+"lon": 27.8,
+"age": 2040000.0,
+"source": "Herries et al. 2020, Science 368"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Shangchen, Chine (outils)",
+"lat": 34.2,
+"lon": 109.5,
+"age": 2120000.0,
+"source": "Zhu et al. 2018, Nature 559"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Dmanissi, Géorgie",
+"lat": 41.3,
+"lon": 44.3,
+"age": 1800000.0,
+"source": "Ferring et al. 2011, PNAS 108"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Majuangou, Nihewan, Chine",
+"lat": 40.2,
+"lon": 114.7,
+"age": 1660000.0,
+"source": "Zhu et al. 2004, Nature 431"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Attirampakkam, Inde (outils acheuléens)",
+"lat": 13.2,
+"lon": 79.9,
+"age": 1510000.0,
+"source": "Pappu et al. 2011, Science 331"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Oubeidiya, vallée du Jourdain",
+"lat": 32.7,
+"lon": 35.6,
+"age": 1400000.0,
+"source": "Bar-Yosef & Goren-Inbar 1993"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Barranco León, Orce, Espagne",
+"lat": 37.7,
+"lon": -2.5,
+"age": 1400000.0,
+"source": "Toro-Moyano et al. 2013, J. Hum. Evol. 65"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Sangiran, Java",
+"lat": -7.5,
+"lon": 110.8,
+"age": 1300000.0,
+"source": "Matsu'ura et al. 2020, Science 367"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Sima del Elefante, Atapuerca, Espagne",
+"lat": 42.4,
+"lon": -3.5,
+"age": 1200000.0,
+"source": "Carbonell et al. 2008, Nature 452"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Wolo Sege, Florès (outils)",
+"lat": -8.7,
+"lon": 121.1,
+"age": 1020000.0,
+"source": "Brumm et al. 2010, Nature 464"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Happisburgh, Angleterre (empreintes)",
+"lat": 52.8,
+"lon": 1.5,
+"age": 850000.0,
+"source": "Ashton et al. 2014, PLoS ONE 9"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Gesher Benot Ya'aqov, Israël",
+"lat": 33.0,
+"lon": 35.6,
+"age": 780000.0,
+"source": "Goren-Inbar et al. 2004, Science 304"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Zhoukoudian, Chine (homme de Pékin)",
+"lat": 39.7,
+"lon": 115.9,
+"age": 770000.0,
+"source": "Shen et al. 2009, Nature 458"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Mauer, Allemagne (H. heidelbergensis)",
+"lat": 49.3,
+"lon": 8.8,
+"age": 609000.0,
+"source": "Wagner et al. 2010, PNAS 107"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Hexian, Chine",
+"lat": 31.9,
+"lon": 118.3,
+"age": 412000.0,
+"source": "Grün et al. 1998, J. Hum. Evol. 34"
+},
+{
+"lignee": "erectus",
+"role": "site",
+"nom": "Talepu, Sulawesi (outils)",
+"lat": -4.3,
+"lon": 119.9,
+"age": 194000.0,
+"source": "van den Bergh et al. 2016, Nature 529"
+},
+{
+"lignee": "erectus",
+"role": "refuge",
+"nom": "Ngandong, Java (derniers H. erectus)",
+"lat": -7.2,
+"lon": 111.6,
+"age": 108000.0,
+"source": "Rizal et al. 2020, Nature 577"
+},
+{
+"lignee": "insulaires",
+"role": "origine",
+"nom": "Kalinga, Luçon (outils)",
+"lat": 17.6,
+"lon": 121.4,
+"age": 709000.0,
+"source": "Ingicco et al. 2018, Nature 557"
+},
+{
+"lignee": "insulaires",
+"role": "origine",
+"nom": "Mata Menge, Florès",
+"lat": -8.7,
+"lon": 121.1,
+"age": 700000.0,
+"source": "van den Bergh et al. 2016, Nature 534"
+},
+{
+"lignee": "insulaires",
+"role": "site",
+"nom": "Liang Bua, Florès (H. floresiensis)",
+"lat": -8.5,
+"lon": 120.5,
+"age": 100000.0,
+"source": "Sutikna et al. 2016, Nature 532"
+},
+{
+"lignee": "insulaires",
+"role": "site",
+"nom": "Callao, Luçon (H. luzonensis)",
+"lat": 17.7,
+"lon": 121.8,
+"age": 67000.0,
+"source": "Détroit et al. 2019, Nature 568"
+},
+{
+"lignee": "insulaires",
+"role": "refuge",
+"nom": "Liang Bua, Florès (derniers H. floresiensis)",
+"lat": -8.5,
+"lon": 120.5,
+"age": 50000.0,
+"source": "Sutikna et al. 2016, Nature 532"
+},
+{
+"lignee": "neandertal",
+"role": "origine",
+"nom": "Sima de los Huesos, Atapuerca, Espagne",
+"lat": 42.4,
+"lon": -3.5,
+"age": 430000.0,
+"source": "Arsuaga et al. 2014, Science 344 "
+},
+{
+"lignee": "neandertal",
+"role": "site",
+"nom": "Swanscombe, Angleterre",
+"lat": 51.4,
+"lon": 0.3,
+"age": 400000.0,
+"source": "Stringer & Hublin 1999"
+},
+{
+"lignee": "neandertal",
+"role": "site",
+"nom": "Grotte de Denisova, Altaï (Néandertaliens)",
+"lat": 51.4,
+"lon": 84.7,
+"age": 193000.0,
+"source": "Jacobs et al. 2019, Nature 565"
+},
+{
+"lignee": "neandertal",
+"role": "site",
+"nom": "Krapina, Croatie",
+"lat": 46.2,
+"lon": 15.9,
+"age": 130000.0,
+"source": "Rink et al. 1995"
+},
+{
+"lignee": "neandertal",
+"role": "site",
+"nom": "Tabun, mont Carmel",
+"lat": 32.7,
+"lon": 35.0,
+"age": 120000.0,
+"source": "Grün & Stringer 2000"
+},
+{
+"lignee": "neandertal",
+"role": "site",
+"nom": "Shanidar, Iraq",
+"lat": 36.8,
+"lon": 44.2,
+"age": 75000.0,
+"source": "Pomeroy et al. 2020, Antiquity 94"
+},
+{
+"lignee": "neandertal",
+"role": "site",
+"nom": "Teshik-Tash, Ouzbékistan",
+"lat": 38.3,
+"lon": 67.3,
+"age": 60000.0,
+"source": "Krause et al. 2007, Nature 449"
+},
+{
+"lignee": "neandertal",
+"role": "site",
+"nom": "Tchagyrskaïa, Altaï",
+"lat": 51.4,
+"lon": 83.2,
+"age": 59000.0,
+"source": "Kolobova et al. 2020, PNAS 117"
+},
+{
+"lignee": "neandertal",
+"role": "site",
+"nom": "Le Moustier, France",
+"lat": 45.0,
+"lon": 1.1,
+"age": 45000.0,
+"source": "Higham et al. 2014, Nature 512"
+},
+{
+"lignee": "neandertal",
+"role": "site",
+"nom": "Gorham, Gibraltar",
+"lat": 36.1,
+"lon": -5.3,
+"age": 45000.0,
+"source": "Finlayson et al. 2006, Nature 443"
+},
+{
+"lignee": "neandertal",
+"role": "site",
+"nom": "Feldhofer (Neandertal), Allemagne (≈ 40 000 ans ¹⁴C, ≈ 44 000 calibrés)",
+"lat": 51.2,
+"lon": 7.0,
+"age": 44000.0,
+"source": "Schmitz et al. 2002, PNAS 99"
+},
+{
+"lignee": "neandertal",
+"role": "refuge",
+"nom": "Péninsule Ibérique (derniers Néandertaliens)",
+"lat": 37.2,
+"lon": -4.0,
+"age": 40000.0,
+"source": "Higham et al. 2014, Nature 512"
+},
+{
+"lignee": "denisova",
+"role": "origine",
+"nom": "Grotte de Denisova, Altaï",
+"lat": 51.4,
+"lon": 84.7,
+"age": 280000.0,
+"source": "Jacobs et al. 2019, Nature 565"
+},
+{
+"lignee": "denisova",
+"role": "site",
+"nom": "Grotte de Denisova, Altaï (fossiles)",
+"lat": 51.4,
+"lon": 84.7,
+"age": 195000.0,
+"source": "Douka et al. 2019, Nature 565"
+},
+{
+"lignee": "denisova",
+"role": "site",
+"nom": "Baishiya, Xiahe, plateau tibétain",
+"lat": 35.4,
+"lon": 102.6,
+"age": 160000.0,
+"source": "Chen et al. 2019, Nature 569"
+},
+{
+"lignee": "denisova",
+"role": "site",
+"nom": "Harbin, Chine (Homo longi, dénisovien)",
+"lat": 45.8,
+"lon": 126.6,
+"age": 146000.0,
+"source": "Shao et al. 2021, The Innovation 2 "
+},
+{
+"lignee": "denisova",
+"role": "site",
+"nom": "Tam Ngu Hao 2, Laos",
+"lat": 20.2,
+"lon": 103.4,
+"age": 131000.0,
+"source": "Demeter et al. 2022, Nat. Commun. 13"
+},
+{
+"lignee": "denisova",
+"role": "refuge",
+"nom": "Baishiya, plateau tibétain (derniers Dénisoviens : ADN des sédiments)",
+"lat": 35.4,
+"lon": 102.6,
+"age": 45000.0,
+"source": "Zhang et al. 2020, Science 370"
+},
+{
+"lignee": "sapiens",
+"role": "origine",
+"nom": "Jebel Irhoud, Maroc",
+"lat": 31.9,
+"lon": -8.9,
+"age": 315000.0,
+"source": "Richter et al. 2017, Nature 546"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Florisbad, Afrique du Sud",
+"lat": -28.8,
+"lon": 26.1,
+"age": 259000.0,
+"source": "Grün et al. 1996, Nature 382"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Omo Kibish, Éthiopie",
+"lat": 5.4,
+"lon": 35.9,
+"age": 233000.0,
+"source": "Vidal et al. 2022, Nature 601"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Herto, Éthiopie",
+"lat": 10.3,
+"lon": 40.5,
+"age": 160000.0,
+"source": "White et al. 2003, Nature 423"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Pinnacle Point, Afrique du Sud",
+"lat": -34.2,
+"lon": 22.1,
+"age": 164000.0,
+"source": "Marean et al. 2007, Nature 449"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Klasies River, Afrique du Sud",
+"lat": -34.1,
+"lon": 24.4,
+"age": 110000.0,
+"source": "Grine et al. 2017"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Blombos, Afrique du Sud",
+"lat": -34.4,
+"lon": 21.2,
+"age": 100000.0,
+"source": "Henshilwood et al. 2011, Science 334"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Panga ya Saidi, Kenya (sépulture)",
+"lat": -3.7,
+"lon": 39.7,
+"age": 78000.0,
+"source": "Martinón-Torres et al. 2021, Nature 593"
+},
+{
+"lignee": "sapiens1",
+"role": "origine",
+"nom": "Levant (première sortie, date d'après Apidima)",
+"lat": 31.5,
+"lon": 35.0,
+"age": 215000.0,
+"source": "Harvati et al. 2019, Nature 571 "
+},
+{
+"lignee": "sapiens1",
+"role": "site",
+"nom": "Misliya, mont Carmel",
+"lat": 32.7,
+"lon": 35.0,
+"age": 194000.0,
+"source": "Hershkovitz et al. 2018, Science 359"
+},
+{
+"lignee": "sapiens1",
+"role": "site",
+"nom": "Apidima, Grèce (attribution discutée)",
+"lat": 36.4,
+"lon": 22.4,
+"age": 210000.0,
+"source": "Harvati et al. 2019, Nature 571"
+},
+{
+"lignee": "sapiens1",
+"role": "site",
+"nom": "Qafzeh, Galilée",
+"lat": 32.7,
+"lon": 35.3,
+"age": 100000.0,
+"source": "Valladas et al. 1988, Nature 331"
+},
+{
+"lignee": "sapiens1",
+"role": "refuge",
+"nom": "Levant (fin de la première sortie)",
+"lat": 32.7,
+"lon": 35.3,
+"age": 80000.0,
+"source": "Shea 2008"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Grotte Mandrin, Drôme",
+"lat": 44.5,
+"lon": 4.8,
+"age": 54000.0,
+"source": "Slimak et al. 2022, Sci. Adv. 8"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Bacho Kiro, Bulgarie",
+"lat": 43.0,
+"lon": 25.4,
+"age": 45000.0,
+"source": "Hublin et al. 2020, Nature 581"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Ranis, Allemagne",
+"lat": 50.7,
+"lon": 11.6,
+"age": 47000.0,
+"source": "Mylopotamitaki et al. 2024, Nature 626"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Oust-Ichim, Sibérie",
+"lat": 57.7,
+"lon": 71.2,
+"age": 45000.0,
+"source": "Fu et al. 2014, Nature 514"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Tianyuan, Chine",
+"lat": 39.7,
+"lon": 115.9,
+"age": 40000.0,
+"source": "Fu et al. 2013, PNAS 110"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Niah, Bornéo",
+"lat": 3.8,
+"lon": 113.8,
+"age": 40000.0,
+"source": "Barker et al. 2007, J. Hum. Evol. 52"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Leang Tedongnge, Sulawesi (peinture)",
+"lat": -4.9,
+"lon": 119.7,
+"age": 45500.0,
+"source": "Brumm et al. 2021, Sci. Adv. 7"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Ivane, Nouvelle-Guinée",
+"lat": -8.1,
+"lon": 146.9,
+"age": 49000.0,
+"source": "Summerhayes et al. 2010, Science 330"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Boodie, île Barrow, Australie",
+"lat": -20.8,
+"lon": 115.4,
+"age": 50000.0,
+"source": "Veth et al. 2017, Quat. Sci. Rev. 168"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Devil's Lair, Australie",
+"lat": -34.2,
+"lon": 115.1,
+"age": 47000.0,
+"source": "Turney et al. 2001, Quat. Res. 55"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Lac Mungo, Australie",
+"lat": -33.7,
+"lon": 143.1,
+"age": 42000.0,
+"source": "Bowler et al. 2003, Nature 421"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Yana, Sibérie arctique",
+"lat": 70.7,
+"lon": 135.4,
+"age": 32000.0,
+"source": "Pitulko et al. 2004, Science 303"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "White Sands, Nouveau-Mexique (empreintes)",
+"lat": 32.9,
+"lon": -106.3,
+"age": 22500.0,
+"source": "Bennett et al. 2021, Science 373 "
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Cooper's Ferry, Idaho",
+"lat": 45.6,
+"lon": -116.2,
+"age": 16000.0,
+"source": "Davis et al. 2019, Science 365"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Paisley, Oregon",
+"lat": 42.7,
+"lon": -120.5,
+"age": 14300.0,
+"source": "Jenkins et al. 2012, Science 337"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Page-Ladson, Floride",
+"lat": 30.2,
+"lon": -84.0,
+"age": 14500.0,
+"source": "Halligan et al. 2016, Sci. Adv. 2"
+},
+{
+"lignee": "sapiens",
+"role": "site",
+"nom": "Monte Verde, Chili",
+"lat": -41.5,
+"lon": -73.2,
+"age": 14500.0,
+"source": "Dillehay et al. 2015, PLoS ONE 10"
+}
+]

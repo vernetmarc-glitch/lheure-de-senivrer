@@ -1,0 +1,89 @@
+# Sites clés datés, tirés des publications (âge = plus ancienne présence attestée, en années avant aujourd'hui).
+# Le front de la lignée doit atteindre chaque site au plus tard à sa date (à 10 % de son âge près).
+# role : origine (le front part de là), site (contrainte), refuge (dernier lieu de la lignée, âge = disparition)
+lignee;role;nom;lat;lon;age_ans;source
+hominines;origine;Toros-Menalla, Tchad (Sahelanthropus);16.3;17.9;7000000;Brunet et al. 2002, Nature 418 ; Lebatard et al. 2008, PNAS 105
+hominines;site;Collines de Tugen, Kenya (Orrorin);0.8;35.9;6000000;Senut et al. 2001, C. R. Acad. Sci. 332
+hominines;site;Moyen Awash, Éthiopie (Ardipithecus kadabba);10.3;40.5;5600000;Haile-Selassie 2001, Nature 412
+hominines;site;Kanapoi, Kenya (Australopithecus anamensis);2.3;36.1;4200000;Leakey et al. 1995, Nature 376
+hominines;site;Koro Toro, Tchad (A. bahrelghazali);16.0;18.6;3500000;Brunet et al. 1995, Nature 378
+hominines;site;Laetoli, Tanzanie (empreintes);-3.2;35.2;3660000;Leakey & Hay 1979, Nature 278 ; Deino 2011
+hominines;site;Hadar, Éthiopie (Lucy);11.1;40.6;3200000;Johanson & Taieb 1976, Nature 260
+hominines;site;Sterkfontein, Afrique du Sud (Little Foot, datation discutée);-26.0;27.7;3670000;Granger et al. 2015, Nature 522
+hominines;site;Taung, Afrique du Sud;-27.6;24.6;2800000;Dart 1925, Nature 115 ; Kuhn et al. 2016
+hominines;site;Chiwondo, Malawi (Paranthropus boisei);-9.9;33.9;2400000;Kullmer et al. 1999, Nature 397
+hominines;site;Malapa, Afrique du Sud (A. sediba);-25.9;27.8;1980000;Pickering et al. 2011, Science 333
+hominines;site;Konso, Éthiopie (P. boisei);5.3;37.4;1400000;Suwa et al. 1997, Nature 389
+hominines;refuge;Swartkrans, Afrique du Sud (derniers Paranthropus);-26.0;27.7;1000000;Herries et al. 2009 ; Pickering et al. 2019
+erectus;origine;Ledi-Geraru, Éthiopie (premier Homo);11.3;40.8;2800000;Villmoare et al. 2015, Science 347
+erectus;site;Koobi Fora, Kenya;3.9;36.2;1900000;Leakey et al. 2012, Nature 488
+erectus;site;Drimolen, Afrique du Sud (H. erectus);-26.0;27.8;2040000;Herries et al. 2020, Science 368
+erectus;site;Shangchen, Chine (outils);34.2;109.5;2120000;Zhu et al. 2018, Nature 559
+erectus;site;Dmanissi, Géorgie;41.3;44.3;1800000;Ferring et al. 2011, PNAS 108
+erectus;site;Majuangou, Nihewan, Chine;40.2;114.7;1660000;Zhu et al. 2004, Nature 431
+erectus;site;Attirampakkam, Inde (outils acheuléens);13.2;79.9;1510000;Pappu et al. 2011, Science 331
+erectus;site;Oubeidiya, vallée du Jourdain;32.7;35.6;1400000;Bar-Yosef & Goren-Inbar 1993
+erectus;site;Barranco León, Orce, Espagne;37.7;-2.5;1400000;Toro-Moyano et al. 2013, J. Hum. Evol. 65
+erectus;site;Sangiran, Java;-7.5;110.8;1300000;Matsu'ura et al. 2020, Science 367
+erectus;site;Sima del Elefante, Atapuerca, Espagne;42.4;-3.5;1200000;Carbonell et al. 2008, Nature 452
+erectus;site;Wolo Sege, Florès (outils);-8.7;121.1;1020000;Brumm et al. 2010, Nature 464
+erectus;site;Happisburgh, Angleterre (empreintes);52.8;1.5;850000;Ashton et al. 2014, PLoS ONE 9
+erectus;site;Gesher Benot Ya'aqov, Israël;33.0;35.6;780000;Goren-Inbar et al. 2004, Science 304
+erectus;site;Zhoukoudian, Chine (homme de Pékin);39.7;115.9;770000;Shen et al. 2009, Nature 458
+erectus;site;Mauer, Allemagne (H. heidelbergensis);49.3;8.8;609000;Wagner et al. 2010, PNAS 107
+erectus;site;Hexian, Chine;31.9;118.3;412000;Grün et al. 1998, J. Hum. Evol. 34
+erectus;site;Talepu, Sulawesi (outils);-4.3;119.9;194000;van den Bergh et al. 2016, Nature 529
+erectus;refuge;Ngandong, Java (derniers H. erectus);-7.2;111.6;108000;Rizal et al. 2020, Nature 577
+insulaires;origine;Kalinga, Luçon (outils);17.6;121.4;709000;Ingicco et al. 2018, Nature 557
+insulaires;origine;Mata Menge, Florès;-8.7;121.1;700000;van den Bergh et al. 2016, Nature 534
+insulaires;site;Liang Bua, Florès (H. floresiensis);-8.5;120.5;100000;Sutikna et al. 2016, Nature 532
+insulaires;site;Callao, Luçon (H. luzonensis);17.7;121.8;67000;Détroit et al. 2019, Nature 568
+insulaires;refuge;Liang Bua, Florès (derniers H. floresiensis);-8.5;120.5;50000;Sutikna et al. 2016, Nature 532
+neandertal;origine;Sima de los Huesos, Atapuerca, Espagne;42.4;-3.5;430000;Arsuaga et al. 2014, Science 344 ; Meyer et al. 2016, Nature 531
+neandertal;site;Swanscombe, Angleterre;51.4;0.3;400000;Stringer & Hublin 1999
+neandertal;site;Grotte de Denisova, Altaï (Néandertaliens);51.4;84.7;193000;Jacobs et al. 2019, Nature 565
+neandertal;site;Krapina, Croatie;46.2;15.9;130000;Rink et al. 1995
+neandertal;site;Tabun, mont Carmel;32.7;35.0;120000;Grün & Stringer 2000
+neandertal;site;Shanidar, Iraq;36.8;44.2;75000;Pomeroy et al. 2020, Antiquity 94
+neandertal;site;Teshik-Tash, Ouzbékistan;38.3;67.3;60000;Krause et al. 2007, Nature 449
+neandertal;site;Tchagyrskaïa, Altaï;51.4;83.2;59000;Kolobova et al. 2020, PNAS 117
+neandertal;site;Le Moustier, France;45.0;1.1;45000;Higham et al. 2014, Nature 512
+neandertal;site;Gorham, Gibraltar;36.1;-5.3;45000;Finlayson et al. 2006, Nature 443
+neandertal;site;Feldhofer (Neandertal), Allemagne (≈ 40 000 ans ¹⁴C, ≈ 44 000 calibrés);51.2;7.0;44000;Schmitz et al. 2002, PNAS 99
+neandertal;refuge;Péninsule Ibérique (derniers Néandertaliens);37.2;-4.0;40000;Higham et al. 2014, Nature 512
+denisova;origine;Grotte de Denisova, Altaï;51.4;84.7;280000;Jacobs et al. 2019, Nature 565
+denisova;site;Grotte de Denisova, Altaï (fossiles);51.4;84.7;195000;Douka et al. 2019, Nature 565
+denisova;site;Baishiya, Xiahe, plateau tibétain;35.4;102.6;160000;Chen et al. 2019, Nature 569
+denisova;site;Harbin, Chine (Homo longi, dénisovien);45.8;126.6;146000;Shao et al. 2021, The Innovation 2 ; Fu et al. 2025, Science
+denisova;site;Tam Ngu Hao 2, Laos;20.2;103.4;131000;Demeter et al. 2022, Nat. Commun. 13
+denisova;refuge;Baishiya, plateau tibétain (derniers Dénisoviens : ADN des sédiments);35.4;102.6;45000;Zhang et al. 2020, Science 370
+sapiens;origine;Jebel Irhoud, Maroc;31.9;-8.9;315000;Richter et al. 2017, Nature 546
+sapiens;site;Florisbad, Afrique du Sud;-28.8;26.1;259000;Grün et al. 1996, Nature 382
+sapiens;site;Omo Kibish, Éthiopie;5.4;35.9;233000;Vidal et al. 2022, Nature 601
+sapiens;site;Herto, Éthiopie;10.3;40.5;160000;White et al. 2003, Nature 423
+sapiens;site;Pinnacle Point, Afrique du Sud;-34.2;22.1;164000;Marean et al. 2007, Nature 449
+sapiens;site;Klasies River, Afrique du Sud;-34.1;24.4;110000;Grine et al. 2017
+sapiens;site;Blombos, Afrique du Sud;-34.4;21.2;100000;Henshilwood et al. 2011, Science 334
+sapiens;site;Panga ya Saidi, Kenya (sépulture);-3.7;39.7;78000;Martinón-Torres et al. 2021, Nature 593
+sapiens1;origine;Levant (première sortie, date d'après Apidima);31.5;35.0;215000;Harvati et al. 2019, Nature 571 ; Hershkovitz et al. 2018, Science 359
+sapiens1;site;Misliya, mont Carmel;32.7;35.0;194000;Hershkovitz et al. 2018, Science 359
+sapiens1;site;Apidima, Grèce (attribution discutée);36.4;22.4;210000;Harvati et al. 2019, Nature 571
+sapiens1;site;Qafzeh, Galilée;32.7;35.3;100000;Valladas et al. 1988, Nature 331
+sapiens1;refuge;Levant (fin de la première sortie);32.7;35.3;80000;Shea 2008
+sapiens;site;Grotte Mandrin, Drôme;44.5;4.8;54000;Slimak et al. 2022, Sci. Adv. 8
+sapiens;site;Bacho Kiro, Bulgarie;43.0;25.4;45000;Hublin et al. 2020, Nature 581
+sapiens;site;Ranis, Allemagne;50.7;11.6;47000;Mylopotamitaki et al. 2024, Nature 626
+sapiens;site;Oust-Ichim, Sibérie;57.7;71.2;45000;Fu et al. 2014, Nature 514
+sapiens;site;Tianyuan, Chine;39.7;115.9;40000;Fu et al. 2013, PNAS 110
+sapiens;site;Niah, Bornéo;3.8;113.8;40000;Barker et al. 2007, J. Hum. Evol. 52
+sapiens;site;Leang Tedongnge, Sulawesi (peinture);-4.9;119.7;45500;Brumm et al. 2021, Sci. Adv. 7
+sapiens;site;Ivane, Nouvelle-Guinée;-8.1;146.9;49000;Summerhayes et al. 2010, Science 330
+sapiens;site;Boodie, île Barrow, Australie;-20.8;115.4;50000;Veth et al. 2017, Quat. Sci. Rev. 168
+sapiens;site;Devil's Lair, Australie;-34.2;115.1;47000;Turney et al. 2001, Quat. Res. 55
+sapiens;site;Lac Mungo, Australie;-33.7;143.1;42000;Bowler et al. 2003, Nature 421
+sapiens;site;Yana, Sibérie arctique;70.7;135.4;32000;Pitulko et al. 2004, Science 303
+sapiens;site;White Sands, Nouveau-Mexique (empreintes);32.9;-106.3;22500;Bennett et al. 2021, Science 373 ; Pigati et al. 2023, Science 382
+sapiens;site;Cooper's Ferry, Idaho;45.6;-116.2;16000;Davis et al. 2019, Science 365
+sapiens;site;Paisley, Oregon;42.7;-120.5;14300;Jenkins et al. 2012, Science 337
+sapiens;site;Page-Ladson, Floride;30.2;-84.0;14500;Halligan et al. 2016, Sci. Adv. 2
+sapiens;site;Monte Verde, Chili;-41.5;-73.2;14500;Dillehay et al. 2015, PLoS ONE 10

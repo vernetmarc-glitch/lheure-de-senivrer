@@ -1,0 +1,37 @@
+{
+ "earth_relief_06m_g.grd": {
+  "url": "https://oceania.generic-mapping-tools.org/server/earth/earth_relief/earth_relief_06m_g.grd",
+  "octets": 8093288,
+  "sha256": "19dd7d422c2e2712d17199fea9488b1e72c9eb76929bd48091fd01de11b3992f"
+ },
+ "BlackMarble_2016_01deg_gray_geo.tif": {
+  "url": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144897/BlackMarble_2016_01deg_gray_geo.tif",
+  "octets": 856529,
+  "sha256": "35fd04c07eb69605e037ecca8f7ce43442a4a109bcac3a84df713661455c1ec8"
+ },
+ "BlackMarble_2016_01deg.jpg": {
+  "url": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_01deg.jpg",
+  "octets": 779638,
+  "sha256": "d87de751a264e4f8ff69c68de5dab9606daee87a6f15ae743c93200743bd7ec1"
+ },
+ "spratt2016.txt": {
+  "url": "https://www.ncei.noaa.gov/pub/data/paleo/contributions_by_author/spratt2016/spratt2016.txt",
+  "octets": 52553,
+  "sha256": "4e0cdedb99a80ba57cf7df0c2f76c1b6700725e278a2deee952cbec7b87c9a0c"
+ },
+ "bintanja2008.txt": {
+  "url": "https://www.ncei.noaa.gov/pub/data/paleo/contributions_by_author/bintanja2008/bintanja2008.txt",
+  "octets": 2944909,
+  "sha256": "227891575bae9a2329cfc42bb5998f256cc865b3a151806a134aebe505610afc"
+ },
+ "timmermann2022_S1.xlsx": {
+  "url": "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM3_ESM.xlsx",
+  "octets": 765984,
+  "sha256": "b5339c2692d9eca51529cb19a1ee2b5576a59c8bf9043039687a55ab680be90b"
+ },
+ "timmermann2022_S2.xlsx": {
+  "url": "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM4_ESM.xlsx",
+  "octets": 10212,
+  "sha256": "806bc50f8c59b80bf0617122d9a1d514221728cd8dc4c562b57cd9252fe94af4"
+ }
+}

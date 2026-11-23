@@ -1,0 +1,62 @@
+== HYDE 3.3
+[200] https://geo.public.data.uu.nl/vault-hyde/ -> https://geo.public.data.uu.nl/vault-hyde/ (None o)
+   (page Anubis : protection anti-robots)
+   -> https://geo.public.data.uu.nl/.within.website/x/cmd/anubis/api/honeypot/2d954228-2322-40b5-9c3a-2e88724a31bf/init
+   -> https://geo.public.data.uu.nl/.within.website/x/xess/xess.min.css?cachebuster=v1.27.0
+   -> https://github.com/TecharoHQ/anubis
+   -> https://techaro.lol
+[200] https://geo.public.data.uu.nl/vault-hyde-data/ -> https://geo.public.data.uu.nl/vault-hyde-data/ (None o)
+   (page Anubis : protection anti-robots)
+   -> https://geo.public.data.uu.nl/.within.website/x/cmd/anubis/api/honeypot/fb431cff-1809-4db9-b508-4cfee2b3c9a2/init
+   -> https://geo.public.data.uu.nl/.within.website/x/xess/xess.min.css?cachebuster=v1.27.0
+   -> https://github.com/TecharoHQ/anubis
+   -> https://techaro.lol
+[200] https://doi.org/10.24416/UU01-67UHB4 -> https://public.yoda.uu.nl/geo/UU01/67UHB4.html (None o)
+   -> https://public.yoda.uu.nl/static/css/bootstrap.min.css?v=1559637767
+   -> https://public.yoda.uu.nl/static/css/uu.css?v=1559637767
+   -> https://creativecommons.org/licenses/by/4.0/legalcode
+   -> https://doi.org/10.17026/dans-25g-gez3
+   -> https://doi.org/10.24416/UU01-67UHB4
+   -> https://geo.public.data.uu.nl:443/vault-hyde-data/HYDE 3.3[1696419673]
+   -> https://unpkg.com/leaflet@1.5.1/dist/leaflet.css
+   -> https://www.uu.nl/en/research/research-data-management
+[ERR InvalidURL: URL can't contain control characters. '/vault-hyde-data/HYDE 3.3[1696419673]' (found at least ' ')] https://geo.public.data.uu.nl:443/vault-hyde-data/HYDE 3.3[1696419673] -> https://geo.public.data.uu.nl:443/vault-hyde-data/HYDE 3.3[1696419673] (None o)
+[200] https://public.yoda.uu.nl/geo/UU01/67UHB4.html -> https://public.yoda.uu.nl/geo/UU01/67UHB4.html (None o)
+   -> https://public.yoda.uu.nl/static/css/bootstrap.min.css?v=1559637767
+   -> https://public.yoda.uu.nl/static/css/uu.css?v=1559637767
+   -> https://creativecommons.org/licenses/by/4.0/legalcode
+   -> https://doi.org/10.17026/dans-25g-gez3
+   -> https://doi.org/10.24416/UU01-67UHB4
+   -> https://geo.public.data.uu.nl:443/vault-hyde-data/HYDE 3.3[1696419673]
+   -> https://unpkg.com/leaflet@1.5.1/dist/leaflet.css
+   -> https://www.uu.nl/en/research/research-data-management
+[ERR InvalidURL: URL can't contain control characters. '/vault-hyde-data/HYDE 3.3[1696419673]' (found at least ' ')] https://geo.public.data.uu.nl:443/vault-hyde-data/HYDE 3.3[1696419673] -> https://geo.public.data.uu.nl:443/vault-hyde-data/HYDE 3.3[1696419673] (None o)
+== Black Marble 2016
+[200] https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144897/BlackMarble_2016_01deg_gray_geo.tif (856529 o)
+[200] https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144897/BlackMarble_2016_3km_gray_geo.tif (6834518 o)
+[200] https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_01deg.jpg (779638 o)
+[200] https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_3km.jpg (8106233 o)
+== Timmermann 2022
+[404] https://climatedata.ibs.re.kr/data/hominin-habitats/hominin-habitats-data -> https://climatedata.ibs.re.kr/data/hominin-habitats/hominin-habitats-data (None o)
+[200] https://climatedata.ibs.re.kr/data/hominin-habitats -> https://climatedata.ibs.re.kr/data/hominin-habitats (5727 o)
+   -> https://climatedata.ibs.re.kr/data/hominin-habitats/hominin-habitats-data
+   -> https://climatedata.ibs.re.kr:8443/las
+[404] https://climatedata.ibs.re.kr/data/papers/timmermann-et-al-2022-nature -> https://climatedata.ibs.re.kr/data/papers/timmermann-et-al-2022-nature (None o)
+[200] https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM1_ESM.pdf (2838465 o)
+[200] https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM2_ESM.pdf (6707027 o)
+[200] https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM3_ESM.xlsx (765984 o)
+[200] https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-022-04600-9/MediaObjects/41586_2022_4600_MOESM4_ESM.xlsx (10212 o)
+[200] https://www.nature.com/articles/s41586-022-04600-9 -> https://www.nature.com/articles/s41586-022-04600-9?error=cookies_not_supported&code=60625f6e-af91-41de-9cbb-0a4e477c0cd2 (None o)
+== Niveau marin
+[200] https://www.ncei.noaa.gov/pub/data/paleo/contributions_by_author/spratt2016/spratt2016.txt (52553 o) b'# Global Sea Level Reconstruction using Stacked Records from 0-800 ka\r\n#------------------------------------------------'
+[200] https://www.ncei.noaa.gov/pub/data/paleo/contributions_by_author/bintanja2008/bintanja2008.txt (2944909 o) b'Global 3Ma Temperature, Sea Level, and Ice Volume Reconstructions \n-----------------------------------------------------'
+[200] https://www1.ncdc.noaa.gov/pub/data/paleo/contributions_by_author/spratt2016/spratt2016.txt (52553 o) b'# Global Sea Level Reconstruction using Stacked Records from 0-800 ka\r\n#------------------------------------------------'
+== Relief
+[404] https://oceania.generic-mapping-tools.org/server/earth/earth_relief/earth_relief_05m_g.grd (None o)
+[200] https://oceania.generic-mapping-tools.org/server/earth/earth_relief/earth_relief_06m_g.grd (8093288 o)
+[200] https://oceania.generic-mapping-tools.org/server/earth/earth_relief/earth_relief_10m_g.grd (3065504 o)
+[200] https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf/ETOPO_2022_v1_60s_N90W180_surface.nc (None o)
+[200] https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO1/data/ice_surface/grid_registered/netcdf/ETOPO1_Ice_g_gmt4.grd.gz (395148066 o)
+== ROAD
+[ERR URLError: <urlopen error timed out>] https://www.roceeh.uni-tuebingen.de/roadweb/smarty_road_simple_search.php -> https://www.roceeh.uni-tuebingen.de/roadweb/smarty_road_simple_search.php (None o)
+[ERR URLError: <urlopen error timed out>] https://www.roceeh.uni-tuebingen.de/roadweb/ -> https://www.roceeh.uni-tuebingen.de/roadweb/ (None o)

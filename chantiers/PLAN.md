@@ -143,3 +143,36 @@ démarrent.
 - Contrôles : l'étendue de glace à chaque instant est celle des données (à 1 maille
   près) ; maximum vers 25 000 ans avec la glace dans le Grésivaudan ; les traînées vont
   dans le sens des vitesses publiées (écart angulaire médian < 15°).
+
+## S7b — L'orogenèse géodynamique (`labo/orogenese`, retour de Marc du 23/11, 16 h 46)
+- Exigences N30–N34, décision D-48. Remplace, pour 120 → ≈ 5 Ma, le film FastScape à
+  tectonique imposée de S7 ; S7 garde la fin (relief réel, glaciers) et le zoom final.
+- Cinématique : fragments (Europe, Adria, Briançonnais, Corse-Sardaigne, Ibérie, océan
+  liguro-piémontais, Valais) déplacés selon van Hinsbergen et al. 2020 (GPlates) ; ce sont
+  des conditions aux limites, pas l'image.
+- Mécanique : modèle thermo-mécanique en couches (sédiments, croûte supérieure, croûte
+  inférieure, manteau, croûte océanique), 3D LaMEM + FastScape si le budget le permet,
+  sinon 2D ASPECT + FastScape sur plusieurs coupes, raccordées en plan par la cinématique ;
+  calculs sur les machines GitHub, enchaînés.
+- Vue : d'abord les Alpes entières (≈ 800 km), l'Adria qui ferme la Téthys ; le cadre se
+  resserre sur Grenoble vers le présent, jusqu'à la vue d'avion de S7 ; coupe à la demande.
+- Contrôles d'abord : convergence Europe–Adria = reconstruction (680 km depuis 84 Ma, à
+  10 %) ; Téthys fermée vers 35 Ma ; fragments suivis qui se déplacent les uns par rapport
+  aux autres (≥ 50 km de mouvement relatif après −35 Ma) ; relief à −20 Ma décorrélé du
+  relief final (corrélation < 0,3) ; altitudes dans les fourchettes publiées ; vallées en U
+  seulement dans les 2,6 derniers Ma ; continuité des couches (aucune maille sans matériau).
+
+## S3b — La Terre entière en mécanique des roches (`labo/terre`, après le passage 2 de S3)
+- Exigences N35–N37, décision D-49. Même globe et même page que S3.
+- 4,5 Ga → 1,8 Ga : hypothèses publiées (océan de magme, premiers cratons, Vaalbara ≈ 3,6–2,8 Ga,
+  Ur ≈ 3 Ga, Kenorland ≈ 2,7–2,1 Ga), continents surtout immergés ; signalé « hypothèse ».
+- 1,8 Ga → 0 : plaques de Cao et al. 2024 (Zenodo, GPlates).
+- Mécanique : couche mince visqueuse (lithosphère intégrée sur l'épaisseur, viscosité en loi
+  de puissance) sur grille sphérique, vitesses des plaques imposées ; épaisseur de croûte →
+  relief par isostasie ; érosion FastScape (grille sphérique HEALPix) ; niveau marin.
+- Contrôles : chaque réunion (Nuna, Rodinia, Gondwana, Pangée) apparaît aux âges du modèle
+  (≥ 70 % du bloc continental d'un seul tenant) ; une chaîne de montagnes (relief ≥ 2 000 m)
+  naît à chaque collision majeure et s'abaisse ensuite ; aujourd'hui, l'Himalaya, les Andes,
+  les Alpes sortent aux bons endroits (≥ 70 % des reliefs > 2 000 m réels recouverts) ;
+  aucune terre verte avant 470 Ma, verdissement net entre 420 et 300 Ma ; à l'Archéen,
+  terres émergées < 15 % de la surface.
