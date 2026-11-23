@@ -51,21 +51,23 @@ def lire(url):
 
 # ---------------------------------------------------------------- paquet publié
 def decoder_paquet(base, meta):
-    """Décode les états exactement comme la page (voir alpes.js, decoderPaquet)."""
-    n = meta["n"]
-    nn = n * n
+    """Décode les états exactement comme la page (voir alpes.js, charger)."""
+    nn, nx, nu = meta["n"] ** 2, meta["n_x"] ** 2, meta["n_ue"] ** 2
     H, U, E, X = [], [], [], []
     for p in meta["paquets"]:
         brut = gzip.decompress(lire(base + "donnees/" + p["fichier"]))
         k = p["nombre"]
         b = np.frombuffer(brut[: 2 * nn * k], np.uint8).reshape(2, k, nn)   # plans bas / haut
         d = (b[0].astype(np.uint16) | (b[1].astype(np.uint16) << 8)).view(np.int16).astype(np.int32)
-        q = np.cumsum(d, axis=0)                       # deltas sans perte dans le paquet
+        q = np.cumsum(d, axis=0)                       # différences sans perte dans le paquet
         o = 2 * nn * k
-        u8 = np.frombuffer(brut[o:], np.uint8).reshape(3, k, nn)
+        x = np.cumsum(np.frombuffer(brut[o:o + nx * k], np.uint8).reshape(k, nx).astype(np.int32), axis=0) % 256
+        o += nx * k
+        u = np.frombuffer(brut[o:o + nu * k], np.uint8).reshape(k, nu); o += nu * k
+        e = np.frombuffer(brut[o:o + nu * k], np.uint8).reshape(k, nu)
         for i in range(k):
             H.append(q[i] * meta["h_pas_m"] + meta["h_zero_m"])
-            U.append(u8[0, i]); E.append(u8[1, i]); X.append(u8[2, i])
+            U.append(u[i]); E.append(e[i]); X.append(x[i].astype(np.uint8))
     return np.array(H, np.float32), np.array(U), np.array(E), np.array(X)
 
 
@@ -125,7 +127,9 @@ def controles_donnees(base):
         if adv[k] > 0:
             continue
         dt = (t[k] - t[k - 1]) * 1e6
-        dhdt = (H[k] - H[k - 1]) / dt * 1e3                     # mm/an
+        f = n // meta["n_ue"]
+        dh = (H[k] - H[k - 1]).reshape(meta["n_ue"], f, meta["n_ue"], f).mean(axis=(1, 3)).ravel()
+        dhdt = dh / dt * 1e3                                     # mm/an
         bilan = taux(U8[k], meta) - taux(E8[k], meta)
         ecarts.append(np.abs(dhdt - bilan).mean() / max(np.abs(bilan).mean(), 1e-3))
     ok("N16 relief publié = soulèvement − érosion publiés (écart relatif moyen < 25 %)",
@@ -160,9 +164,9 @@ def controles_donnees(base):
 
 
 def zone_x(xf, meta, x0, x1, y0, y1):
-    n = meta["n"]
+    n = meta["n_x"]
     g = xf.reshape(n, n)
-    c = (np.arange(n) + 0.5) * meta["pas_m"] / 1e3 - meta["taille_km"] / 2
+    c = (np.arange(n) + 0.5) * meta["taille_km"] / n - meta["taille_km"] / 2
     ix = (c >= x0) & (c <= x1); iy = (-c >= y0) & (-c <= y1)
     return g[np.ix_(iy, ix)]
 

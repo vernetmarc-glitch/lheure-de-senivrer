@@ -3,6 +3,7 @@ name: Chantier S7 — Alpes
 # Le bac à sable ne joint pas les MNT ouverts (Copernicus sur AWS : 403).
 # Ce workflow, déclenché par push sur chantier/alpes :
 #   1. prépare le relief réel (sim/reel_1024.npz) s'il manque ou si prepare_mnt.py change ;
+#   1 bis. télécharge la mosaïque Sentinel-2 sans nuages (EOX) sur la même fenêtre ;
 #   2. relance la simulation FastScape (sim/simuler.py, 512²) si son empreinte change ;
 #   3. pousse le paquet léger (donnees/) sur la branche.
 
@@ -47,6 +48,16 @@ jobs:
           else
             echo "relief réel à jour"
           fi
+      - name: Mosaïque Sentinel-2 sans nuages (EOX s2cloudless)
+        run: |
+          E=$(sha256sum sim/prepare_mosaique.py | cut -c1-16)
+          if [ ! -f donnees/mosaique_2048.jpg ] || [ "$(cat sim/mosaique.empreinte 2>/dev/null)" != "$E" ]; then
+            python sim/prepare_mosaique.py
+            echo "$E" > sim/mosaique.empreinte
+          else
+            echo "mosaïque à jour"
+          fi
+          python sim/regles_couleurs.py
       - name: Simulation FastScape
         run: |
           if [ ! -f sim/simuler.py ]; then echo "pas encore de simulation"; exit 0; fi

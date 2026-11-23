@@ -32,6 +32,7 @@ H_ZERO, H_PAS = -1000.0, 1.0                 # quantification du relief (m)
 TAUX_MAX = 8.0                               # mm/an, codage racine carrée
 X_MAX = 20000.0                              # m, profondeur d'origine des roches
 PAR_PAQUET = 16
+N_X, N_UE = 128, 64                         # résolution des roches, du soulèvement et de l'érosion
 
 
 def bloc(a, n):
@@ -193,24 +194,25 @@ def ecrire(sortie, T, etats, racc, reel1024):
         qs = np.array([q_h(e[0]).ravel() for e in lot])
         d = np.diff(qs, axis=0, prepend=0).astype("<i2")
         d = np.concatenate([d.view(np.uint8)[:, 0::2], d.view(np.uint8)[:, 1::2]])  # plans bas/haut
-        u = np.array([q_taux(e[1]).ravel() for e in lot])
-        ee = np.array([q_taux(e[2]).ravel() for e in lot])
-        x = np.array([q_x(e[3]).ravel() for e in lot])
+        x = np.array([q_x(bloc(e[3], N_X)).ravel() for e in lot]).astype(np.int16)
+        x = (np.diff(x, axis=0, prepend=0) % 256).astype(np.uint8)              # différences mod 256
+        u = np.array([q_taux(bloc(e[1], N_UE)).ravel() for e in lot])
+        ee = np.array([q_taux(bloc(e[2], N_UE)).ravel() for e in lot])
         nom = f"etats_{p0 // PAR_PAQUET:02d}.bin.gz"
         with gzip.open(os.path.join(sortie, nom), "wb", 9) as f:
-            f.write(d.tobytes() + u.tobytes() + ee.tobytes() + x.tobytes())
+            f.write(d.tobytes() + x.tobytes() + u.tobytes() + ee.tobytes())
         paquets.append({"fichier": nom, "debut": p0, "nombre": len(lot)})
     for n in (256, 1024):
         with gzip.open(os.path.join(sortie, f"reel_{n}.bin.gz"), "wb", 9) as f:
             f.write(q_h(bloc(reel1024, n)).astype("<u2").tobytes())
     meta = {
-        "n": N_PUB, "pas_m": TAILLE_KM * 1000 / N_PUB, "taille_km": TAILLE_KM,
+        "n": N_PUB, "n_x": N_X, "n_ue": N_UE, "pas_m": TAILLE_KM * 1000 / N_PUB, "taille_km": TAILLE_KM,
         "centre": {"lat": sc.LAT0, "lon": sc.LON0}, "projection": "azimutale équidistante, nord en haut",
         "temps_Ma": [float(t) for t in T], "raccourcissement_mm_an": [round(float(r), 3) for r in racc],
         "h_zero_m": H_ZERO, "h_pas_m": H_PAS, "taux_max_mm_an": TAUX_MAX,
-        "x_max_m": X_MAX, "x_codage": "v = 255·ln(1+x/200 m)/ln(1+x_max/200 m)",
+        "x_max_m": X_MAX, "x_codage": "v = 255·ln(1+x/200 m)/ln(1+x_max/200 m) ; n_x², différences successives mod 256 dans le paquet",
         "h_codage": "par paquet : k×n² octets bas puis k×n² octets hauts d'entiers int16 ; différences successives (le premier état absolu) ; h = cumul·h_pas + h_zero",
-        "taux_codage": "v = 255·√(taux/taux_max)",
+        "taux_codage": "v = 255·√(taux/taux_max) ; n_ue², moyenne de l'intervalle précédent",
         "paquets": paquets,
         "modele": f"fastscapelib {fs.__version__} — K_f {K_F}, m {M_EXP}, n {N_EXP}, K_d {K_D} m²/an",
         "source_relief": "Copernicus DEM GLO-90 (© DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018, programme Copernicus)",
