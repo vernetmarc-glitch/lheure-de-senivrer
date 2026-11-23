@@ -23,8 +23,22 @@
 "t0": 540,
 "t1": 1000,
 "rot": "rot-M.bin",
-"rangees": 798,
-"cols": 461
+"rangees": 940,
+"cols": 461,
+"points": [
+"M-points-1.png",
+"M-points-2.png"
+],
+"fond": "cles/P0540.png",
+"pasDebut": 4,
+"raccord": [
+540,
+620
+],
+"effacement": [
+540,
+640
+]
 }
 },
 "cles": [
@@ -572,241 +586,6 @@
 "t": 540,
 "seg": "P",
 "f": "cles/P0540.png"
-},
-{
-"t": 540,
-"seg": "M",
-"f": "cles/M0540.png"
-},
-{
-"t": 550,
-"seg": "M",
-"f": "cles/M0550.png"
-},
-{
-"t": 560,
-"seg": "M",
-"f": "cles/M0560.png"
-},
-{
-"t": 570,
-"seg": "M",
-"f": "cles/M0570.png"
-},
-{
-"t": 580,
-"seg": "M",
-"f": "cles/M0580.png"
-},
-{
-"t": 590,
-"seg": "M",
-"f": "cles/M0590.png"
-},
-{
-"t": 600,
-"seg": "M",
-"f": "cles/M0600.png"
-},
-{
-"t": 610,
-"seg": "M",
-"f": "cles/M0610.png"
-},
-{
-"t": 620,
-"seg": "M",
-"f": "cles/M0620.png"
-},
-{
-"t": 630,
-"seg": "M",
-"f": "cles/M0630.png"
-},
-{
-"t": 640,
-"seg": "M",
-"f": "cles/M0640.png"
-},
-{
-"t": 650,
-"seg": "M",
-"f": "cles/M0650.png"
-},
-{
-"t": 660,
-"seg": "M",
-"f": "cles/M0660.png"
-},
-{
-"t": 670,
-"seg": "M",
-"f": "cles/M0670.png"
-},
-{
-"t": 680,
-"seg": "M",
-"f": "cles/M0680.png"
-},
-{
-"t": 690,
-"seg": "M",
-"f": "cles/M0690.png"
-},
-{
-"t": 700,
-"seg": "M",
-"f": "cles/M0700.png"
-},
-{
-"t": 710,
-"seg": "M",
-"f": "cles/M0710.png"
-},
-{
-"t": 720,
-"seg": "M",
-"f": "cles/M0720.png"
-},
-{
-"t": 730,
-"seg": "M",
-"f": "cles/M0730.png"
-},
-{
-"t": 740,
-"seg": "M",
-"f": "cles/M0740.png"
-},
-{
-"t": 750,
-"seg": "M",
-"f": "cles/M0750.png"
-},
-{
-"t": 760,
-"seg": "M",
-"f": "cles/M0760.png"
-},
-{
-"t": 770,
-"seg": "M",
-"f": "cles/M0770.png"
-},
-{
-"t": 780,
-"seg": "M",
-"f": "cles/M0780.png"
-},
-{
-"t": 790,
-"seg": "M",
-"f": "cles/M0790.png"
-},
-{
-"t": 800,
-"seg": "M",
-"f": "cles/M0800.png"
-},
-{
-"t": 810,
-"seg": "M",
-"f": "cles/M0810.png"
-},
-{
-"t": 820,
-"seg": "M",
-"f": "cles/M0820.png"
-},
-{
-"t": 830,
-"seg": "M",
-"f": "cles/M0830.png"
-},
-{
-"t": 840,
-"seg": "M",
-"f": "cles/M0840.png"
-},
-{
-"t": 850,
-"seg": "M",
-"f": "cles/M0850.png"
-},
-{
-"t": 860,
-"seg": "M",
-"f": "cles/M0860.png"
-},
-{
-"t": 870,
-"seg": "M",
-"f": "cles/M0870.png"
-},
-{
-"t": 880,
-"seg": "M",
-"f": "cles/M0880.png"
-},
-{
-"t": 890,
-"seg": "M",
-"f": "cles/M0890.png"
-},
-{
-"t": 900,
-"seg": "M",
-"f": "cles/M0900.png"
-},
-{
-"t": 910,
-"seg": "M",
-"f": "cles/M0910.png"
-},
-{
-"t": 920,
-"seg": "M",
-"f": "cles/M0920.png"
-},
-{
-"t": 930,
-"seg": "M",
-"f": "cles/M0930.png"
-},
-{
-"t": 940,
-"seg": "M",
-"f": "cles/M0940.png"
-},
-{
-"t": 950,
-"seg": "M",
-"f": "cles/M0950.png"
-},
-{
-"t": 960,
-"seg": "M",
-"f": "cles/M0960.png"
-},
-{
-"t": 970,
-"seg": "M",
-"f": "cles/M0970.png"
-},
-{
-"t": 980,
-"seg": "M",
-"f": "cles/M0980.png"
-},
-{
-"t": 990,
-"seg": "M",
-"f": "cles/M0990.png"
-},
-{
-"t": 1000,
-"seg": "M",
-"f": "cles/M1000.png"
 }
 ],
 "sources": [
