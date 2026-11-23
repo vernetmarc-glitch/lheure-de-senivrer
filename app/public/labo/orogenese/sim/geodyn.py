@@ -180,7 +180,7 @@ class Modele:
         cibles["Liguro-piémontais"] = 0.5 * sum(b["ocean"])
         self.suivis = {}
         for nom, xk in cibles.items():
-            yk = (self.surf0(xk) + 5.0) * KM
+            yk = (self.surf0(xk) + (15.0 if nom in ("Europe", "Adria") else 5.0)) * KM   # cœur des plaques : croûte moyenne
             d2 = (X - xk * KM) ** 2 + (Y - yk) ** 2
             self.suivis[nom] = np.argsort(d2)[:40]                     # 40 marqueurs de croûte supérieure
 
