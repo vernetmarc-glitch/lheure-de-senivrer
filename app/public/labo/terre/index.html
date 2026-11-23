@@ -17,7 +17,7 @@
   header { padding:18px 20px 0; height:142px; flex:0 0 142px; overflow:hidden; }
   h1 { font-family:var(--f-titre); font-weight:500; font-size:13px; letter-spacing:.18em;
        text-transform:uppercase; color:var(--doux); margin:0 0 10px; }
-  #quand { font-family:var(--f-titre); font-size:26px; font-weight:500; letter-spacing:.02em; margin:0; }
+  #quand { font-family:var(--f-titre); font-size:19px; font-weight:500; letter-spacing:.01em; margin:0; white-space:nowrap; }
   #recit { font-size:15px; line-height:1.45; color:#cfd2d8; margin:6px 0 0; min-height:44px;
            transition:opacity .6s; }
   #scene { position:relative; flex:1 1 auto; min-height:0; }
@@ -170,7 +170,11 @@ const FS_PORTER = COMMUN + `
 flat in float vh; flat in vec2 vpd; flat in vec3 vc; flat in float vfond; layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
 vec2 c16(float x){ float c = floor(clamp(x, 0., 1.) * 65535. + .5); return vec2(floor(c / 256.), mod(c, 256.)) / 255.; }
 void main(){
-  vec2 d = gl_FragCoord.xy - vc.xy; d.x /= vc.z;
+  vec2 d = gl_FragCoord.xy - vc.xy;
+  // empreinte du point : large de 1/cos(lat) pixels, haute d'un pixel et demi (le carré
+  // de gl_PointSize débordait de dizaines de degrés en latitude près des pôles)
+  if (abs(d.y) > 1.5 || abs(d.x) > .5 * vc.z + 1.) discard;
+  d.x /= vc.z;
   gl_FragDepth = .5 * vfond + .24 * clamp(length(d) / 4., 0., 1.);
   o = vec4(c16((vh - (${HMIN}.)) / (${HMAX}. - (${HMIN}.))), 1., 1.);
   o2 = vec4(c16((vpd.y + 180.) / 360.), c16((vpd.x + 90.) / 180.)); }`;
@@ -316,7 +320,6 @@ void main(){
     // voile bleu vers le limbe, côté jour
     float limbe = pow(1. - n0.z, 2.2);
     col = mix(col, lin(vec3(.36,.56,.92)) * (jour * .9 + .02), clamp(limbe * .85, 0., .85) * (.25 + .75 * jour));
-    col += lin(vec3(.2,.35,.7)) * .06 * jour;
   } else {
     float r = sqrt(r2);
     vec3 P = vue * vec3(px / r, 0.);

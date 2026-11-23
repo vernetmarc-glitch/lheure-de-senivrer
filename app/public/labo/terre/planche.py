@@ -31,6 +31,7 @@ async def main(sortie):
             v = np.array([(m * np.cos(lat) * np.cos(lon)).sum(), (m * np.cos(lat) * np.sin(lon)).sum(),
                           (m * np.sin(lat) * np.ones_like(lon)).sum()])
             la, lo = np.degrees(np.arcsin(v[2] / np.linalg.norm(v))), np.degrees(np.arctan2(v[1], v[0]))
+            la = max(la, -15.0)   # solstice de juin : l hémisphère sud est dans la nuit polaire
             await pg.evaluate("o => terre.regler(o)", {"t": t, "lat": float(np.clip(la, -60, 60)), "lon": float(lo)})
             await pg.wait_for_timeout(300)
             vues.append(Image.open(io.BytesIO(await pg.screenshot())).convert("RGB"))

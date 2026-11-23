@@ -197,10 +197,14 @@ async def main():
             ww = poids_aire(*m.shape)
             aires = np.bincount(lab[m].ravel(), weights=ww[m].ravel())
             part = aires.max() / aires.sum() if aires.sum() > 0 else 0
-            pires.append((t, part))
-        mini = min(p for _, p in pires)
-        note("C3", mini >= 0.80, "plus grand bloc / terres : " +
-             ", ".join(f"{t} Ma {p*100:.0f} %" for t, p in pires) + " (seuil 80 %)")
+            mc_ = e > -200
+            labc, _ = composantes(mc_)
+            ac = np.bincount(labc[mc_].ravel(), weights=ww[mc_].ravel())
+            pires.append((t, part, ac.max() / ac.sum() if ac.sum() > 0 else 0))
+        mini = min(p for _, p, _ in pires)
+        note("C3", mini >= 0.80, "plus grand bloc / terres émergées : " +
+             ", ".join(f"{t} Ma {p*100:.0f} %" for t, p, _ in pires) + " (seuil 80 %) ; pour information, "
+             "bloc continental (> -200 m) : " + ", ".join(f"{t} Ma {q*100:.0f} %" for t, _, q in pires))
 
         # ---- C4 pas de fantôme (sur l'écran, globe tel que vu)
         await pg.evaluate("terre.regler({lon: 10, lat: 15})")
@@ -325,33 +329,45 @@ async def main():
 
         # ---- C11 compteur de vitesse du temps
         det11, ok11 = [], True
-        bc = await pg.evaluate("""() => { const e = document.querySelector('.compteur-temps');
+        # page neuve : l'aiguille n'hérite pas des centaines de rendus des contrôles précédents
+        p2 = await ctx.new_page()
+        p2.on("pageerror", lambda e: erreurs.append(f"pageerror: {e}"))
+        await p2.goto(base + URL_PAGE)
+        await p2.wait_for_function("window.terre && window.terre.pret === true", timeout=120000)
+        bc = await p2.evaluate("""() => { const e = document.querySelector('.compteur-temps');
             if (!e) return null; const r = e.getBoundingClientRect();
             return {x: r.left, y: r.top, w: r.width, h: r.height, txt: e.textContent}; }""")
         if not bc:
             note("C11", False, "compteur absent")
         else:
-            gb = await pg.locator("#globe").bounding_box(); geo = await pg.evaluate("terre.disque()")
+            gb = await p2.locator("#globe").bounding_box(); geo = await p2.evaluate("terre.disque()")
             cx, cy, R = gb["x"] + geo["cx"], gb["y"] + geo["cy"], geo["r"] * 1.03
             nx = min(max(cx, bc["x"]), bc["x"] + bc["w"]); ny = min(max(cy, bc["y"]), bc["y"] + bc["h"])
             hors = np.hypot(nx - cx, ny - cy) > R
             dedans = bc["x"] >= 0 and bc["y"] >= 0 and bc["x"] + bc["w"] <= 390 and bc["y"] + bc["h"] <= 844
             ok11 &= hors and dedans and bc["w"] >= 56
             det11.append(f"{bc['w']:.0f} px, hors du globe {hors}, dans l'écran {dedans}")
-            await pg.evaluate("terre.regler({t: 700})"); await pg.wait_for_timeout(1500)
-            c = await pg.evaluate("terre.compteur()")
+            await p2.evaluate("terre.regler({t: 1000})"); await p2.wait_for_timeout(1500)
+            c = await p2.evaluate("terre.compteur()")
             ok11 &= abs(c["angle"] - c["butee"]) <= 1
             det11.append(f"arrêt : aiguille {c['angle']:.1f}° (butée {c['butee']}°)")
-            await pg.click("#lecture"); await pg.wait_for_timeout(1500)
-            m = await pg.evaluate("""async () => { const a = [performance.now(), terre.etat().t];
+            await p2.click("#lecture"); await p2.wait_for_timeout(1000)
+            # « après amortissement » : on attend que l'aiguille soit au repos (à faible cadence
+            # d'images, le ressort du compteur commun avance d'au plus 50 ms par image)
+            try:
+                await p2.wait_for_function("(() => { const c = terre.compteur(); return c.v > 0 && Math.abs(c.angle - c.cible) < 0.5; })()", timeout=25000, polling=200)
+            except Exception:
+                pass
+            m = await p2.evaluate("""async () => { const a = [performance.now(), terre.etat().t];
                 await new Promise(r => setTimeout(r, 600)); const b = [performance.now(), terre.etat().t];
                 const c = terre.compteur(); return {v: (a[1] - b[1]) * 1e6 / ((b[0] - a[0]) / 1000), ...c,
                 attendu: terre.angleVitesse((a[1] - b[1]) * 1e6 / ((b[0] - a[0]) / 1000)),
                 txt: document.querySelector('.compteur-temps').textContent}; }""")
-            await pg.click("#lecture")
+            await p2.click("#lecture")
             ok11 &= abs(m["angle"] - m["attendu"]) <= 1 and "par seconde" in m["txt"]
             det11.append(f"lecture : {m['v']:.3g} ans/s -> attendu {m['attendu']:.1f}°, aiguille {m['angle']:.1f}° ; « {m['txt'].strip()[-45:]} »")
             note("C11", ok11, " ; ".join(det11))
+        await p2.close()
 
         # ---- C1 (en dernier : couvre toute la session)
         gl2 = await pg.evaluate("!!document.createElement('canvas').getContext('webgl2')")
