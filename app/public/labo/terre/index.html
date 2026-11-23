@@ -85,7 +85,6 @@
   </footer>
 </main>
 <div id="attente">chargement…</div>
-<script src="compteur.js"></script>
 <script>
 "use strict";
 (() => {
@@ -172,7 +171,7 @@ flat in float vh; flat in vec2 vpd; flat in vec3 vc; flat in float vfond; layout
 vec2 c16(float x){ float c = floor(clamp(x, 0., 1.) * 65535. + .5); return vec2(floor(c / 256.), mod(c, 256.)) / 255.; }
 void main(){
   vec2 d = gl_FragCoord.xy - vc.xy; d.x /= vc.z;
-  gl_FragDepth = .5 * vfond + .49 * clamp(length(d) / 4., 0., 1.);
+  gl_FragDepth = .5 * vfond + .24 * clamp(length(d) / 4., 0., 1.);
   o = vec4(c16((vh - (${HMIN}.)) / (${HMAX}. - (${HMIN}.))), 1., 1.);
   o2 = vec4(c16((vpd.y + 180.) / 360.), c16((vpd.x + 90.) / 180.)); }`;
 // Segment M (1 Ga -> 540 Ma) : un seul nuage de points en coordonnées actuelles, transporté
@@ -202,7 +201,7 @@ void main(){
   float hgen = dec(a1.g), h0 = dec(a1.r);
   float h = typeA ? mix(h0, vivant ? hgen : -3000., a) : mix(-150., hgen, a);
   bool existe = point && (typeA ? (vivant || a < .999) : vivant);
-  vh = h; vfond = 0.;
+  vh = h; vfond = typeA ? 0. : .5;
   float lat0 = 90. - (float(j) + .5) * 180. / taille.y, lon0 = -180. + (float(i) + .5) * 360. / taille.x;
   vec3 q = versXYZ(lat0, lon0); vpd = vec2(lat0, lon0);
   int row = int(a2.r * 255. + .5) + 256 * int(a2.g * 255. + .5);
@@ -581,15 +580,15 @@ function lancer(oui) {
   else etat.t = tCourant();
   etat.lecture = oui; majBouton();
 }
-let compteur = null; const histoire = [];
+let compteur = null, angleVitesse = null, ANGLE_BUTEE = null; const histoire = [];
 function majCompteur(now) {
   if (!compteur) return;
   histoire.push([now, etat.t]);
   while (histoire.length > 2 && now - histoire[1][0] > 500) histoire.shift();
-  if (etat.lecture) { compteur.regler(VITESSE * 1e6, 1); return; }
+  if (etat.lecture) { compteur.vitesse(VITESSE * 1e6, 1); return; }
   const [n0, t0] = histoire[0], dts = (now - n0) / 1000;
   const v = dts > 0.05 ? Math.abs(t0 - etat.t) * 1e6 / dts : 0;
-  compteur.regler(v > 1 ? v : 0, etat.t > t0 ? -1 : 1);
+  compteur.vitesse(v > 1 ? v : 0, v > 1 ? (etat.t > t0 ? -1 : 1) : 0);
 }
 function boucle(now) {
   if (etat.lecture) {
@@ -659,7 +658,9 @@ async function demarrer() {
     for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
     return tex; }));
   placerFrise(); interaction(); majTextes();
-  compteur = new Compteur($("#scene"), { taille: 64, style: "top:4px;right:6px", disposition: "ligne" });
+  const C = await import("../../commun/compteur.js");
+  angleVitesse = C.angleVitesse; ANGLE_BUTEE = C.ANGLE_BUTEE;
+  compteur = C.creeCompteur($("#scene"), { coin: "haut-droite", marge: 6, taille: "84px" });
   await rendre();
   $("#attente").style.opacity = 0;
   etat.pret = true; window.terre.pret = true;
@@ -681,7 +682,8 @@ window.terre = {
     await new Promise(r => requestAnimationFrame(() => r()));
   },
   etat: () => ({ t: tCourant(), lon: etat.lon, lat: etat.lat, lecture: etat.lecture }),
-  compteur: () => ({ angle: compteur.angle(), cible: compteur.angleCible(), butee: Compteur.BUTEE, v: compteur.v }),
+  compteur: () => { const e = compteur.etat(); return { angle: e.angle, cible: e.cible, butee: ANGLE_BUTEE, v: e.vitesse }; },
+  angleVitesse: v => angleVitesse(v, 1),
   lirePixels() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat);
     const b = new Uint8Array(man.W * man.H * 4);

@@ -325,7 +325,7 @@ async def main():
 
         # ---- C11 compteur de vitesse du temps
         det11, ok11 = [], True
-        bc = await pg.evaluate("""() => { const e = document.querySelector('.compteur');
+        bc = await pg.evaluate("""() => { const e = document.querySelector('.compteur-temps');
             if (!e) return null; const r = e.getBoundingClientRect();
             return {x: r.left, y: r.top, w: r.width, h: r.height, txt: e.textContent}; }""")
         if not bc:
@@ -346,8 +346,8 @@ async def main():
             m = await pg.evaluate("""async () => { const a = [performance.now(), terre.etat().t];
                 await new Promise(r => setTimeout(r, 600)); const b = [performance.now(), terre.etat().t];
                 const c = terre.compteur(); return {v: (a[1] - b[1]) * 1e6 / ((b[0] - a[0]) / 1000), ...c,
-                attendu: Compteur.angleDe((a[1] - b[1]) * 1e6 / ((b[0] - a[0]) / 1000)),
-                txt: document.querySelector('.compteur').textContent}; }""")
+                attendu: terre.angleVitesse((a[1] - b[1]) * 1e6 / ((b[0] - a[0]) / 1000)),
+                txt: document.querySelector('.compteur-temps').textContent}; }""")
             await pg.click("#lecture")
             ok11 &= abs(m["angle"] - m["attendu"]) <= 1 and "par seconde" in m["txt"]
             det11.append(f"lecture : {m['v']:.3g} ans/s -> attendu {m['attendu']:.1f}°, aiguille {m['angle']:.1f}° ; « {m['txt'].strip()[-45:]} »")
