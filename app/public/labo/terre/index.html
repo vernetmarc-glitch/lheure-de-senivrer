@@ -784,7 +784,7 @@ function interaction() {
 function majBouton() { $("#lecture").textContent = etat.lecture ? "❚❚" : "▶";
   $("#lecture").setAttribute("aria-label", etat.lecture ? "Pause" : "Lecture"); }
 
-const VITESSE = 25;            // Ma par seconde : un milliard d'années en 40 s
+const VITESSE = 15;            // Ma par seconde : les 540 Ma publiés en 36 s
 // La lecture est réglée sur l'horloge réelle : le curseur avance à vitesse exacte, même si
 // une image tarde ; le globe montre le dernier instant calculé.
 const lect = { t0: T_PUB, debut: 0 };
