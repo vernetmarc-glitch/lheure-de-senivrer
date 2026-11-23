@@ -122,7 +122,7 @@ def controles_donnees(base):
     ok("D3 pas réguliers ≤ 250 ka, plus serrés sur les 2 derniers Ma",
        len(avant) and avant.max() <= 0.25 + 1e-9 and len(apres) and apres.max() < avant.min(),
        f"avant {avant.max() if len(avant) else '–'} Ma, après {apres.max() if len(apres) else '–'} Ma")
-    taille = sum(int(urllib.request.urlopen(base + "donnees/" + p["fichier"]).headers["Content-Length"])
+    taille = sum(int(urllib.request.urlopen(urllib.request.Request(base + "donnees/" + p["fichier"], method="HEAD")).headers["Content-Length"])
                  for p in meta["paquets"])
     ok("D4 paquet léger (< 40 Mo)", taille < 40e6, f"{taille/1e6:.1f} Mo")
     premiere = sum(len(lire(base + "donnees/" + f)) for f in
@@ -235,7 +235,7 @@ def controles_page(base):
                     while (tb - ta < 1500) { tp = tb; bp = b; [tb, b] = await image(); }
                     const v = (b - a) / ((tb - ta) / 1000);             // vitesse moyenne
                     const vi = (b - bp) / ((tb - tp) / 1000);           // vitesse de la dernière image
-                    const ang = A.compteur.angle(); A.pause();
+                    const ang = A.compteur.etat().cible; A.pause();
                     return [v, ang, vi];
                 }""", t0)
                 mesures[t0], angles[t0], inst[t0] = v
@@ -245,21 +245,22 @@ def controles_page(base):
                " ; ".join(f"{k} Ma : {v*1000:.0f} ka/s" for k, v in mesures.items()))
 
             from math import log10
-            attendu = {k: -125 + 250 * min(max(log10(v * 1e6), 0), 10) / 10 for k, v in inst.items()}
+            attendu = {k: -135 + 270 * min(max(log10(v * 1e6), 0), 10) / 10 for k, v in inst.items()}
             ecart_ang = max(abs(angles[k] - attendu[k]) for k in mesures)
             ra = [angles[k] for k in (-1.9, -1.2, -0.6, -0.2)]
-            ok("N28 compteur : l'aiguille vaut la vitesse réelle (log, à 1° près) et redescend sur les 2 derniers Ma",
+            ok("N28 compteur : la cible de l'aiguille vaut la vitesse réelle (log, à 1° près) et redescend sur les 2 derniers Ma",
                ecart_ang <= 1.0 and all(ra[i] > ra[i + 1] for i in range(3)),
                f"écart max {ecart_ang:.2f}° ; aiguille " + ", ".join(f"{a:.1f}°" for a in ra))
             page.evaluate("window.ALPES.pause(); window.ALPES.aller(-0.5)")
-            page.wait_for_timeout(1500)
-            butee = page.evaluate("window.ALPES.compteur.angle()")
-            ok("N28 compteur : temps à l'arrêt, aiguille sur la butée", butee < -135, f"{butee:.1f}°")
+            page.wait_for_function("!window.ALPES.compteur.etat().anime", timeout=60000)   # amortissement fini
+            e = page.evaluate("window.ALPES.compteur.etat()")
+            ok("N28 compteur : temps à l'arrêt, aiguille amortie posée sur la butée (−146°)",
+               abs(e["angle"] - (-146)) <= 1 and e["sens"] == 0, f"{e['angle']:.1f}°")
 
             page.evaluate("window.ALPES.aller(0)")
             page.wait_for_timeout(600)
             geo = page.evaluate("""() => { const r = e => { const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; };
-                return { c: r(document.querySelector('.compteur')), bas: r(document.getElementById('bas')), date: r(document.getElementById('haut')),
+                return { c: r(window.ALPES.compteur.element), bas: r(document.getElementById('bas')), date: r(document.getElementById('haut')),
                   lieux: [...document.querySelectorAll('.lieu')].filter(e => getComputedStyle(e).opacity > 0.05).map(r) }; }""")
             inter = lambda a, b: a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
             c = geo["c"]

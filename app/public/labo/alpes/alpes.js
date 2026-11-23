@@ -1,7 +1,7 @@
 // L'Heure de s'enivrer — S7 : l'orogenèse alpine, vue d'avion.
 // Relief : états FastScape (donnees/), interpolés ; fin = relief réel Copernicus GLO-90
 // drapé de la mosaïque Sentinel-2 sans nuages (EOX). Unités : km au sol, m d'altitude, Ma.
-import { Compteur } from "./compteur.js";
+import { creeCompteur } from "../../commun/compteur.js";
 
 const EXAGERATION = 1.5;
 const SOLEIL_AZ = 145, SOLEIL_EL = 34;           // degrés ; Soleil fixe, celui de la mosaïque (matin d'été, vers 10 h 30)
@@ -333,7 +333,7 @@ async function demarrer() {
   const cam = { azimut: 248 * Math.PI / 180, hauteur: 37 * Math.PI / 180, distance: 118, cible: [6, 2, 0.8] };
   let t = -45, enLecture = false, allure = 1, roches = false, glisse = false;
   const CIEL = [0.72, 0.80, 0.90];
-  const compteur = new Compteur(document.body);
+  const compteur = creeCompteur(document.body, { coin: "haut-droite", marge: 10 });
 
   function indice(tt) {
     let lo = 0, hi = T.length - 1;
@@ -398,7 +398,7 @@ async function demarrer() {
     gl.clearColor(...CIEL, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     rendre(mvp, 0);
     const op = Math.min(Math.max((t + 1.0) / 0.8, 0), 1);
-    const rc = compteur.e.getBoundingClientRect();
+    const rc = compteur.element.getBoundingClientRect();
     for (const l of lieux) {
       const z = Math.max(hauteurEn(...l.km), 0) * EXAGERATION / 1000 + 0.15;
       const s = projeter([l.km[0], l.km[1], z]);
@@ -450,7 +450,7 @@ async function demarrer() {
     }
     // vitesse réelle du curseur (ans par seconde), lecture ou glissé
     const v = dt > 0 ? (t - tPrec) * 1e6 / dt : 0; tPrec = t;
-    compteur.regler(enLecture ? vitesseGeo(t) * allure * 1e6 : (glisse ? v : 0), dt);
+    compteur.vitesse(enLecture ? vitesseGeo(t) * allure * 1e6 : (glisse ? v : 0));
     dessiner();
     requestAnimationFrame(imageSuivante);
   }
