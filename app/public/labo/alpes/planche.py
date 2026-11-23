@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import controles as C
 
-INSTANTS = [(-40, "−40 Ma"), (-25, "−25 Ma"), (-12, "−12 Ma"), (-4, "−4 Ma"), (-1, "−1 Ma"), (0, "aujourd'hui")]
+INSTANTS = [(-30, "−30 Ma"), (-18, "−18 Ma"), (-8, "−8 Ma"), (-1, "−1 Ma"), (-0.024, "−24 000 ans (glaciers)"), (0, "aujourd'hui")]
 
 
 def police(t):
@@ -40,8 +40,12 @@ def main(sortie):
             pg.evaluate(f"window.ALPES.aller({t})")
             pg.wait_for_timeout(1600)
             vues.append(Image.open(io.BytesIO(pg.screenshot())).convert("RGB").resize((390, 844), Image.LANCZOS))
+        pg.evaluate("window.ALPES.aller(-10); window.ALPES.coupe(true)")
+        pg.wait_for_timeout(1600)
+        vues.append(Image.open(io.BytesIO(pg.screenshot())).convert("RGB").resize((390, 844), Image.LANCZOS))
+        pg.evaluate("window.ALPES.coupe(false)")
         for mode, mos in ((3, 0), (3, "undefined")):
-            px = np.array(pg.evaluate(f"Array.from(window.ALPES.couleurs(0, {mode}, {mos}))"), np.uint8).reshape(n, n, 3)
+            px = np.array(pg.evaluate(f"Array.from(window.ALPES.couleurs(0, {mode}, {mos}, 512))"), np.uint8).reshape(512, 512, 3)
             nadir.append(Image.fromarray(px))
         nav.close()
     # référence : DEM ombré drapé de la mosaïque
@@ -57,17 +61,17 @@ def main(sortie):
     ref = lin * (1.9 * np.clip(sh, 0, 1)[..., None] * np.array([1, .95, .86]) + 0.5 * np.array([.42, .52, .68]))
     ref = Image.fromarray((np.clip(ref, 0, 1) ** (1 / 2.2) * 255).astype(np.uint8))
 
-    W = 390 * 6
+    W = 390 * 7
     plan = Image.new("RGB", (W, 844 + 60 + 420 + 50), (14, 18, 26))
     d = ImageDraw.Draw(plan)
-    for i, (im, (_, lab)) in enumerate(zip(vues, INSTANTS)):
+    for i, (im, (_, lab)) in enumerate(zip(vues, INSTANTS + [(-10, "−10 Ma, coupe : grains suivis")])):
         plan.paste(im, (390 * i, 40))
         d.text((390 * i + 12, 8), lab, font=police(22), fill=(243, 239, 230))
     y = 844 + 60
     titres = ["dernier état — règles de couleur seules", "dernier état — tel qu'affiché",
               "référence — Copernicus DEM + Sentinel-2"]
     for i, im in enumerate(nadir + [ref]):
-        x = 60 + i * 760
+        x = 80 + i * 900
         plan.paste(im.resize((420, 420), Image.LANCZOS), (x, y + 30))
         d.text((x, y), titres[i], font=police(20), fill=(243, 239, 230))
     srv.shutdown()
