@@ -555,7 +555,9 @@ def taches(page, age, vue=(25, 15)):
     page.evaluate('([a, lo, la]) => { window.__hum.isoler("sapiens"); window.__hum.regler(a); window.__hum.vue(lo, la); }', [age, vue[0], vue[1]])
     page.wait_for_timeout(400)
     g = page.evaluate('() => window.__hum.geometrie()')['globe']
-    img = np.asarray(Image.open(io.BytesIO(page.locator('#scene').screenshot())).convert('L'), dtype=np.float64)
+    # éclat indépendant de la teinte (les points prennent la couleur de leur entité après −10 000) :
+    # canal le plus fort de chaque pixel
+    img = np.asarray(Image.open(io.BytesIO(page.locator('#scene').screenshot())).convert('RGB'), dtype=np.float64).max(axis=2)
     k = img.shape[1] / g['vw'] if 'vw' in g else 2.0
     fond = ndimage.median_filter(img, 9)
     x = img - fond
@@ -916,20 +918,28 @@ def c18_entites(page):
         et = [e for e in page.evaluate('() => window.__hum.etiquettesCiv()') if e['visible']]
         for e in et:
             ids = nom_id.get(e['texte'], set())
-            if not ids or not np.isin(ref, list(ids)).any():
+            actifs = {noms_page.get(f['properties']['Name']) for f in cliopatria()
+                      if int(f['properties']['FromYear']) <= an <= int(f['properties']['ToYear'])}
+            actifs |= {noms_page.get(r['nom']) for r in lire_csv(os.path.join(PREPA, 'neolithique.csv'))
+                       if int(r['debut']) <= an <= int(r['fin'])}
+            if not ids or not (ids & actifs):
                 fautes.append(f'{an} : « {e["texte"]} » absente des données')
             elif e.get('ancre') is not None:
                 la, lo = e['ancre']
                 y, x = int((90 - la) / 0.25), int((lo + 180) / 0.25) % 1440
-                if not np.isin(ref[max(0, y - 2):y + 3, max(0, x - 2):x + 3], list(ids)).any():
+                if np.isin(ref, list(ids)).any() and not np.isin(ref[max(0, y - 2):y + 3, max(0, x - 2):x + 3], list(ids)).any():
                     fautes.append(f'{an} : « {e["texte"]} » posée hors de sa zone')
         noms_vus = {e['texte'] for e in et}
+        from scipy import ndimage
         for e in civ['entites']:
             sel = ref == e['id']
             if A[sel].sum() >= 2.0e6 and e['nom'] not in noms_vus:
+                # visible : le centre de sa plus grande partie d'un seul tenant fait face à l'observateur
+                labm, nb = ndimage.label(sel)
+                k = int(np.argmax(ndimage.sum(A, labm, index=np.arange(1, nb + 1)))) + 1
+                yy, xx = np.nonzero(labm == k)
                 vis = page.evaluate('([lo, la]) => window.__hum.visible(lo, la)',
-                                    [float(np.average(np.broadcast_to(np.arange(1440) * 0.25 - 180, (720, 1440))[sel])),
-                                     float(np.average(np.broadcast_to((90 - np.arange(720)[:, None] * 0.25), (720, 1440))[sel]))])
+                                    [float(xx.mean() * 0.25 - 180), float(90 - yy.mean() * 0.25)])
                 if vis:
                     fautes.append(f'{an} : {e["nom"]} ({A[sel].sum() / 1e6:.1f} M km²) sans nom')
     verdict('C18', not fautes, ' ; '.join(det) if not fautes else ' ; '.join(fautes[:8]))

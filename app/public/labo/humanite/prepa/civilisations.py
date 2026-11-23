@@ -153,9 +153,9 @@ def lab(rgb):
     return np.array([116 * f[1] - 16, 500 * (f[0] - f[1]), 200 * (f[1] - f[2])])
 import colorsys
 palette = []
-for L in (0.62, 0.78):
+for L in (0.50, 0.64):          # couleurs vives (relecture : les teintes claires viraient au blanc)
     for h in range(12):
-        r, g, b = colorsys.hls_to_rgb((h / 12 + (0.04 if L > 0.7 else 0)) % 1, L, 0.95)
+        r, g, b = colorsys.hls_to_rgb((h / 12 + (0.04 if L > 0.6 else 0)) % 1, L, 1.0)
         palette.append([int(255 * r), int(255 * g), int(255 * b)])
 PL = [lab(c) for c in palette]
 couleur = {}

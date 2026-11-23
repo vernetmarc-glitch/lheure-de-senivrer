@@ -596,7 +596,7 @@ function rendre() {
   gl.uniform2f(pg.u.u_res, canvas.width, canvas.height); gl.uniform2f(pg.u.u_centre, geo.cx * dpr, canvas.height - geo.cy * dpr);
   gl.uniform1f(pg.u.u_r, geo.r * dpr); gl.uniformMatrix3fv(pg.u.u_rot, false, rot.R); gl.uniform3fv(pg.u.u_coul, COUL);
   gl.uniform1f(pg.u.u_age, age); gl.uniform1f(pg.u.u_tau, Math.max(150, 0.05 * age));
-  gl.uniform1i(pg.u.u_eq, 0); gl.uniform1i(pg.u.u_civ, civActif ? 1 : 0);
+  gl.uniform1i(pg.u.u_eq, 0); gl.uniform1i(pg.u.u_civ, civActif && isole < 0 ? 1 : 0);
   gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, texCiv); gl.uniform1i(pg.u.u_civmap, 6);
   gl.uniform1f(pg.u.u_terr, APLAT);
   gl.bindVertexArray(vaoGlobe); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -762,7 +762,7 @@ function placerCiv(force) {
     const ph = la * Math.PI / 180, lm = lo * Math.PI / 180;
     const x = Math.cos(ph) * Math.sin(lm), y = Math.sin(ph), z = Math.cos(ph) * Math.cos(lm);
     const ex = RT[0] * x + RT[3] * y + RT[6] * z, ey = RT[1] * x + RT[4] * y + RT[7] * z, ez = RT[2] * x + RT[5] * y + RT[8] * z;
-    if (ez < 0.3) continue;
+    if (ez < (aire > 1e6 ? 0.1 : 0.3)) continue;      // les grands empires restent nommés jusqu'près du bord
     const ent = CIV_ENT.get(id); if (!ent) continue;
     let o = ETIQC.get(id);
     if (!o) { const el = document.createElement('div');
@@ -778,7 +778,9 @@ function placerCiv(force) {
     const cx = geo.cx + ex * geo.r, cy = geo.cy - ey * geo.r;
     let bx = null;
     for (const [dx, dy] of [[0, 0], [0, -h], [0, h], [-w / 3, 0], [w / 3, 0], [0, -2 * h], [0, 2 * h]]) {
-      const c = { left: cx + dx - w / 2, top: cy + dy - h / 2, right: cx + dx + w / 2, bottom: cy + dy + h / 2 };
+      const x0 = Math.max(2, Math.min(innerWidth - w - 2, cx + dx - w / 2));   // ramené dans le cadre près du bord
+      const y0 = Math.max(haut.bottom + 1, Math.min(bas.top - h - 1, cy + dy - h / 2));
+      const c = { left: x0, top: y0, right: x0 + w, bottom: y0 + h };
       const dedans = c.left >= 2 && c.right <= innerWidth - 2 && c.top >= haut.bottom && c.bottom <= bas.top;
       if (dedans && !pris.some(p => !(c.right <= p.left || p.right <= c.left || c.bottom <= p.top || p.bottom <= c.top))) { bx = c; break; }
     }
