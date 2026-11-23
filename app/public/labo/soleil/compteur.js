@@ -73,9 +73,9 @@ export function creeCompteur(parent, opts = {}) {
       g.lineTo(Math.cos(a) * R * (maj ? 0.8 : 0.88), Math.sin(a) * R * (maj ? 0.8 : 0.88));
       g.strokeStyle = maj ? "rgba(235,225,200,0.95)" : "rgba(200,205,225,0.6)"; g.lineWidth = (maj ? 1.4 : 1) * dpr; g.stroke();
       if (maj) {
-        g.font = `${7.2 * dpr}px Jost, sans-serif`; g.fillStyle = "rgba(230,232,240,0.92)";
+        g.font = `${6.3 * dpr}px Jost, sans-serif`; g.fillStyle = "rgba(230,232,240,0.92)";
         g.textAlign = "center"; g.textBaseline = "middle";
-        g.fillText(et[l], Math.cos(a) * R * 0.58, Math.sin(a) * R * 0.58);
+        g.fillText(et[l], Math.cos(a) * R * 0.6, Math.sin(a) * R * 0.6 + (l === 4 || l === 6 ? 2 * dpr : 0));
       }
     }
     // butée
