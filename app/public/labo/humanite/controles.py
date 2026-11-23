@@ -40,6 +40,22 @@ cible flottante relue par readPixels : c'est ce qui est dessiné qui est mesuré
                    submergés aujourd'hui (terres dessinées par la page)
   C11 fluidité   : 390 × 844 : temps JavaScript médian par image < 8 ms en lecture ;
                    poids avant la première image ≤ 10 Mo
+  — passage 2 (relecture du maître, 23/11) —
+  C12 traînées   : la teinte des territoires, dessinée en équirectangulaire (0,25°), n'a
+                   pas de traînées : cohérence moyenne du tenseur de structure ≤ 0,45 à
+                   2 Ma, 100 000, 40 000 et 10 000 ans (un semis isotrope ≈ 0,3 ; des
+                   traînées parallèles → 1)
+  C13 foyers     : avant l'Holocène, les points se regroupent en foyers comme de vraies
+                   populations : indice de Clark et Evans (distance au plus proche voisin
+                   / distance attendue au hasard sur l'aire habitée) ≤ 0,6 pour sapiens à
+                   100 000 et 50 000 ans et pour erectus à 1 Ma (semis régulier > 1)
+  C14 contact    : entre 60 000 et 30 000 ans (16 instants), sapiens et Néandertaliens ou
+                   Dénisoviens se côtoient : au moins 6 instants où une même maille de 5°
+                   porte des points des deux couleurs
+  C15 Timmermann : les 3 245 entrées datées de Timmermann et al. 2022 (table S1, d'après
+                   ROAD) : la lignée de l'espèce est présente au lieu (± 1 maille) à un
+                   instant de [0,9 × âge min ; âge max] pour ≥ 95 % des entrées, et
+                   ≥ 90 % par espèce
 
 Usage : python3 app/public/labo/humanite/controles.py [--port 8860] [--seul C4]
 Code de sortie 0 si tout passe.
@@ -499,6 +515,136 @@ def c11_fluidite(page, octets):
     verdict('C11', ok, f'JS médian {ms} ms par image ; {mo:.2f} Mo avant la première image')
 
 
+def c12_trainees(page):
+    vals = []
+    for age in [2.0e6, 1.0e5, 4.0e4, 1.0e4]:
+        t = plan(page, age, 'teinte')
+        from scipy import ndimage
+        ix = ndimage.sobel(t, 1, mode='wrap')
+        iy = ndimage.sobel(t, 0, mode='nearest')
+        jxx = ndimage.gaussian_filter(ix * ix, 4)
+        jyy = ndimage.gaussian_filter(iy * iy, 4)
+        jxy = ndimage.gaussian_filter(ix * iy, 4)
+        tr = jxx + jyy
+        coh = np.sqrt((jxx - jyy) ** 2 + 4 * jxy ** 2) / np.maximum(tr, 1e-30)
+        m = ndimage.binary_erosion(t > 0, iterations=6)
+        c = float((coh[m] * tr[m]).sum() / max(tr[m].sum(), 1e-30)) if m.any() else 1.0
+        vals.append((age, c))
+    ok = all(c <= 0.45 for _, c in vals)
+    verdict('C12', ok, ' ; '.join(f'{a:.0f} ans : {c:.2f}' for a, c in vals) + ' (seuil 0,45)')
+
+
+def clark_evans(pts, aire_km2):
+    p = np.radians(np.array(pts))
+    lon, lat = p[:, 0], p[:, 1]
+    x = np.stack([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)], 1)
+    d = np.arccos(np.clip(x @ x.T, -1, 1)) * 6371.0
+    np.fill_diagonal(d, np.inf)
+    nn = d.min(axis=1).mean()
+    return nn / (0.5 * math.sqrt(aire_km2 / len(pts)))
+
+
+def aire_lignee(m_bits, bits):
+    lat = 90 - (np.arange(m_bits.shape[0]) + 0.5) * 0.5
+    a = (55.6 ** 2) * np.cos(np.radians(lat))[:, None] * np.ones_like(m_bits)
+    sel = (m_bits.astype(np.int64) & bits) > 0
+    return float(a[sel].sum())
+
+
+def c13_foyers(page):
+    res, ok = [], True
+    for lig, age in [('sapiens', 1.0e5), ('sapiens', 5.0e4), ('erectus', 1.0e6)]:
+        pts = page.evaluate('([a, l]) => window.__hum.echantillon(a, l)', [age, lig])
+        bits = (1 << CARTES.index('sapiens')) | (1 << CARTES.index('sapiens1')) if lig == 'sapiens' else 1 << CARTES.index(lig)
+        aire = aire_lignee(plan(page, age, 'territoire'), bits)
+        if len(pts) < 10 or aire <= 0:
+            ok = False
+            res.append(f'{lig} {age:.0f} : {len(pts)} points')
+            continue
+        r = clark_evans(pts, aire)
+        ok &= r <= 0.6
+        res.append(f'{lig} {age:.0f} ans : R = {r:.2f} ({len(pts)} points)')
+    verdict('C13', ok, ' ; '.join(res) + ' (seuil 0,6)')
+
+
+def c14_contact(page):
+    n = 0
+    det = []
+    for age in np.linspace(60000, 30000, 16):
+        def cases(lig):
+            p = page.evaluate('([a, l]) => window.__hum.echantillon(a, l)', [float(age), lig])
+            return {(int((lo + 180) // 5), int((la + 90) // 5)) for lo, la in p}
+        s = cases('sapiens')
+        a = cases('neandertal') | cases('denisova')
+        k = len(s & a)
+        n += k > 0
+        det.append(f'{age / 1000:.0f}:{k}')
+    verdict('C14', n >= 6, f'{n}/16 instants de contact (≥ 6) ; mailles de 5° partagées : ' + ' '.join(det))
+
+
+ESPECES = {'Homo sapiens': 'sapiens', 'Homo neanderthalensis': 'neandertal', 'Homo erectus': 'erectus',
+           'Homo heidelbergensis': 'erectus', 'Homo ergaster': 'erectus', 'Homo habilis': 'erectus',
+           'early African Homo': 'erectus'}
+
+
+def entrees_timmermann():
+    import openpyxl
+    wb = openpyxl.load_workbook(os.path.join(INTER, 'timmermann2022_S1.xlsx'), read_only=True)
+    rows = list(wb['raw data'].iter_rows(values_only=True))
+    h = rows[0]
+    out = []
+    for r in rows[1:]:
+        d = dict(zip(h, r))
+        if d.get('species') is None or d.get('lat') is None:
+            continue
+        sp = str(d['species']).strip()
+        ligs = sorted({v for part in sp.split('/') for k, v in ESPECES.items() if part.strip().lower() == k.lower()})
+        lig = ligs or None
+        try:
+            out.append({'espece': sp, 'lignee': lig, 'lon': float(d['long']), 'lat': float(d['lat']),
+                        'min': float(d['min.age']), 'max': float(d['max.age']), 'site': d.get('site')})
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def c15_timmermann(page):
+    ent = entrees_timmermann()
+    grille = np.unique(np.round(np.geomspace(2.5e4, 2.2e6, 150), -2))
+    caches = {}
+
+    def bits(a):
+        if a not in caches:
+            caches[a] = plan(page, float(a), 'territoire').astype(np.int64)
+        return caches[a]
+    par = {}
+    for e in ent:
+        sp = e['espece']
+        par.setdefault(sp, [0, 0])
+        par[sp][1] += 1
+        if e['lignee'] is None:
+            continue
+        msk = 0
+        for l in e['lignee']:
+            msk |= ((1 << CARTES.index('sapiens')) | (1 << CARTES.index('sapiens1'))) if l == 'sapiens' else 1 << CARTES.index(l)
+        lo, hi = 0.9 * e['min'], max(e['max'], e['min'])
+        ages = [a for a in grille if lo <= a <= hi] or [min(grille, key=lambda a: abs(a - 0.5 * (lo + hi)))]
+        y, x = pixel(e['lat'], e['lon'])
+        bon = False
+        for a in ages:
+            b = bits(a)[max(0, y - 1):y + 2, :]
+            cols = [(x + d) % 720 for d in (-1, 0, 1)]
+            if np.any(b[:, cols] & msk):
+                bon = True
+                break
+        par[sp][0] += bon
+    tot = sum(v[0] for v in par.values()), sum(v[1] for v in par.values())
+    frac = tot[0] / max(tot[1], 1)
+    ok = frac >= 0.95 and all(v[0] / v[1] >= 0.9 for v in par.values() if v[1] >= 20)
+    verdict('C15', ok and tot[1] > 3000, f'{tot[0]}/{tot[1]} entrées ({frac:.1%}) ; ' +
+            ' ; '.join(f'{k} {v[0]}/{v[1]}' for k, v in sorted(par.items(), key=lambda kv: -kv[1][1])))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--port', type=int, default=8860)
@@ -512,7 +658,8 @@ def main():
         pret = page.evaluate('() => !!(window.__hum && window.__hum.pret === true)')
         tous = [('C1', c1_donnees), ('C2', c2_sites), ('C3', c3_remplacement), ('C4', c4_densite),
                 ('C5', c5_black_marble), ('C6', c6_compteur), ('C8', c8_lecture),
-                ('C9', c9_generations), ('C10', c10_ponts), ('C11', lambda p: c11_fluidite(p, octets))]
+                ('C9', c9_generations), ('C10', c10_ponts), ('C11', lambda p: c11_fluidite(p, octets)),
+                ('C12', c12_trainees), ('C13', c13_foyers), ('C14', c14_contact), ('C15', c15_timmermann)]
         for code, f in tous:
             if args.seul and code not in args.seul.split(','):
                 continue

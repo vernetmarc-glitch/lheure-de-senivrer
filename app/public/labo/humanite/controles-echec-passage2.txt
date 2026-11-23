@@ -1,0 +1,6 @@
+ÉCHEC  C12  2000000 ans : 0.47 ; 100000 ans : 0.44 ; 40000 ans : 0.63 ; 10000 ans : 0.61 (seuil 0,45)
+ÉCHEC  C13  sapiens 100000 ans : R = 1.14 (80 points) ; sapiens 50000 ans : R = 0.99 (200 points) ; erectus 1000000 ans : R = 1.11 (150 points) (seuil 0,6)
+PASSE  C14  10/16 instants de contact (≥ 6) ; mailles de 5° partagées : 60:5 58:4 56:3 54:5 52:8 50:12 48:4 46:4 44:3 42:1 40:0 38:0 36:0 34:0 32:0 30:0
+ÉCHEC  C15  2975/3245 entrées (91.7%) ; Homo neanderthalensis 1308/1481 ; Homo sapiens 1122/1151 ; Homo heidelbergensis 215/277 ; Homo erectus 87/88 ; Homo neanderthalensis/Homo sapiens 77/78 ; Homo heidelbergensis/Homo erectus 47/49 ; Homo ergaster 45/45 ; Homo neanderthalensis/Homo heidelbergensis 33/33 ; Homo sapiens/Homo heidelbergensis 19/21 ; Homo habilis 18/18 ; Homo ergaster/Homo habilis 3/3 ; Homo heidelbergensis/Homo ergaster 1/1
+PASSE  C7  aucune erreur
+2/5 contrôles passés

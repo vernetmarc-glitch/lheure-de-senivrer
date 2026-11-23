@@ -335,6 +335,17 @@ class Croissance:
         parent = np.full((H, W), -1, np.int64)
         v0 = VITESSE[carte]
         vit = v0 * np.exp(0.9 * bruit(graine)) * mult    # km / ka
+        ht = habitat_temps(carte)
+        if ht is not None:
+            h_ages, h_val = ht
+            ilat = np.clip(np.floor(LAT + 90).astype(int), 0, 179)
+            ilon = (np.floor(LON % 360).astype(int)) % 360
+        def fh(ii, jj, age):
+            # vitesse du front × (0,35 + 1,3 × habitabilité de l'instant) ; avant 2 Ma : 1
+            if ht is None or age > h_ages[-1] + 500:
+                return 1.0
+            k = min(len(h_ages) - 1, int(np.searchsorted(h_ages, age)))
+            return 0.35 + 1.3 * float(h_val[k, ilat[ii], ilon[jj]])
         if carte == 'sapiens':
             # en Europe, le front de sapiens avance trois fois moins vite : les Néandertaliens
             # y résistent (coexistence de 5 à 10 ka ; Higham et al. 2014, Slimak et al. 2022)
@@ -372,7 +383,7 @@ class Croissance:
                     if math.hypot(di, dj) > saut + 1e-6:
                         continue
                     a_dep = min(a, saut_age)       # le saut attend son ouverture
-                cout = pas / (0.5 * (vit[i, j] + vit[ii, jj])) * 1000.0   # années
+                cout = pas / (0.5 * (vit[i, j] + vit[ii, jj]) * fh(ii, jj, a_dep)) * 1000.0   # années
                 t = min(a_dep, ouverture[ii, jj]) - cout
                 if t <= 0:
                     continue
@@ -393,6 +404,59 @@ class Croissance:
         return A, parent
 
 
+ESPECES = {'homo sapiens': 'sapiens', 'homo neanderthalensis': 'neandertal', 'homo erectus': 'erectus',
+           'homo heidelbergensis': 'erectus', 'homo ergaster': 'erectus', 'homo habilis': 'erectus'}
+
+
+def entrees_timmermann():
+    """Table S1 de Timmermann et al. 2022 (3 245 entrées d'après ROAD). Entrées à une seule
+    espèce : contraintes de calage (présence au lieu entre 0,9 × âge min et âge max)."""
+    import openpyxl
+    wb = openpyxl.load_workbook(os.path.join(INTER, 'timmermann2022_S1.xlsx'), read_only=True)
+    rows = list(wb['raw data'].iter_rows(values_only=True))
+    out = []
+    for r in rows[1:]:
+        d = dict(zip(rows[0], r))
+        try:
+            sp = str(d['species']).strip().lower()
+            e = {'lignee': ESPECES.get(sp), 'lat': float(d['lat']), 'lon': float(d['long']),
+                 'min': float(d['min.age']), 'max': float(d['max.age']), 'nom': f"T22 {d.get('site')}"}
+        except (TypeError, ValueError, KeyError):
+            continue
+        if e['lignee']:
+            e['age'] = e['min']
+            e['role'] = 'site'
+            out.append(e)
+    return out
+
+
+_HABT = {}
+
+
+def habitat_temps(carte):
+    """Habitabilité (0–1) de Timmermann et al. 2022 dans le temps : (âges, tableau t × 180 × 360)."""
+    if carte in _HABT:
+        return _HABT[carte]
+    esp = {'erectus': ('erectus', 'heidelberg', 'ergahabi'), 'neandertal': ('neander',),
+           'denisova': ('heidelberg', 'neander'), 'sapiens': ('sapiens',), 'sapiens1': ('sapiens',)}.get(carte)
+    if not esp:
+        _HABT[carte] = None
+        return None
+    z = np.load(os.path.join(INTER, 'habitats_timmermann2022.npz'))
+    idx = z[esp[0] + '_indices']
+    a = None
+    for e in esp:
+        x = np.where(z[e] == 255, 0, z[e]).astype(np.float32) / 254
+        a = x if a is None else np.maximum(a, x)
+    ages = (2000 - idx) * 1000.0
+    o = np.argsort(ages)
+    a = a[o]
+    # là où le modèle ne dit rien (Amériques, Sahul, jamais favorable) : facteur neutre
+    a[:, a.max(axis=0) <= 0] = 0.5
+    _HABT[carte] = (ages[o], a)
+    return _HABT[carte]
+
+
 def maille(lat, lon):
     i = int(min(H - 1, max(0, math.floor((90 - lat) / 0.5))))
     j = int(min(W - 1, max(0, math.floor((lon + 180) / 0.5))))
@@ -407,7 +471,7 @@ def maille_valide(lat, lon, ouverture, seuil, age):
         for dj in (0, -1, 1):
             i, j = i0 + di, (j0 + dj) % W
             if 0 <= i < H and ouverture[i, j] > 0 and seuil[i, j] > -120:
-                d = abs(di) + abs(dj) - min(0.5, max(0.0, seuil[i, j]) / 2000)
+                d = abs(di) + abs(dj) - min(0.5, max(0.0, seuil[i, j]) / 2000) + (1.5 if seuil[i, j] < 0 else 0.0)
                 if best is None or d < best[0]:
                     best = (d, i, j)
     return None if best is None else (best[1], best[2])
@@ -416,6 +480,7 @@ def maille_valide(lat, lon, ouverture, seuil, age):
 def caler(cro, carte, sites, ouverture, graine, iterations=40):
     origines = []
     contraintes = []
+    impossibles = []
     for s in sites:
         ij = maille_valide(s['lat'], s['lon'], ouverture, cro.seuil, s['age'])
         if ij is None:
@@ -425,13 +490,18 @@ def caler(cro, carte, sites, ouverture, graine, iterations=40):
             origines.append((ij[0], ij[1], s['age']))
             ouverture[ij] = max(ouverture[ij], s['age'])
         elif s['role'] == 'site':
-            contraintes.append((ij, 0.9 * s['age'] * 1.02, s))   # marge de 2 % sur le seuil
+            need = 0.9 * s['age'] * 1.02            # marge de 2 % sur le seuil
+            if need > ouverture[ij]:
+                impossibles.append(s)
+                continue
+            contraintes.append((ij, need, s))
     mult = np.ones((H, W))
     for it in range(iterations):
         A, parent = cro.lancer(carte, origines, ouverture, mult, graine)
         retards = [(c, need, s) for (c, need, s) in contraintes if A[c] < need]
         if not retards:
-            log(f'  {carte} : calé en {it + 1} passe(s), {int((A > 0).sum())} mailles atteintes')
+            log(f'  {carte} : calé en {it + 1} passe(s), {int((A > 0).sum())} mailles atteintes ; '
+                f'{len(impossibles)} entrées hors des portes du domaine')
             return A, origines, contraintes
         for (c, need, s) in retards:
             if A[c] <= 0:
@@ -448,10 +518,10 @@ def caler(cro, carte, sites, ouverture, graine, iterations=40):
             masque.flat[chemin] = True
             masque = ndimage.binary_dilation(masque, iterations=2)
             mult[masque] *= facteur
-        if it % 5 == 4:
+        if it % 5 == 4 and len(retards) < 30:
             log(f'  {carte} : passe {it + 1}, {len(retards)} sites en retard : '
                 + ', '.join(f'{s["nom"]} ({A[c]:.0f} < {need:.0f})' for c, need, s in retards[:4]))
-    log(f'  !! {carte} : non calé : ' + ', '.join(f'{s["nom"]} ({A[c]:.0f} < {need:.0f})' for c, need, s in retards))
+    log(f'  !! {carte} : non calé : {len(retards)} : ' + ', '.join(f'{s["nom"]} ({A[c]:.0f} < {need:.0f})' for c, need, s in retards[:12]))
     return A, origines, contraintes
 
 
@@ -556,10 +626,30 @@ def main():
     _SEUIL = seuil
     cro = Croissance(seuil, t_sl, sl)
     A, D, info = {}, {}, {}
+    T22 = entrees_timmermann()
+    s1 = domaine('sapiens1')
+    for e in T22:   # sapiens hors d'Afrique avant 80 ka dans le domaine de la première sortie
+        if e['lignee'] == 'sapiens' and e['max'] > 80000:
+            i, j = maille(e['lat'], e['lon'])
+            if s1[i, j] > 0:
+                e['lignee'] = 'sapiens1'
+    log(f'Timmermann et al. 2022 : {len(T22)} entrées à une espèce')
     ordre = ['hominines', 'sapiens', 'sapiens1', 'neandertal', 'denisova', 'insulaires', 'erectus']
     for n, carte in enumerate(ordre):
         ouv = domaine(carte)
-        ss = [s for s in sites if s['lignee'] == carte]
+        tt = [e for e in T22 if e['lignee'] == carte]
+        if carte in ('erectus', 'neandertal'):
+            # les entrées hors du domaine l'élargissent (disque de 2 mailles), sauf Sahul et Amériques
+            ouvmax = ouv.max()
+            for e in tt:
+                i, j = maille(e['lat'], e['lon'])
+                if ouv[i, j] <= 0 and not (AMER[i, j] or SAHUL[i, j]):
+                    for di in range(-2, 3):
+                        for dj in range(-2, 3):
+                            ii, jj = i + di, (j + dj) % W
+                            if 0 <= ii < H and di * di + dj * dj <= 5 and seuil[ii, jj] > -120:
+                                ouv[ii, jj] = ouvmax
+        ss = [s for s in sites if s['lignee'] == carte] + tt
         A[carte], origines, contraintes = caler(cro, carte, ss, ouv, graine=11 + n)
         info[carte] = {'origines': len(origines), 'contraintes': len(contraintes)}
     # disparitions
@@ -586,6 +676,22 @@ def main():
                 tau = COEXISTENCE.get(carte, 5000)
                 d = np.where(pres & (ar > 0), np.maximum(d, ar - tau), d)
             d = np.where(pres, np.maximum(d, F), 0)
+            # entrées de Timmermann : la lignée doit être encore là à l'âge maximal de l'entrée ;
+            # sinon un foyer local persiste (disque de 2 mailles) jusqu'à 0,95 × âge max
+            n_rec = 0
+            for e in T22:
+                if e['lignee'] != carte or e['max'] * 0.97 < F:
+                    continue
+                i, j = maille(e['lat'], e['lon'])
+                if d[i, j] >= 0.98 * e['max']:
+                    n_rec += 1
+                    for di in range(-2, 3):
+                        for dj in range(-2, 3):
+                            ii, jj = i + di, (j + dj) % W
+                            if 0 <= ii < H and di * di + dj * dj <= 5 and pres[ii, jj]:
+                                d[ii, jj] = min(d[ii, jj], max(F, 0.95 * e['max']))
+            if n_rec:
+                log(f'  {carte} : {n_rec} entrées gardent un foyer plus tardif')
             # chaque site doit rester habité à 90 % de son âge
             for s in sites:
                 if s['lignee'] == carte and s['role'] in ('site', 'origine'):
