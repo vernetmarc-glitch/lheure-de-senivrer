@@ -41,11 +41,11 @@ Départ (19/11/2026, 7 h 40) : `bake.py --check` sur `main` : 399 passés, 15 en
   Grenoble–Turin, Valais–Ossola, Grisons) raccordées en plan par l'arc actuel (`sim/carte.py`).
 - Ce qui marche : subduction de la Téthys sous l'Adria, collision, croûte épaissie à 60 km,
   relief qui monte et s'use ; page (carte de 800 km, fragments nommés qui bougent, coupe
-  des couches du modèle, compteur, récit) : contrôles de page 9/10 au vert.
+  des couches du modèle, compteur, récit) : contrôles de page 9/9 au vert.
 - Contrôles (`controles.py`, 21) sur le **jeu d'essai à 15 km** déposé dans `donnees/` :
   14/21. Échecs : D1 convergence (309 km au lieu de 420 avant 35 Ma), D2 Téthys fermée trop
   tôt (−60 Ma), D4 r = 0,38, D5 moyenne 1 872 m et sommet 10 413 m, D5b, D7 (mailles vides,
-  incohérence de pas à 15 km), D8 (carte et coupes à ±1,8 km), P5 (4 couches visibles).
+  incohérence de pas à 15 km), D8 (carte et coupes à ±1,8 km).
   15 km est trop grossier pour juger la physique : verdict attendu sur le jeu à 5 km que le
   workflow dépose sur la branche.
 - Manque : raccord en plan plus fin (bandes en éventail sur la carte), rotation de l'Adria et
