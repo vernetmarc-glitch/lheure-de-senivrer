@@ -25,7 +25,7 @@ def main():
 
     import socket
     port = next(p for p in range(8840, 8850) if socket.socket().connect_ex(("127.0.0.1", p)) != 0)
-    srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(Q, directory=ICI))
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(Q, directory=os.path.dirname(os.path.dirname(ICI))))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     vues = []
     with sync_playwright() as p:
@@ -35,7 +35,7 @@ def main():
         pg = nav.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=1)
         pg.route(re.compile(r"https://fonts\.(googleapis|gstatic)\.com/.*"),
                  lambda r: r.fulfill(status=200, body="", content_type="text/css"))
-        pg.goto(f"http://127.0.0.1:{port}/index.html")
+        pg.goto(f"http://127.0.0.1:{port}/labo/soleil/index.html")
         pg.wait_for_function("window.__soleil && window.__soleil.pret === true", timeout=180000)
         m = pg.evaluate("window.__soleil.meta")
         tc, tf = m["t_naissance"], m["instants"][-1]["t"]
