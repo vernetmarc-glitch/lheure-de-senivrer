@@ -1,1 +1,693 @@
-<!DOCTYPE html><html lang="fr"><meta charset="utf-8"><title>Glaciers</title><body>À venir</body></html>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Les glaciers respirent — Alpes du Nord, 120 000 ans</title>
+<meta name="theme-color" content="#0d1420">
+<link rel="icon" href="data:,">
+<style>
+  :root { --encre: #eef3f8; --pale: rgba(238,243,248,.62); --glace: #bfe3ff; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1420; color: var(--encre);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; }
+  #ciel { position: fixed; inset: 0;
+    background: linear-gradient(#1b2b44 0%, #4d6a8c 34%, #a9bccd 58%, #c9d3dc 72%, #c9d3dc 100%); }
+  canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+  #titre { position: fixed; top: calc(env(safe-area-inset-top) + 14px); left: 18px; right: 60px; pointer-events: none;
+    text-shadow: 0 1px 8px rgba(0,0,0,.45); }
+  #titre h1 { margin: 0; font-size: 22px; font-weight: 500; letter-spacing: .01em; }
+  #titre p { margin: 3px 0 0; font-size: 13px; color: var(--pale); font-style: italic; }
+  #info-btn { position: fixed; top: calc(env(safe-area-inset-top) + 14px); right: 14px; width: 34px; height: 34px;
+    border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(13,20,32,.35); color: var(--encre);
+    font: italic 17px Georgia, serif; }
+  #lieux { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .lieu { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; font-size: 12px;
+    color: #fff; text-shadow: 0 0 4px rgba(0,0,0,.9), 0 0 10px rgba(0,0,0,.5); letter-spacing: .03em; }
+  .lieu.massif { font-variant: small-caps; font-size: 13px; letter-spacing: .12em; opacity: .9; }
+  .lieu.ville::after { content: ""; display: block; width: 4px; height: 4px; margin: 2px auto 0; border-radius: 50%; background: #fff; }
+  .lieu.vallee { font-style: italic; }
+  #bas { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(env(safe-area-inset-bottom) + 14px);
+    background: linear-gradient(rgba(13,20,32,0), rgba(13,20,32,.78) 28%, rgba(13,20,32,.92)); }
+  #age { font-size: 30px; font-weight: 500; letter-spacing: .01em; white-space: nowrap; }
+  #age small { font-size: 15px; color: var(--pale); font-weight: 400; }
+  #phrase { font-size: 14.5px; line-height: 1.35; min-height: 40px; margin: 2px 0 6px; color: #e3ebf3; font-style: italic; }
+  #mesure { font-size: 12.5px; color: var(--glace); margin-bottom: 8px; font-family: -apple-system, system-ui, sans-serif; }
+  #frise { position: relative; height: 54px; }
+  #frise canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #curseur { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; touch-action: none; }
+  #commandes { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-family: -apple-system, system-ui, sans-serif; }
+  #lecture { width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(255,255,255,.4); background: rgba(255,255,255,.08);
+    color: #fff; font-size: 16px; }
+  .vit { border: 1px solid rgba(255,255,255,.25); background: transparent; color: var(--pale); border-radius: 14px;
+    padding: 5px 10px; font-size: 12px; }
+  .vit.actif { color: #0d1420; background: var(--glace); border-color: var(--glace); }
+  #echelle { margin-left: auto; font-size: 11px; color: var(--pale); text-align: right; line-height: 1.25; }
+  #panneau { position: fixed; inset: 0; background: rgba(8,12,20,.88); display: none; padding: 60px 22px 30px; overflow: auto;
+    font-size: 15px; line-height: 1.5; }
+  #panneau.ouvert { display: block; }
+  #panneau h2 { font-weight: 500; font-size: 19px; margin: 0 0 10px; }
+  #panneau p { margin: 0 0 12px; color: #dfe7ef; }
+  #panneau .src { font-size: 12.5px; color: var(--pale); font-family: -apple-system, system-ui, sans-serif; }
+  #panneau button { position: absolute; top: 16px; right: 16px; }
+  #attente { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-style: italic; color: var(--pale); }
+</style>
+</head>
+<body>
+<div id="ciel"></div>
+<canvas id="scene"></canvas>
+<div id="lieux"></div>
+<div id="titre"><h1>Les glaciers respirent</h1><p>Alpes du Nord, Grenoble au centre — 120 000 ans de glace</p></div>
+<button id="info-btn" aria-label="À propos">i</button>
+<div id="attente">La glace se rassemble…</div>
+<div id="bas">
+  <div id="age">—</div>
+  <div id="phrase"></div>
+  <div id="mesure"></div>
+  <div id="frise"><canvas id="frise-c"></canvas><input id="curseur" type="range" min="0" max="119000" step="100" value="0" aria-label="Âge"></div>
+  <div id="commandes">
+    <button id="lecture" aria-label="Lecture">❚❚</button>
+    <button class="vit" data-v="400">lent</button>
+    <button class="vit actif" data-v="1500">normal</button>
+    <button class="vit" data-v="5000">vite</button>
+    <div id="echelle">1 s ≈ <span id="ech-ans">1 500</span> ans de climat<br>filets : 1 s = 40 ans d’écoulement</div>
+  </div>
+</div>
+<div id="panneau">
+  <button class="vit" id="fermer">fermer</button>
+  <h2>Ce que vous regardez</h2>
+  <p>Les Alpes du Nord vues d’avion, Grenoble au centre : la Chartreuse au nord, le Vercors au sud-ouest, Belledonne à l’est, et entre eux le sillon du Grésivaudan.</p>
+  <p>La glace n’est pas dessinée à la main. C’est celle d’une simulation publiée du dernier cycle glaciaire des Alpes : un état tous les mille ans, de 119 000 ans à aujourd’hui, sur une maille d’un kilomètre. Entre deux états, la glace avance ou recule continûment.</p>
+  <p>Les filets de lumière suivent les vitesses de surface calculées par le modèle : là où ils filent, la glace coule vite, souvent plusieurs centaines de mètres par an ; là où ils dorment, elle s’écoule de quelques mètres. Une seconde d’écran montre quarante ans de ce mouvement.</p>
+  <p class="src">Glace : J. Seguinot, S. Ivy-Ochs, G. Jouvet, M. Huss, M. Funk, F. Preusser (2018), « Modelling last glacial cycle ice dynamics in the Alps », The Cryosphere 12, 3265–3285 — modèle PISM, 1 km, forçage EPICA, précipitations paléo réduites ; Zenodo doi 10.5281/zenodo.1423176. Relief : Copernicus DEM GLO-30, moyenné à 125 m, exagéré 1,5 fois verticalement. Simplification : la glace est posée sur le relief actuel, sans l’enfoncement de la croûte sous son poids. Les glaciers d’aujourd’hui, plus petits que la maille, n’apparaissent presque pas.</p>
+</div>
+
+<script>
+'use strict';
+(async function () {
+const PARAMS = new URLSearchParams(location.search);
+const CONTROLE = PARAMS.get('controle') === '1';
+const EXAG = 1.5;                 // exagération verticale du relief
+const K_ECOULEMENT = 40;          // années d'écoulement par seconde d'écran
+const L = 20;                     // points par traînée
+const PAS_HIST = 0.05;            // s entre deux points de traînée
+const P_MAX = 2400;
+const DECALAGE = 0.2;             // décalage vertical de l'image (NDC)
+const DENSITE = 1 / 5;            // traînées par km² de glace
+const V_BORNE = 600;              // m/a : au-delà, le pas des filets est borné (le sens reste celui du modèle)
+const api = window.glaciers = { pret: false };
+const couches = api.couches = { terre: true, fils: true };
+
+// ---------- données ----------
+async function charger(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('chargement ' + url + ' : ' + r.status);
+  const buf = new Uint8Array(await r.arrayBuffer());
+  if (buf[0] === 0x1f && buf[1] === 0x8b) {
+    const s = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return new Uint8Array(await new Response(s).arrayBuffer());
+  }
+  return buf;
+}
+const meta = await (await fetch('donnees/meta.json')).json();
+const [gBrut, rBrut] = await Promise.all([charger('donnees/' + meta.glace.fichier), charger('donnees/' + meta.relief.fichier)]);
+api.meta = meta;
+const NX = meta.nx, NY = meta.ny, NT = meta.nt, DX = meta.dx;
+const NC = NX * NY;
+const AGES = meta.ages;                      // décroissants
+const THK = new Uint16Array(gBrut.buffer, 0, NT * NC);
+const UQ = new Int16Array(gBrut.buffer, 2 * NT * NC, NT * NC);
+const VQ = new Int16Array(gBrut.buffer, 4 * NT * NC, NT * NC);
+const EV = meta.echelle_vitesse;
+const RX = meta.relief.nx, RY = meta.relief.ny, RDX = meta.relief.dx;
+const REL = new Float32Array(RX * RY);
+{ const r16 = new Int16Array(rBrut.buffer, 0, RX * RY); for (let i = 0; i < RX * RY; i++) REL[i] = r16[i]; }
+const LARG = NX * DX / 1000, HAUT = NY * DX / 1000;   // km
+
+// relief adouci (≈ 1 km) : socle de la surface de glace
+function flou(src, w, h, r) {
+  const tmp = new Float32Array(w * h), out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) { let s = 0, n = 0; const o = y * w;
+    for (let x = -r; x <= r; x++) if (x >= 0 && x < w) { s += src[o + x]; n++; }
+    for (let x = 0; x < w; x++) { tmp[o + x] = s / n; const a = x - r, b = x + r + 1;
+      if (a >= 0) { s -= src[o + a]; n--; } if (b < w) { s += src[o + b]; n++; } } }
+  for (let x = 0; x < w; x++) { let s = 0, n = 0;
+    for (let y = -r; y <= r; y++) if (y >= 0 && y < h) { s += tmp[y * w + x]; n++; }
+    for (let y = 0; y < h; y++) { out[y * w + x] = s / n; const a = y - r, b = y + r + 1;
+      if (a >= 0) { s -= tmp[a * w + x]; n--; } if (b < h) { s += tmp[b * w + x]; n++; } } }
+  return out;
+}
+const RLOW = flou(flou(REL, RX, RY, 4), RX, RY, 4);
+// socle de la glace à la maille du modèle : moyenne du relief fin sur chaque maille de 1 km
+const RL1 = new Float32Array(NC); { const r = DX / RDX;
+  for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) { let s = 0;
+    for (let b = 0; b < r; b++) for (let a = 0; a < r; a++) s += REL[(j * r + b) * RX + i * r + a];
+    RL1[j * NX + i] = s / (r * r); } }
+function bsp1(t) { const t2 = t * t, t3 = t2 * t;
+  return [(1 - 3 * t + 3 * t2 - t3) / 6, (4 - 6 * t2 + 3 * t3) / 6, (1 + 3 * t + 3 * t2 - 3 * t3) / 6, t3 / 6]; }
+function surfaceGlace(xm, ym, k) {         // même B-spline que le shader, bords prolongés
+  const fx = xm / DX - 0.5, fy = ym / DX - 0.5, i = Math.floor(fx), j = Math.floor(fy);
+  const wx = bsp1(fx - i), wy = bsp1(fy - j), o = k * NC; let s = 0;
+  for (let b = 0; b < 4; b++) { const jj = Math.min(NY - 1, Math.max(0, j - 1 + b));
+    for (let a = 0; a < 4; a++) { const ii = Math.min(NX - 1, Math.max(0, i - 1 + a)), c = jj * NX + ii;
+      s += wx[a] * wy[b] * (RL1[c] + THK[o + c]); } }
+  return s;
+}
+
+// ---------- temps ----------
+function cadre(age) {
+  age = Math.min(AGES[0], Math.max(AGES[NT - 1], age));
+  let k = 0; while (k < NT - 2 && AGES[k + 1] >= age) k++;
+  const f = (AGES[k] - age) / (AGES[k] - AGES[k + 1]);
+  return [k, Math.min(1, Math.max(0, f))];
+}
+
+// ---------- échantillonnage CPU (même convention que le shader : centres de mailles) ----------
+function bil(arr, off, w, h, fx, fy, ech) {
+  fx = Math.min(w - 1.0001, Math.max(0, fx)); fy = Math.min(h - 1.0001, Math.max(0, fy));
+  const i = fx | 0, j = fy | 0, a = fx - i, b = fy - j, o = off + j * w + i;
+  return ((1 - a) * (1 - b) * arr[o] + a * (1 - b) * arr[o + 1] + (1 - a) * b * arr[o + w] + a * b * arr[o + w + 1]) * ech;
+}
+function champs(xm, ym, k, f) {           // xm, ym en mètres depuis le coin sud-ouest
+  const fx = xm / DX - 0.5, fy = ym / DX - 0.5;
+  const oa = k * NC, ob = (k + 1) * NC;
+  const u = (1 - f) * bil(UQ, oa, NX, NY, fx, fy, EV) + f * bil(UQ, ob, NX, NY, fx, fy, EV);
+  const v = (1 - f) * bil(VQ, oa, NX, NY, fx, fy, EV) + f * bil(VQ, ob, NX, NY, fx, fy, EV);
+  const t = (1 - f) * bil(THK, oa, NX, NY, fx, fy, 1) + f * bil(THK, ob, NX, NY, fx, fy, 1);
+  return [u, v, t];
+}
+function masqueEn(xm, ym, k, f) {
+  const fx = Math.min(NX - 1.0001, Math.max(0, xm / DX - 0.5)), fy = Math.min(NY - 1.0001, Math.max(0, ym / DX - 0.5));
+  const i = fx | 0, j = fy | 0, a = fx - i, b = fy - j;
+  const m = (o) => (THK[o] >= 1 ? 1 : 0);
+  const g = (base) => { const o = base + j * NX + i;
+    return (1 - a) * (1 - b) * m(o) + a * (1 - b) * m(o + 1) + (1 - a) * b * m(o + NX) + a * b * m(o + NX + 1); };
+  return (1 - f) * g(k * NC) + f * g((k + 1) * NC);
+}
+function hauteur(xm, ym, k, f) {          // altitude de surface (m)
+  const fx = xm / RDX - 0.5, fy = ym / RDX - 0.5;
+  const r = bil(REL, 0, RX, RY, fx, fy, 1);
+  const m = masqueEn(xm, ym, k, f);
+  const w = Math.min(1, Math.max(0, (m - 0.35) / 0.15)); const ws = w * w * (3 - 2 * w);
+  if (ws <= 0) return r;
+  const sg = (1 - f) * surfaceGlace(xm, ym, k) + f * surfaceGlace(xm, ym, k + 1);
+  return r + (Math.max(r, sg) - r) * ws;
+}
+
+// ---------- WebGL ----------
+const canvas = document.getElementById('scene');
+const gl = canvas.getContext('webgl2', { antialias: true, alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: CONTROLE });
+if (!gl) { document.getElementById('attente').textContent = 'WebGL2 est nécessaire pour voir la glace couler.'; return; }
+gl.getExtension('EXT_color_buffer_float');
+
+function shader(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+function programme(vs, fs) { const p = gl.createProgram();
+  gl.attachShader(p, shader(gl.VERTEX_SHADER, vs)); gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) { const a = gl.getActiveUniform(p, i); u[a.name] = gl.getUniformLocation(p, a.name); }
+  return { p, u }; }
+
+const COMMUN = `
+uniform sampler2D uRel;     // R relief fin (m), G relief adouci (m)
+uniform sampler2D uGa;      // glace état a : épaisseur, masque, u, v
+uniform sampler2D uGb;      // glace état b
+uniform float uF;
+uniform vec2 uTaille;       // km
+uniform float uExag;
+uniform vec2 uNG;           // mailles de la glace
+vec4 glace(vec2 uv) { return mix(texture(uGa, uv), texture(uGb, uv), uF); }
+float poids(float m) { return smoothstep(0.35, 0.5, m); }
+// surface de glace (canal R = socle adouci + épaisseur, par maille) : B-spline cubique en 4 lectures bilinéaires
+float bspline(sampler2D t, vec2 uv) {
+  vec2 p = uv * uNG - 0.5, i = floor(p), f = p - i, f2 = f * f, f3 = f2 * f;
+  vec2 w0 = (1.0 - 3.0 * f + 3.0 * f2 - f3) / 6.0, w1 = (4.0 - 6.0 * f2 + 3.0 * f3) / 6.0;
+  vec2 w2 = (1.0 + 3.0 * f + 3.0 * f2 - 3.0 * f3) / 6.0, w3 = f3 / 6.0;
+  vec2 g0 = w0 + w1, g1 = w2 + w3;
+  vec2 c0 = (i - 1.0 + w1 / g0 + 0.5) / uNG, c1 = (i + 1.0 + w3 / g1 + 0.5) / uNG;
+  return g0.y * (g0.x * texture(t, c0).r + g1.x * texture(t, vec2(c1.x, c0.y)).r)
+       + g1.y * (g0.x * texture(t, vec2(c0.x, c1.y)).r + g1.x * texture(t, c1).r);
+}
+float surface(vec2 uv, out float masque, out vec4 g) {
+  float r = texture(uRel, uv).r; g = glace(uv); masque = g.g;
+  float w = poids(g.g);
+  if (w <= 0.0) return r;
+  float s = mix(bspline(uGa, uv), bspline(uGb, uv), uF);
+  return mix(r, max(r, s), w);
+}`;
+
+const VS_TERRE = `#version 300 es
+precision highp float;
+layout(location=0) in vec2 aUV;
+uniform mat4 uVP; uniform int uPlan;
+${COMMUN}
+out vec2 vUV; out vec3 vPos;
+void main() {
+  vUV = aUV;
+  float m; vec4 g; float h = surface(aUV, m, g);
+  vec3 p = vec3(aUV.x * uTaille.x, h * 0.001 * uExag, -aUV.y * uTaille.y);
+  vPos = p;
+  gl_Position = uPlan == 1 ? vec4(aUV * 2.0 - 1.0, 0.0, 1.0) : uVP * vec4(p, 1.0);
+}`;
+
+const FS_TERRE = `#version 300 es
+precision highp float;
+${COMMUN}
+uniform sampler2D uNorm;
+uniform int uControle; uniform vec3 uCam; uniform vec3 uSoleil; uniform vec3 uBrume; uniform vec2 uTexel;
+in vec2 vUV; in vec3 vPos; out vec4 o;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float bruit(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
+float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 3; i++) { s += a * bruit(p); p *= 2.03; a *= 0.5; } return s / 0.875; }
+void main() {
+  float m; vec4 g; float h = surface(vUV, m, g);
+  if (uControle == 1) { o = m >= 0.5 ? vec4(1.0, 0.0, 1.0, 1.0) : vec4(0.0, 0.0, 0.0, 1.0); return; }
+  vec2 nr = texture(uNorm, vUV).rg * 2.0 - 1.0;             // normale du relief, précalculée
+  vec3 N = vec3(nr.x, sqrt(max(0.0, 1.0 - dot(nr, nr))), nr.y);
+  if (m > 0.3) {                                              // surface de glace : normale calculée
+    float m2; vec4 g2;
+    float hE = surface(vUV + vec2(uTexel.x, 0.0), m2, g2), hW = surface(vUV - vec2(uTexel.x, 0.0), m2, g2);
+    float hN = surface(vUV + vec2(0.0, uTexel.y), m2, g2), hS = surface(vUV - vec2(0.0, uTexel.y), m2, g2);
+    vec2 d = 2.0 * uTexel * uTaille * 1000.0;
+    N = normalize(vec3(-(hE - hW) / d.x * uExag, 1.0, (hN - hS) / d.y * uExag));
+  }
+  float pente = 1.0 - N.y;
+  vec2 xy = vUV * uTaille;                // km
+  float r = texture(uRel, vUV).r;
+  // roche, landes, forêts basses
+  float n = fbm(xy * 1.7);
+  vec3 bas = mix(vec3(0.22, 0.27, 0.15), vec3(0.34, 0.35, 0.22), n);
+  vec3 mi = mix(vec3(0.30, 0.31, 0.24), vec3(0.42, 0.40, 0.34), n);
+  vec3 haut = vec3(0.56, 0.54, 0.51);
+  vec3 c = mix(bas, mi, smoothstep(700.0, 1600.0, r + 300.0 * n));
+  c = mix(c, haut, smoothstep(1900.0, 2600.0, r + 250.0 * n));
+  c = mix(c, vec3(0.42, 0.41, 0.39), smoothstep(0.35, 0.65, pente));
+  float neige = smoothstep(2650.0, 2950.0, r + 380.0 * (n - 0.5)) * (1.0 - smoothstep(0.42, 0.62, pente));
+  c = mix(c, vec3(0.93, 0.95, 0.98), neige);
+  // glace
+  float a = smoothstep(0.5 - fwidth(m) * 0.75, 0.5 + fwidth(m) * 0.75, m);
+  if (a > 0.0) {
+    vec2 vit = g.ba; float s = length(vit);
+    vec2 dir = s > 0.5 ? vit / s : vec2(1.0, 0.0);
+    vec2 q = vec2(dot(xy, dir), dot(xy, vec2(-dir.y, dir.x)));
+    float stries = fbm(vec2(q.x * 0.25, q.y * 3.2));           // foliation étirée dans le sens du courant
+    float crev = s > 80.0 ? smoothstep(0.62, 0.8, bruit(vec2(q.x * 6.0, q.y * 0.9))) * smoothstep(80.0, 400.0, s) : 0.0;
+    vec3 glaceC = mix(vec3(0.60, 0.70, 0.80), vec3(0.84, 0.90, 0.95), stries);
+    glaceC = mix(glaceC, vec3(0.55, 0.70, 0.84), 0.35 * crev);
+    glaceC = mix(glaceC, vec3(0.66, 0.74, 0.80), 0.3 * (1.0 - smoothstep(0.5, 0.95, m)));   // marges minces
+    c = mix(c, glaceC, a);
+  }
+  // lumière
+  float dif = max(dot(N, uSoleil), 0.0);
+  float creux = clamp(1.0 + (r - texture(uRel, vUV).g) / 700.0, 0.55, 1.15);   // fonds de vallée plus sombres
+  creux = mix(creux, 1.0, a * 0.7);
+  vec3 ciel = vec3(0.55, 0.66, 0.80);
+  vec3 amb = mix(vec3(0.20, 0.19, 0.17), ciel, 0.5 + 0.5 * N.y) * 0.42;
+  vec3 col = c * (amb * creux + vec3(1.0, 0.93, 0.80) * dif * 1.25 * creux);
+  vec3 V = normalize(uCam - vPos);
+  float spec = pow(max(dot(N, normalize(uSoleil + V)), 0.0), 40.0) * 0.25 * max(a, neige);
+  col += spec * vec3(1.0, 0.97, 0.9);
+  float dist = length(uCam - vPos);
+  float brume = 1.0 - exp(-dist * 0.0085);
+  col = mix(col, uBrume, clamp(brume, 0.0, 0.85));
+  o = vec4(pow(col, vec3(0.92)), 1.0);
+}`;
+
+const VS_FIL = `#version 300 es
+precision highp float;
+layout(location=0) in vec3 aSeg;           // s (n° de segment), côté (±1), extrémité (0 récent, 1 ancien)
+uniform sampler2D uPos;                     // L × P : x, y(haut.), z, alpha
+uniform int uTete; uniform float uFrac; uniform mat4 uVP; uniform vec2 uEcran; uniform float uLargeur; uniform vec3 uCam;
+out float vA;
+void main() {
+  int p = gl_InstanceID; int s = int(aSeg.x);
+  int k0 = (uTete - s + ${L} * 4) % ${L}; int k1 = (uTete - s - 1 + ${L} * 4) % ${L};
+  vec4 a = texelFetch(uPos, ivec2(k0, p), 0), b = texelFetch(uPos, ivec2(k1, p), 0);
+  a.xyz += normalize(uCam - a.xyz) * 0.12; b.xyz += normalize(uCam - b.xyz) * 0.12;   // 120 m vers l'œil
+  vec4 ca = uVP * vec4(a.xyz, 1.0), cb = uVP * vec4(b.xyz, 1.0);
+  vec2 na = ca.xy / ca.w, nb = cb.xy / cb.w;
+  vec2 dd = (na - nb) * uEcran; float l = length(dd);
+  vec2 nrm = l > 1e-5 ? vec2(-dd.y, dd.x) / l : vec2(0.0);
+  vec4 c = aSeg.z > 0.5 ? cb : ca;
+  float t = (float(s) + aSeg.z - (s == 0 ? 0.0 : uFrac)) / float(${L - 1});
+  float larg = uLargeur * mix(1.0, 0.45, t);
+  c.xy += nrm * aSeg.y * larg / uEcran * c.w;
+  gl_Position = c;
+  vA = a.w * (1.0 - clamp(t, 0.0, 1.0)) * (l > 1e-5 ? 1.0 : 0.0);
+}`;
+const FS_FIL = `#version 300 es
+precision highp float;
+in float vA; out vec4 o;
+void main() { float a = vA * 0.7; o = vec4(vec3(1.0, 0.98, 0.92) * a, a * 0.45); }`;
+
+const pT = programme(VS_TERRE, FS_TERRE);
+const pF = programme(VS_FIL, FS_FIL);
+
+function tex(w, h, interne, format, type, data, filtre) {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, interne, w, h, 0, format, type, data);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filtre); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filtre);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t; }
+const relRG = new Float32Array(RX * RY * 2);
+for (let i = 0; i < RX * RY; i++) { relRG[2 * i] = REL[i]; relRG[2 * i + 1] = RLOW[i]; }
+const texRel = tex(RX, RY, gl.RG16F, gl.RG, gl.FLOAT, relRG, gl.LINEAR);
+const normRG = new Uint8Array(RX * RY * 2);
+for (let j = 0; j < RY; j++) for (let i = 0; i < RX; i++) {
+  const e = REL[j * RX + Math.min(RX - 1, i + 1)], w = REL[j * RX + Math.max(0, i - 1)];
+  const nn = REL[Math.min(RY - 1, j + 1) * RX + i], ss = REL[Math.max(0, j - 1) * RX + i];
+  const gx = (e - w) / (2 * RDX) * EXAG, gy = (nn - ss) / (2 * RDX) * EXAG, l = Math.hypot(gx, 1, gy);
+  normRG[2 * (j * RX + i)] = Math.round((-gx / l * 0.5 + 0.5) * 255); normRG[2 * (j * RX + i) + 1] = Math.round((gy / l * 0.5 + 0.5) * 255);
+}
+const texNorm = tex(RX, RY, gl.RG8, gl.RG, gl.UNSIGNED_BYTE, normRG, gl.LINEAR);
+const texGa = tex(NX, NY, gl.RGBA16F, gl.RGBA, gl.FLOAT, null, gl.LINEAR);
+const texGb = tex(NX, NY, gl.RGBA16F, gl.RGBA, gl.FLOAT, null, gl.LINEAR);
+const tampon = new Float32Array(NC * 4);
+function etat(k) {
+  const o = k * NC;
+  for (let i = 0; i < NC; i++) { const t = THK[o + i];
+    tampon[4 * i] = RL1[i] + t; tampon[4 * i + 1] = t >= 1 ? 1 : 0; tampon[4 * i + 2] = UQ[o + i] * EV; tampon[4 * i + 3] = VQ[o + i] * EV; }
+  return tampon;
+}
+let chargeA = -1, chargeB = -1;
+function chargerEtats(k) {
+  if (chargeA === k && chargeB === k + 1) return;
+  gl.bindTexture(gl.TEXTURE_2D, texGa); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, NX, NY, gl.RGBA, gl.FLOAT, etat(k));
+  gl.bindTexture(gl.TEXTURE_2D, texGb); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, NX, NY, gl.RGBA, gl.FLOAT, etat(k + 1));
+  chargeA = k; chargeB = k + 1;
+}
+
+// maillage
+const M = 289;                     // 288 intervalles : divisible par 2, 3, 4 (niveaux de détail)
+const uvs = new Float32Array(M * M * 2);
+for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) { uvs[2 * (j * M + i)] = i / (M - 1); uvs[2 * (j * M + i) + 1] = j / (M - 1); }
+function indices(pas) {
+  const n = (M - 1) / pas, out = new Uint32Array(n * n * 6); let q = 0;
+  for (let j = 0; j < M - 1; j += pas) for (let i = 0; i < M - 1; i += pas) { const a = j * M + i, dx = pas, dy = pas * M;
+    out[q++] = a; out[q++] = a + dx; out[q++] = a + dy; out[q++] = a + dx; out[q++] = a + dx + dy; out[q++] = a + dy; }
+  return out;
+}
+const NIVEAUX = [1, 2, 3, 4].map(pas => indices(pas));
+const decalNiv = []; { let o = 0; for (const n of NIVEAUX) { decalNiv.push(o); o += n.length; } }
+const idx = new Uint32Array(NIVEAUX.reduce((s, n) => s + n.length, 0));
+NIVEAUX.forEach((n, i) => idx.set(n, decalNiv[i]));
+let niveau = 0;
+const vaoT = gl.createVertexArray(); gl.bindVertexArray(vaoT);
+let b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+b = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+gl.bindVertexArray(null);
+
+// traînées
+const segs = [];
+for (let s = 0; s < L - 1; s++) for (const [c, e] of [[-1, 0], [1, 0], [-1, 1], [1, 0], [1, 1], [-1, 1]]) segs.push(s, c, e);
+const vaoF = gl.createVertexArray(); gl.bindVertexArray(vaoF);
+b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(segs), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+gl.bindVertexArray(null);
+const POS = new Float32Array(P_MAX * L * 4);
+const texPos = tex(L, P_MAX, gl.RGBA32F, gl.RGBA, gl.FLOAT, POS, gl.NEAREST);
+const px = new Float32Array(P_MAX), py = new Float32Array(P_MAX), vie = new Float32Array(P_MAX), duree = new Float32Array(P_MAX);
+const alpha = new Float32Array(P_MAX), vivant = new Uint8Array(P_MAX);
+let tete = 0, depuisPas = 0, actifs = 0;
+
+// ---------- état de la scène ----------
+let age = AGES[0], lecture = !CONTROLE, vitesse = 1500;
+const cam = { az: 22 * Math.PI / 180, el: 27 * Math.PI / 180, dist: 95, cible: [77, 0, -78] };
+
+function cellulesGlace(k) {
+  const o = k * NC, l = [];
+  for (let i = 0; i < NC; i++) if (THK[o + i] >= 1) l.push(i);
+  return l;
+}
+let cacheCell = { k: -1, l: [] };
+function naitre(p, k, f) {
+  const kk = f < 0.5 ? k : k + 1;
+  if (cacheCell.k !== kk) cacheCell = { k: kk, l: cellulesGlace(kk) };
+  const l = cacheCell.l; if (!l.length) { vivant[p] = 0; return; }
+  for (let e = 0; e < 6; e++) {
+    const c = l[(Math.random() * l.length) | 0];
+    const x = ((c % NX) + Math.random()) * DX, y = (((c / NX) | 0) + Math.random()) * DX;
+    if (masqueEn(x, y, k, f) >= 0.5) {
+      px[p] = x; py[p] = y; vie[p] = 0; duree[p] = 1.8 + Math.random() * 2.2; vivant[p] = 1;
+      const h = hauteur(x, y, k, f);
+      for (let i = 0; i < L; i++) { const o = (p * L + i) * 4; POS[o] = x / 1000; POS[o + 1] = (h + 25) * 0.001 * EXAG; POS[o + 2] = -y / 1000; POS[o + 3] = 0; }
+      return;
+    }
+  }
+  vivant[p] = 0;
+}
+function borne(c) { const s = Math.hypot(c[0], c[1]); if (s > V_BORNE) { c[0] *= V_BORNE / s; c[1] *= V_BORNE / s; } return c; }
+function aireEn(age) { const [k, f] = cadre(age); return (1 - f) * meta.aires_km2[k] + f * meta.aires_km2[k + 1]; }
+function avancer(dt) {
+  const [k, f] = cadre(age);
+  actifs = Math.min(P_MAX, Math.round(aireEn(age) * DENSITE));
+  const pasHist = (depuisPas += dt) >= PAS_HIST;
+  if (pasHist) { depuisPas = 0; tete = (tete + 1) % L; }
+  const ya = K_ECOULEMENT * dt;
+  for (let p = 0; p < P_MAX; p++) {
+    if (p >= actifs) { if (vivant[p]) { vie[p] = Math.max(vie[p], duree[p] - 0.3); } else continue; }
+    if (!vivant[p] || vie[p] >= duree[p]) { if (p < actifs) naitre(p, k, f); else vivant[p] = 0;
+      if (!vivant[p]) { alpha[p] = 0; for (let i = 0; i < L; i++) POS[(p * L + i) * 4 + 3] = 0; continue; } }
+    // Runge-Kutta 2
+    const c1 = borne(champs(px[p], py[p], k, f));
+    const c2 = borne(champs(px[p] + 0.5 * c1[0] * ya, py[p] + 0.5 * c1[1] * ya, k, f));
+    px[p] += c2[0] * ya; py[p] += c2[1] * ya; vie[p] += dt;
+    if (px[p] < 0 || py[p] < 0 || px[p] > NX * DX || py[p] > NY * DX || masqueEn(px[p], py[p], k, f) < 0.5) { vie[p] = duree[p]; vivant[p] = 0; alpha[p] = 0; }
+    alpha[p] = Math.min(1, vie[p] / 0.35, Math.max(0, (duree[p] - vie[p]) / 0.4)) * Math.min(1, c1[2] / 40);
+    const h = hauteur(px[p], py[p], k, f);
+    const o = (p * L + tete) * 4;
+    POS[o] = px[p] / 1000; POS[o + 1] = (h + 25) * 0.001 * EXAG; POS[o + 2] = -py[p] / 1000; POS[o + 3] = vivant[p] ? alpha[p] : 0;
+    if (!vivant[p]) for (let i = 0; i < L; i++) POS[(p * L + i) * 4 + 3] = 0;
+  }
+}
+
+// ---------- matrices ----------
+function perspective(fy, asp, n, f) { const t = 1 / Math.tan(fy / 2);
+  return [t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) / (n - f), -1, 0, 0, 2 * f * n / (n - f), 0]; }
+function regard(e, c, u) {
+  let z = [e[0] - c[0], e[1] - c[1], e[2] - c[2]]; let l = Math.hypot(...z); z = z.map(v => v / l);
+  let x = [u[1] * z[2] - u[2] * z[1], u[2] * z[0] - u[0] * z[2], u[0] * z[1] - u[1] * z[0]]; l = Math.hypot(...x); x = x.map(v => v / l);
+  const y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]];
+  return [x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0,
+    -(x[0] * e[0] + x[1] * e[1] + x[2] * e[2]), -(y[0] * e[0] + y[1] * e[1] + y[2] * e[2]), -(z[0] * e[0] + z[1] * e[1] + z[2] * e[2]), 1]; }
+function mul(a, b) { const r = new Array(16).fill(0);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) for (let k = 0; k < 4; k++) r[j * 4 + i] += a[k * 4 + i] * b[j * 4 + k]; return r; }
+function camPos() { const c = cam.cible;
+  return [c[0] - Math.sin(cam.az) * Math.cos(cam.el) * cam.dist, c[1] + Math.sin(cam.el) * cam.dist, c[2] + Math.cos(cam.az) * Math.cos(cam.el) * cam.dist]; }
+
+const soleil = (() => { const az = 235 * Math.PI / 180, el = 24 * Math.PI / 180;   // depuis le sud-ouest
+  return [Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)]; })();
+const BRUME = [0.70, 0.76, 0.82];
+
+function uniformsTerre(VP, plan, controle, eye) {
+  gl.useProgram(pT.p); const u = pT.u;
+  gl.uniformMatrix4fv(u.uVP, false, VP); gl.uniform1i(u.uPlan, plan); gl.uniform1i(u.uControle, controle);
+  gl.uniform1f(u.uF, cadre(age)[1]); gl.uniform2f(u.uTaille, LARG, HAUT); gl.uniform1f(u.uExag, EXAG);
+  gl.uniform3fv(u.uCam, eye); gl.uniform3fv(u.uSoleil, soleil); gl.uniform3fv(u.uBrume, BRUME);
+  gl.uniform2f(u.uTexel, 2 / RX, 2 / RY); gl.uniform2f(u.uNG, NX, NY);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texRel); gl.uniform1i(u.uRel, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texGa); gl.uniform1i(u.uGa, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texGb); gl.uniform1i(u.uGb, 2);
+  gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, texNorm); gl.uniform1i(u.uNorm, 4);
+}
+
+let VPcourant = null, eyeCourant = null;
+function dessiner() {
+  const dpr = echelle;
+  const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  const [k, f] = cadre(age); chargerEtats(k);
+  const eye = camPos();
+  const T = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, DECALAGE, 0, 1];     // la scène remonte au-dessus du panneau
+  const VP = mul(T, mul(perspective(56 * Math.PI / 180, w / h, 3, 450), regard(eye, cam.cible, [0, 1, 0])));
+  VPcourant = VP; eyeCourant = eye;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, w, h);
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
+  gl.disable(gl.BLEND);
+  uniformsTerre(VP, 0, 0, eye);
+  if (couches.terre) { gl.bindVertexArray(vaoT); gl.drawElements(gl.TRIANGLES, NIVEAUX[niveau].length, gl.UNSIGNED_INT, decalNiv[niveau] * 4); }
+  // traînées
+  gl.disable(gl.CULL_FACE); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+  gl.useProgram(pF.p);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, texPos);
+  const n = Math.max(actifs, 1);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, L, Math.min(P_MAX, n + 64), gl.RGBA, gl.FLOAT, POS);
+  gl.uniform1i(pF.u.uPos, 3); gl.uniform1i(pF.u.uTete, tete); gl.uniform1f(pF.u.uFrac, depuisPas / PAS_HIST);
+  gl.uniformMatrix4fv(pF.u.uVP, false, VP); gl.uniform2f(pF.u.uEcran, w / 2, h / 2); gl.uniform1f(pF.u.uLargeur, 0.65 * dpr); gl.uniform3fv(pF.u.uCam, eye);
+  gl.bindVertexArray(vaoF); if (couches.fils) gl.drawArraysInstanced(gl.TRIANGLES, 0, (L - 1) * 6, Math.min(P_MAX, n + 64));
+  gl.depthMask(true); gl.disable(gl.BLEND); gl.bindVertexArray(null);
+}
+
+// ---------- interface ----------
+const elAge = document.getElementById('age'), elPhrase = document.getElementById('phrase'), elMesure = document.getElementById('mesure');
+const curseur = document.getElementById('curseur'), btnLecture = document.getElementById('lecture');
+curseur.max = AGES[0];
+function nombre(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+const PHRASES = [
+  [119000, 'L’Éémien s’achève. Il fait presque aussi doux qu’aujourd’hui ; la glace dort sur les sommets.'],
+  [112000, 'Le froid revient par à-coups. Les glaciers descendent, hésitent, remontent.'],
+  [72000, 'Une première grande avancée : la glace sort des montagnes.'],
+  [58000, 'Un long entre-deux. Pendant trente mille ans, la glace va et vient dans les vallées.'],
+  [30000, 'Le grand froid. Le Grésivaudan devient un fleuve de glace ; seules les crêtes émergent.'],
+  [19000, 'La débâcle. En quelques milliers d’années, la glace se retire vers les sommets.'],
+  [11700, 'L’Holocène. Il ne reste que des glaciers blottis dans les cirques, plus petits que la maille du modèle.'],
+];
+function phrase(a) { let t = PHRASES[0][1]; for (const [d, p] of PHRASES) if (a <= d) t = p; return t; }
+const lieuxEl = meta.lieux.filter(l => ['Grenoble', 'Chambéry', 'Grésivaudan', 'Chartreuse', 'Vercors', 'Belledonne', 'Bauges', 'Oisans'].includes(l.nom))
+  .map(l => { const d = document.createElement('div'); d.className = 'lieu ' + (l.genre === 'vallée' ? 'vallee' : l.genre); d.textContent = l.nom;
+    document.getElementById('lieux').appendChild(d); return { l, d }; });
+const grenoble = meta.lieux.find(l => l.nom === 'Grenoble');
+function majInterface() {
+  elAge.innerHTML = age < 50 ? 'aujourd’hui' : `<span>${nombre(age)} ans</span> <small>avant aujourd’hui</small>`;
+  elPhrase.textContent = phrase(age);
+  const [k, f] = cadre(age);
+  const m = masqueEn(grenoble.x, grenoble.y, k, f), t = champs(grenoble.x, grenoble.y, k, f)[2];
+  elMesure.textContent = m >= 0.5 ? `Au-dessus de Grenoble : ${nombre(Math.round(t / 10) * 10)} m de glace`
+    : `Grenoble à l’air libre · glace dans la fenêtre : ${nombre(Math.round(aireEn(age) / 10) * 10)} km²`;
+  curseur.value = AGES[0] - age;
+  btnLecture.textContent = lecture ? '❚❚' : '▶';
+  dessinerFrise();
+}
+function placerLieux() {
+  const w = canvas.clientWidth, h = canvas.clientHeight, [k, f] = cadre(age);
+  for (const { l, d } of lieuxEl) {
+    const hh = hauteur(l.x, l.y, k, f) + (l.genre === 'massif' ? 900 : 250);
+    const p = [l.x / 1000, hh * 0.001 * EXAG, -l.y / 1000, 1];
+    const V = VPcourant; const c = [0, 0, 0, 0];
+    for (let i = 0; i < 4; i++) c[i] = V[i] * p[0] + V[4 + i] * p[1] + V[8 + i] * p[2] + V[12 + i] * p[3];
+    if (c[3] <= 0) { d.style.visibility = 'hidden'; continue; }
+    const x = (c[0] / c[3] * 0.5 + 0.5) * w, y = (0.5 - c[1] / c[3] * 0.5) * h;
+    d.style.visibility = (x > 10 && x < w - 10 && y > 70 && y < h - 40) ? 'visible' : 'hidden';
+    d.style.left = x.toFixed(1) + 'px'; d.style.top = y.toFixed(1) + 'px';
+  }
+}
+// frise : aire englacée de la fenêtre
+const friseC = document.getElementById('frise-c');
+function dessinerFrise() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), w = friseC.clientWidth * dpr, h = friseC.clientHeight * dpr;
+  if (friseC.width !== w || friseC.height !== h) { friseC.width = w; friseC.height = h; }
+  const c = friseC.getContext('2d'); c.clearRect(0, 0, w, h);
+  const amax = 14000;                    // km², constante d'échelle de la frise
+  const X = a => (1 - a / AGES[0]) * w, Y = s => h - 4 * dpr - (s / amax) * (h - 10 * dpr);
+  c.beginPath(); c.moveTo(X(AGES[0]), h);
+  for (let i = 0; i < NT; i++) c.lineTo(X(AGES[i]), Y(meta.aires_km2[i]));
+  c.lineTo(X(0), h); c.closePath();
+  const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, 'rgba(191,227,255,.55)'); gr.addColorStop(1, 'rgba(191,227,255,.08)');
+  c.fillStyle = gr; c.fill();
+  c.beginPath(); for (let i = 0; i < NT; i++) c[i ? 'lineTo' : 'moveTo'](X(AGES[i]), Y(meta.aires_km2[i]));
+  c.strokeStyle = 'rgba(220,240,255,.9)'; c.lineWidth = 1.2 * dpr; c.stroke();
+  c.fillStyle = 'rgba(238,243,248,.55)'; c.font = `${10 * dpr}px system-ui, sans-serif`;
+  for (const a of [100000, 75000, 50000, 25000]) { c.fillRect(X(a), h - 3 * dpr, 1, 3 * dpr); c.fillText(nombre(a / 1000) + ' ka', X(a) + 2 * dpr, h - 4 * dpr); }
+  const x = X(age); c.fillStyle = '#fff'; c.fillRect(x - dpr, 0, 2 * dpr, h);
+  c.beginPath(); c.arc(x, Y(aireEn(age)), 4 * dpr, 0, 7); c.fill();
+}
+curseur.addEventListener('input', () => { age = AGES[0] - +curseur.value; lecture = false; majInterface(); });
+btnLecture.addEventListener('click', () => { if (!lecture && age <= 0) age = AGES[0]; lecture = !lecture; majInterface(); });
+for (const bt of document.querySelectorAll('.vit[data-v]')) bt.addEventListener('click', () => {
+  vitesse = +bt.dataset.v; document.querySelectorAll('.vit[data-v]').forEach(x => x.classList.toggle('actif', x === bt));
+  document.getElementById('ech-ans').textContent = nombre(vitesse); });
+document.getElementById('info-btn').addEventListener('click', () => document.getElementById('panneau').classList.add('ouvert'));
+document.getElementById('fermer').addEventListener('click', () => document.getElementById('panneau').classList.remove('ouvert'));
+// glisser au doigt : tourner et incliner légèrement ; pincer : approcher
+const doigts = new Map(); let pince = 0;
+canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); doigts.set(e.pointerId, [e.clientX, e.clientY]); });
+canvas.addEventListener('pointermove', e => {
+  if (!doigts.has(e.pointerId)) return; const [x0, y0] = doigts.get(e.pointerId); doigts.set(e.pointerId, [e.clientX, e.clientY]);
+  if (doigts.size === 1) {
+    cam.az = Math.max(-1.2, Math.min(1.6, cam.az - (e.clientX - x0) * 0.004));
+    cam.el = Math.max(0.2, Math.min(1.1, cam.el + (e.clientY - y0) * 0.003));
+  } else if (doigts.size === 2) {
+    const p = [...doigts.values()], d = Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]);
+    if (pince) cam.dist = Math.max(35, Math.min(190, cam.dist * pince / d)); pince = d;
+  }
+});
+const lacher = e => { doigts.delete(e.pointerId); pince = 0; };
+canvas.addEventListener('pointerup', lacher); canvas.addEventListener('pointercancel', lacher);
+canvas.addEventListener('wheel', e => { e.preventDefault(); cam.dist = Math.max(35, Math.min(190, cam.dist * Math.exp(e.deltaY * 0.001))); }, { passive: false });
+
+// ---------- boucle ----------
+let tPrec = performance.now(), mesure = null;
+// résolution adaptative : le téléphone garde sa fluidité, la netteté suit ce qu'il peut
+const DPR_MAX = Math.min(window.devicePixelRatio || 1, 2);
+let echelle = DPR_MAX, moyenne = 16, attente = 0;
+function adapter(iv) {
+  moyenne = 0.9 * moyenne + 0.1 * Math.min(iv, 250);
+  if (++attente < 8) return;
+  if (moyenne > 30) {                       // trop lent : netteté, puis maillage, puis netteté encore
+    if (echelle > 1) echelle = Math.max(1, echelle * 0.8);
+    else if (niveau < NIVEAUX.length - 1) niveau++;
+    else if (echelle > 0.4) echelle = Math.max(0.4, echelle * 0.8);
+    attente = 0;
+  } else if (moyenne < 18) {                // de la marge : on rend dans l'ordre inverse
+    if (echelle < 1) echelle = Math.min(1, echelle * 1.15);
+    else if (niveau > 0) niveau--;
+    else if (echelle < DPR_MAX) echelle = Math.min(DPR_MAX, echelle * 1.1);
+    attente = 0;
+  }
+}
+function image(t) {
+  const t0 = performance.now();
+  const dt = Math.min(0.1, (t - tPrec) / 1000);
+  if (mesure) { mesure.intervalles.push(t - tPrec); }
+  if (!CONTROLE) adapter(t - tPrec);
+  tPrec = t;
+  if (lecture) { age -= vitesse * dt; if (age <= 0) { age = 0; lecture = false; } }
+  avancer(dt);
+  dessiner(); placerLieux(); majInterface();
+  if (mesure) mesure.js.push(performance.now() - t0);
+  requestAnimationFrame(image);
+}
+
+// ---------- interface de contrôle (mesure de ce qui est dessiné) ----------
+let fbo = null, fboN = 0;
+api.masquePlan = function (a, N) {
+  const ageAvant = age; age = a; const [k] = cadre(age); chargerEtats(k);
+  if (fboN !== N) {
+    fbo = gl.createFramebuffer(); const rb = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rb); gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, N, N);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb); fboN = N;
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.viewport(0, 0, N, N);
+  gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND);
+  gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  uniformsTerre(VPcourant || new Array(16).fill(0), 1, 1, [0, 0, 0]);
+  gl.bindVertexArray(vaoT); gl.drawElements(gl.TRIANGLES, NIVEAUX[0].length, gl.UNSIGNED_INT, 0); gl.bindVertexArray(null);
+  const px4 = new Uint8Array(N * N * 4); gl.readPixels(0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, px4);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  const out = new Uint8Array(N * N); for (let i = 0; i < N * N; i++) out[i] = px4[4 * i] > 127 ? 1 : 0;
+  age = ageAvant; return out;
+};
+api.airesPlan = function (ages, N) {
+  const aireP = (LARG * HAUT) / (N * N);
+  return ages.map(a => { const m = api.masquePlan(a, N); let s = 0; for (let i = 0; i < m.length; i++) s += m[i]; return s * aireP; });
+};
+api.regler = function (o) { if (o.age !== undefined) age = o.age; if (o.lecture !== undefined) lecture = o.lecture;
+  for (let p = 0; p < P_MAX; p++) { vivant[p] = 0; } majInterface(); };
+api.traineesDessinees = function () {       // segments (ancien → récent), en mètres depuis le coin sud-ouest
+  const out = [], n = Math.min(P_MAX, actifs + 64);
+  for (let p = 0; p < n; p++) for (let s = 0; s < L - 1; s++) {
+    const k0 = (tete - s + 4 * L) % L, k1 = (tete - s - 1 + 4 * L) % L;
+    const a = (p * L + k0) * 4, b = (p * L + k1) * 4;
+    if (POS[a + 3] <= 0.05) continue;
+    const x0 = POS[b] * 1000, y0 = -POS[b + 2] * 1000, x1 = POS[a] * 1000, y1 = -POS[a + 2] * 1000;
+    if (x0 === x1 && y0 === y1) continue;
+    out.push(x0, y0, x1, y1);
+  }
+  return out;
+};
+api.nombreTrainees = function () { let n = 0; for (let p = 0; p < P_MAX; p++) if (vivant[p]) n++; return n; };
+api.qualite = () => ({ echelle, niveau });
+api.mesureImages = function (debut) { if (debut) { mesure = { js: [], intervalles: [] }; return null; } const m = mesure; mesure = null; return m; };
+
+document.getElementById('attente').remove();
+majInterface();
+requestAnimationFrame(t => { tPrec = t; requestAnimationFrame(image); });
+api.pret = true;
+})().catch(e => { console.error(e); const a = document.getElementById('attente'); if (a) a.textContent = 'La glace n’a pas pu se charger.'; });
+</script>
+</body>
+</html>

@@ -272,7 +272,7 @@ def main():
             page.goto(url, wait_until='load')
             page.wait_for_function('window.glaciers && window.glaciers.pret === true', timeout=90000)
             page.evaluate('window.glaciers.regler({age: 40000, lecture: true})')
-            page.wait_for_timeout(1500)
+            page.wait_for_timeout(6000)          # la page adapte sa résolution
             page.evaluate('window.glaciers.mesureImages(true)')
             page.wait_for_timeout(5000)
             st = page.evaluate('window.glaciers.mesureImages(false)')
