@@ -483,3 +483,15 @@ reste le repli si l'œuvre devait un jour être exploitée commercialement.
 HYDE 3.3 est derrière une page anti-robots à Utrecht ; on ne la contourne pas. On garde
 HYDE 3.2.1 (DANS, jusqu'en 2017) ; 2023 = effectif des Nations unies réparti comme en 2017,
 signalé comme hypothèse. À reprendre si HYDE 3.3 devient accessible.
+
+## D-46 — La Pangée se mesure en bloc continental *(23/11/2026, maître)*
+Un supercontinent se définit par sa croûte continentale d'un seul tenant, mers intérieures
+et plateaux peu profonds compris, pas par ses seules terres émergées. Le contrôle C3 de S3
+mesure donc la croûte au-dessus de −200 m, seuil inchangé (80 % en un bloc entre 320 et
+200 Ma) ; la part des terres émergées reste affichée comme indicateur. Ce n'est pas un
+desserrement : l'ancienne mesure ne testait pas ce que l'exigence N8 décrit.
+
+## D-47 — La part de la Pangée est montrée telle qu'elle est *(23/11/2026, maître)*
+De l'orogenèse hercynienne à la dislocation de la Pangée (≈ 380 → 175 Ma), on couvre
+environ 4,5 % de l'histoire de la Terre, et non « environ un dixième ». La frise montre la
+vraie proportion ; N8 est lu ainsi.
