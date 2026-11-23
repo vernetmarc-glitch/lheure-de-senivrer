@@ -1,0 +1,31 @@
+# input file for sphere-in-box setup routines
+# Chantier S1 : cœur de nuage de 1,2 M☉, rayon 0,15 année-lumière (1,419e17 cm), 10 K
+
+# units
+           mass_unit =      solarm    ! mass unit (e.g. solarm,jupiterm,1e6*solarm)
+           dist_unit =   1.0d16 cm    ! distance unit (e.g. au,pc,kpc,0.1pc)
+
+# resolution and particle placement
+                  np =        @NP@    ! requested number of particles in sphere
+             lattice = closepacked    ! particle lattice (random,cubic,closepacked,hcp,hexagonal)
+       shuffle_parts =           F    ! relax particles by shuffling
+
+# options for box
+                lbox =          4.    ! length of a box side in terms of spherical radii
+
+# intended result
+         form_binary =           F    ! the intent is to form a central binary
+
+# options for sphere
+       use_BE_sphere =           T    ! centrally condense as a BE sphere
+         iBE_options =           6    ! The set of parameters to define the BE sphere
+          BErad_phys =      14.190    ! physical radius of the BE sphere [code units]
+              BEmass =         1.2    ! mass radius of the BE sphere [code units]
+    density_contrast =         30.    ! density contrast in code units
+           cs_sphere = 18900.0 cm/s   ! sound speed in sphere (with units e.g. 0.2 km/s)
+              beta_r =      @BETA@    ! rotational-to-gravitational energy ratio
+            rms_mach =          0.    ! turbulent rms mach number
+
+# Sink properties (values in .in file, if present, will take precedence)
+       icreate_sinks =           1    ! 1: create sinks.  0: do not create sinks
+               h_acc =       10 au    ! accretion radius (with units; e.g. au,pc,kpc,0.1pc)

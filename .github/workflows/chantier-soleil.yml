@@ -1,0 +1,174 @@
+name: Chantier soleil — effondrement d'un cœur de nuage (Phantom)
+
+# Chantier S1 (labo/soleil). Compile Phantom, simule l'effondrement d'un cœur de nuage
+# de 1,2 M☉ en rotation (trois rotations β en parallèle), chaîne les tâches de 6 h avec
+# reprise, télécharge la trajectoire pré-séquence principale publiée (BHAC15), puis
+# assemble les données de la page et les dépose sur la branche après chaque étape.
+# Scripts : app/public/labo/soleil/sim/.
+
+on:
+  push:
+    branches: [chantier/soleil]
+    paths:
+      - '.github/workflows/chantier-soleil.yml'
+      - 'app/public/labo/soleil/sim/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: chantier-soleil
+  cancel-in-progress: true
+
+env:
+  PHANTOM_SHA: a9ecce42fde1974a336197a1c41d95835954fcc8
+  NP: '100000'
+  SIM: app/public/labo/soleil/sim
+
+jobs:
+  trajectoire:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Télécharger BHAC15 (Baraffe et al. 2015)
+        run: |
+          mkdir -p traj && cd traj
+          for u in \
+            "http://perso.ens-lyon.fr/isabelle.baraffe/BHAC15dir/BHAC15_tracks+structure" \
+            "https://perso.ens-lyon.fr/isabelle.baraffe/BHAC15dir/BHAC15_tracks+structure" ; do
+            if curl -fsSL --retry 3 -m 120 "$u" -o BHAC15_brut.txt; then echo "source : $u" > source.txt; break; fi
+          done
+          test -s BHAC15_brut.txt
+          head -60 BHAC15_brut.txt
+          grep -E "^ *1\.0000 " BHAC15_brut.txt | head -80
+      - uses: actions/upload-artifact@v4
+        with: { name: trajectoire, path: traj, retention-days: 5 }
+
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compiler Phantom
+        run: |
+          sudo apt-get install -y -q gfortran > /dev/null
+          git clone -q https://github.com/danieljprice/phantom.git ph
+          cd ph && git checkout -q "$PHANTOM_SHA"
+          OPTS="SETUP=sphereinbox GRAVITY=yes ISOTHERMAL=yes IND_TIMESTEPS=yes SYSTEM=gfortran OPENMP=yes"
+          make $OPTS > ../make.log 2>&1 || { tail -50 ../make.log; exit 1; }
+          make setup $OPTS >> ../make.log 2>&1 || { tail -50 ../make.log; exit 1; }
+          mkdir -p ../bin && cp bin/phantom bin/phantomsetup ../bin/
+      - uses: actions/upload-artifact@v4
+        with: { name: phantom, path: bin, retention-days: 5 }
+
+  sim1:
+    needs: compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy: { fail-fast: false, matrix: { beta: ['0.005', '0.01', '0.02'] } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install --quiet numpy sarracen
+      - uses: actions/download-artifact@v4
+        with: { name: phantom, path: bin }
+      - name: Étape 1
+        run: |
+          chmod +x bin/*; mkdir -p etat; echo "${{ matrix.beta }}" > etat/beta
+          ETAT=$PWD/etat BETA=${{ matrix.beta }} PHANTOM=$PWD/bin bash $SIM/etape.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: 'etat-${{ matrix.beta }}-1', path: etat, retention-days: 5 }
+
+  publie1:
+    needs: [sim1, trajectoire]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install --quiet numpy
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'etat-*-1', path: var }
+      - uses: actions/download-artifact@v4
+        with: { name: trajectoire, path: traj }
+      - name: Assembler et déposer
+        run: bash $SIM/publie.sh 1
+
+  sim2:
+    needs: sim1
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy: { fail-fast: false, matrix: { beta: ['0.005', '0.01', '0.02'] } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install --quiet numpy sarracen
+      - uses: actions/download-artifact@v4
+        with: { name: phantom, path: bin }
+      - uses: actions/download-artifact@v4
+        with: { name: 'etat-${{ matrix.beta }}-1', path: etat }
+      - name: Étape 2
+        run: |
+          chmod +x bin/*
+          ETAT=$PWD/etat BETA=${{ matrix.beta }} PHANTOM=$PWD/bin bash $SIM/etape.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: 'etat-${{ matrix.beta }}-2', path: etat, retention-days: 5 }
+
+  publie2:
+    needs: [sim2, trajectoire]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install --quiet numpy
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'etat-*-2', path: var }
+      - uses: actions/download-artifact@v4
+        with: { name: trajectoire, path: traj }
+      - name: Assembler et déposer
+        run: bash $SIM/publie.sh 2
+
+  sim3:
+    needs: sim2
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy: { fail-fast: false, matrix: { beta: ['0.005', '0.01', '0.02'] } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install --quiet numpy sarracen
+      - uses: actions/download-artifact@v4
+        with: { name: phantom, path: bin }
+      - uses: actions/download-artifact@v4
+        with: { name: 'etat-${{ matrix.beta }}-2', path: etat }
+      - name: Étape 3
+        run: |
+          chmod +x bin/*
+          ETAT=$PWD/etat BETA=${{ matrix.beta }} PHANTOM=$PWD/bin bash $SIM/etape.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: 'etat-${{ matrix.beta }}-3', path: etat, retention-days: 5 }
+
+  publie3:
+    needs: [sim3, trajectoire]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install --quiet numpy
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'etat-*-3', path: var }
+      - uses: actions/download-artifact@v4
+        with: { name: trajectoire, path: traj }
+      - name: Assembler et déposer
+        run: bash $SIM/publie.sh 3
