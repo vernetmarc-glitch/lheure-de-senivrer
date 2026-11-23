@@ -12,7 +12,7 @@
   html, body { height: 100%; background: var(--fond); color: var(--encre); overflow: hidden;
     font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
     -webkit-user-select: none; user-select: none; touch-action: none; }
-  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; }
+  #vue { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; }
   #haut { position: fixed; top: 0; left: 0; right: 165px; padding: max(14px, env(safe-area-inset-top)) 18px 0;
     pointer-events: none; text-shadow: 0 1px 6px rgba(0,0,0,.55); }
   #titre { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--pale); }
@@ -43,6 +43,10 @@
     font-size: 9px; color: rgba(255,214,150,.85); text-align: center; font-family: -apple-system, system-ui, sans-serif; }
   #outils { display: flex; gap: 8px; margin-top: 6px; justify-content: flex-end; }
   #outils button { height: 30px; font-size: 13px; padding: 0 10px; }
+  #coupe { position: fixed; left: 8px; right: 8px; width: calc(100% - 16px); height: 230px; display: none;
+    bottom: calc(108px + env(safe-area-inset-bottom)); border-radius: 10px; z-index: 2; }
+  body.en-coupe #coupe { display: block; }
+  body.en-coupe #recit { opacity: 0; }
   .lieu { position: fixed; left: 0; top: 0; font-size: 13px; letter-spacing: .04em; pointer-events: none;
     white-space: nowrap; color: #fff; text-shadow: 0 0 4px rgba(0,0,0,.9), 0 1px 2px rgba(0,0,0,.9);
     transform: translate(-50%, -100%); opacity: 0; }
@@ -77,6 +81,7 @@
   <div>roches remontées de plus de 10 km <b style="background:#4f7f86"></b></div>
 </div>
 <div id="recit"></div>
+<canvas id="coupe" aria-label="coupe de la montagne avec les grains de roche"></canvas>
 <div id="bas">
   <div id="ligne">
     <button id="lecture" aria-label="lecture">▶</button>
@@ -85,6 +90,7 @@
   </div>
   <div id="outils">
     <button id="roches">roches</button>
+    <button id="bcoupe">coupe</button>
     <button id="allure">×1</button>
     <button id="infos">?</button>
   </div>
@@ -106,6 +112,11 @@
   l'érosion a fait remonter sa roche — la machine à laver de la montagne.</p>
   <p>Le cadran en haut à droite dit à quelle vitesse passe le temps : d'un million
   d'années par seconde au début, à quelques milliers d'années par seconde à la fin.</p>
+  <p>Bouton « coupe » : une tranche de la montagne, d'ouest en est par Grenoble. Chaque
+  point est un grain de roche suivi depuis 45 millions d'années, coloré par la plus
+  grande profondeur qu'il ait connue ; il brille quand l'érosion le ramène au jour.</p>
+  <p>Sur les 120 000 dernières années, la glace est celle de la simulation publiée de
+  Seguinot et al. (2018) : elle remplit le Grésivaudan, déborde, recule, revient.</p>
   <p><small>Image d'aujourd'hui : Sentinel-2 cloudless – https://s2maps.eu by EOX IT Services
   GmbH (contient des données Copernicus Sentinel modifiées). Couleurs des époques passées :
   mêmes règles que la mosaïque (altitude, pente), décalées selon le climat.<br>

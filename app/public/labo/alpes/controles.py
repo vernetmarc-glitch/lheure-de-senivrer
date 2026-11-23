@@ -99,6 +99,34 @@ def ombre_python(h, n, pas_m, az, el, nb, exa):
     return marge > 0
 
 
+def nettete(h, n, pas_m, tuile_km=25.6, bande_km=(1.0, 5.0)):
+    """Part de l'énergie spectrale du relief aux longueurs d'onde 1–5 km, moyenne sur les
+    tuiles montagneuses (écart-type > 150 m), après retrait du plan moyen (fenêtre de Hann).
+    Grandeur sans dimension : ne dépend ni de la quantité de montagnes ni d'une statistique
+    globale de l'image."""
+    h = np.asarray(h, np.float64).reshape(n, n)
+    m = int(round(tuile_km * 1000 / pas_m))
+    f = np.fft.fftfreq(m, d=pas_m / 1000)
+    FX, FY = np.meshgrid(f, f)
+    fr = np.hypot(FX, FY)
+    bande = (fr >= 1 / bande_km[1]) & (fr <= 1 / bande_km[0])
+    tout = fr > 0
+    w = np.outer(np.hanning(m), np.hanning(m))
+    yy, xx = np.mgrid[0:m, 0:m]
+    A = np.c_[xx.ravel(), yy.ravel(), np.ones(m * m)]
+    parts = []
+    for i in range(0, n - m + 1, m):
+        for j in range(0, n - m + 1, m):
+            t = h[i:i + m, j:j + m]
+            if t.std() < 150:
+                continue
+            c, *_ = np.linalg.lstsq(A, t.ravel(), rcond=None)
+            r = (t.ravel() - A @ c).reshape(m, m) * w
+            P = np.abs(np.fft.fft2(r)) ** 2
+            parts.append(P[bande].sum() / P[tout].sum())
+    return float(np.mean(parts)) if parts else 0.0
+
+
 def taux(v, meta):
     """octet -> mm/an (codage racine carrée)."""
     return (v.astype(np.float32) / 255.0) ** 2 * meta["taux_max_mm_an"]
@@ -131,7 +159,7 @@ def controles_donnees(base):
 
     H, U8, E8, X8 = decoder_paquet(base, meta)
     n = meta["n"]
-    reel = np.frombuffer(gzip.decompress(lire(base + "donnees/reel_256.bin.gz")), "<u2").astype(np.float32)
+    reel = np.frombuffer(gzip.decompress(lire(base + "donnees/" + meta.get("reel", "reel_256.bin.gz"))), "<u2").astype(np.float32)
     reel = reel * meta["h_pas_m"] + meta["h_zero_m"]
 
     # N16 : soulèvement et érosion ensemble, aux mêmes endroits
@@ -167,6 +195,16 @@ def controles_donnees(base):
        len(ecarts) > 0 and np.median(ecarts) < 0.25,
        f"médiane {np.median(ecarts):.2f} sur {len(ecarts)} états" if ecarts else "aucun état")
 
+    # Netteté du relief à toutes les époques (retour du maître, 23/11)
+    ref = nettete(reel, n, meta["pas_m"])
+    pires = []
+    for k in range(len(t)):
+        if t[k] >= -30:
+            pires.append((nettete(H[k], n, meta["pas_m"]) / ref, t[k]))
+    pire = min(pires)
+    ok("S7 netteté : énergie 1–5 km ≥ 50 % de celle du relief réel dès −30 Ma",
+       pire[0] >= 0.5, f"pire {100*pire[0]:.0f} % à {pire[1]} Ma (réel : {100*ref:.1f} % de l'énergie)")
+
     # N23 : la fin est le relief réel
     ecart = np.abs(H[-1] - reel).mean()
     ok("N23 dernier état à moins de 50 m (moyenne) du relief réel",
@@ -185,6 +223,30 @@ def controles_donnees(base):
     ok("N23 Belledonne > 2 600 m, Chartreuse et Vercors > 1 700 m, Grésivaudan < 400 m",
        bel > 2600 and cha > 1700 and ver > 1700 and gres < 400,
        f"Belledonne {bel:.0f}, Chartreuse {cha:.0f}, Vercors {ver:.0f}, Grésivaudan {gres:.0f} m")
+
+    # N17 : grains suivis — au jour, la surface porte la couleur de leur profondeur maximale
+    G = meta["grains"]["nombre"]
+    gb = gzip.decompress(lire(base + "donnees/" + meta["grains"]["fichier"]))
+    tex = np.frombuffer(gb[:4 * G], "<f4"); gq = np.frombuffer(gb[4 * G:8 * G], "<f4")
+    o = 8 * G; GS, GZ, GD = [], [], []
+    for k in range(len(t)):
+        GS.append(np.frombuffer(gb[o:o + 2 * G], "<i2") / 100); GZ.append(np.frombuffer(gb[o + 2 * G:o + 4 * G], "<i2"))
+        GD.append(np.frombuffer(gb[o + 4 * G:o + 5 * G], np.uint8) * 100.0); o += 5 * G
+    ax = np.array(meta["grains"]["axe_est"]); nr = np.array([-ax[1], ax[0]])
+    nx_ = meta["n_x"]; ecarts = []
+    xm = lambda v: (np.exp(v / 255 * np.log1p(meta["x_max_m"] / 200)) - 1) * 200
+    for g in np.where(tex <= 0)[0]:
+        k = int(np.searchsorted(t, tex[g]))
+        k = min(k, len(t) - 1)
+        dmax = GD[k][g]
+        if dmax < 1000:
+            continue
+        x_, y_ = GS[k][g] * ax + gq[g] * nr
+        j = int((x_ + meta["taille_km"] / 2) / meta["taille_km"] * nx_); i = int((meta["taille_km"] / 2 - y_) / meta["taille_km"] * nx_)
+        if 0 <= i < nx_ and 0 <= j < nx_:
+            ecarts.append(abs(xm(float(X8[k].reshape(nx_, nx_)[i, j])) - dmax) / dmax)
+    ok("N17 grains arrivés au jour : couleur de surface = leur profondeur maximale (écart médian < 35 %)",
+       len(ecarts) >= 50 and np.median(ecarts) < 0.35, f"{len(ecarts)} grains, écart médian {100*np.median(ecarts) if ecarts else 0:.0f} %")
 
     # N17 : machine à laver — roches profondes au jour là où l'érosion a travaillé
     xf = X8[-1].astype(float)
@@ -222,6 +284,8 @@ def controles_page(base):
             pret = False
         ok("P1 page prête (paquet chargé, WebGL2)", pret)
         if pret:
+            meta_ = json.loads(lire(base + "donnees/meta.json"))
+            controles_nettete_rendu(page, base, meta_, decoder_paquet(base, meta_)[0])
             controles_couleurs(page, base)
             # Vitesse réelle de la barre : temps géologique écoulé par seconde de lecture
             mesures, angles, inst = {}, {}, {}
@@ -295,6 +359,17 @@ def controles_page(base):
             apres = page.evaluate("window.ALPES.camera().azimut")
             ok("P3 glisser fait tourner la vue", abs(apres - avant) > 0.05, f"{avant:.2f} → {apres:.2f} rad")
 
+            page.evaluate("window.ALPES.aller(-10)")
+            info = page.evaluate("window.ALPES.coupe(true)")
+            page.wait_for_timeout(400)
+            px = page.evaluate("""() => { const c = document.getElementById('coupe'), g = c.getContext('2d');
+                const d = g.getImageData(0, 0, c.width, c.height).data; let s = 0, s2 = 0, n = 0;
+                for (let i = 0; i < d.length; i += 16) { const v = d[i] + d[i+1] + d[i+2]; s += v; s2 += v * v; n++; }
+                const m = s / n; return Math.sqrt(s2 / n - m * m); }""")
+            info = page.evaluate("window.ALPES.coupe(true)")
+            page.evaluate("window.ALPES.coupe(false)")
+            ok("N17 coupe : la tranche et ses grains sont dessinés", px > 20 and info["dessines"] > 100,
+               f"{info['dessines']} grains dessinés sur {info['vivants']} encore enfouis, contraste {px:.0f}")
             ims = page.evaluate("""async () => { const A = window.ALPES; A.aller(-44); A.vitesse(4); A.lire();
                 const t0 = performance.now(); let n = 0;
                 await new Promise(r => { const f = () => { n++; if (performance.now() - t0 < 3000) requestAnimationFrame(f); else r(); }; requestAnimationFrame(f); });
@@ -304,12 +379,42 @@ def controles_page(base):
         nav.close()
 
 
+def controles_nettete_rendu(page, base, meta, H):
+    """Netteté du relief tel qu'il est dessiné : énergie de l'ombrage (albédo gris, vue du
+    zénith, 512²) aux longueurs d'onde 1–5 km, sur les tuiles où le relief publié a un
+    écart-type > 150 m, rapportée à celle du relief réel dessiné de la même façon."""
+    N, L = 512, meta["taille_km"]
+    pas = L * 1000 / N
+    def energie(tt, h):
+        im = np.array(page.evaluate(f"Array.from(window.ALPES.couleurs({tt}, 5, 0, {N}))"), np.float64).reshape(N, N, 3)[..., 0]
+        hh = np.repeat(np.repeat(h.reshape(meta["n"], meta["n"]), N // meta["n"], 0), N // meta["n"], 1)
+        m = int(round(25.6e3 / pas)); f = np.fft.fftfreq(m, d=pas / 1000)
+        fr = np.hypot(*np.meshgrid(f, f)); bande = (fr >= 0.2) & (fr <= 1.0)
+        w = np.outer(np.hanning(m), np.hanning(m)); es = []
+        for i in range(0, N - m + 1, m):
+            for j in range(0, N - m + 1, m):
+                if hh[i:i + m, j:j + m].std() < 150:
+                    continue
+                t_ = im[i:i + m, j:j + m]
+                es.append((np.abs(np.fft.fft2((t_ - t_.mean()) * w)) ** 2)[bande].sum() / (m * m))
+        return float(np.mean(es)) if es else 0.0
+    T = np.array(meta["temps_Ma"])
+    ref = energie(0, H[-1])
+    res = []
+    for tt in (-30, -25, -18, -12, -6, -3):
+        k = int(np.argmin(abs(T - tt)))
+        res.append((energie(T[k], H[k]) / ref, tt))
+    pire = min(res)
+    ok("S7 netteté du rendu : ombrage du relief à 1–5 km ≥ 50 % de celui du relief réel dès −30 Ma",
+       pire[0] >= 0.5, " ; ".join(f"{t} Ma : {100*r:.0f} %" for r, t in res))
+
+
 def controles_couleurs(page, base):
     """Signature chiffrée S7 (docs/references-visuelles-refonte.md)."""
     from PIL import Image
     import io
     meta = json.loads(lire(base + "donnees/meta.json"))
-    n = meta["n"]
+    n = 256                                             # mesure vue du zénith à 800 m
     mos = np.asarray(Image.open(io.BytesIO(lire(base + "donnees/mosaique_2048.jpg"))).convert("RGB"), np.float64)
     f = mos.shape[0] // n
     mos = mos.reshape(n, f, n, f, 3).mean(axis=(1, 3))
@@ -326,13 +431,16 @@ def controles_couleurs(page, base):
     pires = []
     for tt in (-30.0, -10.0, -2.5):
         k = int(np.argmin(abs(T - tt)))
-        h = H[k].reshape(n, n).astype(np.float64)
+        nh = meta["n"]
+        h = H[k].reshape(nh, nh).astype(np.float64)
         gy, gx = np.gradient(h, meta["pas_m"])
         pente = np.degrees(np.arctan(np.hypot(gx, gy)))
         dc = page.evaluate(f"window.ALPES.decalage({T[k]})")
         ia = np.clip((h + dc) / 5000 * lut.shape[1] - 0.5, 0, lut.shape[1] - 1).astype(int)
         ip = np.clip(pente / 64 * lut.shape[0] - 0.5, 0, lut.shape[0] - 1).astype(int)
         attendu = lut[ip, ia]
+        fb = nh // n
+        attendu = attendu.reshape(n, fb, n, fb, 3).mean(axis=(1, 3)); h = h.reshape(n, fb, n, fb).mean(axis=(1, 3))
         rendu = np.array(page.evaluate(f"Array.from(window.ALPES.couleurs({T[k]}, 1, 0))"), np.float64).reshape(n, n, 3)
         terre = h > 0
         pires.append(float(np.median(delta_e(rendu, attendu)[terre])))
@@ -341,10 +449,33 @@ def controles_couleurs(page, base):
 
     # Ombres portées cohérentes avec un Soleil fixe
     so = page.evaluate("window.ALPES.soleil")
-    attendu = ombre_python(H[-1], n, meta["pas_m"], so["azimut"], so["hauteur"], so["pas"], so["exageration"])
+    nh = meta["n"]; fb = nh // n
+    h256 = np.maximum(H[-1].reshape(nh, nh), 0).reshape(n, fb, n, fb).mean(axis=(1, 3))
+    attendu = ombre_python(h256, n, meta["pas_m"] * fb, so["azimut"], so["hauteur"], so["pas"], so["exageration"])
     rendu = np.array(page.evaluate("Array.from(window.ALPES.couleurs(0, 2))"), np.float64).reshape(n, n, 3)[..., 0] > 127
     accord = (attendu == rendu)[2:-2, 2:-2].mean()
     part = 1 - rendu.mean()
+    # Glaciers du dernier cycle : l'étendue dessinée est celle des données (à une maille près)
+    from scipy.ndimage import binary_dilation
+    gm = json.loads(lire(base + "donnees/glace.json"))
+    gv = np.frombuffer(gzip.decompress(lire(base + "donnees/glace.bin.gz")), np.uint8).reshape(len(gm["ages_ans"]), gm["n"], gm["n"])
+    res = []
+    for age in (110000, 60000, 24000, 15000):
+        k = gm["ages_ans"].index(age)
+        d = gv[k] >= 6
+        r = np.array(page.evaluate(f"Array.from(window.ALPES.couleurs({-age/1e6}, 4))"), np.float64).reshape(n, n, 3)[..., 0] > 127
+        manque = (d & ~binary_dilation(r)).sum() / max(d.sum(), 1)
+        invente = (r & ~binary_dilation(d)).sum() / max(r.sum(), 1)
+        res.append((age, d.sum() * 0.64, manque, invente))
+    avant = np.array(page.evaluate("Array.from(window.ALPES.couleurs(-0.125, 4))")).max()
+    ok("S8→S7 glace dessinée = données PISM à une maille près (≤ 2 % manquante ou inventée), rien avant 120 ka",
+       all(m <= 0.02 and i <= 0.02 for _, _, m, i in res) and avant == 0,
+       " ; ".join(f"{a//1000} ka : {ai:.0f} km², manque {100*m:.1f} %, inventée {100*i:.1f} %" for a, ai, m, i in res))
+    gmax = gm["ages_ans"][int(np.argmax(gm["aires_km2"]))]
+    ok("S8→S7 maximum glaciaire entre 30 et 18 ka, glace dans le Grésivaudan",
+       18000 <= gmax <= 30000 and gv[gm["ages_ans"].index(gmax)].reshape(n, n)[int((102.4 - 15) / 0.8), int((102.4 + 12) / 0.8)] >= 6,
+       f"maximum à {gmax} ans")
+
     ok("S7 ombres portées : accord ≥ 95 % avec la marche vers le Soleil fixe, 2–40 % du relief à l'ombre",
        accord >= 0.95 and 0.02 <= part <= 0.40, f"accord {100*accord:.1f} %, ombre {100*part:.1f} %")
 
