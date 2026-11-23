@@ -67,6 +67,23 @@ cible flottante relue par readPixels : c'est ce qui est dessiné qui est mesuré
                    15 % de son existence, « s'efface » dans les derniers 15 %
   C17 couleurs   : couleurs des points de lignées différentes séparées (ΔE CIE76 ≥ 30 entre
                    toutes les paires, mesuré sur les points dessinés à l'écran)
+  — passage 4 (demande de Marc, 23/11, 22 h 19 ; N38, N39, D-50) —
+  C18 entités    : aux 10 dates témoins (−9000, −5000, −2500, −500, 100, 800, 1279, 1500,
+                   1900, 2024), la carte des entités dessinée par la page (0,25°) correspond
+                   aux données à ≥ 95 % en surface (Cliopatria rastérisée ici par shapely,
+                   au centre des mailles ; foyers néolithiques de prepa/neolithique.csv) ;
+                   chaque nom affiché est celui d'une entité présente, posé sur sa zone ;
+                   toute entité de plus de 2 millions de km² visible est nommée
+  C19 couleurs   : tout point dans une entité en prend la couleur (≥ 99 % des pixels de
+                   points hors frontières) ; deux entités voisines ont des couleurs écartées
+                   de ΔE ≥ 30 (couleurs mesurées sur les points dessinés)
+  C20 noms       : aucune étiquette (entités, lignées, cadran) n'en chevauche une autre, aux
+                   10 dates ; apparition et disparition en fondu (transition d'opacité)
+  C21 2024       : les frontières sont celles des États actuels : ≥ 90 % de la surface des
+                   pays de Natural Earth (50 m) porte l'entité majoritaire de son pays, et
+                   moins de 5 % des grands pays partagent leur entité avec un autre
+  C22 temps      : en lecture, la vitesse juste après −3000 est au moins 10 fois plus lente
+                   que juste avant ; le bouton « Époque historique » saute à −3000 et lit
   C15 Timmermann : les 3 245 entrées datées de Timmermann et al. 2022 (table S1, d'après
                    ROAD) : la lignée de l'espèce est présente au lieu (± 1 maille) à un
                    instant de [0,9 × âge min ; âge max] pour ≥ 95 % des entrées, et
@@ -815,6 +832,209 @@ def c17_couleurs(page):
     verdict('C17', not fautes, f'ΔE minimal {dmin:.0f} entre 6 lignées' if not fautes else ' ; '.join(fautes[:6]))
 
 
+TEMOINS = [-9000, -5000, -2500, -500, 100, 800, 1279, 1500, 1900, 2024]
+_CLIO = None
+
+
+def cliopatria():
+    global _CLIO
+    if _CLIO is None:
+        import zipfile
+        zp = '/home/claude/seshat-global-history-databank/cliopatria/cliopatria.geojson.zip'
+        if not os.path.exists(zp):
+            import subprocess
+            subprocess.run(['git', 'clone', '-q', '--depth', '1', 'https://github.com/Seshat-Global-History-Databank/cliopatria',
+                            os.path.dirname(zp)], check=True, env=dict(os.environ, GIT_LFS_SKIP_SMUDGE='1'))
+        with zipfile.ZipFile(zp) as z:
+            gj = json.loads(z.read([n for n in z.namelist() if n.endswith('.geojson')][0]))
+        _CLIO = [f for f in gj['features'] if f.get('geometry') and f['properties'].get('Type', 'POLITY') == 'POLITY']
+    return _CLIO
+
+
+def reference_entites(annee, noms_page):
+    """Carte de référence (1440 × 720) des identifiants de la page, d'après les sources."""
+    import shapely
+    from shapely.geometry import shape
+    W2, H2 = 1440, 720
+    lon = -180 + (np.arange(W2) + 0.5) * 0.25
+    lat = 90 - (np.arange(H2) + 0.5) * 0.25
+    LO, LA = np.meshgrid(lon, lat)
+    m = np.zeros((H2, W2), np.int32)
+    # foyers néolithiques (disques), du plus grand au plus petit
+    neo = lire_csv(os.path.join(PREPA, 'neolithique.csv'))
+    for r in sorted(neo, key=lambda r: -float(r['rayon_km'])):
+        if int(r['debut']) <= annee <= int(r['fin']):
+            la0, lo0 = math.radians(float(r['lat'])), math.radians(float(r['lon']))
+            d = 6371 * np.arccos(np.clip(np.sin(la0) * np.sin(np.radians(LA)) + np.cos(la0) * np.cos(np.radians(LA)) * np.cos(np.radians(LO) - lo0), -1, 1))
+            m[d <= float(r['rayon_km'])] = noms_page.get(r['nom'], -1)
+    act = [f for f in cliopatria() if int(f['properties']['FromYear']) <= annee <= int(f['properties']['ToYear'])]
+    act.sort(key=lambda f: -float(f['properties'].get('Area') or 0))
+    for f in act:
+        g = shape(f['geometry'])
+        x0, y0, x1, y1 = g.bounds
+        j0, j1 = max(0, int((x0 + 180) / 0.25)), min(W2, int((x1 + 180) / 0.25) + 1)
+        i0, i1 = max(0, int((90 - y1) / 0.25)), min(H2, int((90 - y0) / 0.25) + 1)
+        if j1 <= j0 or i1 <= i0:
+            continue
+        sub = shapely.contains_xy(g, LO[i0:i1, j0:j1], LA[i0:i1, j0:j1])
+        m[i0:i1, j0:j1][sub] = noms_page.get(f['properties']['Name'], -1)
+    return m
+
+
+def aire_025():
+    lat = 90 - (np.arange(720) + 0.5) * 0.25
+    return (27.83 ** 2) * np.cos(np.radians(lat))[:, None] * np.ones((1, 1440))
+
+
+def age_de(annee):
+    return 2023 - annee
+
+
+def c18_entites(page):
+    civ = page.evaluate('() => window.__hum.civ ? window.__hum.civ() : null')
+    if not civ:
+        verdict('C18', False, 'pas de carte des entités dans la page')
+        return
+    noms_page = {}
+    for e in civ['entites']:
+        noms_page[e['nom_en']] = e['id']
+    nom_id = {e['nom']: e['id'] for e in civ['entites']}
+    A = aire_025()
+    fautes, det = [], []
+    for an in TEMOINS:
+        pg = plan(page, age_de(an), 'entite').astype(np.int64)
+        ref = reference_entites(an, noms_page)
+        u = (ref != 0) | (pg != 0)
+        acc = float(A[u & (ref == pg)].sum() / max(A[u].sum(), 1))
+        det.append(f'{an} : {acc:.1%}')
+        if acc < 0.95:
+            fautes.append(f'{an} : {acc:.1%} en surface')
+        page.evaluate('a => window.__hum.regler(a)', age_de(an))
+        page.wait_for_timeout(500)
+        et = [e for e in page.evaluate('() => window.__hum.etiquettesCiv()') if e['visible']]
+        for e in et:
+            i = nom_id.get(e['texte'])
+            if i is None or not (ref == i).any():
+                fautes.append(f'{an} : « {e["texte"]} » absente des données')
+            elif e.get('ancre') is not None:
+                la, lo = e['ancre']
+                y, x = int((90 - la) / 0.25), int((lo + 180) / 0.25) % 1440
+                if not (ref[max(0, y - 2):y + 3, max(0, x - 2):x + 3] == i).any():
+                    fautes.append(f'{an} : « {e["texte"]} » posée hors de sa zone')
+        noms_vus = {e['texte'] for e in et}
+        for e in civ['entites']:
+            sel = ref == e['id']
+            if A[sel].sum() >= 2.0e6 and e['nom'] not in noms_vus:
+                vis = page.evaluate('([lo, la]) => window.__hum.visible(lo, la)',
+                                    [float(np.average(np.broadcast_to(np.arange(1440) * 0.25 - 180, (720, 1440))[sel])),
+                                     float(np.average(np.broadcast_to((90 - np.arange(720)[:, None] * 0.25), (720, 1440))[sel]))])
+                if vis:
+                    fautes.append(f'{an} : {e["nom"]} ({A[sel].sum() / 1e6:.1f} M km²) sans nom')
+    verdict('C18', not fautes, ' ; '.join(det) if not fautes else ' ; '.join(fautes[:8]))
+
+
+def c19_couleurs_civ(page):
+    from scipy import ndimage
+    fautes, det = [], []
+    for an in TEMOINS:
+        ids = plan(page, age_de(an), 'entite').astype(np.int64)
+        rgb = plan(page, age_de(an), 'couleur3')         # 1440 × 2160 : R, G, B empilés
+        r, g, b = rgb[:720], rgb[720:1440], rgb[1440:]
+        pts = (r + g + b) > 0
+        homog = (ndimage.maximum_filter(ids, 3) == ndimage.minimum_filter(ids, 3))
+        sel = pts & homog & (ids > 0)
+        pal = {e['id']: np.array(e['couleur'], float) / 255 for e in page.evaluate('() => window.__hum.civ().entites')}
+        attendu = np.array([pal.get(int(i), np.zeros(3)) for i in ids[sel]])
+        obs = np.stack([r[sel], g[sel], b[sel]], 1)
+        bon = np.abs(obs - attendu).max(axis=1) < 0.02
+        frac = float(bon.mean()) if sel.any() else 0
+        det.append(f'{an} : {frac:.1%}')
+        if frac < 0.99:
+            fautes.append(f'{an} : {frac:.1%} des points à la couleur de leur entité')
+        # voisines
+        for a_, b_ in [(ids[:, :-1], ids[:, 1:]), (ids[:-1, :], ids[1:, :])]:
+            d = (a_ != b_) & (a_ > 0) & (b_ > 0)
+            for x, y in set(zip(a_[d].tolist(), b_[d].tolist())):
+                dE = float(np.linalg.norm(lab(255 * pal[x]) - lab(255 * pal[y])))
+                if dE < 30:
+                    fautes.append(f'{an} : voisines {x}/{y} ΔE {dE:.0f}')
+    verdict('C19', not fautes, ' ; '.join(det) if not fautes else ' ; '.join(fautes[:8]) + f' (+{max(0, len(fautes) - 8)})')
+
+
+def c20_noms(page):
+    fautes = []
+    for an in TEMOINS:
+        page.evaluate('a => window.__hum.regler(a)', age_de(an))
+        page.wait_for_timeout(500)
+        et = [e for e in page.evaluate('() => window.__hum.etiquettesCiv()') if e['visible']]
+        et += [e for e in page.evaluate('() => window.__hum.etiquettes()') if e['visible']]
+        g = page.evaluate('() => window.__hum.geometrie()')
+        et.append(dict(g['compteur'], texte='cadran'))
+        for a in range(len(et)):
+            for b in range(a + 1, len(et)):
+                A_, B = et[a], et[b]
+                if not (A_['x'] + A_['w'] <= B['x'] or B['x'] + B['w'] <= A_['x'] or A_['y'] + A_['h'] <= B['y'] or B['y'] + B['h'] <= A_['y']):
+                    fautes.append(f'{an} : « {A_["texte"]} » chevauche « {B["texte"]} »')
+        if not all(e.get('fondu') for e in et if e['texte'] != 'cadran' and 'fondu' in e):
+            fautes.append(f'{an} : étiquette sans fondu')
+    verdict('C20', not fautes, 'aucun chevauchement aux 10 dates, fondus' if not fautes else ' ; '.join(fautes[:6]))
+
+
+def c21_etats_actuels(page):
+    p = os.path.join(INTER, 'etats_actuels_ne50m.npz')
+    if not os.path.exists(p):
+        verdict('C21', False, 'référence Natural Earth absente')
+        return
+    ne = np.load(p)['id'].astype(np.int64)
+    pg = plan(page, 0, 'entite').astype(np.int64)
+    A = aire_025()
+    bon, tot, maj = 0.0, 0.0, {}
+    for c in np.unique(ne[ne > 0]):
+        sel = ne == c
+        v, n = np.unique(pg[sel], return_counts=True)
+        k = v[np.argmax(n)]
+        maj[c] = (k, A[sel].sum())
+        bon += A[sel & (pg == k)].sum()
+        tot += A[sel].sum()
+    grands = [(c, k) for c, (k, a) in maj.items() if a > 5e4]
+    from collections import Counter
+    cpt = Counter(k for _, k in grands)
+    partages = sum(1 for _, k in grands if cpt[k] > 1 or k == 0)
+    frac = bon / max(tot, 1)
+    ok = frac >= 0.9 and partages <= 0.05 * len(grands)
+    verdict('C21', ok, f'{frac:.1%} de la surface des pays à leur entité ; {partages}/{len(grands)} grands pays partagés ou sans entité')
+
+
+def c22_temps(page):
+    fautes = []
+    def vitesse(age):
+        page.evaluate('a => { window.__hum.regler(a); window.__hum.lecture(true); }', age)
+        page.wait_for_timeout(300)
+        a0 = page.evaluate('() => window.__hum.etat()')
+        page.wait_for_timeout(400)
+        a1 = page.evaluate('() => window.__hum.etat()')
+        page.evaluate('() => window.__hum.lecture(false)')
+        return (a0['age'] - a1['age']) / ((a1['horloge'] - a0['horloge']) / 1000), a1['age']
+    v1, x1 = vitesse(age_de(-3700))
+    v2, x2 = vitesse(age_de(-2800))
+    if not (x1 > age_de(-3000) and x2 < age_de(-3000)):
+        fautes.append(f'mesures mal placées ({2023 - x1:.0f}, {2023 - x2:.0f})')
+    if v2 <= 0 or v1 / v2 < 10:
+        fautes.append(f'avant −3000 : {v1:.0f} an/s, après : {v2:.0f} an/s (rapport {v1 / max(v2, 1e-9):.1f})')
+    b = page.locator('button:has-text("Époque historique")')
+    if b.count() == 0:
+        fautes.append('bouton « Époque historique » absent')
+    else:
+        b.first.click()
+        page.wait_for_timeout(300)
+        e = page.evaluate('() => window.__hum.etat()')
+        page.evaluate('() => window.__hum.lecture(false)')
+        if abs(2023 - e['age'] - (-3000)) > 60 or not e.get('jouer'):
+            fautes.append(f'le bouton mène à {2023 - e["age"]:.0f} (lecture : {e.get("jouer")})')
+    verdict('C22', not fautes, f'{v1:.0f} an/s avant −3000, {v2:.0f} an/s après (× {v1 / max(v2, 1e-9):.0f} plus lent) ; bouton conforme'
+            if not fautes else ' ; '.join(fautes))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--port', type=int, default=8860)
@@ -830,7 +1050,8 @@ def main():
                 ('C5', c5_black_marble), ('C6', c6_compteur), ('C8', c8_lecture),
                 ('C9', c9_generations), ('C10', c10_ponts), ('C11', lambda p: c11_fluidite(p, octets)),
                 ('C12', c12_une_representation), ('C13', c13_densite), ('C14', c14_contact), ('C15', c15_timmermann),
-                ('C16', c16_etiquettes), ('C17', c17_couleurs)]
+                ('C16', c16_etiquettes), ('C17', c17_couleurs), ('C18', c18_entites), ('C19', c19_couleurs_civ),
+                ('C20', c20_noms), ('C21', c21_etats_actuels), ('C22', c22_temps)]
         for code, f in tous:
             if args.seul and code not in args.seul.split(','):
                 continue
