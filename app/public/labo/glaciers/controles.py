@@ -32,7 +32,14 @@ Seguinot et al. 2018), jamais de la page elle-même.
                           en remontant le courant, les deux glaces viennent de part et
                           d'autre d'un éperon ou d'un nunatak (points à ± 750 m, remontés
                           sur 80 km ; ≥ 70 % des points)
-  C10 compteur          : cadran de vitesse du temps (N28) dans un coin, lisible sur
+  C11 aspect de près     : référence Aletsch vu d'avion. Gros plan du Grésivaudan au maximum
+                          (24 000 ans) : contraste local de la glace ≥ 0,035 (écart-type de la
+                          luminance moins son flou à 4 px) ; sous la ligne d'équilibre (tirée
+                          des données), ≥ 25 % de glace nue bleutée (B − R ≥ 0,06, luminance < 0,85) et ≤ 20 %
+                          de blanc pur ; au-dessus, le névé est plus clair (≥ + 0,08) ; gros
+                          plan de la Combe de Savoie (20 000 ans) : moraines plus sombres que
+                          la glace voisine (≥ 0,15)
+  C10 compteur          : cadran commun de vitesse du temps (N28, commun/compteur.js) dans un coin, lisible sur
                           390 px, ne masquant ni relief ni texte ; angle de l'aiguille =
                           vitesse réelle du curseur en échelle log, à 1° près après
                           amortissement ; butée à l'arrêt ; flèche quand le temps remonte
@@ -337,6 +344,59 @@ def main():
             ok9 &= total_ref >= 100
             verdict('C9', ok9, '; '.join(det))
 
+            # C11 aspect de près (Aletsch)
+            import base64
+            from scipy.ndimage import gaussian_filter, binary_erosion
+
+            def vue(mode):
+                r = page.evaluate(f'window.glaciers.vueControle({mode}, false)')
+                im = np.frombuffer(base64.b64decode(r['b64']), np.uint8).reshape(r['h'], r['w'], 4)[::-1]
+                return im.astype('f8') / 255.0
+
+            def gros_plan(age, cam):
+                page.goto(url + f'?controle=1&cam={cam}', wait_until='load')
+                page.wait_for_function('window.glaciers && window.glaciers.pret === true', timeout=90000)
+                page.evaluate(f'window.glaciers.regler({{age: {age}, lecture: false}})')
+                page.wait_for_timeout(600)
+                return vue(0), vue(1)[..., 0] > 0.5, vue(2)[..., 0] > 0.5, (lambda a: a[..., 0] * 255 * 256 + a[..., 1] * 255)(vue(3))
+
+            det, ok11 = [], True
+            col, glace, mor, alt = gros_plan(24000, '82,86,24,15,38')
+            ela = meta['ligne_equilibre_m'][list(ref['ages']).index(24000)] if 'ligne_equilibre_m' in meta else 1e9
+            Lum = col[..., :3] @ np.array([0.2126, 0.7152, 0.0722])
+            g = binary_erosion(glace, iterations=3)
+            hp = Lum - gaussian_filter(Lum, 4)
+            contraste = float(hp[g].std()) if g.any() else 0.0
+            bas, haut = g & (alt < ela - 100), g & (alt > ela + 100)
+            bleu = float((((col[..., 2] - col[..., 0]) >= 0.06) & (Lum < 0.85))[bas].mean()) if bas.any() else 0.0
+            sat = col[..., :3].max(-1) - col[..., :3].min(-1)
+            blanc = float(((Lum >= 0.88) & (sat < 0.06))[bas].mean()) if bas.any() else 1.0
+            ok11 &= contraste >= 0.035 and bleu >= 0.25 and blanc <= 0.20
+            det.append(f'Grésivaudan 24 000 ans : contraste local {contraste:.3f}, glace nue bleutée {100 * bleu:.0f} %, '
+                       f'blanc pur {100 * blanc:.0f} % sous la ligne d’équilibre ({ela:.0f} m)')
+            col, glace, mor, alt = gros_plan(20000, '108,108,38,10,35')
+            ela = meta['ligne_equilibre_m'][list(ref['ages']).index(20000)] if 'ligne_equilibre_m' in meta else 1e9
+            Lum = col[..., :3] @ np.array([0.2126, 0.7152, 0.0722])
+            g = binary_erosion(glace, iterations=3)
+            bas, haut = g & (alt < ela - 100), g & (alt > ela + 100)
+            if haut.sum() > 500 and bas.sum() > 500:
+                ecart = float(Lum[haut].mean() - Lum[bas & ~mor].mean())
+                ok11 &= ecart >= 0.08
+                det.append(f'névé plus clair que la glace nue de {ecart:+.3f}')
+            else:
+                ok11 = False
+                det.append('pas assez de glace des deux côtés de la ligne d’équilibre')
+            voisin = g & ~mor & (gaussian_filter(mor.astype('f8'), 3) > 0.02)
+            m_in = g & mor
+            if m_in.sum() > 50 and voisin.sum() > 50:
+                dm = float(Lum[voisin].mean() - Lum[m_in].mean())
+                ok11 &= dm >= 0.15
+                det.append(f'moraines plus sombres de {dm:.3f} ({m_in.sum()} px)')
+            else:
+                ok11 = False
+                det.append('moraines non visibles dans le gros plan')
+            verdict('C11', ok11, '; '.join(det))
+
         # C7 fluidité
         if pret:
             page.goto(url, wait_until='load')
@@ -373,9 +433,14 @@ def main():
                 ok10 = False
                 det.append('cadran absent')
             else:
+                # échelle de la spécification N28 ; butée lue dans le composant commun
+                import re as _re
+                src = open(os.path.join(PUBLIC, 'commun/compteur.js')).read()
+                butee = float(_re.search(r'ANGLE_BUTEE = (-?[\d.]+)', src).group(1))
+
                 def angle_attendu(vit):
                     if vit <= 0:
-                        return -150.0
+                        return butee
                     return -135 + min(10, max(0, np.log10(vit))) / 10 * 270
                 for vit, sens in [(1500, 1), (400, 1), (5000, 1), (5000, -1), (0, 0)]:
                     page.evaluate(f'window.glaciers.regler({{age: {90000 if sens >= 0 else 30000}, '
@@ -384,8 +449,8 @@ def main():
                     t0, a0 = page.evaluate('[performance.now(), window.glaciers.age()]')
                     page.wait_for_timeout(1500)
                     t1, a1, ang, fl = page.evaluate('[performance.now(), window.glaciers.age(), '
-                                                   'window.glaciers.compteur.angleAffiche(), '
-                                                   'document.querySelector("#compteur .fleche-passe").getAttribute("visibility")]')
+                                                   'parseFloat(/rotate\\(([-\\d.e]+)/.exec(document.querySelector("#compteur .aiguille").getAttribute("transform"))[1]), '
+                                                   '(+getComputedStyle(document.querySelector("#compteur .fleche-sens")).opacity > 0.5) ? "visible" : "hidden"]')
                     reelle = abs(a1 - a0) / ((t1 - t0) / 1000)
                     att = angle_attendu(reelle)
                     ecart = abs(ang - att)
@@ -394,7 +459,7 @@ def main():
                     det.append(f'{reelle:.0f} a/s → {ang:.1f}° (attendu {att:.1f}°){" flèche" if fl == "visible" else ""}')
                 page.evaluate('window.glaciers.regler({age: 25000, lecture: false})')
                 page.wait_for_timeout(800)
-                boite = page.evaluate('''(() => { const r = document.getElementById("compteur").getBoundingClientRect();
+                boite = page.evaluate('''(() => { const r = document.querySelector("#compteur .compteur-temps").getBoundingClientRect();
                     const autres = [...document.querySelectorAll(".lieu, #titre, #bas, #info-btn")]
                       .filter(e => getComputedStyle(e).visibility !== "hidden")
                       .map(e => e.getBoundingClientRect()).filter(b => b.width > 0 &&
@@ -415,10 +480,10 @@ def main():
         nav.close()
     srv.shutdown()
     if ref is None:
-        for c in ['C2', 'C3', 'C4', 'C5', 'C9']:
+        for c in ['C2', 'C3', 'C4', 'C5', 'C9', 'C11']:
             verdict(c, False, 'références absentes (le workflow n’a pas encore déposé les données)')
     elif not any(r[0] == 'C2' for r in resultats):
-        for c in ['C2', 'C3', 'C4', 'C5', 'C9']:
+        for c in ['C2', 'C3', 'C4', 'C5', 'C9', 'C11']:
             verdict(c, False, 'page non prête')
     verdict('C6', not erreurs, f'{len(erreurs)} erreur(s) ' + ' | '.join(erreurs[:5]))
     nb = sum(ok for _, ok, _ in resultats)
