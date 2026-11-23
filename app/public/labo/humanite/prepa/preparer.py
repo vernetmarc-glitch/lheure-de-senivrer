@@ -14,6 +14,10 @@ Sorties (intermédiaires compacts, préparés ensuite par construire.py dans le 
 """
 import hashlib, html, io, json, os, re, sys, time, pathlib, urllib.request, urllib.parse, zipfile
 import numpy as np
+try:
+    import zipfile_deflate64  # noqa: F401  (HYDE 3.2.1 : zip de 5 Go en Deflate64)
+except ImportError:
+    pass
 
 DL = pathlib.Path(sys.argv[1]); DL.mkdir(parents=True, exist_ok=True)
 OUT = pathlib.Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)

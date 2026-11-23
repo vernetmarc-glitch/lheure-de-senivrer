@@ -40,7 +40,7 @@ jobs:
           key: humanite-dl-v1-${{ github.run_id }}
           restore-keys: humanite-dl-v1-
       - name: Paquets
-        run: pip install numpy scipy netCDF4 rasterio pillow openpyxl xarray
+        run: pip install numpy scipy netCDF4 rasterio pillow openpyxl xarray zipfile-deflate64
       - name: Reconnaissance des sources
         run: python app/public/labo/humanite/prepa/reconnaitre.py app/public/labo/humanite/prepa/reconnaissance.txt
       - name: Télécharger et préparer
