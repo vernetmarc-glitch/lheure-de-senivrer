@@ -2,12 +2,12 @@ PASSE  C1  120 pas de 119000 à 0 ans, masques identiques=True, écart vitesses 
 PASSE  C2  âge, % dessiné dans les données, % des données dessiné, mailles : 110000: 100.0/100.0 (3426); 60000: 100.0/100.0 (4967); 25000: 100.0/100.0 (10675); 20000: 100.0/100.0 (9388); 15000: 100.0/100.0 (2661); 5000: 100.0/100.0 (168)
 PASSE  C3  60500: inventé 0.00 %, perdu 0.00 %; 24500: inventé 0.00 %, perdu 0.00 %; 15500: inventé 0.00 %, perdu 0.00 %
 PASSE  C4  maximum dessiné à 24000 ans (11726 km² ; données 11726 km² à 24000 ans), Grésivaudan englacé=True, écart d’aire max 0.00 %
-PASSE  C5  25000: hors glace 0.00 %; 25000: 2119 traînées, 13648 segments, écart médian 0.1°, 95e c. 1.4°; 60000: hors glace 0.00 %; 60000: 982 traînées, 7032 segments, écart médian 0.2°, 95e c. 11.0°
+PASSE  C5  25000: hors glace 0.00 %; 25000: 2127 traînées, 12159 segments, écart médian 0.1°, 95e c. 1.2°; 60000: hors glace 0.00 %; 60000: 980 traînées, 5662 segments, écart médian 0.2°, 95e c. 23.8°
 PASSE  C9  60000: 112 km (données), dessinées dans les données 100.0 %, données dessinées 100.0 %, deux flux 100 % (262 pts); 15000: 36 km (données), dessinées dans les données 96.0 %, données dessinées 100.0 %, deux flux 97 % (272 pts); 110000: 58 km (données), dessinées dans les données 100.0 %, données dessinées 100.0 %, deux flux 99 % (265 pts); 20000: 295 km (données), dessinées dans les données 100.0 %, données dessinées 100.0 %, deux flux 99 % (285 pts)
 PASSE  C11  Grésivaudan 24 000 ans : contraste local 0.050, glace nue bleutée 100 %, blanc pur 0 % sous la ligne d’équilibre (1625 m); névé plus clair que la glace nue de +0.141; moraines plus sombres de 0.151 (14094 px)
-PASSE  C7  160 images, JS médian 2.10 ms, intervalle médian 33.3 ms (rendu logiciel SwiftShader, 2 cœurs partagés ; qualité atteinte {'echelle': 0.33, 'niveau': 4, 'partFils': 0.25, 'sobre': True})
-PASSE  C8  âge lisible=True, lieux ['Grenoble', 'Chartreuse', 'Vercors', 'Belledonne'], contraste 57.4
-PASSE  C10  1415 a/s → -49.2° (attendu -49.9°); 404 a/s → -64.9° (attendu -64.6°); 4982 a/s → -35.1° (attendu -35.2°); 5007 a/s → -35.1° (attendu -35.1°) flèche; 0 a/s → -146.0° (attendu -146.0°); cadran 96 px, coin=True, recouvre 0 texte(s), relief sous le cadran 0.0 %
+PASSE  C7  92 images, JS médian 2.15 ms, intervalle médian 33.4 ms (rendu logiciel SwiftShader, 2 cœurs partagés ; qualité atteinte {'echelle': 0.33, 'niveau': 4, 'partFils': 0.25, 'sobre': True})
+PASSE  C8  âge lisible=True, lieux ['Grenoble', 'Chartreuse', 'Vercors', 'Belledonne'], contraste 57.3
+PASSE  C10  1479 a/s → -49.3° (attendu -49.4°); 397 a/s → -64.8° (attendu -64.8°); 4855 a/s → -35.1° (attendu -35.5°); 5075 a/s → -35.2° (attendu -35.0°) flèche; 0 a/s → -146.0° (attendu -146.0°); cadran 96 px, coin=True, recouvre 0 texte(s), relief sous le cadran 0.0 %
 PASSE  C6  0 erreur(s) 
 
 11/11 contrôles passés
