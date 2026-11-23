@@ -52,7 +52,7 @@ jobs:
         run: |
           git config user.name "Claude (workflow chantier-terre)"
           git config user.email noreply@anthropic.com
-          git add -A app/public/labo/terre/prepa app/public/labo/terre/donnees 2>/dev/null || git add -A app/public/labo/terre/prepa
+          git add -A app/public/labo/terre/prepa app/public/labo/terre/controles; git add -A app/public/labo/terre/donnees 2>/dev/null || true
           git commit -m "Terre : données préparées par le workflow (run ${GITHUB_RUN_ID})" || exit 0
           for i in 1 2 3 4 5; do
             git pull --rebase origin chantier/terre && git push origin HEAD:chantier/terre && break

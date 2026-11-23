@@ -278,10 +278,14 @@ def main(src, out, inter, W=1440, pas=1, tP=None, tM=None):
     tempsM = list(range(550, 1001, 10)) if tM is None else tM
     for t in tempsM:
         a = np.clip((t - 540) / 100.0, 0, 1); a = a * a * (3 - 2 * a)
-        ok = croute & (debC >= t)
-        # croûte absente du PaleoDEM de 540 Ma : plateau immergé (-150 m) qui émerge avec a
+        cm = croute & (debC >= t)
+        # terres du PaleoDEM de 540 Ma hors de la croûte de Merdith à t : elles ne
+        # disparaissent pas d'un coup au raccord, elles s'enfoncent avec a (sous -3000 m)
+        ok = cm | (vP540 & ~cm & (a < 0.999))
         base = np.where(np.isnan(h540_pd[ok]), -150.0, h540_pd[ok])
-        hb = (1 - a) * base + a * hgen[ok]
+        cible = np.where(cm[ok], hgen[ok], -3000.0)
+        cible = np.where(np.isnan(cible), -150.0, cible)
+        hb = (1 - a) * base + a * cible
         k = t - 540
         v = qrot(QH[rowH[ok], k], V[ok])
         ordre = np.argsort(hb)                                        # le plus haut l'emporte
@@ -298,8 +302,9 @@ def main(src, out, inter, W=1440, pas=1, tP=None, tM=None):
         cles.append({"t": t, "seg": "M", "f": f"cles/M{t:04d}.png"})
         if t % 50 == 0: log(f"M {t} Ma : terres {(h > 0).mean()*100:.1f} % des pixels")
 
+    bm = preparer_blue_marble(src, out, inter)
     man = {
-        "W": g.W, "H": g.H,
+        "W": g.W, "H": g.H, "surface": bm,
         "codage": {"terre": [H_TERRE], "mer": [H_MER, G_MER]},
         "segments": {"P": {"t0": 0, "t1": 540, "rot": "rot-P.bin", "rangees": int(QP.shape[0]), "cols": 541},
                      "M": {"t0": 540, "t1": 1000, "rot": "rot-M.bin", "rangees": int(nH), "cols": len(TM)}},
@@ -311,6 +316,23 @@ def main(src, out, inter, W=1440, pas=1, tP=None, tM=None):
     (out / "manifeste.json").write_text(json.dumps(man, ensure_ascii=False, indent=0))
     taille = sum(f.stat().st_size for f in out.rglob("*") if f.is_file())
     log(f"paquet : {len(cles)} états clés, {taille/1e6:.1f} Mo")
+
+
+def preparer_blue_marble(src, out, inter):
+    """Surface d'aujourd'hui (BMNG juin 2004) en coordonnées actuelles : texture de la page
+    (1440 × 720, JPEG) et référence des contrôles (720 × 360, PNG sans perte)."""
+    cands = [pathlib.Path(src) / "bmng" / "world.200406.3x5400x2700.jpg"] if src else []
+    cands.append(pathlib.Path(inter).parent.parent / "controles" / "blue-marble-juin-2004.png")
+    for f in cands:
+        if f.exists():
+            im = Image.open(f).convert("RGB")
+            if f.suffix == ".jpg":
+                im.resize((720, 360), Image.BOX).save(cands[-1], optimize=True)
+            im.resize((1440, 720), Image.LANCZOS).save(out / "surface-juin.jpg", quality=88, optimize=True)
+            log(f"Blue Marble : {f.name} -> surface-juin.jpg")
+            return "surface-juin.jpg"
+    log("Blue Marble absent")
+    return None
 
 
 def dem_brut(dem, t):

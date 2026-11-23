@@ -81,4 +81,17 @@ try:
 except Exception as e:
     log("plate-model-manager indisponible", e)
 
+# NASA Blue Marble Next Generation, composite de juin 2004, sans nuages (référence visuelle
+# de la refonte, N25 ; docs/references-visuelles-refonte.md)
+BM = ["https://eoimages.gsfc.nasa.gov/images/imagerecords/74000/74117/world.200406.3x5400x2700.jpg",
+      "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-base/june/world.200406.3x5400x2700.jpg",
+      "https://neo.gsfc.nasa.gov/archive/bluemarble/bmng/world_500m/world.200406.3x5400x2700.jpg"]
+(SRC / "bmng").mkdir(exist_ok=True)
+dest = SRC / "bmng" / "world.200406.3x5400x2700.jpg"
+if not (dest.exists() and dest.stat().st_size > 1e6):
+    for u in BM:
+        log("Blue Marble :", u)
+        if get(u, dest, essais=2) and dest.stat().st_size > 1e6: break
+log("Blue Marble juin :", dest.exists() and f"{dest.stat().st_size/1e6:.1f} Mo")
+
 (SRC / "journal-telechargement.txt").write_text("\n".join(journal))
