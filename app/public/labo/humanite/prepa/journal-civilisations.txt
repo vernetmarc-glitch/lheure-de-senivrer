@@ -1,0 +1,47 @@
+Cliopatria : cliopatria_polities_only_v021.geojson 13412 enregistrements
+1623 entités dont 36 foyers néolithiques
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+  wikidata HTTP Error 429: Too Many Requests
+noms français : 933 / 1409
+247 pas de temps
+  -10000 : 3 entités
+  -6000 : 12 entités
+  -3050 : 17 entités
+  -2050 : 12 entités
+  -1050 : 11 entités
+  -525 : 48 entités
+  -25 : 44 entités
+  475 : 55 entités
+  975 : 113 entités
+  1475 : 136 entités
+  1690 : 111 entités
+  1890 : 97 entités
+  1995 : 183 entités
+paires voisines à ΔE < 30 : 0 / 5168
+paquet : 247 pas, 2.036285 Mo de cartes, 0.56824 Mo de méta
+Natural Earth 50 m : 242 pays
