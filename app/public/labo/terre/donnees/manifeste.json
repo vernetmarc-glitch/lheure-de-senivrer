@@ -1,0 +1,817 @@
+{
+"W": 1440,
+"H": 720,
+"surface": "surface-juin.jpg",
+"codage": {
+"terre": [
+7000.0
+],
+"mer": [
+9000.0,
+1.5
+]
+},
+"segments": {
+"P": {
+"t0": 0,
+"t1": 540,
+"rot": "rot-P.bin",
+"rangees": 241,
+"cols": 541
+},
+"M": {
+"t0": 540,
+"t1": 1000,
+"rot": "rot-M.bin",
+"rangees": 798,
+"cols": 461
+}
+},
+"cles": [
+{
+"t": 0,
+"seg": "P",
+"f": "cles/P0000.png"
+},
+{
+"t": 5,
+"seg": "P",
+"f": "cles/P0005.png"
+},
+{
+"t": 10,
+"seg": "P",
+"f": "cles/P0010.png"
+},
+{
+"t": 15,
+"seg": "P",
+"f": "cles/P0015.png"
+},
+{
+"t": 20,
+"seg": "P",
+"f": "cles/P0020.png"
+},
+{
+"t": 25,
+"seg": "P",
+"f": "cles/P0025.png"
+},
+{
+"t": 30,
+"seg": "P",
+"f": "cles/P0030.png"
+},
+{
+"t": 35,
+"seg": "P",
+"f": "cles/P0035.png"
+},
+{
+"t": 40,
+"seg": "P",
+"f": "cles/P0040.png"
+},
+{
+"t": 45,
+"seg": "P",
+"f": "cles/P0045.png"
+},
+{
+"t": 50,
+"seg": "P",
+"f": "cles/P0050.png"
+},
+{
+"t": 55,
+"seg": "P",
+"f": "cles/P0055.png"
+},
+{
+"t": 60,
+"seg": "P",
+"f": "cles/P0060.png"
+},
+{
+"t": 65,
+"seg": "P",
+"f": "cles/P0065.png"
+},
+{
+"t": 70,
+"seg": "P",
+"f": "cles/P0070.png"
+},
+{
+"t": 75,
+"seg": "P",
+"f": "cles/P0075.png"
+},
+{
+"t": 80,
+"seg": "P",
+"f": "cles/P0080.png"
+},
+{
+"t": 85,
+"seg": "P",
+"f": "cles/P0085.png"
+},
+{
+"t": 90,
+"seg": "P",
+"f": "cles/P0090.png"
+},
+{
+"t": 95,
+"seg": "P",
+"f": "cles/P0095.png"
+},
+{
+"t": 100,
+"seg": "P",
+"f": "cles/P0100.png"
+},
+{
+"t": 105,
+"seg": "P",
+"f": "cles/P0105.png"
+},
+{
+"t": 110,
+"seg": "P",
+"f": "cles/P0110.png"
+},
+{
+"t": 115,
+"seg": "P",
+"f": "cles/P0115.png"
+},
+{
+"t": 120,
+"seg": "P",
+"f": "cles/P0120.png"
+},
+{
+"t": 125,
+"seg": "P",
+"f": "cles/P0125.png"
+},
+{
+"t": 130,
+"seg": "P",
+"f": "cles/P0130.png"
+},
+{
+"t": 135,
+"seg": "P",
+"f": "cles/P0135.png"
+},
+{
+"t": 140,
+"seg": "P",
+"f": "cles/P0140.png"
+},
+{
+"t": 145,
+"seg": "P",
+"f": "cles/P0145.png"
+},
+{
+"t": 150,
+"seg": "P",
+"f": "cles/P0150.png"
+},
+{
+"t": 155,
+"seg": "P",
+"f": "cles/P0155.png"
+},
+{
+"t": 160,
+"seg": "P",
+"f": "cles/P0160.png"
+},
+{
+"t": 165,
+"seg": "P",
+"f": "cles/P0165.png"
+},
+{
+"t": 170,
+"seg": "P",
+"f": "cles/P0170.png"
+},
+{
+"t": 175,
+"seg": "P",
+"f": "cles/P0175.png"
+},
+{
+"t": 180,
+"seg": "P",
+"f": "cles/P0180.png"
+},
+{
+"t": 185,
+"seg": "P",
+"f": "cles/P0185.png"
+},
+{
+"t": 190,
+"seg": "P",
+"f": "cles/P0190.png"
+},
+{
+"t": 195,
+"seg": "P",
+"f": "cles/P0195.png"
+},
+{
+"t": 200,
+"seg": "P",
+"f": "cles/P0200.png"
+},
+{
+"t": 205,
+"seg": "P",
+"f": "cles/P0205.png"
+},
+{
+"t": 210,
+"seg": "P",
+"f": "cles/P0210.png"
+},
+{
+"t": 215,
+"seg": "P",
+"f": "cles/P0215.png"
+},
+{
+"t": 220,
+"seg": "P",
+"f": "cles/P0220.png"
+},
+{
+"t": 225,
+"seg": "P",
+"f": "cles/P0225.png"
+},
+{
+"t": 230,
+"seg": "P",
+"f": "cles/P0230.png"
+},
+{
+"t": 235,
+"seg": "P",
+"f": "cles/P0235.png"
+},
+{
+"t": 240,
+"seg": "P",
+"f": "cles/P0240.png"
+},
+{
+"t": 245,
+"seg": "P",
+"f": "cles/P0245.png"
+},
+{
+"t": 250,
+"seg": "P",
+"f": "cles/P0250.png"
+},
+{
+"t": 255,
+"seg": "P",
+"f": "cles/P0255.png"
+},
+{
+"t": 260,
+"seg": "P",
+"f": "cles/P0260.png"
+},
+{
+"t": 265,
+"seg": "P",
+"f": "cles/P0265.png"
+},
+{
+"t": 270,
+"seg": "P",
+"f": "cles/P0270.png"
+},
+{
+"t": 275,
+"seg": "P",
+"f": "cles/P0275.png"
+},
+{
+"t": 280,
+"seg": "P",
+"f": "cles/P0280.png"
+},
+{
+"t": 285,
+"seg": "P",
+"f": "cles/P0285.png"
+},
+{
+"t": 290,
+"seg": "P",
+"f": "cles/P0290.png"
+},
+{
+"t": 295,
+"seg": "P",
+"f": "cles/P0295.png"
+},
+{
+"t": 300,
+"seg": "P",
+"f": "cles/P0300.png"
+},
+{
+"t": 305,
+"seg": "P",
+"f": "cles/P0305.png"
+},
+{
+"t": 310,
+"seg": "P",
+"f": "cles/P0310.png"
+},
+{
+"t": 315,
+"seg": "P",
+"f": "cles/P0315.png"
+},
+{
+"t": 320,
+"seg": "P",
+"f": "cles/P0320.png"
+},
+{
+"t": 325,
+"seg": "P",
+"f": "cles/P0325.png"
+},
+{
+"t": 330,
+"seg": "P",
+"f": "cles/P0330.png"
+},
+{
+"t": 335,
+"seg": "P",
+"f": "cles/P0335.png"
+},
+{
+"t": 340,
+"seg": "P",
+"f": "cles/P0340.png"
+},
+{
+"t": 345,
+"seg": "P",
+"f": "cles/P0345.png"
+},
+{
+"t": 350,
+"seg": "P",
+"f": "cles/P0350.png"
+},
+{
+"t": 355,
+"seg": "P",
+"f": "cles/P0355.png"
+},
+{
+"t": 360,
+"seg": "P",
+"f": "cles/P0360.png"
+},
+{
+"t": 365,
+"seg": "P",
+"f": "cles/P0365.png"
+},
+{
+"t": 370,
+"seg": "P",
+"f": "cles/P0370.png"
+},
+{
+"t": 375,
+"seg": "P",
+"f": "cles/P0375.png"
+},
+{
+"t": 380,
+"seg": "P",
+"f": "cles/P0380.png"
+},
+{
+"t": 385,
+"seg": "P",
+"f": "cles/P0385.png"
+},
+{
+"t": 390,
+"seg": "P",
+"f": "cles/P0390.png"
+},
+{
+"t": 395,
+"seg": "P",
+"f": "cles/P0395.png"
+},
+{
+"t": 400,
+"seg": "P",
+"f": "cles/P0400.png"
+},
+{
+"t": 405,
+"seg": "P",
+"f": "cles/P0405.png"
+},
+{
+"t": 410,
+"seg": "P",
+"f": "cles/P0410.png"
+},
+{
+"t": 415,
+"seg": "P",
+"f": "cles/P0415.png"
+},
+{
+"t": 420,
+"seg": "P",
+"f": "cles/P0420.png"
+},
+{
+"t": 425,
+"seg": "P",
+"f": "cles/P0425.png"
+},
+{
+"t": 430,
+"seg": "P",
+"f": "cles/P0430.png"
+},
+{
+"t": 435,
+"seg": "P",
+"f": "cles/P0435.png"
+},
+{
+"t": 440,
+"seg": "P",
+"f": "cles/P0440.png"
+},
+{
+"t": 445,
+"seg": "P",
+"f": "cles/P0445.png"
+},
+{
+"t": 450,
+"seg": "P",
+"f": "cles/P0450.png"
+},
+{
+"t": 455,
+"seg": "P",
+"f": "cles/P0455.png"
+},
+{
+"t": 460,
+"seg": "P",
+"f": "cles/P0460.png"
+},
+{
+"t": 465,
+"seg": "P",
+"f": "cles/P0465.png"
+},
+{
+"t": 470,
+"seg": "P",
+"f": "cles/P0470.png"
+},
+{
+"t": 475,
+"seg": "P",
+"f": "cles/P0475.png"
+},
+{
+"t": 480,
+"seg": "P",
+"f": "cles/P0480.png"
+},
+{
+"t": 485,
+"seg": "P",
+"f": "cles/P0485.png"
+},
+{
+"t": 490,
+"seg": "P",
+"f": "cles/P0490.png"
+},
+{
+"t": 495,
+"seg": "P",
+"f": "cles/P0495.png"
+},
+{
+"t": 500,
+"seg": "P",
+"f": "cles/P0500.png"
+},
+{
+"t": 505,
+"seg": "P",
+"f": "cles/P0505.png"
+},
+{
+"t": 510,
+"seg": "P",
+"f": "cles/P0510.png"
+},
+{
+"t": 515,
+"seg": "P",
+"f": "cles/P0515.png"
+},
+{
+"t": 520,
+"seg": "P",
+"f": "cles/P0520.png"
+},
+{
+"t": 525,
+"seg": "P",
+"f": "cles/P0525.png"
+},
+{
+"t": 530,
+"seg": "P",
+"f": "cles/P0530.png"
+},
+{
+"t": 535,
+"seg": "P",
+"f": "cles/P0535.png"
+},
+{
+"t": 540,
+"seg": "P",
+"f": "cles/P0540.png"
+},
+{
+"t": 540,
+"seg": "M",
+"f": "cles/M0540.png"
+},
+{
+"t": 550,
+"seg": "M",
+"f": "cles/M0550.png"
+},
+{
+"t": 560,
+"seg": "M",
+"f": "cles/M0560.png"
+},
+{
+"t": 570,
+"seg": "M",
+"f": "cles/M0570.png"
+},
+{
+"t": 580,
+"seg": "M",
+"f": "cles/M0580.png"
+},
+{
+"t": 590,
+"seg": "M",
+"f": "cles/M0590.png"
+},
+{
+"t": 600,
+"seg": "M",
+"f": "cles/M0600.png"
+},
+{
+"t": 610,
+"seg": "M",
+"f": "cles/M0610.png"
+},
+{
+"t": 620,
+"seg": "M",
+"f": "cles/M0620.png"
+},
+{
+"t": 630,
+"seg": "M",
+"f": "cles/M0630.png"
+},
+{
+"t": 640,
+"seg": "M",
+"f": "cles/M0640.png"
+},
+{
+"t": 650,
+"seg": "M",
+"f": "cles/M0650.png"
+},
+{
+"t": 660,
+"seg": "M",
+"f": "cles/M0660.png"
+},
+{
+"t": 670,
+"seg": "M",
+"f": "cles/M0670.png"
+},
+{
+"t": 680,
+"seg": "M",
+"f": "cles/M0680.png"
+},
+{
+"t": 690,
+"seg": "M",
+"f": "cles/M0690.png"
+},
+{
+"t": 700,
+"seg": "M",
+"f": "cles/M0700.png"
+},
+{
+"t": 710,
+"seg": "M",
+"f": "cles/M0710.png"
+},
+{
+"t": 720,
+"seg": "M",
+"f": "cles/M0720.png"
+},
+{
+"t": 730,
+"seg": "M",
+"f": "cles/M0730.png"
+},
+{
+"t": 740,
+"seg": "M",
+"f": "cles/M0740.png"
+},
+{
+"t": 750,
+"seg": "M",
+"f": "cles/M0750.png"
+},
+{
+"t": 760,
+"seg": "M",
+"f": "cles/M0760.png"
+},
+{
+"t": 770,
+"seg": "M",
+"f": "cles/M0770.png"
+},
+{
+"t": 780,
+"seg": "M",
+"f": "cles/M0780.png"
+},
+{
+"t": 790,
+"seg": "M",
+"f": "cles/M0790.png"
+},
+{
+"t": 800,
+"seg": "M",
+"f": "cles/M0800.png"
+},
+{
+"t": 810,
+"seg": "M",
+"f": "cles/M0810.png"
+},
+{
+"t": 820,
+"seg": "M",
+"f": "cles/M0820.png"
+},
+{
+"t": 830,
+"seg": "M",
+"f": "cles/M0830.png"
+},
+{
+"t": 840,
+"seg": "M",
+"f": "cles/M0840.png"
+},
+{
+"t": 850,
+"seg": "M",
+"f": "cles/M0850.png"
+},
+{
+"t": 860,
+"seg": "M",
+"f": "cles/M0860.png"
+},
+{
+"t": 870,
+"seg": "M",
+"f": "cles/M0870.png"
+},
+{
+"t": 880,
+"seg": "M",
+"f": "cles/M0880.png"
+},
+{
+"t": 890,
+"seg": "M",
+"f": "cles/M0890.png"
+},
+{
+"t": 900,
+"seg": "M",
+"f": "cles/M0900.png"
+},
+{
+"t": 910,
+"seg": "M",
+"f": "cles/M0910.png"
+},
+{
+"t": 920,
+"seg": "M",
+"f": "cles/M0920.png"
+},
+{
+"t": 930,
+"seg": "M",
+"f": "cles/M0930.png"
+},
+{
+"t": 940,
+"seg": "M",
+"f": "cles/M0940.png"
+},
+{
+"t": 950,
+"seg": "M",
+"f": "cles/M0950.png"
+},
+{
+"t": 960,
+"seg": "M",
+"f": "cles/M0960.png"
+},
+{
+"t": 970,
+"seg": "M",
+"f": "cles/M0970.png"
+},
+{
+"t": 980,
+"seg": "M",
+"f": "cles/M0980.png"
+},
+{
+"t": 990,
+"seg": "M",
+"f": "cles/M0990.png"
+},
+{
+"t": 1000,
+"seg": "M",
+"f": "cles/M1000.png"
+}
+],
+"sources": [
+"Scotese & Wright 2018, PALEOMAP PaleoDEMs, Zenodo 5460860",
+"Scotese 2016, PALEOMAP Global Plate Model (PaleoAtlas v3), Zenodo 5460860",
+"Merdith et al. 2021, Earth-Science Reviews 214, 103477, Zenodo 13635864 (v1.2.4)"
+]
+}
