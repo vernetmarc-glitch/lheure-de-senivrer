@@ -35,15 +35,15 @@
   },
   "sapiens": {
    "origines": 1,
-   "contraintes": 24
+   "contraintes": 1131
   },
   "sapiens1": {
    "origines": 1,
-   "contraintes": 3
+   "contraintes": 24
   },
   "neandertal": {
    "origines": 1,
-   "contraintes": 10
+   "contraintes": 1491
   },
   "denisova": {
    "origines": 1,
@@ -55,7 +55,7 @@
   },
   "erectus": {
    "origines": 1,
-   "contraintes": 17
+   "contraintes": 445
   }
  },
  "logmax": 7.0,
