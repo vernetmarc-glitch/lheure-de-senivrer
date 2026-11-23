@@ -4,7 +4,7 @@
 
 ```
 Zenodo : https://zenodo.org/api/records/1423176/versions/latest -> enregistrement 7802275 version None | 21 fichiers
-téléchargé https://zenodo.org/api/records/7802275/files/alpcyc.1km.epic.pp.ex.1ka.nc/content -> 433451764 octets
+déjà en cache : /home/runner/glaciers-dl/alpcyc.1km.epic.pp.ex.1ka.nc 433451764 octets
 --- attributs globaux ---
   Conventions = CF-1.5
   command = julien@altair 2020-01-09 17:51:34 UTC: ./postprocess_alpcyc_cts.py
@@ -69,15 +69,15 @@ aire englacée de la fenêtre : max 11726 km² à 24000 ans
 Grésivaudan (Crolles) : maille 81 84 épaisseur au maximum 667 m
 le nord géographique fait 2.27 ° avec l’axe y de la grille
 coins (lon, lat) : [(4.893736224800993, 44.4899590255151), (6.725018000963475, 45.891417633481836)]
-téléchargé https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N44_00_E004_00_DEM/Copernicus_DSM_COG_10_N44_00_E004_00_DEM.tif -> 45405284 octets
-téléchargé https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N44_00_E005_00_DEM/Copernicus_DSM_COG_10_N44_00_E005_00_DEM.tif -> 43277344 octets
-téléchargé https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N44_00_E006_00_DEM/Copernicus_DSM_COG_10_N44_00_E006_00_DEM.tif -> 42181091 octets
-téléchargé https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N45_00_E004_00_DEM/Copernicus_DSM_COG_10_N45_00_E004_00_DEM.tif -> 43229419 octets
-téléchargé https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N45_00_E005_00_DEM/Copernicus_DSM_COG_10_N45_00_E005_00_DEM.tif -> 43632827 octets
-téléchargé https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N45_00_E006_00_DEM/Copernicus_DSM_COG_10_N45_00_E006_00_DEM.tif -> 42310635 octets
-téléchargé https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N46_00_E004_00_DEM/Copernicus_DSM_COG_10_N46_00_E004_00_DEM.tif -> 43469680 octets
-téléchargé https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N46_00_E005_00_DEM/Copernicus_DSM_COG_10_N46_00_E005_00_DEM.tif -> 43597393 octets
-téléchargé https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N46_00_E006_00_DEM/Copernicus_DSM_COG_10_N46_00_E006_00_DEM.tif -> 38504837 octets
+déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N44_00_E004_00_DEM.tif 45405284 octets
+déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N44_00_E005_00_DEM.tif 43277344 octets
+déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N44_00_E006_00_DEM.tif 42181091 octets
+déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N45_00_E004_00_DEM.tif 43229419 octets
+déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N45_00_E005_00_DEM.tif 43632827 octets
+déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N45_00_E006_00_DEM.tif 42310635 octets
+déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N46_00_E004_00_DEM.tif 43469680 octets
+déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N46_00_E005_00_DEM.tif 43597393 octets
+déjà en cache : /home/runner/glaciers-dl/GLO-30/Copernicus_DSM_COG_10_N46_00_E006_00_DEM.tif 38504837 octets
 relief GLO-30 : 9 tuiles, lacunes 0.0 % min 101.52166 max 3997.1606
 sortie glace.bin.gz 2721843 octets
 sortie meta.json 4609 octets
