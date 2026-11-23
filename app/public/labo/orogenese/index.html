@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="../../favicon-32.png">
+<title>L'orogenèse — labo</title>
+<style>
+:root { --nuit: #04050a; --texte: #e8e6df; --doux: #9a9fab; --accent: #cfe6ff; }
+html, body { height: 100%; margin: 0; background: var(--nuit); color: var(--texte); overflow: hidden;
+  font-family: Jost, "Helvetica Neue", Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+#haut { position: absolute; left: 16px; right: 140px; top: calc(14px + env(safe-area-inset-top, 0px)); }
+#haut h1 { font-family: Cinzel, Georgia, serif; font-weight: 600; font-size: 15px; letter-spacing: 0.04em; margin: 0; color: var(--doux); }
+#date { font-family: Cinzel, Georgia, serif; font-weight: 500; font-size: 30px; margin-top: 4px; text-shadow: 0 1px 8px #000; }
+#cadre { position: absolute; left: 0; right: 0; top: 132px; }
+#carte { display: block; width: 100%; image-rendering: auto; }
+.lieu { position: absolute; transform: translate(-50%, -50%); font-size: 11px; letter-spacing: 0.06em; white-space: nowrap;
+  color: #fff; text-shadow: 0 0 3px #000, 0 1px 6px #000; pointer-events: none; transition: opacity 0.6s; }
+.lieu.frag { font-family: Cinzel, Georgia, serif; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; }
+.lieu.ville { font-size: 10px; color: #e6e3d8; opacity: 0.8; }
+.lieu.ville::before { content: ""; display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: #fff; margin-right: 4px; vertical-align: middle; }
+#trace { position: absolute; inset: 0; pointer-events: none; }
+#recit { margin: 14px 18px 0; font-size: 15px; line-height: 1.45; min-height: 4.4em; max-width: 34em; transition: opacity 0.5s; }
+#panneau { display: none; margin: 10px 12px 0; }
+#panneau.vu { display: block; }
+#coupe { display: block; width: 100%; image-rendering: pixelated; border-top: 1px solid #333a; }
+#legende { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; font-size: 11px; color: var(--doux); }
+#legende span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 4px; vertical-align: -1px; background: var(--c); }
+#echelle { font-size: 11px; color: var(--doux); margin-top: 4px; }
+#bas { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: 12px; background: linear-gradient(transparent, #04050aee 30%); }
+#bas button { background: #ffffff14; color: var(--texte); border: 1px solid #ffffff30; border-radius: 18px; height: 36px;
+  min-width: 36px; padding: 0 12px; font: inherit; font-size: 14px; }
+#bas button.actif { background: #cfe6ff30; border-color: #cfe6ff90; }
+#barre { flex: 1; accent-color: #d7b26c; }
+</style>
+</head>
+<body>
+<div id="haut">
+  <h1>Les Alpes naissent</h1>
+  <div id="date">84 Ma</div>
+</div>
+<div id="cadre">
+  <canvas id="carte"></canvas>
+  <svg id="trace"></svg>
+</div>
+<div id="recit-boite"><p id="recit"></p></div>
+<div id="panneau">
+  <canvas id="coupe"></canvas>
+  <div id="echelle"></div>
+  <div id="legende"></div>
+</div>
+<div id="bas">
+  <button id="blire" aria-label="lire">▶</button>
+  <input id="barre" type="range" min="-84" max="0" step="0.01" value="-84" aria-label="temps">
+  <button id="bcoupe">coupe</button>
+</div>
+<script type="module" src="orogenese.js"></script>
+</body>
+</html>

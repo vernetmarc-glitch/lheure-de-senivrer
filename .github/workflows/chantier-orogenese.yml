@@ -1,0 +1,96 @@
+# Chantier S7b — orogenèse géodynamique : calcule les coupes thermo-mécaniques (geodyn.py)
+# sur les machines GitHub, en deux étapes de 5 h 30 enchaînées avec reprise, puis assemble
+# le paquet publié (carte + coupes) et le dépose sur la branche.
+name: chantier-orogenese
+on:
+  push:
+    branches: [chantier/orogenese]
+    paths:
+      - "app/public/labo/orogenese/sim/**"
+      - ".github/workflows/chantier-orogenese.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: chantier-orogenese
+  cancel-in-progress: true
+env:
+  PAS_KM: "5"
+  BUDGET_S: "19800"
+jobs:
+  coupe:
+    strategy:
+      fail-fast: false
+      matrix:
+        nom: ["Argentera–Ligurie", "Grenoble–Turin", "Valais–Ossola", "Grisons"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install numpy scipy fastscapelib==0.3.0
+      - name: Calcul, étape 1
+        working-directory: app/public/labo/orogenese/sim
+        run: |
+          mkdir -p sorties
+          python3 geodyn.py coupes.json "${{ matrix.nom }}" "sorties/${{ matrix.nom }}.npz" \
+            --pas-km "$PAS_KM" --budget-s "$BUDGET_S" | tee "sorties/${{ matrix.nom }}.journal" || test ${PIPESTATUS[0]} -eq 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coupe-${{ strategy.job-index }}
+          path: app/public/labo/orogenese/sim/sorties/
+          retention-days: 5
+  suite:
+    needs: coupe
+    strategy:
+      fail-fast: false
+      matrix:
+        nom: ["Argentera–Ligurie", "Grenoble–Turin", "Valais–Ossola", "Grisons"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/download-artifact@v4
+        with:
+          name: coupe-${{ strategy.job-index }}
+          path: app/public/labo/orogenese/sim/sorties/
+      - name: Calcul, étape 2 (reprise si nécessaire)
+        working-directory: app/public/labo/orogenese/sim
+        run: |
+          if [ -f "sorties/${{ matrix.nom }}.npz" ]; then echo "déjà fini"; exit 0; fi
+          pip install numpy scipy fastscapelib==0.3.0
+          python3 geodyn.py coupes.json "${{ matrix.nom }}" "sorties/${{ matrix.nom }}.npz" \
+            --pas-km "$PAS_KM" --budget-s "$BUDGET_S" | tee -a "sorties/${{ matrix.nom }}.journal"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coupe2-${{ strategy.job-index }}
+          path: app/public/labo/orogenese/sim/sorties/
+          retention-days: 5
+  assemble:
+    needs: suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install numpy
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coupe2-*
+          merge-multiple: true
+          path: app/public/labo/orogenese/sim/sorties/
+      - name: Paquet publié
+        working-directory: app/public/labo/orogenese/sim
+        run: |
+          rm -rf ../donnees && python3 carte.py coupes.json sorties ../donnees
+          mkdir -p journaux && cp sorties/*.journal journaux/
+      - name: Dépôt sur la branche
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/public/labo/orogenese/donnees app/public/labo/orogenese/sim/journaux
+          git commit -m "Orogenèse : coupes calculées à ${PAS_KM} km et paquet assemblé (workflow) [skip ci]" || exit 0
+          git pull --rebase origin chantier/orogenese && git push origin HEAD:chantier/orogenese

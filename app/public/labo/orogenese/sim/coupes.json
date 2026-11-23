@@ -1,0 +1,115 @@
+{
+ "source": "Paléogéographie à 84 Ma : hypothèses de chantier d'après Le Breton et al. 2021 (Solid Earth 12, 885) et Schmid et al. 2004 ; largeurs à confronter à van Hinsbergen et al. 2020.",
+ "coupes": [
+  {
+   "nom": "Argentera–Ligurie",
+   "valais_km": 0,
+   "brianconnais_km": 120,
+   "ocean_km": 380,
+   "facteur_35": 1.0,
+   "graine": 1,
+   "point_arc": [
+    6.75,
+    44.35
+   ]
+  },
+  {
+   "nom": "Grenoble–Turin",
+   "valais_km": 40,
+   "brianconnais_km": 130,
+   "ocean_km": 350,
+   "facteur_35": 1.0,
+   "graine": 2,
+   "point_arc": [
+    6.62,
+    45.25
+   ]
+  },
+  {
+   "nom": "Valais–Ossola",
+   "valais_km": 110,
+   "brianconnais_km": 110,
+   "ocean_km": 300,
+   "facteur_35": 1.0,
+   "graine": 3,
+   "point_arc": [
+    8.0,
+    46.25
+   ]
+  },
+  {
+   "nom": "Grisons",
+   "valais_km": 140,
+   "brianconnais_km": 70,
+   "ocean_km": 320,
+   "facteur_35": 1.0,
+   "graine": 4,
+   "point_arc": [
+    9.6,
+    46.75
+   ]
+  }
+ ],
+ "arc": [
+  [
+   7.25,
+   43.95
+  ],
+  [
+   6.75,
+   44.35
+  ],
+  [
+   6.55,
+   44.75
+  ],
+  [
+   6.62,
+   45.2
+  ],
+  [
+   6.85,
+   45.75
+  ],
+  [
+   7.25,
+   46.05
+  ],
+  [
+   8.0,
+   46.25
+  ],
+  [
+   8.8,
+   46.55
+  ],
+  [
+   9.6,
+   46.75
+  ],
+  [
+   10.5,
+   46.95
+  ],
+  [
+   11.8,
+   47.05
+  ],
+  [
+   13.0,
+   47.1
+  ]
+ ],
+ "arc_source": "Front pennique actuel, tracé simplifié d'après Schmid et al. 2004 (carte tectonique des Alpes)",
+ "carte": {
+  "x0_km": -160,
+  "y0_km": -220,
+  "nx": 200,
+  "ny": 150,
+  "pas_km": 4.0,
+  "origine": [
+   5.72,
+   45.19
+  ]
+ }
+}
