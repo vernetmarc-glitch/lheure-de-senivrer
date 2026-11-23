@@ -1,13 +1,14 @@
-"""Planche du chantier S3 : la page servie, à 5 instants (aujourd'hui, 66 Ma, 250 Ma,
-540 Ma, 1 Ga), vue donnée par la caméra automatique de la page.
+"""Planche des chantiers S3/S3b : la page servie, à 2,7 Ga, 1,6 Ga, 900 Ma, 600 Ma, 300 Ma et
+aujourd'hui (un instant hors de la plage publiée montre la borne, et le dit), vue donnée par
+la caméra automatique de la page.
 Usage : python3 planche.py <sortie.png>"""
 import asyncio, sys, io, pathlib
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from controles import port_libre, servir, etat, URL_PAGE
 
-INSTANTS = [0, 66, 250, 540, 1000]
+INSTANTS = [2700, 1600, 900, 600, 300, 0]
 
 
 async def main(sortie):
@@ -25,7 +26,12 @@ async def main(sortie):
         for t in INSTANTS:            # caméra automatique de la page (continents éclairés)
             await pg.evaluate("t => terre.regler({t, auto: true})", float(t))
             await pg.wait_for_timeout(300)
-            vues.append(Image.open(io.BytesIO(await pg.screenshot())).convert("RGB"))
+            reel = (await pg.evaluate("terre.etat()"))["t"]
+            im = Image.open(io.BytesIO(await pg.screenshot())).convert("RGB")
+            d = ImageDraw.Draw(im)
+            txt = f"demandé {t} Ma" + ("" if abs(reel - t) < 1 else f" — hors plage, montré {reel:g} Ma")
+            d.rectangle([0, im.height - 44, im.width, im.height], fill=(4, 5, 10)); d.text((16, im.height - 38), txt, fill=(230, 228, 220), font=ImageFont.load_default(size=26))
+            vues.append(im)
         await b.close()
     srv.shutdown()
     W, H = vues[0].size

@@ -1,0 +1,7 @@
+Contrôles S3b montrés en échec sur la page de l'étape 1 (commit 5cadbeb), mesurée comme si elle devait couvrir 4,54 Ga -> aujourd'hui (--visee 4540), 23/11/2026 :
+ÉCHEC C6  4540 Ma→0 = 11.89 % (attendu 100.00 %) ; avant 4540 Ma hachuré = 88.10 % (attendu 0.00 %), « à venir » ; borne : t demandé 4540 -> 540 Ma, glissière [0, 540] ; Pangée+hercynien = 4.51 % (attendu 4.52 %) ; curseur à 1000 Ma décalé de 35.5 px
+ÉCHEC C13  plus grand bloc continental : Nuna 69 % (à 1650 Ma), Rodinia 69 % (à 950 Ma), Gondwana 72 % (à 500 Ma), Pangée 100 % (à 320 Ma) (seuil 70 %)
+ÉCHEC C14  la page ne donne pas la position actuelle de la croûte (terre.actuelEquirect)
+ÉCHEC C15  terres éclairées vertes : 540 Ma 0.1 %, 500 Ma 0.0 %, 470 Ma 0.0 %, 420 Ma 0.1 %, 380 Ma 0.1 %, 340 Ma 0.0 %, 300 Ma 0.0 % (≤ 1 % jusqu'à 470 Ma ; +15 points de 420 à 300 Ma)
+ÉCHEC C16  Vaalbara absente ; Ur absente ; Kenorland absente ; Nuna absente ; Rodinia absente ; Pannotia absente ; Pangée absente ; ruban de la vie absent
+ÉCHEC C17  terres émergées : 3500 Ma 18.5 %, 3000 Ma 18.5 %, 2700 Ma 18.5 % (seuil 15 %)
