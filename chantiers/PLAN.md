@@ -143,3 +143,21 @@ démarrent.
 - Contrôles : l'étendue de glace à chaque instant est celle des données (à 1 maille
   près) ; maximum vers 25 000 ans avec la glace dans le Grésivaudan ; les traînées vont
   dans le sens des vitesses publiées (écart angulaire médian < 15°).
+
+## S7b — L'orogenèse géodynamique (`labo/orogenese`, retour de Marc du 23/11, 16 h 46)
+- Exigences N30–N34, décision D-48. Remplace, pour 120 → ≈ 5 Ma, le film FastScape à
+  tectonique imposée de S7 ; S7 garde la fin (relief réel, glaciers) et le zoom final.
+- Cinématique : fragments (Europe, Adria, Briançonnais, Corse-Sardaigne, Ibérie, océan
+  liguro-piémontais, Valais) déplacés selon van Hinsbergen et al. 2020 (GPlates) ; ce sont
+  des conditions aux limites, pas l'image.
+- Mécanique : modèle thermo-mécanique en couches (sédiments, croûte supérieure, croûte
+  inférieure, manteau, croûte océanique), 3D LaMEM + FastScape si le budget le permet,
+  sinon 2D ASPECT + FastScape sur plusieurs coupes, raccordées en plan par la cinématique ;
+  calculs sur les machines GitHub, enchaînés.
+- Vue : d'abord les Alpes entières (≈ 800 km), l'Adria qui ferme la Téthys ; le cadre se
+  resserre sur Grenoble vers le présent, jusqu'à la vue d'avion de S7 ; coupe à la demande.
+- Contrôles d'abord : convergence Europe–Adria = reconstruction (680 km depuis 84 Ma, à
+  10 %) ; Téthys fermée vers 35 Ma ; fragments suivis qui se déplacent les uns par rapport
+  aux autres (≥ 50 km de mouvement relatif après −35 Ma) ; relief à −20 Ma décorrélé du
+  relief final (corrélation < 0,3) ; altitudes dans les fourchettes publiées ; vallées en U
+  seulement dans les 2,6 derniers Ma ; continuité des couches (aucune maille sans matériau).

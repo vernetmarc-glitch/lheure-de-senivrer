@@ -495,3 +495,13 @@ desserrement : l'ancienne mesure ne testait pas ce que l'exigence N8 décrit.
 De l'orogenèse hercynienne à la dislocation de la Pangée (≈ 380 → 175 Ma), on couvre
 environ 4,5 % de l'histoire de la Terre, et non « environ un dixième ». La frise montre la
 vraie proportion ; N8 est lu ainsi.
+
+## D-48 — L'orogenèse devient une simulation géodynamique *(23/11/2026, Marc)*
+Retour de Marc sur la page Alpes : on doit voir des fragments de plaque se déplacer, se
+heurter, se chevaucher, monter et s'user, avec un modèle de mécanique des solides et des
+fluides. Nouveau chantier S7b : cinématique publiée (van Hinsbergen et al. 2020, GPlates ;
+Le Breton et al. 2021 : 680 km de convergence Europe–Adria depuis 84 Ma) imposée à un
+modèle thermo-mécanique en couches (LaMEM 3D ou ASPECT) couplé à FastScape ; vue des
+Alpes entières, puis zoom sur Grenoble ; coupe = vraie machine à laver. Altitudes : celles
+que la physique produit, confrontées aux estimations publiées (moyennes miocènes
+1 900–2 850 m, sommets estimés 2 500 à plus de 5 000 m) ; 10 000 m n'est pas imposé.
