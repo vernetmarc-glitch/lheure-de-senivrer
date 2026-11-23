@@ -71,6 +71,34 @@ def decoder_paquet(base, meta):
     return np.array(H, np.float32), np.array(U), np.array(E), np.array(X)
 
 
+def lab(rgb):
+    """sRGB 0–255 -> CIE L*a*b* (D65)."""
+    c = np.asarray(rgb, np.float64) / 255.0
+    c = np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+    M = np.array([[0.4124, 0.3576, 0.1805], [0.2126, 0.7152, 0.0722], [0.0193, 0.1192, 0.9505]])
+    xyz = c @ M.T / np.array([0.95047, 1.0, 1.08883])
+    f = np.where(xyz > 0.008856, np.cbrt(xyz), 7.787 * xyz + 16 / 116)
+    return np.stack([116 * f[..., 1] - 16, 500 * (f[..., 0] - f[..., 1]), 200 * (f[..., 1] - f[..., 2])], -1)
+
+
+def delta_e(a, b):
+    return np.linalg.norm(lab(a) - lab(b), axis=-1)
+
+
+def ombre_python(h, n, pas_m, az, el, nb, exa):
+    """Même marche vers le Soleil que le nuanceur de sommets (alpes.js, VS)."""
+    h = np.maximum(h.reshape(n, n), 0) * exa
+    d = np.array([np.sin(np.radians(az)), np.cos(np.radians(az))]); d /= np.linalg.norm(d)
+    tg = np.tan(np.radians(el))
+    jj, ii = np.meshgrid(np.arange(n), np.arange(n))
+    marge = np.full((n, n), 1e9)
+    for s_ in range(1, nb + 1):
+        pj = np.clip(np.floor(jj + d[0] * s_ + 0.5).astype(int), 0, n - 1)
+        pi = np.clip(np.floor(ii - d[1] * s_ + 0.5).astype(int), 0, n - 1)
+        marge = np.minimum(marge, (h + s_ * pas_m * tg - h[pi, pj]) / (s_ * pas_m))
+    return marge > 0
+
+
 def taux(v, meta):
     """octet -> mm/an (codage racine carrée)."""
     return (v.astype(np.float32) / 255.0) ** 2 * meta["taux_max_mm_an"]
@@ -97,6 +125,9 @@ def controles_donnees(base):
     taille = sum(int(urllib.request.urlopen(base + "donnees/" + p["fichier"]).headers["Content-Length"])
                  for p in meta["paquets"])
     ok("D4 paquet léger (< 40 Mo)", taille < 40e6, f"{taille/1e6:.1f} Mo")
+    premiere = sum(len(lire(base + "donnees/" + f)) for f in
+                   ("meta.json", meta["paquets"][0]["fichier"], "reel_1024.bin.gz", "regles.png", "mosaique_2048.jpg"))
+    ok("N27 poids avant la première image ≤ 10 Mo", premiere <= 10e6, f"{premiere/1e6:.1f} Mo")
 
     H, U8, E8, X8 = decoder_paquet(base, meta)
     n = meta["n"]
@@ -191,25 +222,48 @@ def controles_page(base):
             pret = False
         ok("P1 page prête (paquet chargé, WebGL2)", pret)
         if pret:
+            controles_couleurs(page, base)
             # Vitesse réelle de la barre : temps géologique écoulé par seconde de lecture
-            mesures = {}
+            mesures, angles = {}, {}
             for t0 in (-20, -1.9, -1.2, -0.6, -0.2):
                 v = page.evaluate("""async (t0) => {
                     const A = window.ALPES; A.vitesse(1); A.aller(t0); A.lire();
                     await new Promise(r => setTimeout(r, 200));
                     const a = A.temps(), ta = performance.now();
                     await new Promise(r => setTimeout(r, 1500));
-                    const b = A.temps(), tb = performance.now(); A.pause();
-                    return (b - a) / ((tb - ta) / 1000);
+                    const b = A.temps(), tb = performance.now();
+                    const v = (b - a) / ((tb - ta) / 1000);
+                    const ang = A.compteur.angle(); A.pause();
+                    return [v, ang];
                 }""", t0)
-                mesures[t0] = v
+                mesures[t0], angles[t0] = v
             r = [mesures[k] for k in (-1.9, -1.2, -0.6, -0.2)]
             ok("N23 la barre ralentit : vitesse décroissante sur les 2 derniers Ma",
                all(r[i] > r[i + 1] > 0 for i in range(3)) and mesures[-20] > 3 * r[0],
                " ; ".join(f"{k} Ma : {v*1000:.0f} ka/s" for k, v in mesures.items()))
 
+            from math import log10
+            attendu = {k: -125 + 250 * min(max(log10(v * 1e6), 0), 10) / 10 for k, v in mesures.items()}
+            ecart_ang = max(abs(angles[k] - attendu[k]) for k in mesures)
+            ra = [angles[k] for k in (-1.9, -1.2, -0.6, -0.2)]
+            ok("N28 compteur : l'aiguille vaut la vitesse réelle (log, à 1° près) et redescend sur les 2 derniers Ma",
+               ecart_ang <= 1.0 and all(ra[i] > ra[i + 1] for i in range(3)),
+               f"écart max {ecart_ang:.2f}° ; aiguille " + ", ".join(f"{a:.1f}°" for a in ra))
+            page.evaluate("window.ALPES.pause(); window.ALPES.aller(-0.5)")
+            page.wait_for_timeout(1500)
+            butee = page.evaluate("window.ALPES.compteur.angle()")
+            ok("N28 compteur : temps à l'arrêt, aiguille sur la butée", butee < -135, f"{butee:.1f}°")
+
             page.evaluate("window.ALPES.aller(0)")
             page.wait_for_timeout(600)
+            geo = page.evaluate("""() => { const r = e => { const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; };
+                return { c: r(document.querySelector('.compteur')), bas: r(document.getElementById('bas')), date: r(document.getElementById('haut')),
+                  lieux: [...document.querySelectorAll('.lieu')].filter(e => getComputedStyle(e).opacity > 0.05).map(r) }; }""")
+            inter = lambda a, b: a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+            c = geo["c"]
+            libre = not any(inter(c, l) for l in geo["lieux"]) and not inter(c, geo["bas"])
+            ok("N28 compteur lisible sur 390 px (≥ 100 px) et ne masque ni lieu ni commande",
+               (c[2] - c[0]) >= 100 and c[2] <= 390 and libre, f"{c[2]-c[0]:.0f} px, {len(geo['lieux'])} lieux visibles")
             vis = page.evaluate("""() => ['Belledonne','Chartreuse','Vercors','Grésivaudan'].map(n =>
                 [...document.querySelectorAll('.lieu')].some(e => e.textContent.includes(n)
                  && getComputedStyle(e).opacity > 0.5 && e.getBoundingClientRect().width > 0))""")
@@ -245,6 +299,51 @@ def controles_page(base):
             print(f"       (images par seconde en rendu logiciel : {ims:.0f})")
         ok("P4 aucune erreur JavaScript", not erreurs, "; ".join(erreurs[:3]))
         nav.close()
+
+
+def controles_couleurs(page, base):
+    """Signature chiffrée S7 (docs/references-visuelles-refonte.md)."""
+    from PIL import Image
+    import io
+    meta = json.loads(lire(base + "donnees/meta.json"))
+    n = meta["n"]
+    mos = np.asarray(Image.open(io.BytesIO(lire(base + "donnees/mosaique_2048.jpg"))).convert("RGB"), np.float64)
+    f = mos.shape[0] // n
+    mos = mos.reshape(n, f, n, f, 3).mean(axis=(1, 3))
+    regle = np.array(page.evaluate("Array.from(window.ALPES.couleurs(0, 1, 0))"), np.float64).reshape(n, n, 3)
+    affiche = np.array(page.evaluate("Array.from(window.ALPES.couleurs(0, 1))"), np.float64).reshape(n, n, 3)
+    de_r, de_a = np.median(delta_e(regle, mos)), np.median(delta_e(affiche, mos))
+    ok("S7 aujourd'hui : couleurs affichées à ΔE ≤ 12 de la mosaïque Sentinel-2 (médiane)", de_a <= 12, f"ΔE {de_a:.1f}")
+    ok("S7 règles de couleur (roche, forêt, neige) à ΔE ≤ 12 de la mosaïque au dernier état", de_r <= 12, f"ΔE {de_r:.1f}")
+
+    # Les époques passées suivent les mêmes règles : table appliquée au relief publié
+    lut = np.asarray(Image.open(io.BytesIO(lire(base + "donnees/regles.png"))).convert("RGB"), np.float64)
+    H, _, _, _ = decoder_paquet(base, meta)
+    T = np.array(meta["temps_Ma"])
+    pires = []
+    for tt in (-30.0, -10.0, -2.5):
+        k = int(np.argmin(abs(T - tt)))
+        h = H[k].reshape(n, n).astype(np.float64)
+        gy, gx = np.gradient(h, meta["pas_m"])
+        pente = np.degrees(np.arctan(np.hypot(gx, gy)))
+        dc = page.evaluate(f"window.ALPES.decalage({T[k]})")
+        ia = np.clip((h + dc) / 5000 * lut.shape[1] - 0.5, 0, lut.shape[1] - 1).astype(int)
+        ip = np.clip(pente / 64 * lut.shape[0] - 0.5, 0, lut.shape[0] - 1).astype(int)
+        attendu = lut[ip, ia]
+        rendu = np.array(page.evaluate(f"Array.from(window.ALPES.couleurs({T[k]}, 1, 0))"), np.float64).reshape(n, n, 3)
+        terre = h > 0
+        pires.append(float(np.median(delta_e(rendu, attendu)[terre])))
+    ok("S7 époques passées : mêmes règles (ΔE médian ≤ 6 entre rendu et table appliquée au relief publié)",
+       max(pires) <= 6, " ; ".join(f"{t} Ma : {v:.1f}" for t, v in zip((-30, -10, -2.5), pires)))
+
+    # Ombres portées cohérentes avec un Soleil fixe
+    so = page.evaluate("window.ALPES.soleil")
+    attendu = ombre_python(H[-1], n, meta["pas_m"], so["azimut"], so["hauteur"], so["pas"], so["exageration"])
+    rendu = np.array(page.evaluate("Array.from(window.ALPES.couleurs(0, 2))"), np.float64).reshape(n, n, 3)[..., 0] > 127
+    accord = (attendu == rendu)[2:-2, 2:-2].mean()
+    part = 1 - rendu.mean()
+    ok("S7 ombres portées : accord ≥ 95 % avec la marche vers le Soleil fixe, 2–40 % du relief à l'ombre",
+       accord >= 0.95 and 0.02 <= part <= 0.40, f"accord {100*accord:.1f} %, ombre {100*part:.1f} %")
 
 
 def main():

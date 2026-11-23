@@ -71,8 +71,8 @@ export function decalageClimat(t) {
 
 // ------------------------------------------------------------------ lieux
 const LIEUX = [
-  ["Belledonne", 45.172, 5.993, true], ["Chartreuse", 45.300, 5.790, true],
-  ["Vercors", 45.000, 5.520, true], ["Grésivaudan", 45.290, 5.905, true],
+  ["Belledonne", 45.172, 5.993, true], ["Chartreuse", 45.390, 5.790, true],
+  ["Vercors", 45.000, 5.520, true], ["Grésivaudan", 45.355, 5.960, true],
   ["Grenoble", 45.188, 5.724, false], ["Mont-Blanc", 45.833, 6.865, false],
   ["Écrins", 44.922, 6.360, true], ["Chambéry", 45.566, 5.920, false],
 ];
@@ -182,7 +182,7 @@ precision highp float;
 in vec3 vPos; in vec2 vGrad; in float vH; in float vX; in vec2 vUV; in float vOmbre;
 uniform sampler2D detail, regles, mosaique;
 uniform float wDetail, wMosaique, climat, exa, tailleKm, modeRoches, xMaxLog;
-uniform int sortieMode;            // 0 image ; 1 couleur de surface (mesure) ; 2 ombre (mesure)
+uniform int sortieMode;            // 0 image ; 1 couleur de surface ; 2 ombre ; 3 éclairé sans brume (mesures, planche)
 uniform vec3 soleil, oeil, ciel;
 out vec4 sortie;
 float bruit(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -222,11 +222,12 @@ void main() {
     vec3 v = normalize(oeil - vPos); vec3 rf = reflect(-v, vec3(0, 0, 1));
     col += 0.25 * lin(ciel) * pow(1.0 - max(v.z, 0.0), 3.0) + 0.6 * pow(max(dot(rf, soleil), 0.0), 80.0) * vOmbre;
   }
+  if (sortieMode == 3) { sortie = vec4(pow(col, vec3(1.0 / 2.2)), 1.0); return; }
   float dist = length(oeil - vPos);
-  float brume = 1.0 - exp(-dist / 260.0);
+  float brume = 0.75 * (1.0 - exp(-max(dist - 60.0, 0.0) / 420.0));
   float bord = max(abs(vPos.x), abs(vPos.y)) / (tailleKm * 0.5);
   brume = max(brume, smoothstep(0.88, 1.0, bord));
-  col = mix(col, lin(ciel), brume * 0.8);
+  col = mix(col, lin(ciel), brume);
   sortie = vec4(pow(col, vec3(1.0 / 2.2)), 1.0);
 }`;
 
@@ -476,7 +477,7 @@ async function demarrer() {
     aller: tt => { t = Math.min(Math.max(tt, -45), 0); tPrec = t; dessiner(); },
     lire: () => { enLecture = true; $("lecture").textContent = "❚❚"; },
     pause: arreter, vitesse: a => { allure = a; }, temps: () => t, camera: () => ({ ...cam }),
-    dessiner, couleurs, compteur, positionDe, tempsDe, vitesseGeo,
+    dessiner, couleurs, compteur, decalage: decalageClimat, positionDe, tempsDe, vitesseGeo,
     soleil: { azimut: SOLEIL_AZ, hauteur: SOLEIL_EL, pas: PAS_OMBRE, exageration: EXAGERATION },
   };
   dessiner();
