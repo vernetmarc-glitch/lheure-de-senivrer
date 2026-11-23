@@ -152,10 +152,8 @@ def controles_donnees(base):
        f"avant {avant.max() if len(avant) else '–'} Ma, après {apres.max() if len(apres) else '–'} Ma")
     taille = sum(int(urllib.request.urlopen(urllib.request.Request(base + "donnees/" + p["fichier"], method="HEAD")).headers["Content-Length"])
                  for p in meta["paquets"])
-    ok("D4 paquet léger (< 40 Mo)", taille < 40e6, f"{taille/1e6:.1f} Mo")
-    premiere = sum(len(lire(base + "donnees/" + f)) for f in
-                   ("meta.json", meta["paquets"][0]["fichier"], "reel_1024.bin.gz", "regles.png", "mosaique_2048.jpg"))
-    ok("N27 poids avant la première image ≤ 10 Mo", premiere <= 10e6, f"{premiere/1e6:.1f} Mo")
+    total = sum(os.path.getsize(os.path.join(r, f)) for r, _, fs in os.walk(ICI) for f in fs)
+    ok("D4 poids de tout le dossier publié (film, glaciers, page) ≤ 15 Mo", total <= 15e6, f"{total/1e6:.1f} Mo")
 
     H, U8, E8, X8 = decoder_paquet(base, meta)
     n = meta["n"]
@@ -283,6 +281,9 @@ def controles_page(base):
         except Exception:
             pret = False
         ok("P1 page prête (paquet chargé, WebGL2)", pret)
+        pp = page.evaluate("window.ALPES && window.ALPES.poidsPremiereImage")
+        ok("N27 poids téléchargé avant la première image ≤ 4 Mo (mesuré par le navigateur)",
+           pp is not None and pp <= 4e6, f"{pp/1e6:.2f} Mo" if pp is not None else "non mesuré")
         if pret:
             meta_ = json.loads(lire(base + "donnees/meta.json"))
             controles_nettete_rendu(page, base, meta_, decoder_paquet(base, meta_)[0])

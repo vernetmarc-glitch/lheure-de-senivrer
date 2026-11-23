@@ -16,7 +16,7 @@ from PIL import Image
 from scipy.ndimage import gaussian_filter1d
 
 ICI = os.path.dirname(os.path.abspath(__file__))
-DON = os.path.join(ICI, "..", "donnees")
+DON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "app", "public", "labo", "alpes", "donnees")
 NA, DA, NP, DP = 100, 50.0, 16, 4.0
 
 

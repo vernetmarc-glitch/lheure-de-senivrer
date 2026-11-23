@@ -1,17 +1,19 @@
 name: Chantier S7 — Alpes
 
-# Le bac à sable ne joint pas les MNT ouverts (Copernicus sur AWS : 403).
-# Ce workflow, déclenché par push sur chantier/alpes :
-#   1. prépare le relief réel (sim/reel_1024.npz) s'il manque ou si prepare_mnt.py change ;
-#   1 bis. télécharge la mosaïque Sentinel-2 sans nuages (EOX) sur la même fenêtre ;
-#   2. relance la simulation FastScape (sim/simuler.py, 512²) si son empreinte change ;
-#   3. pousse le paquet léger (donnees/) sur la branche.
+# Le bac à sable ne joint pas les données ouvertes (Copernicus, EOX, Zenodo).
+# Déclenché par push sur chantier/alpes, ce workflow :
+#   1. prépare le relief réel (chantiers/alpes/reel_1024.npz) ;
+#   2. télécharge la mosaïque Sentinel-2 sans nuages (EOX) et apprend les règles de couleur ;
+#   3. reprojette les glaciers PISM de Seguinot et al. 2018 (épaisseur, vitesses, moraines) ;
+#   4. relance la simulation FastScape (512²) si son empreinte change ;
+#   5. pousse le paquet léger (app/public/labo/alpes/donnees/) sur la branche.
+# Les scripts restent dans chantiers/alpes/ (jamais publiés).
 
 on:
   push:
     branches: [chantier/alpes]
     paths:
-      - 'app/public/labo/alpes/sim/**'
+      - 'chantiers/alpes/**'
       - '.github/workflows/chantier-alpes.yml'
   workflow_dispatch:
 
@@ -25,10 +27,10 @@ permissions:
 jobs:
   alpes:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 150
     defaults:
       run:
-        working-directory: app/public/labo/alpes
+        working-directory: chantiers/alpes
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,47 +43,37 @@ jobs:
         run: pip install --quiet numpy scipy pillow rasterio pyproj netCDF4 fastscapelib==0.3.0
       - name: Relief réel (Copernicus GLO-90)
         run: |
-          E=$(sha256sum sim/prepare_mnt.py | cut -c1-16)
-          if [ ! -f sim/reel_1024.npz ] || [ "$(cat sim/reel_1024.empreinte 2>/dev/null)" != "$E" ]; then
-            python sim/prepare_mnt.py
-            echo "$E" > sim/reel_1024.empreinte
-          else
-            echo "relief réel à jour"
-          fi
-      - name: Mosaïque Sentinel-2 sans nuages (EOX s2cloudless)
+          E=$(sha256sum prepare_mnt.py | cut -c1-16)
+          if [ ! -f reel_1024.npz ] || [ "$(cat reel_1024.empreinte 2>/dev/null)" != "$E" ]; then
+            python prepare_mnt.py && echo "$E" > reel_1024.empreinte
+          else echo "relief réel à jour"; fi
+      - name: Mosaïque Sentinel-2 sans nuages (EOX s2cloudless) et règles de couleur
         run: |
-          E=$(sha256sum sim/prepare_mosaique.py | cut -c1-16)
-          if [ ! -f donnees/mosaique_2048.jpg ] || [ "$(cat sim/mosaique.empreinte 2>/dev/null)" != "$E" ]; then
-            python sim/prepare_mosaique.py
-            echo "$E" > sim/mosaique.empreinte
-          else
-            echo "mosaïque à jour"
-          fi
-          python sim/regles_couleurs.py
+          E=$(sha256sum prepare_mosaique.py | cut -c1-16)
+          if [ ! -f ../../app/public/labo/alpes/donnees/mosaique_2048.jpg ] || [ "$(cat mosaique.empreinte 2>/dev/null)" != "$E" ]; then
+            python prepare_mosaique.py && echo "$E" > mosaique.empreinte
+          else echo "mosaïque à jour"; fi
+          python regles_couleurs.py
       - name: Glaciers du dernier cycle (Seguinot et al. 2018, PISM)
         run: |
-          E=$(sha256sum sim/prepare_glace.py | cut -c1-16)
-          if [ ! -f donnees/glace.bin.gz ] || [ "$(cat sim/glace.empreinte 2>/dev/null)" != "$E" ]; then
-            python sim/prepare_glace.py
-            echo "$E" > sim/glace.empreinte
-          else
-            echo "glaciers à jour"
-          fi
+          E=$(cat prepare_glace.py moraines.py | sha256sum | cut -c1-16)
+          if [ ! -f ../../app/public/labo/alpes/donnees/vitesses.bin.gz ] || [ "$(cat glace.empreinte 2>/dev/null)" != "$E" ]; then
+            python prepare_glace.py && echo "$E" > glace.empreinte
+          else echo "glaciers à jour"; fi
       - name: Simulation FastScape
         run: |
-          if [ ! -f sim/simuler.py ]; then echo "pas encore de simulation"; exit 0; fi
-          E=$(cat sim/simuler.py sim/scenario.py sim/reel_1024.empreinte 2>/dev/null | sha256sum | cut -c1-16)
-          if [ "$(cat donnees/empreinte.txt 2>/dev/null)" = "$E" ]; then echo "simulation à jour"; exit 0; fi
-          python sim/simuler.py --n 512 --sortie donnees
-          echo "$E" > donnees/empreinte.txt
+          E=$(cat simuler.py scenario.py reel_1024.empreinte | sha256sum | cut -c1-16)
+          if [ "$(cat simulation.empreinte 2>/dev/null)" = "$E" ]; then echo "simulation à jour"; exit 0; fi
+          python simuler.py --n 512 && echo "$E" > simulation.empreinte
       - name: Pousser le paquet
         working-directory: .
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
-          git add -A app/public/labo/alpes
+          rm -f app/public/labo/alpes/donnees/empreinte.txt
+          git add -A app/public/labo/alpes/donnees chantiers/alpes
           if git diff --cached --quiet; then echo "rien à pousser"; exit 0; fi
-          git commit -m "Alpes : relief réel et simulation recalculés (workflow)"
+          git commit -m "Alpes : relief, mosaïque, glaciers et simulation recalculés (workflow)"
           for i in 1 2 3 4 5; do
             git pull --rebase origin chantier/alpes && git push origin HEAD:chantier/alpes && exit 0
             sleep 10

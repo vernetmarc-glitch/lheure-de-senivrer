@@ -63,9 +63,9 @@ def main():
     out = np.stack([map_coordinates(img[..., k].astype(np.float32), [row, col], order=1, mode="nearest")
                     for k in range(3)], -1)
     out = np.clip(np.round(out), 0, 255).astype(np.uint8)
-    dest = os.path.join(ICI, "..", "donnees")
+    dest = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "app", "public", "labo", "alpes", "donnees")
     os.makedirs(dest, exist_ok=True)
-    Image.fromarray(out).save(os.path.join(dest, "mosaique_2048.jpg"), quality=88, optimize=True)
+    Image.fromarray(out).save(os.path.join(dest, "mosaique_2048.jpg"), quality=82, optimize=True, progressive=True)
     annee = couche.split("-")[1] if "-" in couche else "2016"
     json.dump({"couche": couche, "attribution": f"Sentinel-2 cloudless – https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data {annee})"},
               open(os.path.join(ICI, "mosaique.json"), "w"), ensure_ascii=False)

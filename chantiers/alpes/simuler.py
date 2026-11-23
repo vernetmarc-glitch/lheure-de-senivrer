@@ -31,8 +31,9 @@ K_D = 0.05                                   # m²/an
 H_ZERO, H_PAS = -1000.0, 2.0                 # quantification du relief (m)
 TAUX_MAX = 8.0                               # mm/an, codage racine carrée
 X_MAX = 20000.0                              # m, profondeur d'origine des roches
-PAR_PAQUET = 8
-N_GRAINS = 1500
+PAR_PAQUET = 6                               # clés par fichier
+N_GRAINS = 1000
+PAS_CLE, Q_CLE, N_RES, Q_RES = 4, 10.0, 128, 8.0     # images clés et résidus (codage v3)
 N_X, N_UE = 256, 64                         # résolution des roches, du soulèvement et de l'érosion
 
 
@@ -50,7 +51,7 @@ def temps_etats():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=256)
-    ap.add_argument("--sortie", default=os.path.join(ICI, "..", "donnees"))
+    ap.add_argument("--sortie", default=os.path.join(ICI, "..", "..", "app", "public", "labo", "alpes", "donnees"))
     ap.add_argument("--dt", type=float, default=10000.0)
     args = ap.parse_args()
     N = args.n
@@ -218,51 +219,107 @@ def q_x(x):
     return np.round(255 * np.log1p(np.clip(x, 0, X_MAX) / 200) / np.log1p(X_MAX / 200)).astype(np.uint8)
 
 
+def agrandir(a, n):
+    """Bilinéaire aux centres de mailles, bords répétés — identique à alpes.js (agrandir)."""
+    m = a.shape[0]
+    c = np.clip((np.arange(n) + 0.5) * m / n - 0.5, 0, m - 1)
+    i0 = np.floor(c).astype(int); i1 = np.minimum(i0 + 1, m - 1); w = c - i0
+    a = a[i0] * (1 - w)[:, None] + a[i1] * w[:, None]
+    return a[:, i0] * (1 - w)[None, :] + a[:, i1] * w[None, :]
+
+
+def plans(a16):
+    a16 = np.ascontiguousarray(a16, "<i2")
+    v = a16.view(np.uint8).reshape(-1, 2)
+    return v[:, 0].tobytes() + v[:, 1].tobytes()
+
+
 def ecrire(sortie, T, etats, racc, reel1024, gr):
+    """Paquet v3 (voir meta.json, « codage »). Images clés tous les PAS_CLE états : relief
+    512² au pas Q_CLE, en différences d'une clé à l'autre (boucle fermée). Entre deux clés :
+    résidus 128² au pas Q_RES par rapport à l'interpolation linéaire des clés reconstruites,
+    ajoutés après agrandissement bilinéaire. Roches (X) aux clés ; soulèvement et érosion à
+    chaque état (64²)."""
     for f in os.listdir(sortie):
         if f.startswith("etats_") or f.startswith("reel_"):
             os.remove(os.path.join(sortie, f))
+    K, n = len(T), N_PUB
+    cles = list(range(0, K, PAS_CLE))
+    if cles[-1] != K - 1:
+        cles.append(K - 1)
+    rec, prev, qprev, xprev = {}, None, None, None
+    flux = []                                    # un bloc par clé : clé, résidus précédents, X, U/E
+    for ic, k in enumerate(cles):
+        h = etats[k][0].astype(np.float64)
+        q = np.round(h / Q_CLE).astype(np.int64)
+        d = q if qprev is None else q - qprev
+        rec[k] = q * Q_CLE; qprev = q
+        bloc_ = plans(d.astype(np.int16).ravel())
+        res = b""
+        ue = b""
+        if prev is not None:
+            for j in range(prev + 1, k):
+                f = (j - prev) / (k - prev)
+                p = rec[prev] * (1 - f) + rec[k] * f
+                r = (etats[j][0] - p).reshape(N_RES, n // N_RES, N_RES, n // N_RES).mean(axis=(1, 3))
+                res += np.clip(np.round(r / Q_RES), -127, 127).astype(np.int8).tobytes()
+            rng_ue = range(prev + 1, k + 1)
+        else:
+            rng_ue = range(0, 1)
+        for j in rng_ue:
+            ue += q_taux(etats[j][1]).tobytes() + q_taux(etats[j][2]).tobytes()
+        x = q_x(etats[k][3]).astype(np.int16)
+        dx = (x if xprev is None else (x - xprev)) % 256
+        xprev = x
+        flux.append(bloc_ + res + dx.astype(np.uint8).tobytes() + ue)
+        prev = k
     paquets = []
-    for p0 in range(0, len(T), PAR_PAQUET):
-        lot = etats[p0:p0 + PAR_PAQUET]
-        qs = np.array([q_h(e[0]).ravel() for e in lot])
-        d = np.diff(qs, axis=0, prepend=0).astype("<i2")
-        d = np.concatenate([d.view(np.uint8)[:, 0::2], d.view(np.uint8)[:, 1::2]])  # plans bas/haut
-        x = np.array([q_x(bloc(e[3], N_X)).ravel() for e in lot]).astype(np.int16)
-        x = (np.diff(x, axis=0, prepend=0) % 256).astype(np.uint8)              # différences mod 256
-        u = np.array([q_taux(bloc(e[1], N_UE)).ravel() for e in lot])
-        ee = np.array([q_taux(bloc(e[2], N_UE)).ravel() for e in lot])
+    for p0 in range(0, len(cles), PAR_PAQUET):
         nom = f"etats_{p0 // PAR_PAQUET:02d}.bin.gz"
         with gzip.open(os.path.join(sortie, nom), "wb", 9) as f:
-            f.write(d.tobytes() + x.tobytes() + u.tobytes() + ee.tobytes())
-        paquets.append({"fichier": nom, "debut": p0, "nombre": len(lot)})
+            f.write(b"".join(flux[p0:p0 + PAR_PAQUET]))
+        paquets.append({"fichier": nom, "cles": cles[p0:p0 + PAR_PAQUET]})
     grains, gtex, gq, axe = gr
+    S = np.array([np.round(g[0] * 100) for g in grains]).astype(np.int64)
+    Z = np.array([np.clip(np.round(g[1]), -32000, 32000) for g in grains]).astype(np.int64)
+    D = np.array([np.clip(np.round(g[2] / 100), 0, 255) for g in grains]).astype(np.int64)
+    dS = np.diff(S, axis=0, prepend=0).astype(np.int16); dZ = np.diff(Z, axis=0, prepend=0).astype(np.int16)
+    dD = (np.diff(D, axis=0, prepend=0) % 256).astype(np.uint8)
     with gzip.open(os.path.join(sortie, "grains.bin.gz"), "wb", 9) as f:
-        f.write(gtex.astype("<f4").tobytes() + gq.astype("<f4").tobytes())
-        for s_, z_, d_ in grains:
-            f.write(np.round(s_ * 100).astype("<i2").tobytes() + np.clip(np.round(z_), -32000, 32000).astype("<i2").tobytes()
-                    + np.clip(np.round(d_ / 100), 0, 255).astype(np.uint8).tobytes())
-    for n in sorted({N_PUB, 1024}):
-        with gzip.open(os.path.join(sortie, f"reel_{n}.bin.gz"), "wb", 9) as f:
-            f.write(q_h(bloc(reel1024, n)).astype("<u2").tobytes())
+        f.write(gtex.astype("<f4").tobytes() + gq.astype("<f4").tobytes() + plans(dS.ravel()) + plans(dZ.ravel()) + dD.tobytes())
+    with gzip.open(os.path.join(sortie, f"reel_{n}.bin.gz"), "wb", 9) as f:
+        f.write(q_h(bloc(reel1024, n)).astype("<u2").tobytes())
+    detail = reel1024 - agrandir(bloc(reel1024, n), 1024)
+    with gzip.open(os.path.join(sortie, "reel_detail_1024.bin.gz"), "wb", 9) as f:
+        f.write(np.clip(np.round(detail / 2.0), -127, 127).astype(np.int8).tobytes())
     meta = {
-        "n": N_PUB, "n_x": N_X, "n_ue": N_UE, "pas_m": TAILLE_KM * 1000 / N_PUB, "taille_km": TAILLE_KM,
-        "centre": {"lat": sc.LAT0, "lon": sc.LON0}, "projection": "azimutale équidistante, nord en haut",
-        "temps_Ma": [float(t) for t in T], "raccourcissement_mm_an": [round(float(r), 3) for r in racc],
-        "h_zero_m": H_ZERO, "h_pas_m": H_PAS, "taux_max_mm_an": TAUX_MAX,
-        "x_max_m": X_MAX, "x_codage": "v = 255·ln(1+x/200 m)/ln(1+x_max/200 m) ; n_x², différences successives mod 256 dans le paquet",
-        "h_codage": "par paquet : k×n² octets bas puis k×n² octets hauts d'entiers int16 ; différences successives (le premier état absolu) ; h = cumul·h_pas + h_zero",
-        "taux_codage": "v = 255·√(taux/taux_max) ; n_ue², moyenne de l'intervalle précédent",
-        "paquets": paquets, "reel": f"reel_{N_PUB}.bin.gz",
+        "version": 3, "n": n, "n_res": N_RES, "n_x": N_X, "n_ue": N_UE, "pas_m": TAILLE_KM * 1000 / n,
+        "taille_km": TAILLE_KM, "centre": {"lat": sc.LAT0, "lon": sc.LON0},
+        "projection": "azimutale équidistante, nord en haut",
+        "temps_Ma": [float(t) for t in T], "cles": cles, "q_cle_m": Q_CLE, "q_res_m": Q_RES,
+        "raccourcissement_mm_an": [round(float(r), 3) for r in racc],
+        "h_zero_m": H_ZERO, "h_pas_m": H_PAS, "reel": f"reel_{n}.bin.gz", "reel_detail": "reel_detail_1024.bin.gz",
+        "taux_max_mm_an": TAUX_MAX, "x_max_m": X_MAX,
+        "codage": ("par clé, dans l'ordre : relief int16 (plans bas puis hauts) = q − q_clé_précédente "
+                   "(la première absolue), h = q·q_cle ; puis pour chaque état entre la clé précédente et "
+                   "celle-ci : résidu int8 n_res², h = interpolation linéaire des clés + agrandir(résidu·q_res) "
+                   "(bilinéaire aux centres) ; puis roches de la clé : uint8 n_x², différence mod 256, "
+                   "v = 255·ln(1+x/200 m)/ln(1+x_max/200 m) ; puis soulèvement et érosion (uint8 n_ue² chacun, "
+                   "v = 255·√(taux/taux_max)) de chaque état depuis la clé précédente (exclue) jusqu'à celle-ci. "
+                   "reel : uint16, h = v·h_pas + h_zero ; reel_detail : int8 ×2 m, relief réel 1024² moins "
+                   "agrandir(moyenne 512²)"),
+        "paquets": paquets,
         "grains": {"fichier": "grains.bin.gz", "nombre": int(len(gtex)), "axe_est": [float(axe[0]), float(axe[1])],
-                   "codage": "G float32 âge d'arrivée au jour (Ma, 1e9 = jamais) | G float32 écart à la coupe (km) | par état : G int16 abscisse (10 m) | G int16 altitude (m) | G uint8 profondeur maximale (100 m)"},
+                   "codage": "G float32 âge d'arrivée au jour (Ma, 1e9 = jamais) | G float32 écart à la coupe (km) | "
+                             "abscisse int16 (10 m), altitude int16 (m) : différences d'un état au suivant, plans bas "
+                             "puis hauts, [état][grain] | profondeur maximale uint8 (100 m), différences mod 256"},
         "modele": f"fastscapelib {fs.__version__} — K_f {K_F}, m {M_EXP}, n {N_EXP}, K_d {K_D} m²/an",
         "source_relief": "Copernicus DEM GLO-90 (© DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018, programme Copernicus)",
     }
     with open(os.path.join(sortie, "meta.json"), "w") as f:
         json.dump(meta, f, ensure_ascii=False)
-    tot = sum(os.path.getsize(os.path.join(sortie, f)) for f in os.listdir(sortie))
-    print(f"paquet : {len(T)} états, {tot/1e6:.1f} Mo", flush=True)
+    tot = sum(os.path.getsize(os.path.join(sortie, f)) for f in os.listdir(sortie) if f.startswith(("etats", "grains", "reel", "meta")))
+    print(f"paquet : {K} états, {len(cles)} clés, {tot/1e6:.1f} Mo (film)", flush=True)
 
 
 if __name__ == "__main__":
