@@ -28,49 +28,42 @@ Départ (19/11/2026, 7 h 40) : `bake.py --check` sur `main` : 399 passés, 15 en
 Étape : lancé le 23/11 (globe de nuit autonome, HYDE 3.3, Black Marble).
 
 ## S7 — Alpes
-Étape : **passage 1 terminé (23/11)**, page labo `labo/alpes/` prête à publier,
-branche `chantier/alpes`. Contrôles `app/public/labo/alpes/controles.py` : **23/23 verts**
-sur la page servie (Playwright, 390 × 844). Planche : `chantiers/planches/alpes-1.png`.
+Étape : **passage 2 terminé (23/11)**, branche `chantier/alpes`, page `labo/alpes/`.
+Passage 1 publié sur main (0e4fe0e) ; licence s2cloudless 2024 tranchée (D-44).
+Contrôles `app/public/labo/alpes/controles.py` : **29/29 verts** sur la page servie.
+Planche : `chantiers/planches/alpes-2.png`.
 
-Ce qui marche :
-- Film de 45 Ma sur 204,8 km centrés sur Grenoble : FastScape (fastscapelib 0.3, 512² à
-  400 m dans le workflow) avec soulèvement et raccourcissement imposés par un scénario de
-  collision (`sim/scenario.py` : zones internes dès 45 Ma, massifs cristallins depuis
-  22 Ma, chaînes subalpines 14–4 Ma, bassin d'avant-pays imposé : mer priabonienne, mer
-  molassique, remplissage). Gabarit de soulèvement = inversion stationnaire du relief
-  réel. Sur les 2 derniers Ma, ajustement vers le relief réel (écart 369 m à −2 Ma,
-  0,6 m à la fin ; les 10 derniers ka sont libres). 213 états (250 ka puis 50 ka).
-- Relief réel Copernicus GLO-90 et mosaïque Sentinel-2 cloudless 2024 (EOX), téléchargés
-  par `.github/workflows/chantier-alpes.yml`. Paquet publié 9,8 Mo, 4,1 Mo avant la
-  première image (relief 16 bits sans perte, jamais en vidéo).
-- Couleurs : table couleur(altitude, pente) apprise sur la mosaïque (`sim/regles_couleurs.py`),
-  appliquée à toutes les époques avec un décalage d'altitude climatique (climat chaud
-  avant, cycles glaciaires schématiques depuis 2,6 Ma) ; la photographie Sentinel-2
-  n'apparaît qu'à l'Holocène (12 derniers ka). ΔE médian 5,7 (règles) et 0,3 (affiché)
-  avec la mosaïque. Pas de vidéo : les couleurs sont calculées en direct depuis le
-  relief, rien à télécharger ; `commun/video.js` sera utile si on ajoute une texture
-  qui change (ex. glaciers de S8).
-- Ombres portées par un Soleil fixe, celui de la mosaïque (azimut 145°, hauteur 34°),
-  calculées par état : accord 100 % avec le calcul Python. Relief exagéré 1,5×.
-- Machine à laver, première forme : profondeur d'origine des roches au jour (érosion
-  cumulée, advectée), bouton « roches ».
-- Barre de temps non linéaire : 1,2 Ma/s jusqu'à −8 Ma, puis vitesse proportionnelle à
-  l'âge (≈ 200 ka/s à −2 Ma, ≈ 20 ka/s à −0,2 Ma). Compteur commun (`commun/compteur.js`)
-  en haut à droite. Noms des massifs à la fin (Belledonne, Chartreuse, Vercors,
-  Grésivaudan, Grenoble, Écrins, Mont-Blanc).
+Passage 2 (retours du maître) :
+1. **Netteté.** Contrôle sur les données (part d'énergie à 1–5 km, tuiles montagneuses) :
+   il passait déjà (169 %), le flou venait donc du rendu. Ajout d'un contrôle sur l'image
+   rendue (ombrage d'un albédo gris, vue du zénith à 512², énergie à 1–5 km rapportée au
+   relief réel rendu de la même façon) : **en échec sur la version publiée** (44 % à
+   −30 Ma, 46 % à −12 Ma), puis vert : 102 à 132 % dès −30 Ma. Correction : film publié à
+   pleine résolution FastScape (512², 400 m, pas de 2 m), maillage 512². Le détail vient
+   de FastScape lui-même ; aucun détail réel n'est peint avant −2 Ma.
+2. **Machine à laver.** 1 500 grains suivis dans une tranche de ±3 km autour de la coupe
+   ONO → ESE par Grenoble (Vercors → Belledonne) : ils montent avec le soulèvement, sont
+   portés par le raccourcissement et gardent leur profondeur maximale ; 652 arrivent au
+   jour. Bouton « coupe » : la tranche, ses grains colorés par leur profondeur maximale,
+   l'éclat quand l'un d'eux sort. Contrôle : au jour, la couleur de surface vaut la
+   profondeur maximale du grain (écart médian 10 %).
+3. **Glaciers.** PISM de Seguinot et al. 2018 (même fichier que S8), repris à la source
+   par le workflow et reprojeté sur ma fenêtre de 204,8 km (la fenêtre S8 de 150 km ne la
+   couvre pas), 256² à 800 m, 120 tranches de 1 ka. La glace s'élève au-dessus du relief
+   sur les 120 derniers ka ; maximum à 24 ka (20 400 km²), Grésivaudan rempli. Contrôle :
+   étendue dessinée = données à une maille près (0,1 % manquant au plus, rien d'inventé),
+   rien avant 120 ka. Le froid des règles de couleur suit l'aire de glace PISM sur cette
+   période. Pas de vidéo : la glace est une grandeur mesurée (binaire quantifié).
 
-Ce qui manque / limites :
-- Avant −2 Ma, le relief est lisse (256², sans détail) ; le dépôt du bassin est imposé,
-  pas calculé ; pas de glaciers (S8) ; machine à laver sans grains suivis ni coupe.
-- Fluidité ≥ 50 images/s non mesurable ici (rendu logiciel : 3 images/s) ; les ombres
-  sont calculées une fois par état pour alléger le GPU.
-- Licence : s2cloudless 2024 est sous CC BY-NC-SA 4.0 (attribution affichée dans « ? ») ;
-  compatible avec un site non commercial. Si le maître préfère CC BY, la couche 2016 est
-  disponible (moins belle) : changer `COUCHES` dans `sim/prepare_mosaique.py`.
-
-Prochaine étape : grains de roche suivis et coupe (N17) ; relief plus fin aux temps
-anciens (détail de FastScape à 512² publié pour les derniers Ma) ; intégrer les glaciers
-de S8 dans la même vue ; mesurer la fluidité sur un vrai téléphone.
+Limites, prochaine étape :
+- Paquet de 32 Mo en tout (4,5 Mo avant la première image, le reste arrive pendant la
+  lecture) : lourd pour un téléphone ; piste : clés tous les 500 ka avec résidus, ou
+  états à 512² seulement sur les 10 derniers Ma.
+- Glaciers sans traînées d'écoulement ni moraines (à reprendre de S8 : vitesses de
+  surface dans le même fichier).
+- Fluidité non mesurable ici (rendu logiciel : 2 images/s) ; maillage de 512² à vérifier
+  sur un vrai téléphone.
+- Le dépôt du bassin d'avant-pays reste imposé.
 
 ## S8 — Glaciers
 Étape : données Seguinot 2018 préparées, contrôles écrits (0/8 sur page vide) ; relancé le 23/11.

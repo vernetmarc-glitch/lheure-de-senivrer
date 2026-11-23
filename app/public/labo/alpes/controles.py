@@ -244,7 +244,7 @@ def controles_donnees(base):
         x_, y_ = GS[k][g] * ax + gq[g] * nr
         j = int((x_ + meta["taille_km"] / 2) / meta["taille_km"] * nx_); i = int((meta["taille_km"] / 2 - y_) / meta["taille_km"] * nx_)
         if 0 <= i < nx_ and 0 <= j < nx_:
-            ecarts.append(abs(xm(float(X[k].reshape(nx_, nx_)[i, j])) - dmax) / dmax)
+            ecarts.append(abs(xm(float(X8[k].reshape(nx_, nx_)[i, j])) - dmax) / dmax)
     ok("N17 grains arrivés au jour : couleur de surface = leur profondeur maximale (écart médian < 35 %)",
        len(ecarts) >= 50 and np.median(ecarts) < 0.35, f"{len(ecarts)} grains, écart médian {100*np.median(ecarts) if ecarts else 0:.0f} %")
 
