@@ -161,3 +161,18 @@ démarrent.
   aux autres (≥ 50 km de mouvement relatif après −35 Ma) ; relief à −20 Ma décorrélé du
   relief final (corrélation < 0,3) ; altitudes dans les fourchettes publiées ; vallées en U
   seulement dans les 2,6 derniers Ma ; continuité des couches (aucune maille sans matériau).
+
+## S3b — La Terre entière en mécanique des roches (`labo/terre`, après le passage 2 de S3)
+- Exigences N35–N37, décision D-49. Même globe et même page que S3.
+- 4,5 Ga → 1,8 Ga : hypothèses publiées (océan de magme, premiers cratons, Vaalbara ≈ 3,6–2,8 Ga,
+  Ur ≈ 3 Ga, Kenorland ≈ 2,7–2,1 Ga), continents surtout immergés ; signalé « hypothèse ».
+- 1,8 Ga → 0 : plaques de Cao et al. 2024 (Zenodo, GPlates).
+- Mécanique : couche mince visqueuse (lithosphère intégrée sur l'épaisseur, viscosité en loi
+  de puissance) sur grille sphérique, vitesses des plaques imposées ; épaisseur de croûte →
+  relief par isostasie ; érosion FastScape (grille sphérique HEALPix) ; niveau marin.
+- Contrôles : chaque réunion (Nuna, Rodinia, Gondwana, Pangée) apparaît aux âges du modèle
+  (≥ 70 % du bloc continental d'un seul tenant) ; une chaîne de montagnes (relief ≥ 2 000 m)
+  naît à chaque collision majeure et s'abaisse ensuite ; aujourd'hui, l'Himalaya, les Andes,
+  les Alpes sortent aux bons endroits (≥ 70 % des reliefs > 2 000 m réels recouverts) ;
+  aucune terre verte avant 470 Ma, verdissement net entre 420 et 300 Ma ; à l'Archéen,
+  terres émergées < 15 % de la surface.

@@ -1125,3 +1125,6 @@ s'enivrer — Refonte : du cosmos aux Alpes ».*
 - **N32.** Vue d'abord de l'ensemble des Alpes (l'Adria ferme la Téthys), puis zoom progressif sur la région de Grenoble à mesure qu'on approche du présent (23/11).
 - **N33.** Un modèle de mécanique des solides et des fluides simule la collision des couches rocheuses et leur érosion (23/11).
 - **N34.** Les Alpes montrent leur croissance physique jusqu'à leur altitude maximale passée ; Marc pense à près de 10 000 m — à confronter aux estimations publiées (23/11).
+- **N35.** La dérive des continents, depuis la formation de la Terre et l'impact de la Lune, repose sur un modèle de mécanique des roches, plus grossier que celui des Alpes, qui fait apparaître les chaînes de montagnes lors des collisions et rend compte de l'évolution des continents (23/11, Marc).
+- **N36.** On voit, avec un rendu réaliste, les grandes réunions continentales qui ont précédé la Pangée (Marc en compte sept) (23/11).
+- **N37.** Les continents changent de couleur et verdissent quand la vie colonise les terres ; l'explosion cambrienne est rendue visible d'une manière ou d'une autre (23/11).

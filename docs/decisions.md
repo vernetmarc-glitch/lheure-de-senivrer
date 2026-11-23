@@ -505,3 +505,14 @@ modèle thermo-mécanique en couches (LaMEM 3D ou ASPECT) couplé à FastScape ;
 Alpes entières, puis zoom sur Grenoble ; coupe = vraie machine à laver. Altitudes : celles
 que la physique produit, confrontées aux estimations publiées (moyennes miocènes
 1 900–2 850 m, sommets estimés 2 500 à plus de 5 000 m) ; 10 000 m n'est pas imposé.
+
+## D-49 — La Terre entière en mécanique des roches *(23/11/2026, Marc)*
+Nouveau chantier S3b. De 1,8 Ga à aujourd'hui : plaques du modèle complet de Cao et al.
+2024 (Geoscience Frontiers 15, 101922 ; Nuna, Rodinia, Gondwana/Pangée), qui remplace
+Merdith 2021 pour cette période. Les montagnes ne sont pas dessinées : un modèle de
+lithosphère en couche mince visqueuse sur la sphère, poussé par ces plaques, épaissit la
+croûte aux collisions ; le relief en sort par isostasie et s'use par érosion (FastScape sur
+grille sphérique). Avant 1,8 Ga : Vaalbara, Ur, Kenorland en hypothèses de la littérature,
+continents surtout immergés à l'Archéen (Zhou et al. 2026). Pannotia est débattue et
+montrée comme telle. La liste classique compte six réunions avant la Pangée (sept avec
+elle) ; les trois plus anciennes sont des hypothèses.
