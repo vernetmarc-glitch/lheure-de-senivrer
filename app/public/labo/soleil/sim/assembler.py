@@ -143,12 +143,13 @@ def main():
     t_all = np.array([x["t_an"] for x in b])
     m_all = np.array([max((p["m"] for p in x["puits"]), default=0.0) for x in b])
 
-    pos_l, T_l, instants = [], [], []
+    pos_l, T_l, H_l, instants = [], [], [], []
     for i in choix:
         x = b[i]
         z = np.load(npz[x["num"]])
         P = z["pos"].astype(np.float64)
         lt = z["logT"].astype(np.float64)
+        hz = z["h"].astype(np.float64) if "h" in z.files else np.full(len(P), np.nan)
         vivant = ~np.isnan(P[:, 0])
         d = np.linalg.norm(P[vivant], axis=1)
         n = len(P)
@@ -166,7 +167,7 @@ def main():
         instants.append({"t": x["t_an"], "num": x["num"], "r50": r50, "r90": r90,
                          "puits": [{k: p[k] for k in ("x", "y", "z", "m")} for p in x["puits"]],
                          "mdot": mdot, "Lacc": Lacc})
-        pos_l.append(P); T_l.append(lt)
+        pos_l.append(P); T_l.append(lt); H_l.append(hz)
 
     # cadre de la caméra : il suit la moitié de la masse du nuage, de loin (exposant 0,6),
     # pour que l'on VOIE le nuage se contracter ; jamais en deçà de 250 UA
@@ -193,7 +194,19 @@ def main():
                 ins["fichier"] = nom; ins["octet"] = f.tell()
                 f.write(q.astype("<u2").tobytes()); f.write(tb.tobytes())
 
+    # un point affiché porte la masse de n_sphere/N particules : noyau élargi de (n_sphere/N)^(1/3)
     sph = v["sphere"]
+    fac = (sph["n_sphere"] / N) ** (1 / 3)
+    LOG_H = (-1.0, 4.5)
+    hb = np.zeros((len(instants), N), np.uint8)
+    for k, hz in enumerate(H_l):
+        ok = ~np.isnan(hz) & (hb[k] == 0)
+        hb[k, ok] = np.clip(np.round(1 + 254 * (np.log10(np.maximum(hz[ok] * fac, 1e-3)) - LOG_H[0]) / (LOG_H[1] - LOG_H[0])), 1, 255).astype(np.uint8)
+    hb.tofile(os.path.join(a.sortie, "h.bin"))
+    emp = f"{len(instants)}-{N}-{sum(i['num'] for i in instants)}-{round(sum(i['L'] for i in instants))}"
+    json.dump({"codage_h": {"log_min": LOG_H[0], "log_max": LOG_H[1]}, "source": "longueur de lissage Phantom × (n_sphere/N)^(1/3)",
+               "facteur": fac, "n_points": N, "n_instants": len(instants), "empreinte": emp},
+              open(os.path.join(a.sortie, "h.json"), "w"))
     meta = {
         "version": 1,
         "source": {

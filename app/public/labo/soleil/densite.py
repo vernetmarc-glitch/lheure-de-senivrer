@@ -3,7 +3,7 @@
 
     python3 app/public/labo/soleil/densite.py
 
-Lit `donnees/` (positions publiées) et écrit `densite/h.bin` + `densite/h.json` : pour
+Lit `donnees/` (positions publiées) et écrit `donnees/h.bin` + `densite/h.json` : pour
 chaque instant et chaque point, h = demi-distance au 32ᵉ voisin parmi les points
 publiés (UA), codé log10 sur un octet (0 = point absent). La page dessine chaque point
 comme un noyau gaussien de largeur h : la luminance est alors la densité de colonne du
@@ -20,7 +20,7 @@ from scipy.spatial import cKDTree
 
 ICI = os.path.dirname(os.path.abspath(__file__))
 DON = os.path.join(ICI, "donnees")
-SORT = os.path.join(ICI, "densite")
+SORT = DON
 LOG_H = (-1.0, 4.5)
 KVOIS = 32
 
@@ -51,7 +51,7 @@ def main():
     json.dump({"codage_h": {"log_min": LOG_H[0], "log_max": LOG_H[1]}, "voisins": KVOIS,
                "n_points": N, "n_instants": len(meta["instants"]), "empreinte": empreinte(meta)},
               open(os.path.join(SORT, "h.json"), "w"))
-    print(f"{len(meta['instants'])} instants × {N} points → densite/h.bin ({out.nbytes/1e6:.1f} Mo)")
+    print(f"{len(meta['instants'])} instants × {N} points → donnees/h.bin ({out.nbytes/1e6:.1f} Mo)")
 
 
 if __name__ == "__main__":

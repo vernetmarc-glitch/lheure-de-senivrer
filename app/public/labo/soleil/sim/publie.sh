@@ -20,18 +20,27 @@ for d in sorted(glob.glob("var/*")):
           f"fini {os.path.exists(d + '/fini')}")
 EOF
 cat resume.txt
+# diagnostic toujours déposé (les journaux des tâches ne sont pas lisibles sans compte)
+DIAG=app/public/labo/soleil/diagnostic
+mkdir -p diag
+{ echo "étape $ETAPE — $(date -u)"; cat resume.txt; echo; echo "== trajectoire"; cat traj/source.txt 2>/dev/null
+  head -40 traj/BHAC15_brut.txt 2>/dev/null; grep -E "^ *1\.0000 " traj/BHAC15_brut.txt | head -5
+  for d in var/*; do echo; echo "== $d"; cat "$d/fin_phantom.txt" 2>/dev/null | tail -12; cat "$d/run/setup.log" 2>/dev/null | grep -E "particle numbers|Free fall|BE sphere|Overdensity" ; done
+} > diag/etape_$ETAPE.txt 2>&1
 rm -rf nouv && mkdir nouv
-if ! PHANTOM_SHA=$PHANTOM_SHA python3 $SIM/assembler.py --trajectoire traj/BHAC15_brut.txt --sortie nouv var/*; then
-  echo "rien à publier à l'étape $ETAPE"; exit 0
+if ! PHANTOM_SHA=$PHANTOM_SHA python3 $SIM/assembler.py --trajectoire traj/BHAC15_brut.txt --sortie nouv var/* >> diag/etape_$ETAPE.txt 2>&1; then
+  echo "rien à publier à l'étape $ETAPE"; rm -rf nouv
 fi
-cp resume.txt nouv/variantes.txt
-cp traj/source.txt nouv/source_trajectoire.txt 2>/dev/null || true
+cat diag/etape_$ETAPE.txt | tail -30
+[ -d nouv ] && cp resume.txt nouv/variantes.txt
+[ -d nouv ] && cp traj/source.txt nouv/source_trajectoire.txt 2>/dev/null || true
 git config user.name "chantier-soleil (workflow)"
 git config user.email "noreply@github.com"
 for essai in 1 2 3 4 5; do
   git fetch -q origin chantier/soleil && git reset -q --hard origin/chantier/soleil
-  rm -rf "$DON" && mkdir -p "$DON" && cp nouv/* "$DON"/
-  git add -A "$DON"
+  if [ -d nouv ]; then rm -rf "$DON" && mkdir -p "$DON" && cp nouv/* "$DON"/; fi
+  mkdir -p "$DIAG" && cp diag/* "$DIAG"/
+  git add -A "$DON" "$DIAG"
   git diff --cached --quiet && { echo "rien de neuf"; exit 0; }
   git commit -q -m "Soleil : données de l'effondrement, étape $ETAPE ($(head -c 120 resume.txt | tr '\n' ' '))"
   git push -q origin HEAD:chantier/soleil && { echo "déposé"; exit 0; }

@@ -22,8 +22,9 @@ Ajoutés le 23/11/2026 (directives de Marc, docs/references-visuelles-refonte.md
       d'un rayon, au moins 3 anneaux et sillons alternés (contraste sillon/anneau ≥ 2) ;
       fond noir ≥ 60 % du cadre ;
   P10 compteur de vitesse du temps : angle de l'aiguille = vitesse réelle du curseur
-      (échelle log, à 1° près après amortissement), butée à l'arrêt, cadran ≤ 110 px sur
-      390 px de large, ne masque ni l'étoile ni le cœur du nuage.
+      (échelle log, à 1° près après amortissement), butée à l'arrêt, cadran ≤ 150 px sur
+      390 px de large (taille maximale du composant commun app/public/commun/compteur.js),
+      ne masque ni l'étoile ni le cœur du nuage.
 """
 import functools
 import http.server
@@ -445,7 +446,7 @@ def controles_page():
                     if q is not None:
                         libres.append(not (bb[0] - 8 <= q[0] <= bb[0] + bb[2] + 8 and bb[1] - 8 <= q[1] <= bb[1] + bb[3] + 8))
             ok = (abs(r["a"] - r["cible"]) <= 1.0 and r["v"] > 0 and abs(arret - butee) <= 1.0
-                  and bb[2] <= 110 and bb[0] + bb[2] <= 390 and all(libres))
+                  and bb[2] <= 150 and bb[0] + bb[2] <= 390 and all(libres))
             note("S1-P10", "N28", ok, f"lecture : {r['v']:.3g} ans/s, aiguille {r['a']:.1f}° pour {r['cible']:.1f}° ; "
                  f"arrêt : {arret:.1f}° (butée {butee:.1f}°) ; cadran {bb[2]:.0f} px de large ; "
                  f"étoile et cœur hors du cadran : {all(libres)}")

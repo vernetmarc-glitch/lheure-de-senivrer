@@ -43,10 +43,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("run"); ap.add_argument("sortie")
     ap.add_argument("--npoints", type=int, default=32768)
+    ap.add_argument("--nettoie", action="store_true", help="effacer les sorties extraites (sauf la plus récente)")
+    ap.add_argument("--sauf-plus-recente", action="store_true", help="ne pas toucher la plus récente (en écriture)")
     a = ap.parse_args()
     os.makedirs(a.sortie, exist_ok=True)
     fichiers = sorted(f for f in glob.glob(os.path.join(a.run, "soleil_[0-9][0-9][0-9][0-9][0-9]")))
     choix_f = os.path.join(a.sortie, "choix.npy")
+    if a.sauf_plus_recente:
+        fichiers = fichiers[:-1]
     for f in fichiers:
         num = f[-5:]
         dest = os.path.join(a.sortie, f"instant_{num}.npz")
@@ -110,9 +114,17 @@ def main():
         TT[trouve] = np.log10(T[idx[trouve]]).astype(np.float16)
         P[trouve] = (x[idx[trouve]] * UDIST / UA).astype(np.float32)
         R[trouve] = np.log10(rho[idx[trouve]] * UDENS).astype(np.float16)
-        np.savez_compressed(dest, t_an=t * UTIME / AN, pos=P, logrho=R, logT=TT)
+        HH = np.full(len(choix), np.nan, np.float16)
+        HH[trouve] = (h[idx[trouve]] * UDIST / UA).astype(np.float16)   # longueur de lissage SPH (UA)
+        np.savez_compressed(dest, t_an=t * UTIME / AN, pos=P, logrho=R, logT=TT, h=HH)
         print(f"{os.path.basename(f)} t={t*UTIME/AN:9.0f} ans  n={len(x)}  puits={len(ps)}  "
               f"Mpuits={Ms:.3f}  rho_max={rho.max()*UDENS:.2e}", flush=True)
+
+    if a.nettoie:
+        tous = sorted(glob.glob(os.path.join(a.run, "soleil_[0-9][0-9][0-9][0-9][0-9]")))
+        for f in tous[:-1]:
+            if os.path.exists(os.path.join(a.sortie, f"instant_{f[-5:]}.npz")):
+                os.remove(f)
 
 
 if __name__ == "__main__":

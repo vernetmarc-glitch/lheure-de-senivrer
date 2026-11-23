@@ -8,7 +8,7 @@
 # resolution and particle placement
                   np =        @NP@    ! requested number of particles in sphere
              lattice = closepacked    ! particle lattice (random,cubic,closepacked,hcp,hexagonal)
-       shuffle_parts =           F    ! relax particles by shuffling
+       shuffle_parts =           T    ! relax particles by shuffling
 
 # options for box
                 lbox =          4.    ! length of a box side in terms of spherical radii

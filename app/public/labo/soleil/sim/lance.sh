@@ -2,7 +2,11 @@
 # Effondrement d'un cœur de nuage en rotation avec Phantom (SPH, Price et al. 2018).
 # Lance ou reprend une simulation dans le dossier $RUN, puis extrait les sorties.
 #
-#   RUN=run BETA=0.01 NP=100000 TWALL=005:15 PHANTOM=bin bash lance.sh
+#   RUN=run EXTRAIT=extrait BETA=0.01 NP=100000 TWALL=005:15 PHANTOM=bin bash lance.sh
+#
+# Les sorties complètes (≈ 12 Mo chacune, plus d'un millier) ne tiennent pas sur le disque
+# d'une machine GitHub (constaté le 23/11 : étape 1 en échec après 5 h). Elles sont donc
+# extraites au fil de l'eau puis effacées ; seule la dernière est gardée pour la reprise.
 #
 # Le cœur : sphère de Bonnor-Ebert de 1,2 M☉ et 0,15 année-lumière de rayon (0,3 al de
 # diamètre), gaz moléculaire à 10 K (c_s = 0,189 km/s, μ = 2,31). À 10 K une sphère
@@ -12,7 +16,7 @@
 # particule-puits (étoile) créée au-delà de 1e-10 g/cm³, rayon d'accrétion 10 UA.
 set -euo pipefail
 ICI="$(cd "$(dirname "$0")" && pwd)"
-: "${RUN:?}" "${BETA:?}" "${NP:=100000}" "${TWALL:=005:15}" "${PHANTOM:?}"
+: "${RUN:?}" "${EXTRAIT:?}" "${BETA:?}" "${NP:=100000}" "${TWALL:=005:15}" "${PHANTOM:?}"
 mkdir -p "$RUN"; cd "$RUN"
 
 if [ ! -f soleil.in ]; then
@@ -49,5 +53,14 @@ grep -E "^ *(dumpfile|tmax|dtmax|twallmax|ieos|icreate_sinks|h_acc|r_crit|rho_cr
 
 export OMP_NUM_THREADS=${OMP:-$(nproc)}
 ulimit -s unlimited || true
-"$PHANTOM/phantom" soleil.in > "phantom_$(date +%s).log" 2>&1 || echo "phantom s'est arrêté (code $?)"
-tail -20 "$(ls -t phantom_*.log | head -1)"
+JOURNAL="phantom_$(date +%s).log"
+"$PHANTOM/phantom" soleil.in > "$JOURNAL" 2>&1 &
+pid=$!
+while kill -0 $pid 2>/dev/null; do
+  sleep 90
+  python3 "$ICI/extraire.py" . "$EXTRAIT" --nettoie --sauf-plus-recente | tail -1 || true
+done
+wait $pid || echo "phantom s'est arrêté (code $?)"
+python3 "$ICI/extraire.py" . "$EXTRAIT" --nettoie | tail -3
+tail -25 "$JOURNAL" | tee "$EXTRAIT/../fin_phantom.txt"
+df -h . | tail -1

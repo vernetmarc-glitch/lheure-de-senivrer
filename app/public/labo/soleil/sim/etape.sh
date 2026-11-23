@@ -12,8 +12,7 @@ if [ -f "$ETAT/fini" ]; then
   echo "simulation déjà terminée : $(cat "$ETAT/fini")"; exit 0
 fi
 
-RUN="$ETAT/run" BETA="$BETA" NP="$NP" TWALL="$TWALL" PHANTOM="$PHANTOM" bash "$ICI/lance.sh"
-python3 "$ICI/extraire.py" "$ETAT/run" "$ETAT/extrait" | tail -5
+RUN="$ETAT/run" EXTRAIT="$ETAT/extrait" BETA="$BETA" NP="$NP" TWALL="$TWALL" PHANTOM="$PHANTOM" bash "$ICI/lance.sh"
 
 # ne garder que la dernière sortie complète (pour la reprise)
 dernier=$(ls "$ETAT"/run/soleil_[0-9][0-9][0-9][0-9][0-9] | sort | tail -1)
