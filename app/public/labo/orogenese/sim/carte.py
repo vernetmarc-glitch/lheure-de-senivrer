@@ -70,7 +70,17 @@ def main(cfgf, dsim, dout):
     coupes, meta_coupes, suivi = [], [], {}
     for cp in cfg["coupes"]:
         d = np.load(os.path.join(dsim, cp["nom"] + ".npz"))
-        img, topo, T = d["image"], d["topo"], d["t"]
+        img, topo, T = d["image"].copy(), d["topo"], d["t"]
+        # demi-mailles d'affichage sans marqueur : matériau dominant de la maille du modèle qui les contient
+        nt_, nz_, nx_ = img.shape
+        bl = img[:, : nz_ // 2 * 2, : nx_ // 2 * 2].reshape(nt_, nz_ // 2, 2, nx_ // 2, 2).transpose(0, 1, 3, 2, 4).reshape(nt_, nz_ // 2, nx_ // 2, 4)
+        dom_ = np.zeros(bl.shape[:3], np.uint8) + 255
+        for q4 in range(4):
+            v = bl[..., q4]
+            dom_ = np.where((dom_ == 255) & (v != 255), v, dom_)
+        rempli = np.repeat(np.repeat(dom_, 2, axis=1), 2, axis=2)
+        sub = img[:, : nz_ // 2 * 2, : nx_ // 2 * 2]
+        img[:, : nz_ // 2 * 2, : nx_ // 2 * 2] = np.where(sub == 255, rempli, sub)
         pas_s = float(d["pas_km"])
         p_r = pas_s / 2
         nxr = img.shape[2]
@@ -94,7 +104,7 @@ def main(cfgf, dsim, dout):
         trace = [[float(sx - 200 * nxv), float(sy - 200 * nyv)], [float(sx + 200 * nxv), float(sy + 200 * nyv)]]
         coupes.append(dict(s=float(sk[0]), xf=xf, xr=xr, topo=topo_r, dsurf=dsurf, img=img, T=T))
         meta_coupes.append(dict(nom=cp["nom"], fichier=f"coupe_{len(meta_coupes)}.bin.gz", nx=int(nxr), nz=int(img.shape[1]),
-                                pas_km=p_r, z_haut_km=19.9, x_front_km=xf, s_km=float(sk[0]), trace=trace,
+                                pas_km=p_r, z_haut_km=(20000.0 - float(d["mer_m"]) if "mer_m" in d else 19900.0) / 1000, x_front_km=xf, s_km=float(sk[0]), trace=trace,
                                 facteur_35=cp.get("facteur_35", 1.0), largeur_km=float(nxr * p_r)))
         su = json.loads(str(d["suivi"]))
         suivi[cp["nom"]] = {kk: [None if not np.isfinite(v) else round(float(v), 2) for v in vv] for kk, vv in su.items()}
@@ -143,7 +153,7 @@ def main(cfgf, dsim, dout):
                     convergence="Le Breton et al. 2021 : 420 km (84→35 Ma) puis 260 km (35→0 Ma), Europe fixe",
                     hypotheses=[cfg["source"], cfg["arc_source"],
                                 "Géométrie en plan de l'arc fixe (celle d'aujourd'hui) ; convergence normale à l'arc partout égale.",
-                                "Niveau de la mer à 100 m au-dessus de la surface d'un continent de référence de 35 km de croûte."]))
+                                "Niveau de la mer 200 m sous la surface d'un continent de référence de 35 km de croûte (les plaines continentales émergent)."]))
     json.dump(meta, open(os.path.join(dout, "meta.json"), "w"), ensure_ascii=False)
     print("paquet :", {f: os.path.getsize(os.path.join(dout, f)) for f in os.listdir(dout)})
 

@@ -104,7 +104,7 @@ def controles_donnees(base):
         for (a, b), ref in CONVERGENCE.items():
             if fac != 1.0 and b == 0:
                 continue
-            d = (np.array(s["Adria"]) - np.array(s["Europe"]))
+            d = (np.array(s["Adria"], float) - np.array(s["Europe"], float))
             mesure = d[it(a)] - d[it(b)]
             ecarts.append((nom, a, b, mesure, ref))
     pire = max(ecarts, key=lambda e: abs(e[3] / e[4] - 1)) if ecarts else None
@@ -124,8 +124,9 @@ def controles_donnees(base):
     # D3 fragments suivis qui bougent les uns par rapport aux autres après −35 Ma
     rel = {}
     for nom, s in meta["suivi"].items():
-        noms = [k for k in s if k != "Europe"]
-        rel[nom] = {k: abs((s[k][-1] - s["Europe"][-1]) - (s[k][it(-35)] - s["Europe"][it(-35)])) for k in noms}
+        a = {k: np.array(v, float) for k, v in s.items()}
+        rel[nom] = {k: abs((a[k][-1] - a["Europe"][-1]) - (a[k][it(-35)] - a["Europe"][it(-35)])) for k in a if k != "Europe"}
+        rel[nom] = {k: (0.0 if not np.isfinite(v) else v) for k, v in rel[nom].items()}   # fragment perdu : ne compte pas
     ok("D3 au moins deux fragments bougent de ≥ 50 km par rapport à l'Europe après −35 Ma, sur chaque coupe",
        rel and all(sum(v >= 50 for v in r.values()) >= 2 for r in rel.values()),
        " ; ".join(f"{n} : " + ", ".join(f"{k} {v:.0f} km" for k, v in r.items()) for n, r in rel.items()))

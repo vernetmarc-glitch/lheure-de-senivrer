@@ -427,7 +427,7 @@ class Modele:
     def erosion(self, dt_an):
         """FastScape (fastscapelib) sur le profil + diffusion + sédimentation marine."""
         import fastscapelib as fs
-        z = self.yair - self.topo - self.cfg.get("mer_m", 100.0)       # altitude par rapport à la mer (m)
+        z = self.yair - self.topo - self.cfg.get("mer_m", -200.0)       # altitude par rapport à la mer (m)
         n = z.size
         statut = {int(i): fs.NodeStatus.FIXED_VALUE for i in np.nonzero(z <= 0)[0]}
         grille = fs.ProfileGrid(n, self.dx, [fs.NodeStatus.FIXED_VALUE, fs.NodeStatus.FIXED_VALUE], statut)
@@ -589,7 +589,7 @@ class Modele:
         return out
 
     def etat(self):
-        return dict(t=self.t, topo_m=(self.yair - self.topo - self.cfg.get("mer_m", 100.0)).astype(np.float32),
+        return dict(t=self.t, topo_m=(self.yair - self.topo - self.cfg.get("mer_m", -200.0)).astype(np.float32),
                     image=self.image(),
                     suivi={k: (float(np.median(self.mx[i]) / KM) if len(i) >= 5 else np.nan) for k, i in self.suivis.items()})
 
@@ -629,7 +629,7 @@ def main():
                         topo=np.array([e["topo_m"] for e in images]),
                         image=np.array([e["image"] for e in images]),
                         suivi=json.dumps({k: [e["suivi"][k] for e in images] for k in images[0]["suivi"]}),
-                        pas_km=M.dx / KM, config=json.dumps(cfg), pas=M.pas)
+                        pas_km=M.dx / KM, config=json.dumps(cfg), pas=M.pas, mer_m=cfg.get("mer_m", -200.0))
     if os.path.exists(reprise):
         os.remove(reprise)
     return 0

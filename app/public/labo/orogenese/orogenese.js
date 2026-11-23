@@ -106,7 +106,11 @@ function placerNoms(kf) {
   for (const f of meta.fragments) {
     const e = noms[f.id], aire = (nn[f.id] || 0) * PAS * PAS;
     if (aire < 4000 || !e.textContent) { e.style.opacity = 0; continue; }
-    const [a, b] = versEcran(X0 + sx[f.id] / nn[f.id] * PAS, Y0 + sy[f.id] / nn[f.id] * PAS);
+    // étiquette posée sur le pixel du fragment le plus proche de son centre de gravité
+    const cj = sx[f.id] / nn[f.id], ci = sy[f.id] / nn[f.id];
+    let best = 1e18, bi = 0, bj = 0;
+    for (let i = 0; i < NY; i += 2) for (let j = 0; j < NX; j += 2) if (F[off + i * NX + j] === f.id) { const d = (i - ci) ** 2 + (j - cj) ** 2; if (d < best) { best = d; bi = i; bj = j; } }
+    const [a, b] = versEcran(X0 + bj * PAS, Y0 + bi * PAS);
     e.style.left = a + "px"; e.style.top = b + "px"; e.style.opacity = 1;
   }
   const tr = $("trace");
