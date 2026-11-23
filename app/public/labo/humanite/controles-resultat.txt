@@ -7,10 +7,12 @@ PASSE  C6  1→-135.0° 37→-92.7° 10000→-27.0° 3.2e+06→40.6° 1e+09→10
 PASSE  C8  textes, légende, fenêtres, image
 PASSE  C9  200 points ; inchangés après 5 ans : 81% (≥ 70 %), après 60 ans : 0% (≤ 30 %)
 PASSE  C10  Béringie et Sonde émergées à 20 000 ans, submergées aujourd'hui
-PASSE  C11  JS médian 0.9 ms par image ; 6.53 Mo avant la première image
-PASSE  C12  2000000 ans : 0.22 ; 100000 ans : 0.35 ; 40000 ans : 0.32 ; 10000 ans : 0.39 (seuil 0,45)
-PASSE  C13  sapiens 100000 ans : R = 0.13 (80 points) ; sapiens 50000 ans : R = 0.14 (200 points) ; erectus 1000000 ans : R = 0.15 (150 points) (seuil 0,6)
-PASSE  C14  7/16 instants de contact (≥ 6) ; mailles de 5° partagées : 60:0 58:1 56:0 54:2 52:3 50:1 48:1 46:1 44:1 42:0 40:0 38:0 36:0 34:0 32:0 30:0
+PASSE  C11  JS médian 1 ms par image ; 6.59 Mo avant la première image
+PASSE  C12  éclat 165 / 165, aire 6 / 6 px (189 / 108 points)
+PASSE  C13  sapiens 50000 ans : R = 1.00, près des sites × 2.4 (200 points) ; erectus 1000000 ans : R = 0.94, près des sites × 3.4 (150 points) ; neandertal 60000 ans : R = 1.45, près des sites × 3.0 (26 points) (R ≥ 0,5 ; × ≥ 1,5)
+PASSE  C14  9/16 instants de contact (≥ 6) ; mailles de 5° partagées : 60:1 58:1 56:0 54:2 52:5 50:6 48:5 46:5 44:4 42:4 40:0 38:0 36:0 34:0 32:0 30:0
 PASSE  C15  3187/3245 entrées (98.2%) ; Homo neanderthalensis 1452/1481 ; Homo sapiens 1127/1151 ; Homo heidelbergensis 277/277 ; Homo erectus 87/88 ; Homo neanderthalensis/Homo sapiens 77/78 ; Homo heidelbergensis/Homo erectus 48/49 ; Homo ergaster 45/45 ; Homo neanderthalensis/Homo heidelbergensis 33/33 ; Homo sapiens/Homo heidelbergensis 19/21 ; Homo habilis 18/18 ; Homo ergaster/Homo habilis 3/3 ; Homo heidelbergensis/Homo ergaster 1/1
+PASSE  C16  30 étiquettes attendues, toutes posées
+PASSE  C17  ΔE minimal 33 entre 6 lignées
 PASSE  C7  aucune erreur
-15/15 contrôles passés
+17/17 contrôles passés

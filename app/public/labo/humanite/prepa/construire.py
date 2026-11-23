@@ -728,5 +728,45 @@ def main():
     log(f'fini en {time.time() - t0:.0f} s')
 
 
+def poids():
+    """Loi de densité avant l'Holocène, par carte (0,5°, 8 bits) : habitabilité moyenne de
+    Timmermann et al. 2022 sur la vie de la lignée (0,2 + h), × (1 + 3 × proximité des
+    présences attestées : sites clés et entrées de la table S1, noyau gaussien de 2°)."""
+    z = np.load(os.path.join(INTER, 'lignees_0p5.npz'))
+    code, seuil = relief()
+    sites = [dict(r, lat=float(r['lat']), lon=float(r['lon']), age=float(r['age_ans'])) for r in lire_csv('sites_cles.csv')]
+    T22 = entrees_timmermann()
+    out = []
+    for carte in CARTES:
+        A, D = z['A_' + carte], z['D_' + carte]
+        ht = habitat_temps(carte)
+        if ht is not None:
+            ages, val = ht
+            a0, a1 = float(A[A > 0].max()), float(D[D > 0].min()) if (D > 0).any() else 0.0
+            k = (ages <= a0) & (ages >= a1)
+            hm = val[k].mean(axis=0) if k.any() else val.mean(axis=0)
+            h = hm[np.clip(np.floor(LAT2 + 90).astype(int), 0, 179), np.floor(LON2 % 360).astype(int) % 360]
+        else:
+            h = np.full((H, W), 0.5)
+        lig = 'sapiens' if carte == 'sapiens1' else carte
+        pts = [(s_['lat'], s_['lon']) for s_ in sites if s_['lignee'] in (carte, lig) and s_['role'] != 'refuge'] + \
+              [(e['lat'], e['lon']) for e in T22 if e['lignee'] in (carte, lig)]
+        k = np.zeros((H, W))
+        for la, lo in pts:
+            i, j = maille(la, lo)
+            k[i, j] += 1
+        k = ndimage.gaussian_filter(k, 4, mode='wrap')
+        k = np.minimum(1.0, k / max(np.quantile(k[k > 0], 0.9), 1e-9)) if (k > 0).any() else k
+        w = (0.2 + h) * (1 + 3 * k) * np.cos(np.radians(LAT2))
+        w = np.where(A > 0, w / max(w[A > 0].max(), 1e-9), 0)
+        out.append(np.clip(np.round(255 * w), 0, 255).astype(np.uint8))
+    n = ecrire_gz('poids.u8.gz', np.stack(out))
+    log(f'poids de densité : {n/1e6:.2f} Mo')
+
+
 if __name__ == '__main__':
-    main()
+    if '--poids' in sys.argv:
+        poids()
+    else:
+        main()
+        poids()
