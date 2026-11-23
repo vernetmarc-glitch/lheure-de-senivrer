@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="../../favicon-32.png">
+<title>Lecteur de texture vidéo — labo</title>
+<style>
+:root { --nuit: #04050a; --texte: #e8e6df; --doux: #9a9fab; --trait: rgba(255,255,255,0.16); --accent: #cfe6ff; }
+html, body { height: 100%; margin: 0; background: var(--nuit); color: var(--texte); overflow: hidden;
+  font-family: Jost, "Helvetica Neue", Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+#vue { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#vue:active { cursor: grabbing; }
+header { position: absolute; left: 18px; top: calc(16px + env(safe-area-inset-top, 0px)); right: calc(clamp(112px, 34vw, 150px) + 30px); pointer-events: none; }
+h1 { font-family: Cinzel, Georgia, serif; font-weight: 600; font-size: 16px; letter-spacing: 0.03em; margin: 0; text-shadow: 0 1px 4px #000; }
+header p { margin: 5px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--doux); text-shadow: 0 1px 4px #000; }
+#mode { color: var(--accent); }
+#commandes { position: absolute; left: 14px; right: 14px; bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; gap: 2px 10px; align-items: center; }
+#curseur { grid-column: 1 / 4; grid-row: 1; }
+#commandes button { background: rgba(10,14,22,0.7); color: var(--texte); border: 1px solid var(--trait); border-radius: 22px;
+  font: 500 14px Jost, sans-serif; min-height: 40px; min-width: 44px; padding: 0 14px; cursor: pointer; }
+#lire { font-size: 15px; }
+#curseur { width: 100%; height: 40px; margin: 0; accent-color: #cfe6ff; background: transparent; cursor: pointer; }
+#lire { grid-row: 2; grid-column: 1; }
+#bascule { grid-row: 2; grid-column: 3; }
+#instant { grid-row: 2; grid-column: 2; text-align: center; font-size: 13px; color: var(--doux); text-shadow: 0 1px 4px #000; font-variant-numeric: tabular-nums; }
+#instant b { font-family: Cinzel, Georgia, serif; font-weight: 500; color: var(--texte); font-size: 15px; }
+</style>
+</head>
+<body>
+<canvas id="vue"></canvas>
+<header>
+  <h1>Lecteur de texture vidéo</h1>
+  <p>Une planète inventée dont les couleurs changent, décodée image par image et posée sur un globe qui tourne au doigt. <span id="mode">…</span></p>
+</header>
+<div id="commandes">
+  <input id="curseur" type="range" min="0" max="191" step="1" value="0" aria-label="Instant de la vidéo">
+  <button id="lire" aria-label="Lire">▶</button>
+  <div id="instant">—</div>
+  <button id="bascule">carte</button>
+</div>
+<script type="module">
+import { creeLecteurVideo } from "../../commun/video.js";
+import { creeCompteur } from "../../commun/compteur.js";
+
+const q = new URLSearchParams(location.search);
+const canvas = document.getElementById("vue");
+const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
+const DUREE_MA = 4000;   // la vidéo d'essai figure 4 milliards d'années (couleurs inventées)
+
+const demo = window.demo = { lecteur: null, mode: null, vue: q.get("vue") === "plan" ? "plan" : "globe", dessinee: null, rectPlan: null };
+
+// ------------------------------------------------------------ rendu
+const VS = `#version 300 es
+void main() { vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
+const FS = `#version 300 es
+precision highp float;
+uniform sampler2D uTex;
+uniform vec2 uTaille;      // pixels du canevas
+uniform vec4 uPlan;        // x, y, l, h du rectangle de la carte (pixels, origine en bas)
+uniform float uVue;        // 0 globe, 1 carte
+uniform mat3 uRot;
+uniform float uRayon;      // pixels
+out vec4 couleur;
+const float PI = 3.14159265358979;
+vec3 versLin(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
+vec3 versSrgb(vec3 c) { return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+void main() {
+  vec2 f = gl_FragCoord.xy;
+  if (uVue > 0.5) {
+    vec2 uv = (f - uPlan.xy) / uPlan.zw;
+    if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) { couleur = vec4(0.016, 0.02, 0.04, 1.0); return; }
+    couleur = vec4(texture(uTex, vec2(uv.x, 1.0 - uv.y)).rgb, 1.0);
+    return;
+  }
+  vec2 p = (f - 0.5 * uTaille) / uRayon;
+  float r2 = dot(p, p);
+  vec3 fond = vec3(0.016, 0.02, 0.04);
+  if (r2 > 1.0) {
+    float d = sqrt(r2) - 1.0;
+    vec3 halo = vec3(0.35, 0.55, 1.0) * 0.22 * exp(-d * 28.0);
+    couleur = vec4(fond + halo, 1.0);
+    return;
+  }
+  vec3 n = vec3(p, sqrt(1.0 - r2));
+  vec3 q = uRot * n;
+  float lon = atan(q.x, q.z), lat = asin(clamp(q.y, -1.0, 1.0));
+  vec3 c = versLin(texture(uTex, vec2(0.5 + lon / (2.0 * PI), 0.5 - lat / PI)).rgb);
+  vec3 soleil = normalize(vec3(-0.55, 0.38, 0.74));
+  float l = dot(n, soleil);
+  float jour = smoothstep(-0.12, 0.35, l) * (0.25 + 0.75 * max(l, 0.0)) + 0.035;
+  vec3 lin = c * jour;
+  float bord = pow(1.0 - n.z, 3.0);
+  lin += vec3(0.25, 0.45, 1.0) * bord * 0.35 * smoothstep(-0.3, 0.5, l);
+  couleur = vec4(versSrgb(lin), 1.0);
+}`;
+function programme() {
+  const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o);
+    if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+  const p = gl.createProgram();
+  gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+const prog = programme();
+const U = n => gl.getUniformLocation(prog, n);
+const vao = gl.createVertexArray();
+
+let lacet = 0.6, tangage = -0.38, vLacet = 0, vTangage = 0;
+const rot = () => {
+  const cy = Math.cos(lacet), sy = Math.sin(lacet), cx = Math.cos(tangage), sx = Math.sin(tangage);
+  // vue → globe : rotation autour de X (tangage) puis de Y (lacet), colonnes
+  return new Float32Array([cy, 0, -sy, sy * sx, cx, cy * sx, sy * cx, -sx, cy * cx]);
+};
+// Carte : rectangle 2:1 entre le titre et les commandes (en px CSS, origine en haut)
+function planCss() {
+  const r = canvas.getBoundingClientRect();
+  const cpt = document.querySelector(".compteur-temps");
+  const haut = Math.max(document.querySelector("header").getBoundingClientRect().bottom, cpt ? cpt.getBoundingClientRect().bottom : 0) + 10;
+  const bas = document.getElementById("commandes").getBoundingClientRect().top - 10;
+  const H = Math.max(40, bas - haut), l = Math.min(r.width, 2 * H), h = l / 2;
+  return { x: r.left + (r.width - l) / 2, y: haut + (H - h) / 2, w: l, h };
+}
+// même rectangle en pixels du canevas, origine en bas (gl_FragCoord)
+function plan(W, H) { const r = canvas.getBoundingClientRect(), p = planCss(), k = W / r.width;
+  return [(p.x - r.left) * k, H - (p.y - r.top + p.h) * k, p.w * k, p.h * k]; }
+demo.rectPlan = planCss;
+
+let aDessiner = false;
+function redessine() { if (!aDessiner) { aDessiner = true; requestAnimationFrame(dessine); } }
+function dessine() {
+  aDessiner = false;
+  const d = devicePixelRatio || 1, W = Math.round(canvas.clientWidth * d), H = Math.round(canvas.clientHeight * d);
+  if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+  gl.viewport(0, 0, W, H);
+  const lv = demo.lecteur;
+  if (!lv || !lv.texture) { gl.clearColor(0.016, 0.02, 0.04, 1); gl.clear(gl.COLOR_BUFFER_BIT); return; }
+  gl.useProgram(prog); gl.bindVertexArray(vao);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, lv.texture);
+  gl.uniform1i(U("uTex"), 0);
+  gl.uniform2f(U("uTaille"), W, H);
+  const [px, py, pl, ph] = plan(W, H);
+  gl.uniform4f(U("uPlan"), px, py, pl, ph);
+  gl.uniform1f(U("uVue"), demo.vue === "plan" ? 1 : 0);
+  gl.uniformMatrix3fv(U("uRot"), false, rot());
+  gl.uniform1f(U("uRayon"), Math.min(W * 0.42, H * 0.3));
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  demo.dessinee = lv.image;
+  if (Math.abs(vLacet) + Math.abs(vTangage) > 1e-4 && !glisse) {
+    lacet += vLacet; tangage = Math.max(-1.3, Math.min(1.3, tangage + vTangage)); vLacet *= 0.94; vTangage *= 0.94; redessine();
+  }
+}
+addEventListener("resize", redessine);
+
+// ------------------------------------------------------------ globe au doigt
+let glisse = null;
+canvas.addEventListener("pointerdown", e => { glisse = { x: e.clientX, y: e.clientY }; vLacet = vTangage = 0; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointermove", e => {
+  if (!glisse) return;
+  const k = 2.4 / Math.min(canvas.clientWidth * 0.84, canvas.clientHeight * 0.6);
+  vLacet = -(e.clientX - glisse.x) * k; vTangage = -(e.clientY - glisse.y) * k;
+  lacet += vLacet; tangage = Math.max(-1.3, Math.min(1.3, tangage + vTangage));
+  glisse = { x: e.clientX, y: e.clientY };
+  redessine();
+});
+const lache = () => { glisse = null; redessine(); };
+canvas.addEventListener("pointerup", lache); canvas.addEventListener("pointercancel", lache);
+
+// ------------------------------------------------------------ temps, curseur, compteur
+const curseur = document.getElementById("curseur"), instant = document.getElementById("instant");
+const compteur = creeCompteur(document.body, { coin: "haut-droite" });
+const nf = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
+const ageMa = n => DUREE_MA * (1 - n / (demo.lecteur.images - 1));
+function etiquette(n) {
+  const a = ageMa(n);
+  instant.innerHTML = `image ${n} · ${(n / demo.lecteur.ips).toFixed(2).replace(".", ",")} s · <b>${a < 0.5 ? "aujourd'hui" : `il y a ${nf.format(a)} Ma`}</b>`;
+}
+// vitesse du temps vue par le spectateur : années parcourues par seconde, lissée
+let dernier = null, vitesseLissee = 0, sens = 0, repos = 0;
+function mesureVitesse(n) {
+  const t = performance.now();
+  if (dernier) {
+    const dt = Math.max(0.016, (t - dernier.t) / 1000), dA = (ageMa(dernier.n) - ageMa(n)) * 1e6;
+    const v = Math.abs(dA) / dt;
+    vitesseLissee = vitesseLissee ? Math.exp(0.7 * Math.log(vitesseLissee + 1) + 0.3 * Math.log(v + 1)) - 1 : v;
+    if (dA) sens = Math.sign(dA);
+  }
+  dernier = { n, t };
+  compteur.vitesse(vitesseLissee, sens);
+  clearTimeout(repos);
+  repos = setTimeout(() => { vitesseLissee = 0; dernier = null; compteur.vitesse(0, 0); }, 260);
+}
+curseur.addEventListener("input", () => {
+  const n = +curseur.value;
+  mesureVitesse(n); etiquette(n);
+  demo.lecteur.allerImage(n);
+});
+
+let lecture = false;
+const bLire = document.getElementById("lire");
+async function joue() {
+  const lv = demo.lecteur;
+  let t0 = performance.now(), n0 = lv.image;
+  while (lecture) {
+    const n = Math.min(lv.images - 1, n0 + Math.floor((performance.now() - t0) / 1000 * lv.ips));
+    if (n !== lv.image) { curseur.value = n; etiquette(n); mesureVitesse(n); await lv.allerImage(n); }
+    else await new Promise(r => requestAnimationFrame(r));
+    if (n >= lv.images - 1) { lecture = false; bLire.textContent = "▶"; }
+  }
+}
+bLire.addEventListener("click", () => {
+  lecture = !lecture; bLire.textContent = lecture ? "❚❚" : "▶";
+  if (lecture) { if (demo.lecteur.image >= demo.lecteur.images - 1) demo.lecteur.allerImage(0).then(joue); else joue(); }
+});
+const bBascule = document.getElementById("bascule");
+const majBascule = () => { bBascule.textContent = demo.vue === "plan" ? "globe" : "carte"; };
+bBascule.addEventListener("click", () => { demo.vue = demo.vue === "plan" ? "globe" : "plan"; majBascule(); redessine(); });
+majBascule();
+
+// ------------------------------------------------------------ chargement
+const H264 = { url: "essai.h264.mp4", codec: "avc1.64001F" }, AV1 = { url: "essai.av1.mp4", codec: "av01.0.04M.08" };
+const sources = q.get("codec") === "h264" ? [H264] : q.get("codec") === "av1" ? [AV1] : [AV1, H264];
+const NOMS = { "webcodecs-h264": "WebCodecs · H.264", "webcodecs-av1": "WebCodecs · AV1", video: "repli : élément vidéo" };
+creeLecteurVideo(gl, sources, { forcerRepli: q.has("repli"), surImage: redessine }).then(lv => {
+  demo.lecteur = lv; demo.mode = lv.mode;
+  document.getElementById("mode").textContent = `Décodage : ${NOMS[lv.mode]}.`;
+  curseur.max = lv.images - 1;
+  etiquette(0);
+  redessine();
+}).catch(e => { console.error(e); document.getElementById("mode").textContent = `Vidéo illisible : ${e.message}`; });
+</script>
+</body>
+</html>

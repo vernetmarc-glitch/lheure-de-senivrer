@@ -473,3 +473,8 @@ avancées et leurs retraits, sur environ 100 000 ans, d'après les publications
 Une référence visuelle par chantier avec signature chiffrée ; matière en points, surfaces
 en photographie ; vidéo seulement pour les couleurs à projection fixe ; compteur de vitesse
 du temps à aiguille dans chaque scène. Détails : `docs/references-visuelles-refonte.md`.
+
+## D-44 — Mosaïque Sentinel-2 des Alpes : s2cloudless 2024 *(23/11/2026, maître)*
+La couche EOX s2cloudless 2024 (CC BY-NC-SA 4.0) est gardée pour la fin du film des Alpes :
+le site est non commercial, l'attribution est affichée. La couche 2016 (CC BY), moins belle,
+reste le repli si l'œuvre devait un jour être exploitée commercialement.
