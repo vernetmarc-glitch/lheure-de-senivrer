@@ -27,38 +27,37 @@ Départ (19/11/2026, 7 h 40) : `bake.py --check` sur `main` : 399 passés, 15 en
 Étape : attend S4.
 
 ## S6 — Humanité
-Étape : **passage 4 terminé** (24/11 ; demande de Marc du 23/11, 22 h 19 ; N38, N39, D-50) —
-`labo/humanite/`, branche `chantier/humanite`.
-Contrôles : **22/22** sur la page servie (`controles-resultat.txt`) ; C18–C22 montrés d'abord
-en échec sur la version publiée (`controles-echec-passage4.txt`, 0/5).
-Planche : `chantiers/planches/humanite-4.png` (−2500, 100, 1279, 1900, aujourd'hui).
+Étape : **passages 5 et 6 terminés** (24/11) — `labo/humanite/`, branche `chantier/humanite`.
+Contrôles : **28/28** sur la page servie (`controles-resultat.txt`) ; nouveaux montrés d'abord
+en échec : passage 5 `controles-echec-passage5.txt` (0/4), passage 6 `controles-echec-passage6.txt`.
+Planche : `chantiers/planches/humanite-5.png` (1 Ma, 100 000, 46 000 ans, 1279, aujourd'hui).
 
-Passage 4 :
-- **données** (workflow GitHub, `prepa/civilisations.py`) : Cliopatria v0.2.1 (14 000 enregistrements,
-  1 409 entités politiques, −3400 → 2024) + 36 foyers néolithiques (`prepa/neolithique.csv`,
-  disques aux contours approximatifs, en italique sur la page) ; carte « identifiant
-  d'entité » à 0,25° pour 248 pas de temps (200 ans avant −3400, puis 50, 25, 10, 5 ans ;
-  les 10 dates témoins sont des pas) : 2,0 Mo de cartes en paquets de 8 pas, chargés à la
-  demande, 0,57 Mo de métadonnées ; noms français Wikidata (933/1 409, les autres en anglais) ;
-  couleurs par coloriage des voisinages (0 paire voisine à ΔE < 30 sur 5 178) ;
-- **rendu** : les points restent les points de population (un point = 2 000 humains) ;
-  ils prennent la couleur de leur entité ; liseré discret de frontière ; ton qui garde la teinte
-  (les foules ne virent plus au blanc) ; noms posés sur le centre intérieur de chaque zone, les
-  plus grandes d'abord, sans chevauchement, en fondu, stables d'une image à l'autre ;
-- **temps** : lecture × 0,06 à partir de −3000 (raccord −3600 → −3000) : 763 an/s avant,
-  38 an/s après (× 20) ; bouton « Époque historique » qui saute à −3000 et lit ; −3000 → 2024
-  dure environ 8 minutes ;
-- C18 : 96,8 % à 100 % en surface aux 10 dates (shapely, indépendant du workflow) ; C19 : 100 %
-  des points à la couleur de leur entité ; C21 : 98 % de la surface des pays de Natural Earth
-  à leur entité en 2024 (4/131 grands pays partagés).
+Passage 5 (relecture du maître) :
+- noms en français : table relue `prepa/noms_fr.csv` (1 623 entités : 1 073 Wikidata avec
+  majuscule initiale, 385 traductions relues, 129 noms propres invariants en liste blanche,
+  36 foyers néolithiques) ; C23 : 96 noms affichés aux 10 dates, aucun en anglais ;
+- aujourd'hui façon Black Marble : la couleur d'appartenance glisse vers la lumière
+  blanche-dorée des villes (part 0 en 1950 → 0,9 en 2010) ; C24 : teinte des points ΔE 4 avec
+  Black Marble, 100 % des points à la couleur de l'entité en 1950 ; C5 inchangé (r = 0,99) ;
+- moins de noms, mieux choisis (C25) : 12 au plus, poids = aire × log(durée de vie), les plus
+  importants placés d'abord, à ≥ 12 px des bords, jamais tronqués ; ordre total des entités
+  superposées (aire puis nom) dans le workflow et dans le contrôle : C18 = 100 % aux 10 dates.
 
-Ce qui manque : 476 noms restent en anglais (pas de libellé Wikidata français) ; en 2024 les
-pays ont des couleurs vives sur les lumières de la nuit (choix de Marc), le « Black Marble »
-pur n'existe plus qu'en couleur unique hors des entités ; les petits pays d'aujourd'hui ne
-sont pas tous nommés (place) ; « aujourd'hui » = 2023 (HYDE), la carte 2024 sert à partir de 2024.
+Passage 6 (retour de Marc, 24/11, 13 h 44 — l'aplat revient, léger et sous les points) :
+- C12 « aucun aplat » (passage 3) remplacé par « points intacts » : mêmes points avec et sans
+  fond, crête +1,3 % (≤ 2 %), même taille ; le fond est composé en espace d'affichage après
+  le ton, sous les points ;
+- C26 fond léger : + 3 à 10/255 au plus (≤ 8 %), 7 à 15 % du cadre teinté ; sapiens et
+  Néandertaliens superposés montrent leurs deux teintes (46 % / 54 %) ;
+- C27 frontière : diffuse (débord 33–54 %), front qui avance × 2,1 à × 4,0 plus marqué qu'un
+  bord immobile, contour découpé en lichen (rugosité 1,24–1,51) ;
+- C28 : après −10 000, fond à la teinte de l'entité (ΔE 0), léger.
 
-Prochaine étape : traduire les noms manquants (table de correspondance relue) ; zoom
-automatique sur une région pendant la lecture historique ; jonction avec le globe de S3.
+Limites : le fond reste très discret à l'échelle d'une planche (pris entre le plafond de 8 % et
+l'exigence de points intacts à 2 %) ; en 2024 les petits pays ne sont pas tous nommés.
+
+Prochaine étape : jonction avec le globe de S3 ; zoom automatique sur une région pendant la
+lecture historique.
 
 ### Question au maître (S6)
 Accès à HYDE 3.3 : le dépôt d'Utrecht (geo.public.data.uu.nl, public.yoda.uu.nl) répond

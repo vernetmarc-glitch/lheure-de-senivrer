@@ -7,17 +7,23 @@ PASSE  C6  1→-135.0° 37→-92.7° 10000→-27.0° 3.2e+06→40.6° 1e+09→10
 PASSE  C8  textes, légende, fenêtres, image
 PASSE  C9  200 points ; inchangés après 5 ans : 81% (≥ 70 %), après 60 ans : 0% (≤ 30 %)
 PASSE  C10  Béringie et Sonde émergées à 20 000 ans, submergées aujourd'hui
-PASSE  C11  JS médian 1.3 ms par image ; 7.17 Mo avant la première image
-PASSE  C12  éclat 167 / 167, aire 6 / 6 px (191 / 109 points)
+PASSE  C11  JS médian 1.4 ms par image ; 7.24 Mo avant la première image
+PASSE  C12  mêmes 191 points avec / sans fond : crête +1.3% ; éclat 170 / 170 / sans fond 167, aire 6 / 6 / 6 px
 PASSE  C13  sapiens 50000 ans : R = 1.00, près des sites × 2.4 (200 points) ; erectus 1000000 ans : R = 0.94, près des sites × 3.4 (150 points) ; neandertal 60000 ans : R = 1.45, près des sites × 3.0 (26 points) (R ≥ 0,5 ; × ≥ 1,5)
 PASSE  C14  9/16 instants de contact (≥ 6) ; mailles de 5° partagées : 60:1 58:1 56:0 54:2 52:5 50:6 48:5 46:5 44:4 42:4 40:0 38:0 36:0 34:0 32:0 30:0
 PASSE  C15  3187/3245 entrées (98.2%) ; Homo neanderthalensis 1452/1481 ; Homo sapiens 1127/1151 ; Homo heidelbergensis 277/277 ; Homo erectus 87/88 ; Homo neanderthalensis/Homo sapiens 77/78 ; Homo heidelbergensis/Homo erectus 48/49 ; Homo ergaster 45/45 ; Homo neanderthalensis/Homo heidelbergensis 33/33 ; Homo sapiens/Homo heidelbergensis 19/21 ; Homo habilis 18/18 ; Homo ergaster/Homo habilis 3/3 ; Homo heidelbergensis/Homo ergaster 1/1
 PASSE  C16  30 étiquettes attendues, toutes posées
-PASSE  C17  ΔE minimal 40 entre 6 lignées
-PASSE  C18  -9000 : 100.0% ; -5000 : 100.0% ; -2500 : 100.0% ; -500 : 100.0% ; 100 : 100.0% ; 800 : 100.0% ; 1279 : 96.8% ; 1500 : 100.0% ; 1900 : 100.0% ; 2024 : 100.0%
+PASSE  C17  ΔE minimal 41 entre 6 lignées
+PASSE  C18  -9000 : 100.0% ; -5000 : 100.0% ; -2500 : 100.0% ; -500 : 100.0% ; 100 : 100.0% ; 800 : 100.0% ; 1279 : 100.0% ; 1500 : 100.0% ; 1900 : 100.0% ; 2024 : 100.0%
 PASSE  C19  -9000 : 100.0% ; -5000 : 100.0% ; -2500 : 100.0% ; -500 : 100.0% ; 100 : 100.0% ; 800 : 100.0% ; 1279 : 100.0% ; 1500 : 100.0% ; 1900 : 100.0% ; 2024 : 100.0%
 PASSE  C20  aucun chevauchement aux 10 dates, fondus
 PASSE  C21  98.2% de la surface des pays à leur entité ; 4/131 grands pays partagés ou sans entité
-PASSE  C22  742 an/s avant −3000, 38 an/s après (× 20 plus lent) ; bouton conforme
+PASSE  C22  748 an/s avant −3000, 38 an/s après (× 20 plus lent) ; bouton conforme
+PASSE  C23  96 noms affichés, tous en français
+PASSE  C24  aujourd'hui ΔE 5 avec Black Marble ; 1950 : 100.0% à la couleur de l'entité
+PASSE  C25  ≤ 12 noms, loin des bords, entiers, les 3 plus importants nommés
+PASSE  C26  1000000 ans : + 3.3/255 au plus, 12% du cadre teinté ; 46000 ans : + 9.7/255 au plus, 15% du cadre teinté ; 1923 ans : + 4.7/255 au plus, 7% du cadre teinté ; superposition sapiens/Néandertaliens : part néandertalienne 46% (10481 px)
+PASSE  C27  sapiens 55000 ans : front/bord immobile × 3.0, débord 54%, découpe 1.34 ; neandertal 250000 ans : front/bord immobile × 2.1, débord 37%, découpe 1.24 ; sapiens 20000 ans : front/bord immobile × 4.0, débord 33%, découpe 1.51
+PASSE  C28  -2500 : ΔE médian 0 ; 100 : ΔE médian 0 ; 1500 : ΔE médian 0
 PASSE  C7  aucune erreur
-22/22 contrôles passés
+28/28 contrôles passés
