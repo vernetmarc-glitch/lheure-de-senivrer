@@ -1,0 +1,5 @@
+ÉCHEC  C19  exception : operands could not be broadcast together with shapes (0,3) (0,) 
+ÉCHEC  C23  -2500 : « Sumerian City-States » hors de la table ; -2500 : « civilisation de la vallée de l'Indus » hors de la table ; -2500 : « civilisation de la vallée de l'Indus » sans majuscule ; -500 : « royaume de Koush » hors de la table ; -500 : « royaume de Koush » sans majuscule ; -500 : « polis » hors de la table ; -500 : « polis » sans majuscule ; -500 : « civilisation carthaginoise » hors de la table
+ÉCHEC  C24  aujourd'hui : teinte [159. 255. 166.] contre Black Marble [255. 231. 196.] (ΔE 51)
+ÉCHEC  C25  -2500 : « civilisation de la vallée de l'Indus » collé au bord ; -500 : « Magadha - Haryanka dynasty » collé au bord ; 100 : 17 noms ; 100 : « Han Dynasty » collé au bord ; 100 : « Anurâdhapura » collé au bord ; 100 : Empire kouchan (parmi les 3 premières) sans nom ; 800 : 24 noms ; 800 : « Anurâdhapura » collé au bord
+0/4 contrôles passés

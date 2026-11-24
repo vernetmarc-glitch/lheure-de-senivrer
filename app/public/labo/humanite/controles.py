@@ -84,6 +84,18 @@ cible flottante relue par readPixels : c'est ce qui est dessiné qui est mesuré
                    moins de 5 % des grands pays partagent leur entité avec un autre
   C22 temps      : en lecture, la vitesse juste après −3000 est au moins 10 fois plus lente
                    que juste avant ; le bouton « Époque historique » saute à −3000 et lit
+  — passage 5 (relecture du maître, 24/11) —
+  C23 français   : aux 10 dates, chaque nom d'entité affiché est celui de la table relue
+                   prepa/noms_fr.csv, commence par une majuscule et ne contient aucun mot
+                   anglais (Kingdom, Empire of, Dynasty, Republic, of, the…), sauf noms propres
+                   invariants de la liste blanche
+  C24 nuit       : aujourd'hui, la couleur des points retrouve celle des lumières de Black
+                   Marble 2016 (ΔE ≤ 15 entre teintes médianes, éclat normalisé) ; en 1950, ≥ 99 %
+                   des points portent encore la couleur de leur entité ; entre les deux, la
+                   couleur glisse vers la lumière des villes (part 0 en 1950 → 0,9 en 2010)
+  C25 noms choisis : au plus 12 noms d'entités à l'écran ; aucun à moins de 10 px du bord, ni
+                   tronqué ; les 3 entités visibles qui pèsent le plus (aire × durée de vie)
+                   sont nommées
   C15 Timmermann : les 3 245 entrées datées de Timmermann et al. 2022 (table S1, d'après
                    ROAD) : la lignée de l'espèce est présente au lieu (± 1 maille) à un
                    instant de [0,9 × âge min ; âge max] pour ≥ 95 % des entrées, et
@@ -870,7 +882,7 @@ def reference_entites(annee, noms_page):
             d = 6371 * np.arccos(np.clip(np.sin(la0) * np.sin(np.radians(LA)) + np.cos(la0) * np.cos(np.radians(LA)) * np.cos(np.radians(LO) - lo0), -1, 1))
             m[d <= float(r['rayon_km'])] = noms_page.get(r['nom'], -1)
     act = [f for f in cliopatria() if int(f['properties']['FromYear']) <= annee <= int(f['properties']['ToYear'])]
-    act.sort(key=lambda f: -float(f['properties'].get('Area') or 0))
+    act.sort(key=lambda f: (-float(f['properties'].get('Area') or 0), f['properties']['Name']))
     for f in act:
         g = shape(f['geometry'])
         x0, y0, x1, y1 = g.bounds
@@ -956,14 +968,17 @@ def c19_couleurs_civ(page):
         homog = (ndimage.maximum_filter(ids, 3) == ndimage.minimum_filter(ids, 3))
         sel = pts & homog & (ids > 0)
         pal = {e['id']: np.array(e['couleur'], float) / 255 for e in page.evaluate('() => window.__hum.civ().entites')}
-        attendu = np.array([pal.get(int(i), np.zeros(3)) for i in ids[sel]])
+        f = part_lumiere(an)
+        attendu = np.array([pal.get(int(i), np.zeros(3)) * (1 - f) + f * LUMIERE for i in ids[sel]]).reshape(-1, 3)
         obs = np.stack([r[sel], g[sel], b[sel]], 1)
         bon = np.abs(obs - attendu).max(axis=1) < 0.02
         frac = float(bon.mean()) if sel.any() else 0
         det.append(f'{an} : {frac:.1%}')
         if frac < 0.99:
             fautes.append(f'{an} : {frac:.1%} des points à la couleur de leur entité')
-        # voisines
+        # voisines (couleurs d'appartenance, avant le glissement vers la lumière des villes)
+        if an > 1950:
+            continue
         for a_, b_ in [(ids[:, :-1], ids[:, 1:]), (ids[:-1, :], ids[1:, :])]:
             d = (a_ != b_) & (a_ > 0) & (b_ > 0)
             for x, y in set(zip(a_[d].tolist(), b_[d].tolist())):
@@ -971,6 +986,121 @@ def c19_couleurs_civ(page):
                 if dE < 30:
                     fautes.append(f'{an} : voisines {x}/{y} ΔE {dE:.0f}')
     verdict('C19', not fautes, ' ; '.join(det) if not fautes else ' ; '.join(fautes[:8]) + f' (+{max(0, len(fautes) - 8)})')
+
+
+LUMIERE = np.array([1.0, 0.90, 0.75])     # lumière blanche-dorée des villes (shader des points)
+
+
+def part_lumiere(annee):
+    """Part de la lumière des villes dans la couleur des points : 0 jusqu'en 1950, 0,9 en 2010."""
+    w = min(1.0, max(0.0, (annee - 1950) / 60.0))
+    return 0.9 * w * w * (3 - 2 * w)
+
+
+ANGLAIS = re.compile(r"\b(Kingdom|Kingdoms|Empire of|Dynasty|Republic|Sultanate|Caliphate|Khanate|Emirate|Principality|"
+                     r"Duchy|County|Confederation|Federation|States?|City|Colonies|Colony|Union of|of|the|and|Western|Eastern|"
+                     r"Northern|Southern|Later|Early|Great|First|Second|Third|French|British|Spanish|Portuguese|Dutch|German|"
+                     r"Italian|Russian|Islands|Commonwealth|Horde|Shogunate|Mayans|Nationalists)\b")
+
+
+def table_noms():
+    return {r['nom_fr']: r for r in lire_csv(os.path.join(PREPA, 'noms_fr.csv'))}
+
+
+def c23_francais(page):
+    tab = table_noms()
+    fautes, n = [], 0
+    for an in TEMOINS:
+        page.evaluate('a => window.__hum.regler(a)', age_de(an))
+        page.wait_for_timeout(400)
+        for e in page.evaluate('() => window.__hum.etiquettesCiv()'):
+            if not e['visible']:
+                continue
+            n += 1
+            t = e['texte']
+            r = tab.get(t)
+            if r is None:
+                fautes.append(f'{an} : « {t} » hors de la table')
+            elif r['statut'] != 'invariant' and ANGLAIS.search(t.strip('()')):
+                fautes.append(f'{an} : « {t} » en anglais')
+            if not t.strip('(')[:1].isupper() and not t.strip('(')[:1].isdigit():
+                fautes.append(f'{an} : « {t} » sans majuscule')
+    verdict('C23', not fautes and n > 0, f'{n} noms affichés, tous en français' if not fautes else ' ; '.join(fautes[:8]))
+
+
+def c24_nuit(page):
+    from PIL import Image
+    fautes = []
+    bm = np.asarray(Image.open(os.path.join(INTER, 'blackmarble_2016_01deg.jpg')).convert('RGB'), dtype=np.float64)
+    lum = bm.max(axis=2)
+    ref = np.median(bm[lum > 150], axis=0)
+    ref = 255 * ref / ref.max()
+    rgb = plan(page, 0, 'couleur3')
+    r, g, b = rgb[:720], rgb[720:1440], rgb[1440:]
+    sel = (r + g + b) > 0
+    obs = np.median(np.stack([r[sel], g[sel], b[sel]], 1), axis=0)
+    obs = 255 * obs / obs.max()
+    d = float(np.linalg.norm(lab(obs) - lab(ref)))
+    if d > 15:
+        fautes.append(f'aujourd\'hui : teinte {obs.round()} contre Black Marble {ref.round()} (ΔE {d:.0f})')
+    ids = plan(page, age_de(1950), 'entite').astype(np.int64)
+    rgb = plan(page, age_de(1950), 'couleur3')
+    r, g, b = rgb[:720], rgb[720:1440], rgb[1440:]
+    from scipy import ndimage
+    sel = ((r + g + b) > 0) & (ids > 0) & (ndimage.maximum_filter(ids, 3) == ndimage.minimum_filter(ids, 3))
+    pal = {e['id']: np.array(e['couleur'], float) / 255 for e in page.evaluate('() => window.__hum.civ().entites')}
+    att = np.array([pal.get(int(i), np.zeros(3)) for i in ids[sel]]).reshape(-1, 3)
+    frac = float((np.abs(np.stack([r[sel], g[sel], b[sel]], 1) - att).max(axis=1) < 0.02).mean())
+    if frac < 0.99:
+        fautes.append(f'1950 : {frac:.1%} des points à la couleur de leur entité')
+    verdict('C24', not fautes, f'aujourd\'hui ΔE {d:.0f} avec Black Marble ; 1950 : {frac:.1%} à la couleur de l\'entité'
+            if not fautes else ' ; '.join(fautes))
+
+
+def c25_noms_choisis(page):
+    from scipy import ndimage
+    civ = page.evaluate('() => window.__hum.civ()')
+    noms_page = {e['nom_en']: e['id'] for e in civ['entites']}
+    duree = {}
+    for f in cliopatria():
+        i = noms_page.get(f['properties']['Name'])
+        a0, a1 = int(f['properties']['FromYear']), int(f['properties']['ToYear'])
+        d0, d1 = duree.get(i, (a0, a1))
+        duree[i] = (min(d0, a0), max(d1, a1))
+    for r in lire_csv(os.path.join(PREPA, 'neolithique.csv')):
+        duree[noms_page.get(r['nom'])] = (int(r['debut']), int(r['fin']))
+    A = aire_025()
+    fautes = []
+    for an in TEMOINS:
+        page.evaluate('a => window.__hum.regler(a)', age_de(an))
+        page.wait_for_timeout(400)
+        et = [e for e in page.evaluate('() => window.__hum.etiquettesCiv()') if e['visible']]
+        g = page.evaluate('() => window.__hum.geometrie()')
+        if len(et) > 12:
+            fautes.append(f'{an} : {len(et)} noms')
+        for e in et:
+            if e['x'] < 10 or e['y'] < 10 or e['x'] + e['w'] > g['vw'] - 10 or e['y'] + e['h'] > g['vh'] - 10:
+                fautes.append(f'{an} : « {e["texte"]} » collé au bord')
+            if e.get('tronque'):
+                fautes.append(f'{an} : « {e["texte"]} » tronqué')
+        ref = reference_entites(an, noms_page)
+        scores = []
+        for i in np.unique(ref[ref > 0]):
+            sel = ref == i
+            labm, nb = ndimage.label(sel)
+            k = int(np.argmax(ndimage.sum(A, labm, index=np.arange(1, nb + 1)))) + 1
+            yy, xx = np.nonzero(labm == k)
+            if not page.evaluate('([lo, la]) => window.__hum.visible(lo, la)', [float(xx.mean() * 0.25 - 180), float(90 - yy.mean() * 0.25)]):
+                continue
+            d0, d1 = duree.get(int(i), (an, an))
+            scores.append((float(A[sel].sum()) * math.log10(10 + d1 - d0), int(i)))
+        scores.sort(reverse=True)
+        vus = {e['id'] for e in et}
+        for sc, i in scores[:3]:
+            if i not in vus:
+                nom = next((x['nom'] for x in civ['entites'] if x['id'] == i), i)
+                fautes.append(f'{an} : {nom} (parmi les 3 premières) sans nom')
+    verdict('C25', not fautes, '≤ 12 noms, loin des bords, entiers, les 3 plus importants nommés' if not fautes else ' ; '.join(fautes[:8]))
 
 
 def c20_noms(page):
@@ -1063,7 +1193,8 @@ def main():
                 ('C9', c9_generations), ('C10', c10_ponts), ('C11', lambda p: c11_fluidite(p, octets)),
                 ('C12', c12_une_representation), ('C13', c13_densite), ('C14', c14_contact), ('C15', c15_timmermann),
                 ('C16', c16_etiquettes), ('C17', c17_couleurs), ('C18', c18_entites), ('C19', c19_couleurs_civ),
-                ('C20', c20_noms), ('C21', c21_etats_actuels), ('C22', c22_temps)]
+                ('C20', c20_noms), ('C21', c21_etats_actuels), ('C22', c22_temps),
+                ('C23', c23_francais), ('C24', c24_nuit), ('C25', c25_noms_choisis)]
         for code, f in tous:
             if args.seul and code not in args.seul.split(','):
                 continue

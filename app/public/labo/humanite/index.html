@@ -85,7 +85,11 @@ const [META, SITES, POP, RELIEF, LIG, NIVEAU, SEUIL, HYDEB] = await Promise.all(
   gz('donnees/hyde.bin.gz')]);
 const POIDS = new Uint8Array(await gz('donnees/poids.u8.gz'));
 const CIV = await json('donnees/civ/civ_meta.json');
+const NOMS_FR = await json('donnees/civ/noms_fr.json');      // table relue : prepa/noms_fr.csv
+for (const e of CIV.entites) { const n = NOMS_FR[e.nom_en]; if (n) e.nom = n; else if (e.nom) e.nom = e.nom[0].toUpperCase() + e.nom.slice(1); }
 const CIV_AN = CIV.annees, CIV_ENT = new Map(CIV.entites.map(e => [e.id, e]));
+// les dernières décennies : la couleur d'appartenance glisse vers la lumière blanche-dorée des villes
+function partLumiere(age) { const an = 2023 - age, w = Math.min(1, Math.max(0, (an - 1950) / 60)); return 0.9 * w * w * (3 - 2 * w); }
 const civCache = new Map();
 const A_CIV = META.aujourdhui - CIV_AN[0];          // les entités commencent en −10 000
 function pasCiv(age) { const an = META.aujourdhui - age; if (an < CIV_AN[0]) return -1;
@@ -416,7 +420,7 @@ uniform int u_mode;                   // 0 : HYDE ; 1 : lignées
 uniform int u_plan;                   // 0 : globe ; 1 : équirectangulaire 720 × 360
 uniform highp usampler2D u_cpt; uniform sampler2D u_lpc;
 uniform mat3 u_rotT; uniform vec2 u_res, u_centre; uniform float u_r, u_taille, u_K, u_e, u_feu, u_gainE, u_gen;
-uniform int u_civ; uniform highp usampler2D u_civmap; uniform sampler2D u_pal; uniform int u_plan2;
+uniform int u_civ; uniform highp usampler2D u_civmap; uniform sampler2D u_pal; uniform int u_plan2; uniform float u_fciv;
 uint entite(float lon, float lat) { ivec2 p = ivec2(clamp(floor((lon + 180.0) * 4.0), 0.0, 1439.0), clamp(floor((90.0 - lat) * 4.0), 0.0, 719.0));
   return texelFetch(u_civmap, p, 0).r; }
 uniform vec3 u_coul[7]; uniform int u_filtre; uniform int u_valeur;   // valeur : 0 affichage, 1 compte, 2 lumière
@@ -433,8 +437,8 @@ void main() {
       lon += (h1 - 0.5) * 0.05; lat += (h2 - 0.5) * 0.05; }
     float lpc = texelFetch(u_lpc, ivec2(cell % 1024, cell / 1024), 0).r;
     b = u_e * lpc * u_K;                    // unités Black Marble (somme par maille de 0,5°)
-    col = mix(u_coul[5], vec3(1.0, 0.80, 0.52), u_e);
-    if (u_civ == 1) { uint id = entite(lon, lat); if (id > 0u) col = texelFetch(u_pal, ivec2(int(id), 0), 0).rgb; }
+    col = mix(u_coul[5], vec3(1.0, 0.90, 0.75), u_e);
+    if (u_civ == 1) { uint id = entite(lon, lat); if (id > 0u) col = mix(texelFetch(u_pal, ivec2(int(id), 0), 0).rgb, vec3(1.0, 0.90, 0.75), u_fciv); }
     carte = 5;
     v_alpha = 1.0;
     if (u_valeur == 0) b = u_e * lpc * u_K * u_gainE + (1.0 - u_e) * u_feu * 3.5;
@@ -443,7 +447,7 @@ void main() {
     int lig = carte == 6 ? 5 : carte;
     if (u_filtre >= 0 && u_filtre != lig) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
     col = u_coul[carte]; v_alpha = 1.0; b = u_feu * 3.5;
-    if (u_civ == 1 && lig == 5) { uint id = entite(lon, lat); if (id > 0u) col = texelFetch(u_pal, ivec2(int(id), 0), 0).rgb; }     // même éclat que les points de l'Holocène
+    if (u_civ == 1 && lig == 5) { uint id = entite(lon, lat); if (id > 0u) col = mix(texelFetch(u_pal, ivec2(int(id), 0), 0).rgb, vec3(1.0, 0.90, 0.75), u_fciv); }     // même éclat que les points de l'Holocène
   }
   if (u_valeur == 1) b = 1.0;
   if (u_valeur == 3) { gl_Position = vec4(lon / 180.0, lat / 90.0, 0.0, 1.0); gl_PointSize = 1.0; v_c = col; v_alpha = 1.0; return; }
@@ -577,7 +581,7 @@ function dessinerPoints(age, planMode, filtre, valeur, rot) {
     gl.uniform1f(pr.u.u_gainE, aire / 255 * 0.9);
     gl.uniform1f(pr.u.u_feu, 0.9);
   } else { gl.uniform1f(pr.u.u_feu, 0.0); gl.uniform1f(pr.u.u_gainE, 1.0); }
-  gl.uniform1i(pr.u.u_civ, civActif ? 1 : 0);
+  gl.uniform1i(pr.u.u_civ, civActif ? 1 : 0); gl.uniform1f(pr.u.u_fciv, partLumiere(age));
   gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, texCiv); gl.uniform1i(pr.u.u_civmap, 6);
   gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, texPal); gl.uniform1i(pr.u.u_pal, 7);
   gl.uniform1i(pr.u.u_mode, 0); gl.bindVertexArray(vaoHyde);
@@ -757,14 +761,22 @@ function placerCiv(force) {
   const pris = [compteur.element.getBoundingClientRect(), haut];
   const vus = new Set();
   let n = 0;
-  // stabilité : les noms déjà affichés gardent leur place (pas de clignotement)
-  const ordre = [...liste].sort((p, q) => (ETIQC.get(q[0])?.el.style.opacity === '0.92') - (ETIQC.get(p[0])?.el.style.opacity === '0.92') || q[3] - p[3]);
+  // moins de noms, mieux choisis : poids = aire × log(durée de vie) ; un nom déjà affiché garde
+  // un léger avantage (pas de clignotement) ; au plus 12 par écran
+  const poidsNom = ([id, , , aire]) => { const e = CIV_ENT.get(id); const d = e ? Math.max(0, e.fin - e.debut) : 0;
+    return aire * Math.log10(10 + d) * (ETIQC.get(id)?.el.style.opacity === '0.92' ? 1.3 : 1); };
+  const brut = ([id, , , aire]) => { const e = CIV_ENT.get(id); return aire * Math.log10(10 + (e ? Math.max(0, e.fin - e.debut) : 0)); };
+  const visibleAncre = ([, lo, la]) => { const ph = la * Math.PI / 180, lm = lo * Math.PI / 180;
+    return RT[2] * Math.cos(ph) * Math.sin(lm) + RT[5] * Math.sin(ph) + RT[8] * Math.cos(ph) * Math.cos(lm) >= 0.3; };
+  const tete = [...liste].filter(visibleAncre).sort((p, q) => brut(q) - brut(p)).slice(0, 5);   // les plus importantes d'abord
+  const ordre = [...tete, ...[...liste].filter(x => !tete.includes(x)).sort((p, q) => poidsNom(q) - poidsNom(p))];
+  const MARGE = 12;
   for (const [id, lo, la, aire] of ordre) {
-    if (n >= 28) break;
+    if (n >= 12) break;
     const ph = la * Math.PI / 180, lm = lo * Math.PI / 180;
     const x = Math.cos(ph) * Math.sin(lm), y = Math.sin(ph), z = Math.cos(ph) * Math.cos(lm);
     const ex = RT[0] * x + RT[3] * y + RT[6] * z, ey = RT[1] * x + RT[4] * y + RT[7] * z, ez = RT[2] * x + RT[5] * y + RT[8] * z;
-    if (ez < (aire > 1e6 ? 0.1 : 0.3)) continue;      // les grands empires restent nommés jusqu'près du bord
+    if (ez < 0.1) continue;
     const ent = CIV_ENT.get(id); if (!ent) continue;
     let o = ETIQC.get(id);
     if (!o) { const el = document.createElement('div');
@@ -780,10 +792,10 @@ function placerCiv(force) {
     const cx = geo.cx + ex * geo.r, cy = geo.cy - ey * geo.r;
     let bx = null;
     for (const [dx, dy] of [[0, 0], [0, -h], [0, h], [-w / 3, 0], [w / 3, 0], [0, -2 * h], [0, 2 * h]]) {
-      const x0 = Math.max(2, Math.min(innerWidth - w - 2, cx + dx - w / 2));   // ramené dans le cadre près du bord
+      const x0 = Math.max(MARGE, Math.min(innerWidth - w - MARGE, cx + dx - w / 2));   // ramené dans le cadre, loin du bord
       const y0 = Math.max(haut.bottom + 1, Math.min(bas.top - h - 1, cy + dy - h / 2));
       const c = { left: x0, top: y0, right: x0 + w, bottom: y0 + h };
-      const dedans = c.left >= 2 && c.right <= innerWidth - 2 && c.top >= haut.bottom && c.bottom <= bas.top;
+      const dedans = c.left >= MARGE && c.right <= innerWidth - MARGE && c.top >= haut.bottom && c.bottom <= bas.top && w < innerWidth - 2 * MARGE;
       if (dedans && !pris.some(p => !(c.right <= p.left || p.right <= c.left || c.bottom <= p.top || p.bottom <= c.top))) { bx = c; break; }
     }
     if (!bx) continue;
@@ -840,6 +852,7 @@ window.__hum = {
     return RT[2] * Math.cos(la) * Math.sin(lo) + RT[5] * Math.sin(la) + RT[8] * Math.cos(la) * Math.cos(lo) > 0.35; },
   etiquettesCiv() { return [...ETIQC.values()].map(({ el, id, ancre }) => { const b = el.getBoundingClientRect(), cs = getComputedStyle(el);
     return { id, texte: el.textContent, x: b.x, y: b.y, w: b.width, h: b.height, ancre, visible: el.style.display !== 'none' && +el.style.opacity > 0.05,
+      tronque: el.scrollWidth > el.clientWidth + 1,
       fondu: parseFloat(cs.transitionDuration) > 0 }; }); },
   vue(lon, lat) { etat.lon = lon; etat.lat = lat; rendre(); placerCiv(true); placerEtiquettes(true); },
   isoler(l) { isole = l ? LIGNEES.indexOf(l) : -1; coucheEtiq.style.display = l ? 'none' : ''; etat.sale = true; rendre(); },
