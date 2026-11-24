@@ -1,7 +1,7 @@
-étape 1 — Tue Nov 24 13:22:37 UTC 2026
-etat-0.005-1 : 304 sorties, t = 197225 ans, naissance 147712.65214543467, 1 puits [0.88], rho_max 5.06e-13, fini False
-etat-0.01-1 : 343 sorties, t = 210841 ans, naissance 148692.5894327123, 1 puits [0.807], rho_max 3.25e-13, fini False
-etat-0.02-1 : 307 sorties, t = 194853 ans, naissance 150807.1909473641, 1 puits [0.593], rho_max 3.49e-13, fini False
+étape 1 — Tue Nov 24 13:24:10 UTC 2026
+etat-0.005-1 : 319 sorties, t = 212079 ans, naissance 147712.65214543467, 1 puits [0.951], rho_max 2.75e-13, fini False
+etat-0.01-1 : 316 sorties, t = 211305 ans, naissance 148692.5894327123, 1 puits [0.81], rho_max 3.31e-13, fini False
+etat-0.02-1 : 290 sorties, t = 194750 ans, naissance 150807.1909473641, 1 puits [0.592], rho_max 5.82e-13, fini False
 
 == trajectoire
 source : http://perso.ens-lyon.fr/isabelle.baraffe/BHAC15dir/BHAC15_tracks+structure
@@ -49,9 +49,9 @@ and the moment of inertia is:
 == var/etat-0.005-1
 >__________________________________________________________________________<
 
- Run finished on 24/11/2026 at 13:16:35.0
+ Run finished on 24/11/2026 at 13:23:31.1
 
- Total wall time:   4 hr, 56 min,  46.82 s (=  1.7807E+04s)
+ Total wall time:   5 hr,  2 min,  15.40 s (=  1.8135E+04s)
 
        |   |           |               | |   _|       | |         
        __| __ \   _` | __|  __|   _` | | |  |    _ \  | |  /  __| 
@@ -68,9 +68,9 @@ and the moment of inertia is:
 == var/etat-0.01-1
 >__________________________________________________________________________<
 
- Run finished on 24/11/2026 at 13:21:04.0
+ Run finished on 24/11/2026 at 13:19:32.3
 
- Total wall time:   5 hr,  2 min,   6.04 s (=  1.8126E+04s)
+ Total wall time:   4 hr, 58 min,  21.29 s (=  1.7901E+04s)
 
        |   |           |               | |   _|       | |         
        __| __ \   _` | __|  __|   _` | | |  |    _ \  | |  /  __| 
@@ -87,9 +87,9 @@ and the moment of inertia is:
 == var/etat-0.02-1
 >__________________________________________________________________________<
 
- Run finished on 24/11/2026 at 13:19:48.0
+ Run finished on 24/11/2026 at 13:20:18.9
 
- Total wall time:   5 hr,  0 min,   0.69 s (=  1.8001E+04s)
+ Total wall time:   4 hr, 58 min,  32.69 s (=  1.7913E+04s)
 
        |   |           |               | |   _|       | |         
        __| __ \   _` | __|  __|   _` | | |  |    _ \  | |  /  __| 
@@ -102,8 +102,8 @@ and the moment of inertia is:
  particle numbers: (sphere, low-density medium, total):     103806      26656     130462
  Shuffling: Shuffling to non-uniform sphere-in-box profile (e.g., a BE sphere in a background medium)
  Free fall time   :   54.2        1.491E+05 yrs
-β = 0.005 : 304 sorties, jusqu'à 197225 ans, naissance 147713, score (1, 49512.620830871805, 0.8801340962940246)
-β = 0.01 : 343 sorties, jusqu'à 210841 ans, naissance 148693, score (1, 62148.65427208415, 0.8067510548515427)
-β = 0.02 : 307 sorties, jusqu'à 194853 ans, naissance 150807, score (1, 44045.60228079662, 0.592913704410087)
-retenue : β = 0.01
-120 instants × 32768 points, 31.7 Mo
+β = 0.005 : 319 sorties, jusqu'à 212079 ans, naissance 147713, score (1, 64366.40708013342, 0.9510664123448647)
+β = 0.01 : 316 sorties, jusqu'à 211305 ans, naissance 148693, score (1, 62612.83509237351, 0.809733541413003)
+β = 0.02 : 290 sorties, jusqu'à 194750 ans, naissance 150807, score (1, 43942.45098739886, 0.5920120224263928)
+retenue : β = 0.005
+120 instants × 32768 points, 31.6 Mo
