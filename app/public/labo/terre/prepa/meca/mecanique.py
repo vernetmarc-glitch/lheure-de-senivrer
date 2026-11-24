@@ -12,7 +12,7 @@ Modèle (grossier par choix : ~50 km, pas de 2 Ma ; hypothèses signalées) :
      L'étalement gravitaire de la croûte épaisse (viscosité non linéaire) est une diffusion
      de l'épaisseur dont le coefficient croît avec l'épaisseur ; épaisseur bornée à 80 km.
   3. Relief par isostasie d'Airy : e = (1 - ρc/ρm)(H - H0) = 0,15 (H - 35,5 km).
-  4. Érosion : loi de puissance du courant (algorithme FastScape, Braun & Willett 2013 :
+  4. Érosion : loi de puissance du courant, E = K A^0,4 S² (algorithme FastScape, Braun & Willett 2013 :
      routage au plus raide après comblement des cuvettes, aire drainée, schéma implicite),
      sur une grille HEALPix (nside 128) ; la roue pip de fastscapelib n'a pas la grille
      HEALPix, l'algorithme est donc réécrit ici (numba). Niveau marin fixe (0 m) : base des
@@ -48,7 +48,7 @@ T_HAUT, T_BAS, DT, PAS_CLE = int(os.environ.get("MECA_T_HAUT", 1800)), 540, 2, 1
 H0, ISO = 35.5, 150.0                     # km ; m d'élévation par km d'épaisseur
 NV, NE = 64, 128                          # nside : vitesses, érosion
 LISSAGE = np.radians(5.0)                 # largeur à mi-hauteur du lissage des vitesses
-K_SPL, M_SPL = float(sys.argv[4]) if len(sys.argv) > 4 else 5.0e-7, 0.4
+K_SPL, M_SPL = float(sys.argv[4]) if len(sys.argv) > 4 else 1.0e-4, 0.4
 KAPPA = 1500.0                            # km²/Ma, étalement de la croûte épaisse
 H_MAX, H_MIN = 75.0, 20.0                 # km : plateau du Tibet ; croûte amincie des rifts
 V_MAX = 200.0
@@ -87,7 +87,8 @@ def _tas_pop(hz, hi, n):
 
 @njit(cache=True)
 def spl(h, fixe, voisins, dist, aire, K, m, dt):
-    """Un pas implicite de la loi de puissance (n = 1). h en m, dist en m, aire en m², dt en
+    """Un pas implicite de la loi de puissance, exposant de pente n = 2 (les reliefs raides
+    s'usent vite, les vieux boucliers presque plats à peine : Lague 2014). h en m, dist en m, aire en m², dt en
     années. Renvoie l'épaisseur de roche enlevée (m, ≥ 0)."""
     n = h.size
     hf = h.copy(); ferme = fixe.copy()
@@ -123,8 +124,11 @@ def spl(h, fixe, voisins, dist, aire, K, m, dt):
         if fixe[i] or rec[i] == i: continue
         r = rec[i]
         if h[i] <= hn[r]: continue                 # fond de cuvette : rien n'est enlevé
-        F = K * dt * A[i] ** m / drec[i]
-        hn[i] = (h[i] + F * hn[r]) / (1.0 + F)
+        # n = 2 : x + F x² = D, avec x = h_i - h_r au pas suivant (solution exacte)
+        F = K * dt * A[i] ** m / drec[i] ** 2
+        D = h[i] - hn[r]
+        x = (-1.0 + np.sqrt(1.0 + 4.0 * F * D)) / (2.0 * F) if F * D > 1e-12 else D
+        hn[i] = hn[r] + x
     return h - hn
 
 
