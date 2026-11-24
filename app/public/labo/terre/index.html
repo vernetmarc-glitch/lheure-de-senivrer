@@ -807,7 +807,7 @@ function geometrie() {
   if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
   }
-  return { dpr, w, h, r: Math.min(w * 0.40, h * 0.36) };   // place pour le compteur dans le coin
+  return { dpr, w, h, r: Math.min(w * 0.37, h * 0.36) };   // place pour le compteur dans le coin
 }
 function soleilXYZ() {
   const a = OBLIQUITE * Math.PI / 180, o = LON_SOLEIL * Math.PI / 180;
@@ -1046,7 +1046,7 @@ async function demarrer() {
   reglerPlage(); placerFrise(); await chargerVie(); interaction(); majTextes();
   const C = await import("../../commun/compteur.js");
   angleVitesse = C.angleVitesse; ANGLE_BUTEE = C.ANGLE_BUTEE;
-  compteur = C.creeCompteur($("#scene"), { coin: "haut-droite", marge: 6, taille: "84px" });
+  compteur = C.creeCompteur($("#scene"), { coin: "haut-droite", marge: 6, taille: "64px" });
   await rendre();
   suivreCamera(performance.now(), true); dessinerGlobe();
   $("#attente").style.opacity = 0;
