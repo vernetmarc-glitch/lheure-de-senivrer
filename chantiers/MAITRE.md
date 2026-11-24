@@ -51,3 +51,15 @@ l'heure de remise à zéro annoncée (+ 5 min) et reprend alors les chantiers lu
 sans attendre Marc. Il reprend **au plus trois agents à la fois**, en priorité ceux qui
 sont le plus près d'une page publiable, pour que la limite suivante tombe plus tard ; les
 autres reprennent au réveil suivant.
+
+## Maître de secours (24/11)
+
+Les réveils programmés dans une conversation ne se déclenchent pas quand celle-ci est
+inactive (constaté dans la nuit du 23 au 24/11). Une tâche planifiée indépendante relance
+donc un maître toutes les deux heures. Pour éviter que deux maîtres se marchent dessus :
+
+- tout maître actif écrit en tête de `chantiers/ETAT.md` une ligne
+  `Maître actif : <date et heure UTC>` à chaque réveil, et la pousse ;
+- le maître de secours lit cette ligne : si elle date de moins de 2 h 30, il ne fait rien ;
+  sinon il prend la main, écrit la ligne, et reprend les chantiers ouverts avec de
+  nouveaux agents de type `chantier`, chacun dans son clone dédié, trois au plus.
