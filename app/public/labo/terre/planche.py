@@ -30,7 +30,7 @@ async def main(sortie):
             im = Image.open(io.BytesIO(await pg.screenshot())).convert("RGB")
             d = ImageDraw.Draw(im)
             txt = f"demandé {t} Ma" + ("" if abs(reel - t) < 1 else f" — hors plage, montré {reel:g} Ma")
-            d.rectangle([0, im.height - 44, im.width, im.height], fill=(4, 5, 10)); d.text((16, im.height - 38), txt, fill=(230, 228, 220), font=ImageFont.load_default(size=26))
+            d.rectangle([0, im.height - 44, im.width, im.height], fill=(4, 5, 10)); d.text((16, im.height - 38), txt, fill=(230, 228, 220), font=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 26))
             vues.append(im)
         await b.close()
     srv.shutdown()

@@ -48,12 +48,13 @@ T_HAUT, T_BAS, DT, PAS_CLE = int(os.environ.get("MECA_T_HAUT", 1800)), 540, 2, 1
 H0, ISO = 35.5, 150.0                     # km ; m d'élévation par km d'épaisseur
 NV, NE = 64, 128                          # nside : vitesses, érosion
 LISSAGE = np.radians(5.0)                 # largeur à mi-hauteur du lissage des vitesses
-K_SPL, M_SPL = float(sys.argv[4]) if len(sys.argv) > 4 else 3.0e-7, 0.4
+K_SPL, M_SPL = float(sys.argv[4]) if len(sys.argv) > 4 else 5.0e-7, 0.4
 KAPPA = 1500.0                            # km²/Ma, étalement de la croûte épaisse
 H_MAX, H_MIN = 75.0, 20.0                 # km : plateau du Tibet ; croûte amincie des rifts
-V_MAX = 200.0                             # km/Ma (20 cm/an)
+V_MAX = 200.0
+RACCORD = 160.0                           # Ma : Cao -> PALEOMAP de 700 à 540 Ma                             # km/Ma (20 cm/an)
 COUPLAGE = 0.05
-TAU_RACINE, H_REF = 80.0, 38.0          # Ma, km : effondrement et délamination des racines (hypothèse)
+TAU_RACINE, H_REF = 60.0, 38.0          # Ma, km : effondrement et délamination des racines (hypothèse)
 AIRE_V = 4 * np.pi * R_KM ** 2 / hp.nside2npix(NV)
 
 
@@ -230,7 +231,7 @@ def main():
     for t in range(T_HAUT, T_BAS - 1, -DT):
         vivant = debI >= t
         neuf = vivant & np.isnan(Hc)
-        Hc[neuf] = 33.5 + 1.0 * nz[neuf]                     # croûte juvénile (arcs, -300 m) : hypothèse
+        Hc[neuf] = 35.0 + 0.8 * nz[neuf]                     # croûte juvénile (arcs, îles et hauts-fonds, -75 m) : hypothèse
         Hc[~vivant] = np.nan
         a = np.where(vivant)[0]
         pos = qrot(QC[rI[a], t], V0[a])
@@ -352,7 +353,7 @@ def ecrire_paquet(g, N, I, rI, debI, croute, ids, QC, cles, nz):
     QH = np.zeros((nH, len(TM), 4)); QH[0, :, 3] = 1
     C = qmul(QP[ppx, 540], qconj(QC[mm, 540]))
     for k, t in enumerate(TM):
-        s = np.clip((t - 540) / 80.0, 0, 1); s = s * s * (3 - 2 * s)
+        s = np.clip((t - 540) / RACCORD, 0, 1); s = s * s * s * (s * (6 * s - 15) + 10)
         QH[1:, k] = np.where((ppx == 0)[:, None], QC[mm, t], qmul(qslerp_id(C, s), QC[mm, t]))
     ecrire_rot(OUT / "rot-C.bin", QH)
     # élévations mécaniques aux points (type a hors croûte Cao : relief de 540 Ma maintenu, hypothèse)
@@ -379,16 +380,17 @@ def ecrire_paquet(g, N, I, rI, debI, croute, ids, QC, cles, nz):
         Image.fromarray(np.stack(trio, -1), "RGB").save(OUT / nom, optimize=True)
     drap = (vuA * 1 + croute * 2 + pts * 4).astype(np.uint8)
     debC = np.full(N, 0.0); debC[I] = debI
-    deb = np.clip(np.round(np.minimum(np.where(croute, debC, 1e4), 2040) / 8), 0, 255).astype(np.uint8)
+    # la croûte présente au début du modèle (1,8 Ga) existait avant : elle ne « naît » pas à 1,8 Ga
+    deb = np.clip(np.round(np.minimum(np.where(croute & (debC < T_HAUT), debC, 1e4), 2040) / 8), 0, 255).astype(np.uint8)
     h0c = np.where(vuA, h0, -150.0)
     im1 = np.stack([coder(h0c), np.zeros(N, np.uint8), drap], -1).reshape(g.H, g.W, 3)
     im2 = np.stack([(rowH & 255).astype(np.uint8), (rowH >> 8).astype(np.uint8), deb], -1).reshape(g.H, g.W, 3)
     Image.fromarray(im1, "RGB").save(OUT / "C-points-1.png", optimize=True)
     Image.fromarray(im2, "RGB").save(OUT / "C-points-2.png", optimize=True)
     man = json.loads((OUT / "manifeste.json").read_text())
-    man["segments"]["C"] = {"t0": 540, "t1": T_HAUT, "rot": "rot-C.bin", "rangees": int(nH), "cols": len(TM),
+    man["segments"]["C"] = {"_raccord_Ma": RACCORD,"t0": 540, "t1": T_HAUT, "rot": "rot-C.bin", "rangees": int(nH), "cols": len(TM),
                             "pasRot": PAS_ROT, "points": ["C-points-1.png", "C-points-2.png"],
-                            "fond": "cles/P0540.png", "pasDebut": 8, "raccord": [540, 620], "effacement": [540, 640],
+                            "fond": "cles/P0540.png", "pasDebut": 8, "raccord": [540, 540 + int(RACCORD)], "effacement": [540, 640],
                             "meca": {"t0": int(ts[0]), "pas": PAS_CLE, "n": len(ts), "fichiers": fichiers}}
     src = "Cao et al. 2024, Geoscience Frontiers 15, 101922, Zenodo 13628813"
     if src not in man["sources"]: man["sources"].append(src)
