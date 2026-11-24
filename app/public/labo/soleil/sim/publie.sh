@@ -40,7 +40,7 @@ for essai in 1 2 3 4 5; do
   git fetch -q origin chantier/soleil && git reset -q --hard origin/chantier/soleil
   if [ -d nouv ]; then rm -rf "$DON" && mkdir -p "$DON" && cp nouv/* "$DON"/; fi
   mkdir -p "$DIAG" && cp diag/* "$DIAG"/
-  git add -A "$DON" "$DIAG"
+  git add -A "$DIAG"; [ -d "$DON" ] && git add -A "$DON"   # un chemin absent ferait échouer tout l'ajout
   git diff --cached --quiet && { echo "rien de neuf"; exit 0; }
   git commit -q -m "Soleil : données de l'effondrement, étape $ETAPE ($(head -c 120 resume.txt | tr '\n' ' '))"
   git push -q origin HEAD:chantier/soleil && { echo "déposé"; exit 0; }
