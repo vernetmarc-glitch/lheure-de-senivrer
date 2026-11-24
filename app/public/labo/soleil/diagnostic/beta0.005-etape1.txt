@@ -1,0 +1,95 @@
+beta0.005-etape1 — Tue Nov 24 08:09:21 UTC 2026
+/dev/root       145G   59G   86G  41% /
+sorties complètes : 1 ; instants extraits : 0
+13M	/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/etat/run
+4.0K	/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/etat/extrait
+== setup
+  Overdensity factor     =    2.0039953906537535     
+ particle numbers: (sphere, low-density medium, total):     103806      26656     130462
+ Free fall time   :   54.2        1.491E+05 yrs
+== bilan (3 dernières lignes)
+== extraction (erreurs)
+Traceback (most recent call last):
+  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/soleil/sim/extraire.py", line 20, in <module>
+    import sarracen
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/__init__.py", line 30, in <module>
+    from . import dust
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/__init__.py", line 1, in <module>
+    from ..dust.stokes_number import stokes_number_2fluid
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/stokes_number.py", line 2, in <module>
+    from sklearn.neighbors import KDTree
+ModuleNotFoundError: No module named 'sklearn'
+Traceback (most recent call last):
+  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/soleil/sim/extraire.py", line 20, in <module>
+    import sarracen
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/__init__.py", line 30, in <module>
+    from . import dust
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/__init__.py", line 1, in <module>
+    from ..dust.stokes_number import stokes_number_2fluid
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/stokes_number.py", line 2, in <module>
+    from sklearn.neighbors import KDTree
+ModuleNotFoundError: No module named 'sklearn'
+Traceback (most recent call last):
+  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/soleil/sim/extraire.py", line 20, in <module>
+    import sarracen
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/__init__.py", line 30, in <module>
+    from . import dust
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/__init__.py", line 1, in <module>
+    from ..dust.stokes_number import stokes_number_2fluid
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/stokes_number.py", line 2, in <module>
+    from sklearn.neighbors import KDTree
+ModuleNotFoundError: No module named 'sklearn'
+Traceback (most recent call last):
+  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/soleil/sim/extraire.py", line 20, in <module>
+    import sarracen
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/__init__.py", line 30, in <module>
+    from . import dust
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/__init__.py", line 1, in <module>
+    from ..dust.stokes_number import stokes_number_2fluid
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/stokes_number.py", line 2, in <module>
+    from sklearn.neighbors import KDTree
+ModuleNotFoundError: No module named 'sklearn'
+== phantom (fin du journal)
+|  1    1.500E-01      11898   15.05%    0.16% |
+|  2    7.500E-02       4562    5.77%    0.23% |
+|  3    3.750E-02       4185    5.29%    0.41% |
+|  4    1.875E-02       3162    4.00%    0.70% |
+|  5    9.375E-03       2820    3.57%    1.23% |
+|  6    4.687E-03       2333    2.95%    2.14% |
+|  7    2.344E-03       1734    2.19%    3.86% |
+|  8    1.172E-03       1239    1.57%    6.90% |
+|  9    5.859E-04        881    1.11%   12.76% |
+| 10    2.930E-04       1429    1.81%   23.00% |
+| 11    1.465E-04       6340    8.02%   33.51% |
+| 12    7.324E-05         11    0.01%   14.82% |
+-------------------------------------------------
+ 0.09M particles per second, IND TIMESTEPS efficiency: 54.27%
+
+ npart=    130462, n_alive=     79081, n_dead_or_accreted=     51381, nptmass=         1
+ Etot=-6.209E-01, Ekin= 6.047E-01, Etherm= 4.037E-02, Epot=-1.266E+00
+ Linm= 1.704E-05, Angm= 1.635E-01
+ Centre of Mass = -6.432E-04, -5.437E-03,  4.890E-03
+ density  (max)= 7.665E+02 (mean)= 3.361E+01 (max)= 1.525E-12 g/cm^3
+ alpha(max)= 1.000E+00
+ RMS Mach #= 3.723E+00
+
+
+ >> WALL TIME = 35 min,  35.95 s (=  2.1359E+03s)
+ >> NEXT DUMP WILL TRIP OVER MAX WALL TIME: 40 min,   0.00 s (=  2.4000E+03s)
+ >> ABORTING... 
+
+>__________________________________________________________________________<
+
+ Run finished on 24/11/2026 at 08:08:00.6
+
+ Total wall time: 35 min,  35.96 s (=  2.1360E+03s)
+
+       |   |           |               | |   _|       | |         
+       __| __ \   _` | __|  __|   _` | | |  |    _ \  | |  /  __| 
+       |   | | | (   | |  \__ \  (   | | |  __| (   | |   < \__ \ 
+      \__|_| |_|\__,_|\__|____/ \__,_|_|_| _|  \___/ _|_|\_\____/ 
+
+>__________________________________________________________________________<
+== temps simulé
+-------->   TIME =    59.70    : full dump written to file soleil_00263   <--------
+ >> WALL TIME = 35 min,  35.95 s (=  2.1359E+03s)
