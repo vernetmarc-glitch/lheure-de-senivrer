@@ -25,36 +25,38 @@ Départ (19/11/2026, 7 h 40) : `bake.py --check` sur `main` : 399 passés, 15 en
 Étape : attend S4.
 
 ## S6 — Humanité
-Étape : **passage 3 terminé** (23/11, retour de Marc de 17 h 25) — `labo/humanite/`, branche `chantier/humanite`.
-Contrôles : **17/17** sur la page servie (`controles-resultat.txt`) ; les nouveaux montrés
-d'abord en échec sur la version publiée (`controles-echec-passage3.txt` : 0/4).
-Planche : `chantiers/planches/humanite-3.png` (2 Ma, 100 000, 46 000, 10 000 ans, aujourd'hui).
+Étape : **passage 4 terminé** (24/11 ; demande de Marc du 23/11, 22 h 19 ; N38, N39, D-50) —
+`labo/humanite/`, branche `chantier/humanite`.
+Contrôles : **22/22** sur la page servie (`controles-resultat.txt`) ; C18–C22 montrés d'abord
+en échec sur la version publiée (`controles-echec-passage4.txt`, 0/5).
+Planche : `chantiers/planches/humanite-4.png` (−2500, 100, 1279, 1900, aujourd'hui).
 
-Passage 3 (règle 0 bis) :
-- **une seule représentation** (C12) : plus d'aplat de couleur (teinte des territoires nulle,
-  mesurée) ; avant 10 000 av. J.-C. les points ont la taille et l'éclat de ceux de
-  l'Holocène (mesurés à l'écran : identiques à 12 500 et 9 000 ans) ; un point = 2 000
-  humains partout ; plus de « feux » ni de foyers ;
-- **loi de densité** (C13, remplace le contrôle des foyers du passage 2) : points tirés sur
-  tout le territoire de la lignée, densité ∝ habitabilité moyenne (Timmermann 2022) ×
-  (1 + 3 × proximité des présences attestées : sites clés + table S1) ; indice de Clark et
-  Evans 0,94–1,45 (ni groupés ni réguliers), densité ×2,4 à ×3,4 à moins de 300 km des sites ;
-  sapiens glisse vers la carte HYDE de 10 000 av. J.-C. entre 20 000 et 13 000 ans ;
-- **étiquettes** (C16) : le nom de chaque lignée présente, posé sur le centre de son
-  territoire visible, sans chevauchement (ni entre elles ni avec le cadran) ; « arrive » dans
-  les premiers 15 % de sa vie, « s'efface(nt) » dans les derniers 15 % ;
-- **couleurs** (C17) : palette resserrée sur des teintes séparées (magenta, orange, bleu,
-  turquoise, vert, or) ; ΔE minimal 33 mesuré sur les crêtes des points dessinés ;
-- C14 (contact 60–30 ka) : 9 instants sur 16, sans plus aucun « aimant » de contact ;
-  C15 (Timmermann) inchangé, 98,2 %.
+Passage 4 :
+- **données** (workflow GitHub, `prepa/civilisations.py`) : Cliopatria v0.2.1 (14 000 enregistrements,
+  1 409 entités politiques, −3400 → 2024) + 36 foyers néolithiques (`prepa/neolithique.csv`,
+  disques aux contours approximatifs, en italique sur la page) ; carte « identifiant
+  d'entité » à 0,25° pour 248 pas de temps (200 ans avant −3400, puis 50, 25, 10, 5 ans ;
+  les 10 dates témoins sont des pas) : 2,0 Mo de cartes en paquets de 8 pas, chargés à la
+  demande, 0,57 Mo de métadonnées ; noms français Wikidata (933/1 409, les autres en anglais) ;
+  couleurs par coloriage des voisinages (0 paire voisine à ΔE < 30 sur 5 178) ;
+- **rendu** : les points restent les points de population (un point = 2 000 humains) ;
+  ils prennent la couleur de leur entité ; liseré discret de frontière ; ton qui garde la teinte
+  (les foules ne virent plus au blanc) ; noms posés sur le centre intérieur de chaque zone, les
+  plus grandes d'abord, sans chevauchement, en fondu, stables d'une image à l'autre ;
+- **temps** : lecture × 0,06 à partir de −3000 (raccord −3600 → −3000) : 763 an/s avant,
+  38 an/s après (× 20) ; bouton « Époque historique » qui saute à −3000 et lit ; −3000 → 2024
+  dure environ 8 minutes ;
+- C18 : 96,8 % à 100 % en surface aux 10 dates (shapely, indépendant du workflow) ; C19 : 100 %
+  des points à la couleur de leur entité ; C21 : 98 % de la surface des pays de Natural Earth
+  à leur entité en 2024 (4/131 grands pays partagés).
 
-Ce qui manque : avant l'Holocène, peu de points (honnête à 2 000 humains par point : 100 à
-1 000 points) et donc des continents peu lisibles de loin ; le liseré mêlé n'existe plus
-que par l'entremêlement des points des deux couleurs ; pas de calottes glaciaires (S4).
+Ce qui manque : 476 noms restent en anglais (pas de libellé Wikidata français) ; en 2024 les
+pays ont des couleurs vives sur les lumières de la nuit (choix de Marc), le « Black Marble »
+pur n'existe plus qu'en couleur unique hors des entités ; les petits pays d'aujourd'hui ne
+sont pas tous nommés (place) ; « aujourd'hui » = 2023 (HYDE), la carte 2024 sert à partir de 2024.
 
-Prochaine étape : jonction avec le globe de S3 ; régler la lisibilité des époques anciennes
-sans changer K (zoom automatique sur le territoire actif, par exemple) — arbitrage à
-soumettre si cela touche à la règle « un point = nombre fixe d'humains ».
+Prochaine étape : traduire les noms manquants (table de correspondance relue) ; zoom
+automatique sur une région pendant la lecture historique ; jonction avec le globe de S3.
 
 ### Question au maître (S6)
 Accès à HYDE 3.3 : le dépôt d'Utrecht (geo.public.data.uu.nl, public.yoda.uu.nl) répond

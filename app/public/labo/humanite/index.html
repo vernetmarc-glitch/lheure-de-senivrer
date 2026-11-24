@@ -68,8 +68,8 @@ const COULEUR = { hominines: [1.0, 0.22, 0.80], erectus: [1.0, 0.42, 0.06], nean
 const LIGNEE_DE = m => (m === 'sapiens1' ? 'sapiens' : m);
 const APLAT = 0.0;        // retour de Marc (23/11) : plus d'aplat de couleur, seulement des points
 const A0 = 20;
-// N39 : la lecture ralentit fortement à l'époque historique (× 0,06 après −3000, raccord sur 600 ans)
-function ralenti(age) { const an = 2023 - age; const w = Math.min(1, Math.max(0, (an + 3300) / 600)); return Math.exp(Math.log(0.06) * w * w * (3 - 2 * w)); }            // décalage de la loi de lecture (ans)
+// N39 : la lecture ralentit fortement à l'époque historique (× 0,06 dès −3000, raccord de −3600 à −3000)
+function ralenti(age) { const an = 2023 - age; const w = Math.min(1, Math.max(0, (an + 3600) / 600)); return Math.exp(Math.log(0.06) * w * w * (3 - 2 * w)); }            // décalage de la loi de lecture (ans)
 const C_LECTURE = 0.13;   // la lecture divise l'âge par e toutes les 7,7 s
 
 // ------------------------------------------------------------------ chargement
@@ -490,8 +490,8 @@ const progTon = programme(`#version 300 es
 in vec2 a; out vec2 v; void main() { v = a * 0.5 + 0.5; gl_Position = vec4(a, 0.0, 1.0); }`, `#version 300 es
 precision highp float; in vec2 v; out vec4 o; uniform sampler2D u_hdr; uniform float u_expo;
 void main() { vec3 x = texture(u_hdr, v).rgb * u_expo;
-  vec3 t = 1.0 - exp(-x); float l = max(t.r, max(t.g, t.b));
-  t = mix(t, vec3(l), smoothstep(0.75, 1.0, l) * 0.5);
+  // ton qui garde la teinte : la foule d'un empire reste de sa couleur au lieu de virer au blanc
+  float m = max(x.r, max(x.g, x.b)); vec3 t = m > 0.0 ? x / m * (1.0 - exp(-m)) : vec3(0.0);
   o = vec4(pow(t, vec3(1.0 / 2.2)), 1.0); }`);
 
 const quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
@@ -757,7 +757,9 @@ function placerCiv(force) {
   const pris = [compteur.element.getBoundingClientRect(), haut];
   const vus = new Set();
   let n = 0;
-  for (const [id, lo, la, aire] of liste) {
+  // stabilité : les noms déjà affichés gardent leur place (pas de clignotement)
+  const ordre = [...liste].sort((p, q) => (ETIQC.get(q[0])?.el.style.opacity === '0.92') - (ETIQC.get(p[0])?.el.style.opacity === '0.92') || q[3] - p[3]);
+  for (const [id, lo, la, aire] of ordre) {
     if (n >= 28) break;
     const ph = la * Math.PI / 180, lm = lo * Math.PI / 180;
     const x = Math.cos(ph) * Math.sin(lm), y = Math.sin(ph), z = Math.cos(ph) * Math.cos(lm);
@@ -768,7 +770,7 @@ function placerCiv(force) {
     if (!o) { const el = document.createElement('div');
       el.style.cssText = 'position:absolute;left:0;top:0;white-space:nowrap;pointer-events:none;letter-spacing:0.02em;' +
         'text-shadow:0 0 4px #000,0 0 8px #000,0 1px 2px #000;opacity:0;transition:opacity 0.6s;';
-      el.style.color = `rgb(${ent.couleur.map(c => Math.round(150 + 0.42 * c)).join(',')})`;
+      el.style.color = `rgb(${ent.couleur.map(c => Math.round(110 + 0.57 * c)).join(',')})`;
       if (ent.flou) el.style.fontStyle = 'italic';
       el.textContent = ent.nom; coucheEtiq.appendChild(el); o = { el, id, ancre: [la, lo] }; ETIQC.set(id, o); }
     o.ancre = [la, lo];

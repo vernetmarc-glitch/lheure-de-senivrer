@@ -1027,7 +1027,7 @@ def c22_temps(page):
         a1 = page.evaluate('() => window.__hum.etat()')
         page.evaluate('() => window.__hum.lecture(false)')
         return (a0['age'] - a1['age']) / ((a1['horloge'] - a0['horloge']) / 1000), a1['age']
-    v1, x1 = vitesse(age_de(-3700))
+    v1, x1 = vitesse(age_de(-4300))
     v2, x2 = vitesse(age_de(-2800))
     if not (x1 > age_de(-3000) and x2 < age_de(-3000)):
         fautes.append(f'mesures mal placées ({2023 - x1:.0f}, {2023 - x2:.0f})')
