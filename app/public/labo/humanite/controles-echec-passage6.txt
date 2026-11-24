@@ -1,0 +1,5 @@
+PASSE  C12  éclat 167 / 167 / sans fond 167, aire 6 / 6 / 6 px
+ÉCHEC  C26  1000000 ans : fond invisible ; 46000 ans : fond invisible ; 1923 ans : fond invisible ; superposition : une seule teinte lisible (part 0%)
+ÉCHEC  C27  sapiens : pas assez de bords (1409 / 1984 px) ; neandertal : pas assez de bords (1284 / 0 px) ; erectus : pas assez de bords (108 / 0 px)
+ÉCHEC  C28  -2500 : pas de fond dans les entités ; 100 : pas de fond dans les entités ; 1500 : pas de fond dans les entités
+1/4 contrôles passés

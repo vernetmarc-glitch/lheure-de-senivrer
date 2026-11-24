@@ -525,3 +525,9 @@ archéologique (zones aux contours flous, signalés comme tels). Les points rest
 points de population (un point = 2 000 humains) ; c'est leur couleur qui dit
 l'appartenance, avec le nom de l'entité posé sur sa zone. Le temps ralentit fortement
 après −3000.
+
+## D-51 — Fond des vagues humaines : visible, sous les points *(24/11/2026, maître)*
+Le plafond de luminance ajoutée par le fond (8 %) était une traduction du maître, pas une
+exigence de Marc ; à 8 %, le fond qu'il a demandé ne se voit pas. Le plafond passe à 20 %.
+Ce qui protège sa demande (« ne doit pas masquer les petits points ») reste inchangé et
+bloquant : points intacts, éclat et taille à 2 % près avec ou sans fond.

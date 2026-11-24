@@ -53,10 +53,10 @@ cible flottante relue par readPixels : c'est ce qui est dessiné qui est mesuré
                    Dénisoviens se côtoient : au moins 6 instants où une même maille de 5°
                    porte des points des deux couleurs
   — passage 3 (retour de Marc, 23/11, 17 h 25 ; règle 0 bis) —
-  C12 une seule représentation : aucune couche d'aplat dessinée (teinte des territoires nulle
-                   à 2 Ma, 100 000, 46 000 et 10 000 ans) ; les points isolés ont le même
-                   rendu avant et après 10 000 av. J.-C. (éclat de crête et taille à mi-hauteur
-                   mesurés sur l'écran, médianes à 15 % près, à 12 500 et 9 000 ans)
+  C12 points intacts (remplace « aucun aplat » du passage 3 : Marc est revenu sur l'aplat le
+                   24/11, 13 h 44 — léger et sous les points) : les points isolés ont le même
+                   rendu avant et après 10 000 av. J.-C. (15 %) et avec ou sans le fond teinté
+                   (éclat de crête et taille mesurés sur l'écran, écart ≤ 2 %)
   C13 densité    : avant l'Holocène, les points couvrent le territoire de leur lignée (pas de
                    « feux » groupés : indice de Clark et Evans ≥ 0,5) et sont plus denses près
                    des présences attestées (densité à moins de 300 km d'un site daté ≥ 1,5 ×
@@ -84,6 +84,27 @@ cible flottante relue par readPixels : c'est ce qui est dessiné qui est mesuré
                    moins de 5 % des grands pays partagent leur entité avec un autre
   C22 temps      : en lecture, la vitesse juste après −3000 est au moins 10 fois plus lente
                    que juste avant ; le bouton « Époque historique » saute à −3000 et lit
+  — passage 5 (relecture du maître, 24/11) —
+  C23 français   : aux 10 dates, chaque nom d'entité affiché est celui de la table relue
+                   prepa/noms_fr.csv, commence par une majuscule et ne contient aucun mot
+                   anglais (Kingdom, Empire of, Dynasty, Republic, of, the…), sauf noms propres
+                   invariants de la liste blanche
+  C24 nuit       : aujourd'hui, la couleur des points retrouve celle des lumières de Black
+                   Marble 2016 (ΔE ≤ 15 entre teintes médianes, éclat normalisé) ; en 1950, ≥ 99 %
+                   des points portent encore la couleur de leur entité ; entre les deux, la
+                   couleur glisse vers la lumière des villes (part 0 en 1950 → 0,9 en 2010)
+  C25 noms choisis : au plus 12 noms d'entités à l'écran ; aucun à moins de 10 px du bord, ni
+                   tronqué ; les 3 entités visibles qui pèsent le plus (aire × durée de vie)
+                   sont nommées
+  — passage 6 (retour de Marc, 24/11, 13 h 44) —
+  C26 fond léger : chaque lignée présente a une zone très légèrement teintée sous ses points
+                   (≤ 8 % de luminance ajoutée, mesurée à l'écran avec et sans fond, et visible
+                   sur au moins 3 % du cadre) ; là où sapiens et Néandertaliens se recouvrent,
+                   les deux teintes se lisent (chacune 20–80 % du mélange)
+  C27 frontière  : diffuse (le fond déborde du territoire : ≥ 15 % de l'intérieur sur 2 px),
+                   nettement plus marquée sur le front qui avance que sur un bord immobile
+                   (× ≥ 2), contour découpé comme un lichen (rugosité ≥ 1,15)
+  C28 entités    : après −10 000, la teinte de fond est celle de l'entité (ΔE ≤ 15), légère
   C15 Timmermann : les 3 245 entrées datées de Timmermann et al. 2022 (table S1, d'après
                    ROAD) : la lignée de l'espèce est présente au lieu (± 1 maille) à un
                    instant de [0,9 × âge min ; âge max] pour ≥ 95 % des entrées, et
@@ -547,6 +568,9 @@ def c11_fluidite(page, octets):
     verdict('C11', ok, f'JS médian {ms} ms par image ; {mo:.2f} Mo avant la première image')
 
 
+_derniere_image = {}
+
+
 def taches(page, age, vue=(25, 15)):
     """Points isolés à l'écran : (éclat de crête, aire à mi-hauteur en pixels) médians."""
     from PIL import Image
@@ -566,7 +590,7 @@ def taches(page, age, vue=(25, 15)):
     kk = img.shape[1] / 390.0
     disque = np.hypot(xx - g['cx'] * kk, yy - g['cy'] * kk) < 0.97 * g['r'] * kk
     pics = np.argwhere((x == mx) & (x > 25) & disque)
-    cretes, aires = [], []
+    cretes, aires, positions = [], [], []
     for y0, x0 in pics:
         if y0 < 8 or x0 < 8 or y0 >= x.shape[0] - 8 or x0 >= x.shape[1] - 8:
             continue
@@ -577,27 +601,162 @@ def taches(page, age, vue=(25, 15)):
             continue          # pas isolé
         cretes.append(x[y0, x0])
         aires.append(autres)
+        positions.append((int(y0), int(x0)))
+    _derniere_image['img'] = img
+    _derniere_image.setdefault('pics', positions)
     if len(cretes) < 15:
         return None
     return float(np.median(cretes)), float(np.median(aires)), len(cretes)
 
 
-def c12_une_representation(page):
+def c12_points_intacts(page):
+    """Points intacts : même rendu avant et après −10 000, et avec ou sans le fond teinté."""
     fautes, det = [], []
-    for age in [2.0e6, 1.0e5, 4.6e4, 1.0e4]:
-        t = plan(page, age, 'teinte')
-        if t.max() > 0:
-            fautes.append(f'aplat dessiné à {age:.0f} ans (max {t.max():.4f})')
     a = taches(page, 12500)
     b = taches(page, 9000)
+    page.evaluate('() => window.__hum.fond(false)')
+    _derniere_image.clear()
+    c = taches(page, 12500)
+    off = _derniere_image['img'].copy()
+    page.evaluate('() => window.__hum.fond(true)')
+    taches(page, 12500)
+    on = _derniere_image['img'].copy()
     page.evaluate('() => window.__hum.isoler(null)')
-    if a is None or b is None:
-        fautes.append(f'trop peu de points isolés ({a}, {b})')
+    # mêmes points, avec et sans fond : crête au-dessus du fond local, appariée point à point
+    from scipy import ndimage
+    xo = off - ndimage.median_filter(off, 9)
+    xn = on - ndimage.median_filter(on, 9)
+    pics = [tuple(p) for p in _derniere_image['pics']]
+    if pics:
+        po = np.array([xo[p] for p in pics]); pn = np.array([xn[p] for p in pics])
+        ecart = float(np.median(pn / np.maximum(po, 1)) - 1)
+        det.append(f'mêmes {len(pics)} points avec / sans fond : crête {ecart:+.1%}')
+        if abs(ecart) > 0.02:
+            fautes.append(f'le fond altère l\'éclat des points ({ecart:+.1%})')
+    if a is None or b is None or c is None:
+        fautes.append(f'trop peu de points isolés ({a}, {b}, {c})')
     else:
-        det.append(f'éclat {a[0]:.0f} / {b[0]:.0f}, aire {a[1]:.0f} / {b[1]:.0f} px ({a[2]} / {b[2]} points)')
+        det.append(f'éclat {a[0]:.0f} / {b[0]:.0f} / sans fond {c[0]:.0f}, aire {a[1]:.0f} / {b[1]:.0f} / {c[1]:.0f} px')
         if abs(a[0] - b[0]) > 0.15 * b[0] or abs(a[1] - b[1]) > 0.15 * max(b[1], 1) + 1:
             fautes.append('rendu des points différent avant et après 10 000 av. J.-C. : ' + det[-1])
+        if abs(a[1] - c[1]) > 0.02 * c[1] + 0.5:
+            fautes.append('le fond altère la taille des points : ' + det[-1])
     verdict('C12', not fautes, ' ; '.join(det) if not fautes else ' ; '.join(fautes))
+
+
+def ecran(page):
+    from PIL import Image
+    import io
+    return np.asarray(Image.open(io.BytesIO(page.locator('#scene').screenshot())).convert('RGB'), dtype=np.float64)
+
+
+def c26_fond_leger(page):
+    """Fond teinté très léger sous les points (≤ 8 % de luminance ajoutée), visible, et deux
+    lignées superposées montrent leurs deux teintes."""
+    from scipy import ndimage
+    fautes, det = [], []
+    for age, vue in [(1.0e6, (40, 10)), (4.6e4, (35, 40)), (age_de(100), (40, 30))]:
+        page.evaluate('([a, lo, la]) => { window.__hum.regler(a); window.__hum.vue(lo, la); window.__hum.etiquettesVisibles(false); }', [age, vue[0], vue[1]])
+        page.evaluate('() => window.__hum.fond(true)'); page.wait_for_timeout(300)
+        on = ecran(page)
+        page.evaluate('() => window.__hum.fond(false)'); page.wait_for_timeout(300)
+        off = ecran(page)
+        page.evaluate('() => { window.__hum.fond(true); window.__hum.etiquettesVisibles(true); }')
+        lo_ = off.max(axis=2)
+        pts = ndimage.binary_dilation((lo_ - ndimage.median_filter(lo_, 9)) > 12, iterations=3)
+        d = (on - off).mean(axis=2)
+        d = d[~pts]
+        haut = float(np.percentile(d, 99.5))
+        vis = float((d > 1.5).mean())
+        det.append(f'{age:.0f} ans : + {haut:.1f}/255 au plus, {vis:.0%} du cadre teinté')
+        if haut > 0.08 * 255:
+            fautes.append(f'{age:.0f} ans : fond trop fort (+ {haut:.0f}/255)')
+        if vis < 0.03:
+            fautes.append(f'{age:.0f} ans : fond invisible')
+    # superposition : sapiens et Néandertaliens à 46 000 ans
+    z = np.load(os.path.join(INTER, 'lignees_0p5.npz'))
+    age = 4.6e4
+    def pres(c):
+        A, D = z['A_' + c], z['D_' + c]
+        p = (A >= age) & ((D == 0) | (age > D))
+        return np.repeat(np.repeat(p, 2, 0), 2, 1)
+    t = plan(page, age, 'teinte3')
+    r, g, b = t[:720], t[720:1440], t[1440:]
+    sel = ndimage.binary_erosion(pres('sapiens') & pres('neandertal'), iterations=2) & ((r + g + b) > 0)
+    cols = page.evaluate('() => window.__hum.couleursLignees()')
+    M = np.stack([np.array(cols['sapiens']), np.array(cols['neandertal'])], 1)
+    X = np.stack([r[sel], g[sel], b[sel]], 0)
+    coef = np.linalg.lstsq(M, X, rcond=None)[0]
+    part = np.median(coef[1] / np.maximum(coef.sum(axis=0), 1e-12)) if sel.any() else 0
+    det.append(f'superposition sapiens/Néandertaliens : part néandertalienne {part:.0%} ({int(sel.sum())} px)')
+    if not (0.2 <= part <= 0.8):
+        fautes.append(f'superposition : une seule teinte lisible (part {part:.0%})')
+    verdict('C26', not fautes, ' ; '.join(det) if not fautes else ' ; '.join(fautes))
+
+
+def c27_frontiere(page):
+    """Frontière diffuse partout, nettement plus marquée sur le front qui avance, découpée en lichen."""
+    from scipy import ndimage
+    z = np.load(os.path.join(INTER, 'lignees_0p5.npz'))
+    fautes, det = [], []
+    for carte, age in [('sapiens', 5.5e4), ('neandertal', 2.5e5), ('sapiens', 2.0e4)]:
+        page.evaluate('l => window.__hum.isoler(l)', 'sapiens' if carte == 'sapiens' else carte)
+        t = plan(page, age, 'teinte')
+        page.evaluate('() => window.__hum.isoler(null)')
+        A, D = z['A_' + carte].astype(np.float64), z['D_' + carte].astype(np.float64)
+        p05 = (A >= age) & ((D == 0) | (age > D))
+        p = np.repeat(np.repeat(p05, 2, 0), 2, 1)
+        A2 = np.repeat(np.repeat(A, 2, 0), 2, 1)
+        tau = max(150, 0.05 * age)
+        terre = np.repeat(np.repeat(plan(page, age, 'terre') > 0.5, 2, 0), 2, 1)
+        # frontières terrestres seulement (le rivage n'est pas un front)
+        bord = p & ~ndimage.binary_erosion(p, iterations=2) & ndimage.binary_dilation(terre & ~p, iterations=2)
+        interieur = ndimage.binary_erosion(p, iterations=6) & terre
+        avance = bord & (A2 - age < 2 * tau)
+        immobile = bord & (A2 - age > 10 * tau)
+        dehors = ndimage.binary_dilation(p, iterations=2) & ~p & terre
+        mi = float(np.median(t[interieur])) if interieur.any() else 0
+        if avance.sum() < 20 or immobile.sum() < 20 or mi <= 0:
+            fautes.append(f'{carte} : pas assez de bords ({int(avance.sum())} / {int(immobile.sum())} px)')
+            continue
+        ratio = float(t[avance].mean() / max(t[immobile].mean(), 1e-12))
+        diffus = float(t[dehors].mean() / mi)
+        seuil = t > 0.5 * mi
+        rugo = float((seuil ^ ndimage.binary_erosion(seuil)).sum() /
+                     max((lambda m: (m ^ ndimage.binary_erosion(m)).sum())(ndimage.gaussian_filter(seuil.astype(float), 3) > 0.5), 1))
+        det.append(f'{carte} {age:.0f} ans : front/bord immobile × {ratio:.1f}, débord {diffus:.0%}, découpe {rugo:.2f}')
+        if ratio < 2:
+            fautes.append(f'{carte} : front pas assez marqué (× {ratio:.1f})')
+        if diffus < 0.15:
+            fautes.append(f'{carte} : frontière nette, pas diffuse ({diffus:.0%})')
+        if rugo < 1.15:
+            fautes.append(f'{carte} : contour trop lisse ({rugo:.2f}), pas de lichen')
+    verdict('C27', not fautes, ' ; '.join(det) if not fautes else ' ; '.join(fautes))
+
+
+def c28_fond_entites(page):
+    """Après −10 000, la teinte de fond devient celle de l'entité, toujours légère."""
+    from scipy import ndimage
+    fautes, det = [], []
+    pal = {e['id']: np.array(e['couleur'], float) for e in page.evaluate('() => window.__hum.civ().entites')}
+    for an in [-2500, 100, 1500]:
+        ids = plan(page, age_de(an), 'entite').astype(np.int64)
+        t = plan(page, age_de(an), 'teinte3')
+        r, g, b = t[:720], t[720:1440], t[1440:]
+        sel = ndimage.binary_erosion(ids > 0, iterations=3) & ((r + g + b) > 0)
+        sel &= ndimage.maximum_filter(ids, 7) == ndimage.minimum_filter(ids, 7)
+        if sel.sum() < 100:
+            fautes.append(f'{an} : pas de fond dans les entités')
+            continue
+        obs = np.stack([r[sel], g[sel], b[sel]], 1)
+        att = np.array([pal[int(i)] for i in ids[sel]])
+        obs = 255 * obs / obs.max(axis=1, keepdims=True)
+        att = 255 * att / att.max(axis=1, keepdims=True)
+        dE = np.array([np.linalg.norm(lab(o) - lab(a)) for o, a in zip(obs[::50], att[::50])])
+        det.append(f'{an} : ΔE médian {np.median(dE):.0f}')
+        if np.median(dE) > 15:
+            fautes.append(f'{an} : fond d\'une autre teinte que l\'entité (ΔE {np.median(dE):.0f})')
+    verdict('C28', not fautes, ' ; '.join(det) if not fautes else ' ; '.join(fautes))
 
 
 def clark_evans(pts, aire_km2):
@@ -870,7 +1029,7 @@ def reference_entites(annee, noms_page):
             d = 6371 * np.arccos(np.clip(np.sin(la0) * np.sin(np.radians(LA)) + np.cos(la0) * np.cos(np.radians(LA)) * np.cos(np.radians(LO) - lo0), -1, 1))
             m[d <= float(r['rayon_km'])] = noms_page.get(r['nom'], -1)
     act = [f for f in cliopatria() if int(f['properties']['FromYear']) <= annee <= int(f['properties']['ToYear'])]
-    act.sort(key=lambda f: -float(f['properties'].get('Area') or 0))
+    act.sort(key=lambda f: (-float(f['properties'].get('Area') or 0), f['properties']['Name']))
     for f in act:
         g = shape(f['geometry'])
         x0, y0, x1, y1 = g.bounds
@@ -956,14 +1115,17 @@ def c19_couleurs_civ(page):
         homog = (ndimage.maximum_filter(ids, 3) == ndimage.minimum_filter(ids, 3))
         sel = pts & homog & (ids > 0)
         pal = {e['id']: np.array(e['couleur'], float) / 255 for e in page.evaluate('() => window.__hum.civ().entites')}
-        attendu = np.array([pal.get(int(i), np.zeros(3)) for i in ids[sel]])
+        f = part_lumiere(an)
+        attendu = np.array([pal.get(int(i), np.zeros(3)) * (1 - f) + f * LUMIERE for i in ids[sel]]).reshape(-1, 3)
         obs = np.stack([r[sel], g[sel], b[sel]], 1)
         bon = np.abs(obs - attendu).max(axis=1) < 0.02
         frac = float(bon.mean()) if sel.any() else 0
         det.append(f'{an} : {frac:.1%}')
         if frac < 0.99:
             fautes.append(f'{an} : {frac:.1%} des points à la couleur de leur entité')
-        # voisines
+        # voisines (couleurs d'appartenance, avant le glissement vers la lumière des villes)
+        if an > 1950:
+            continue
         for a_, b_ in [(ids[:, :-1], ids[:, 1:]), (ids[:-1, :], ids[1:, :])]:
             d = (a_ != b_) & (a_ > 0) & (b_ > 0)
             for x, y in set(zip(a_[d].tolist(), b_[d].tolist())):
@@ -971,6 +1133,121 @@ def c19_couleurs_civ(page):
                 if dE < 30:
                     fautes.append(f'{an} : voisines {x}/{y} ΔE {dE:.0f}')
     verdict('C19', not fautes, ' ; '.join(det) if not fautes else ' ; '.join(fautes[:8]) + f' (+{max(0, len(fautes) - 8)})')
+
+
+LUMIERE = np.array([1.0, 0.90, 0.75])     # lumière blanche-dorée des villes (shader des points)
+
+
+def part_lumiere(annee):
+    """Part de la lumière des villes dans la couleur des points : 0 jusqu'en 1950, 0,9 en 2010."""
+    w = min(1.0, max(0.0, (annee - 1950) / 60.0))
+    return 0.9 * w * w * (3 - 2 * w)
+
+
+ANGLAIS = re.compile(r"\b(Kingdom|Kingdoms|Empire of|Dynasty|Republic|Sultanate|Caliphate|Khanate|Emirate|Principality|"
+                     r"Duchy|County|Confederation|Federation|States?|City|Colonies|Colony|Union of|of|the|and|Western|Eastern|"
+                     r"Northern|Southern|Later|Early|Great|First|Second|Third|French|British|Spanish|Portuguese|Dutch|German|"
+                     r"Italian|Russian|Islands|Commonwealth|Horde|Shogunate|Mayans|Nationalists)\b")
+
+
+def table_noms():
+    return {r['nom_fr']: r for r in lire_csv(os.path.join(PREPA, 'noms_fr.csv'))}
+
+
+def c23_francais(page):
+    tab = table_noms()
+    fautes, n = [], 0
+    for an in TEMOINS:
+        page.evaluate('a => window.__hum.regler(a)', age_de(an))
+        page.wait_for_timeout(400)
+        for e in page.evaluate('() => window.__hum.etiquettesCiv()'):
+            if not e['visible']:
+                continue
+            n += 1
+            t = e['texte']
+            r = tab.get(t)
+            if r is None:
+                fautes.append(f'{an} : « {t} » hors de la table')
+            elif r['statut'] != 'invariant' and ANGLAIS.search(t.strip('()')):
+                fautes.append(f'{an} : « {t} » en anglais')
+            if not t.strip('(')[:1].isupper() and not t.strip('(')[:1].isdigit():
+                fautes.append(f'{an} : « {t} » sans majuscule')
+    verdict('C23', not fautes and n > 0, f'{n} noms affichés, tous en français' if not fautes else ' ; '.join(fautes[:8]))
+
+
+def c24_nuit(page):
+    from PIL import Image
+    fautes = []
+    bm = np.asarray(Image.open(os.path.join(INTER, 'blackmarble_2016_01deg.jpg')).convert('RGB'), dtype=np.float64)
+    lum = bm.max(axis=2)
+    ref = np.median(bm[lum > 150], axis=0)
+    ref = 255 * ref / ref.max()
+    rgb = plan(page, 0, 'couleur3')
+    r, g, b = rgb[:720], rgb[720:1440], rgb[1440:]
+    sel = (r + g + b) > 0
+    obs = np.median(np.stack([r[sel], g[sel], b[sel]], 1), axis=0)
+    obs = 255 * obs / obs.max()
+    d = float(np.linalg.norm(lab(obs) - lab(ref)))
+    if d > 15:
+        fautes.append(f'aujourd\'hui : teinte {obs.round()} contre Black Marble {ref.round()} (ΔE {d:.0f})')
+    ids = plan(page, age_de(1950), 'entite').astype(np.int64)
+    rgb = plan(page, age_de(1950), 'couleur3')
+    r, g, b = rgb[:720], rgb[720:1440], rgb[1440:]
+    from scipy import ndimage
+    sel = ((r + g + b) > 0) & (ids > 0) & (ndimage.maximum_filter(ids, 3) == ndimage.minimum_filter(ids, 3))
+    pal = {e['id']: np.array(e['couleur'], float) / 255 for e in page.evaluate('() => window.__hum.civ().entites')}
+    att = np.array([pal.get(int(i), np.zeros(3)) for i in ids[sel]]).reshape(-1, 3)
+    frac = float((np.abs(np.stack([r[sel], g[sel], b[sel]], 1) - att).max(axis=1) < 0.02).mean())
+    if frac < 0.99:
+        fautes.append(f'1950 : {frac:.1%} des points à la couleur de leur entité')
+    verdict('C24', not fautes, f'aujourd\'hui ΔE {d:.0f} avec Black Marble ; 1950 : {frac:.1%} à la couleur de l\'entité'
+            if not fautes else ' ; '.join(fautes))
+
+
+def c25_noms_choisis(page):
+    from scipy import ndimage
+    civ = page.evaluate('() => window.__hum.civ()')
+    noms_page = {e['nom_en']: e['id'] for e in civ['entites']}
+    duree = {}
+    for f in cliopatria():
+        i = noms_page.get(f['properties']['Name'])
+        a0, a1 = int(f['properties']['FromYear']), int(f['properties']['ToYear'])
+        d0, d1 = duree.get(i, (a0, a1))
+        duree[i] = (min(d0, a0), max(d1, a1))
+    for r in lire_csv(os.path.join(PREPA, 'neolithique.csv')):
+        duree[noms_page.get(r['nom'])] = (int(r['debut']), int(r['fin']))
+    A = aire_025()
+    fautes = []
+    for an in TEMOINS:
+        page.evaluate('a => window.__hum.regler(a)', age_de(an))
+        page.wait_for_timeout(400)
+        et = [e for e in page.evaluate('() => window.__hum.etiquettesCiv()') if e['visible']]
+        g = page.evaluate('() => window.__hum.geometrie()')
+        if len(et) > 12:
+            fautes.append(f'{an} : {len(et)} noms')
+        for e in et:
+            if e['x'] < 10 or e['y'] < 10 or e['x'] + e['w'] > g['vw'] - 10 or e['y'] + e['h'] > g['vh'] - 10:
+                fautes.append(f'{an} : « {e["texte"]} » collé au bord')
+            if e.get('tronque'):
+                fautes.append(f'{an} : « {e["texte"]} » tronqué')
+        ref = reference_entites(an, noms_page)
+        scores = []
+        for i in np.unique(ref[ref > 0]):
+            sel = ref == i
+            labm, nb = ndimage.label(sel)
+            k = int(np.argmax(ndimage.sum(A, labm, index=np.arange(1, nb + 1)))) + 1
+            yy, xx = np.nonzero(labm == k)
+            if not page.evaluate('([lo, la]) => window.__hum.visible(lo, la)', [float(xx.mean() * 0.25 - 180), float(90 - yy.mean() * 0.25)]):
+                continue
+            d0, d1 = duree.get(int(i), (an, an))
+            scores.append((float(A[sel].sum()) * math.log10(10 + d1 - d0), int(i)))
+        scores.sort(reverse=True)
+        vus = {e['id'] for e in et}
+        for sc, i in scores[:3]:
+            if i not in vus:
+                nom = next((x['nom'] for x in civ['entites'] if x['id'] == i), i)
+                fautes.append(f'{an} : {nom} (parmi les 3 premières) sans nom')
+    verdict('C25', not fautes, '≤ 12 noms, loin des bords, entiers, les 3 plus importants nommés' if not fautes else ' ; '.join(fautes[:8]))
 
 
 def c20_noms(page):
@@ -1061,9 +1338,11 @@ def main():
         tous = [('C1', c1_donnees), ('C2', c2_sites), ('C3', c3_remplacement), ('C4', c4_densite),
                 ('C5', c5_black_marble), ('C6', c6_compteur), ('C8', c8_lecture),
                 ('C9', c9_generations), ('C10', c10_ponts), ('C11', lambda p: c11_fluidite(p, octets)),
-                ('C12', c12_une_representation), ('C13', c13_densite), ('C14', c14_contact), ('C15', c15_timmermann),
+                ('C12', c12_points_intacts), ('C13', c13_densite), ('C14', c14_contact), ('C15', c15_timmermann),
                 ('C16', c16_etiquettes), ('C17', c17_couleurs), ('C18', c18_entites), ('C19', c19_couleurs_civ),
-                ('C20', c20_noms), ('C21', c21_etats_actuels), ('C22', c22_temps)]
+                ('C20', c20_noms), ('C21', c21_etats_actuels), ('C22', c22_temps),
+                ('C23', c23_francais), ('C24', c24_nuit), ('C25', c25_noms_choisis),
+                ('C26', c26_fond_leger), ('C27', c27_frontiere), ('C28', c28_fond_entites)]
         for code, f in tous:
             if args.seul and code not in args.seul.split(','):
                 continue

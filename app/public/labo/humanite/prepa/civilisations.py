@@ -115,7 +115,7 @@ for k, an in enumerate(pas):
     for n in sorted([n for n in neo if n['debut'] <= an <= n['fin']], key=lambda n: -n['rayon']):
         m[disque(n)] = n['id']
     act = [f for (a0, a1), fs in par_annee.items() if a0 <= an <= a1 for f in fs]
-    act.sort(key=lambda f: -float(f['properties'].get('Area') or 0))
+    act.sort(key=lambda f: (-float(f['properties'].get('Area') or 0), f['properties']['Name']))   # ordre total : égalités départagées par le nom
     if act:
         r = rf.rasterize(((f['geometry'], entites[f['properties']['Name']]['id']) for f in act),
                          out_shape=(H, W), transform=T, fill=0, dtype='uint16')
