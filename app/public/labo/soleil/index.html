@@ -76,6 +76,7 @@ const DUREE_LECTURE = 75;         // secondes pour parcourir toute l'échelle
 // chute libre (ρ ∝ r⁻², Σ ∝ r⁻¹), le bord du cadre garde ainsi le même ton à toute
 // échelle, et le cœur qui se condense ressort. Loi fixe, jamais tirée de l'image.
 const SIGMA0 = 3.0e-9, R_EXPO = 10000, DYN = 2.0e4, GAMMA = 0.62;
+const ECLAT_POINT = 40;   // éclat de crête d'un point = 40 × m/h² (densité volumique locale × 40 h) : constante fixe
 const R_ETOILE = 3.0;             // R☉, protoétoile en accrétion (hypothèse, comme dans les données)
 
 // ------------------------------------------------------------------ données
@@ -176,7 +177,7 @@ const PAL = `
   }`;
 const pPts = prog(`#version 300 es
   in vec3 q0; in vec3 q1; in float T0; in float T1; in float rang; in float h0; in float h1;
-  uniform float L0, L1, f, dtKep, Msink, sigma, poids, part, lmin, lmax, apres, uaPx, hmin, hmax, smax, avecH;
+  uniform float L0, L1, f, dtKep, Msink, sigma, poids, part, lmin, lmax, apres, uaPx, hmin, hmax, smax, avecH, point, poidsPoint;
   uniform vec3 c0, c1, cam;
   uniform mat3 rot; uniform vec2 res; uniform float demiLarg;
   out vec3 vc; out float vw;
@@ -210,13 +211,23 @@ const pPts = prog(`#version 300 es
     gl_Position = vec4(v.x / demiLarg, v.y / demiLarg * res.x / res.y, 0.0, 1.0);
     // noyau de largeur physique σ = h/2 (UA) ; dessiné entre sigma et smax pixels ; un noyau
     // plus large que smax est resserré en gardant sa luminance de crête (pas de grains trop vifs)
-    float sp = sigma, corr = 1.0;
+    float sp = sigma, corr = 1.0, hu = 0.0;
     if (avecH > 0.5) {
       float hh = mix(h0, h1, f) * 255.0;
-      float hu = pow(10.0, (hh - 1.0) / 254.0 * (hmax - hmin) + hmin);
+      hu = pow(10.0, (hh - 1.0) / 254.0 * (hmax - hmin) + hmin);
       float st = 0.5 * hu / uaPx;
       sp = clamp(st, sigma, smax);
       corr = st > smax ? (smax * smax) / (st * st) : 1.0;
+    }
+    if (point > 0.5) {
+      // passe « myriade » : un point net par particule, dont l'éclat de crête vaut la
+      // densité de colonne locale m/h² (UA, M☉) — indépendant du zoom
+      if (avecH < 0.5) { gl_Position = vec4(2.0, 2.0, 0.0, 1.0); gl_PointSize = 0.0; vw = 0.0; vc = vec3(0.0); return; }
+      gl_PointSize = sigma * 6.0;
+      float lt2 = mix(T0, T1, f);
+      vc = palette(clamp(((lt2 * 255.0 - 1.0) / 254.0 * (lmax - lmin) + lmin - 1.0) / 1.6, 0.0, 1.0));
+      vw = poidsPoint / (hu * hu);
+      return;
     }
     gl_PointSize = sp * 6.0;
     float lt = mix(T0, T1, f);
@@ -286,7 +297,7 @@ if (HJ) fetch("donnees/h.bin").then(r => r.arrayBuffer()).then(b => {
 let hPret = false;
 const vao = gl.createVertexArray();
 const LOC = {}; for (const n of ["q0", "q1", "T0", "T1", "rang", "h0", "h1"]) LOC[n] = gl.getAttribLocation(pPts, n);
-const U = {}; for (const n of ["apres", "L0", "L1", "f", "dtKep", "Msink", "sigma", "poids", "part", "lmin", "lmax", "c0", "c1", "cam", "rot", "res", "demiLarg", "uaPx", "hmin", "hmax", "smax", "avecH"]) U[n] = gl.getUniformLocation(pPts, n);
+const U = {}; for (const n of ["apres", "L0", "L1", "f", "dtKep", "Msink", "sigma", "poids", "part", "lmin", "lmax", "c0", "c1", "cam", "rot", "res", "demiLarg", "uaPx", "hmin", "hmax", "smax", "avecH", "point", "poidsPoint"]) U[n] = gl.getUniformLocation(pPts, n);
 const UT = {}; for (const n of ["acc", "lnS1", "gam", "echelleAcc", "etoile", "eclat", "halo", "couleur", "res"]) UT[n] = gl.getUniformLocation(pTon, n);
 gl.bindVertexArray(vao);
 gl.bindBuffer(gl.ARRAY_BUFFER, vboR); gl.enableVertexAttribArray(LOC.rang); gl.vertexAttribPointer(LOC.rang, 1, gl.FLOAT, false, 0, 0);
@@ -435,6 +446,9 @@ function dessine() {
     gl.uniform1f(U.part, part);
     gl.uniform1f(U.lmin, meta.codage_T.log_min); gl.uniform1f(U.lmax, meta.codage_T.log_max);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    gl.uniform1f(U.point, 0); gl.drawArrays(gl.POINTS, 0, N);
+    gl.uniform1f(U.point, 1); gl.uniform1f(U.poidsPoint, ECLAT_POINT * mPoint / (SIGMA0 * R_EXPO / e.dl) * reste);
+    gl.uniform1f(U.sigma, 0.6 * Math.min(window.devicePixelRatio || 1, 2));
     gl.drawArrays(gl.POINTS, 0, N);
     gl.disable(gl.BLEND);
   }
