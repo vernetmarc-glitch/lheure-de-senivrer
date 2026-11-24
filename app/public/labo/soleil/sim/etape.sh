@@ -14,12 +14,8 @@ fi
 
 RUN="$ETAT/run" EXTRAIT="$ETAT/extrait" BETA="$BETA" NP="$NP" TWALL="$TWALL" PHANTOM="$PHANTOM" bash "$ICI/lance.sh"
 
-# ne garder que la dernière sortie complète (pour la reprise)
-dernier=$(ls "$ETAT"/run/soleil_[0-9][0-9][0-9][0-9][0-9] | sort | tail -1)
-for f in "$ETAT"/run/soleil_[0-9][0-9][0-9][0-9][0-9]; do
-  [ "$f" = "$dernier" ] || rm -f "$f"
-done
-rm -f "$ETAT"/run/*.tmp
+# les sorties extraites ont été effacées au fil de l'eau (extraire.py --nettoie) ;
+# celles qui ne l'ont pas été restent pour l'étape suivante
 
 # terminé si tmax atteint, ou 150 000 ans après la naissance de l'étoile
 python3 - "$ETAT" <<'EOF'

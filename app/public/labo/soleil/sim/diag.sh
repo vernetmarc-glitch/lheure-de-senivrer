@@ -20,7 +20,10 @@ F=/tmp/diag/$NOM.txt
 cat "$F"
 # allègement : la dernière sortie complète suffit à la reprise
 dernier=$(ls "$ETAT"/run/soleil_[0-9][0-9][0-9][0-9][0-9] 2>/dev/null | sort | tail -1)
-for f in "$ETAT"/run/soleil_[0-9][0-9][0-9][0-9][0-9]; do [ -e "$f" ] && [ "$f" != "$dernier" ] && rm -f "$f"; done
+# n'effacer que les sorties déjà extraites (une extraction en échec ne doit rien perdre)
+for f in "$ETAT"/run/soleil_[0-9][0-9][0-9][0-9][0-9]; do
+  [ -e "$f" ] && [ "$f" != "$dernier" ] && [ -e "$ETAT/extrait/instant_${f: -5}.npz" ] && rm -f "$f"
+done
 rm -f "$ETAT"/run/*.tmp
 git config user.name "chantier-soleil (workflow)"; git config user.email "noreply@github.com"
 for essai in 1 2 3 4 5 6; do
