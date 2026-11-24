@@ -57,7 +57,36 @@ Corrigé en route : C5 échouait aussi dans le segment PALEOMAP (2,2 % vers 6,5 
 codées sur 8 bits à une seule altitude, noyées d'un coup) -> micro-relief de ±25 m attaché à
 la croûte, éteint au-delà de 80 m ; lecture à 15 Ma/s (C11 n'avait plus le temps de mesurer).
 
-Étape 2 (en cours) : voir plus bas, mis à jour en fin de passage.
+**Publiable aussi, commit 57fa02e** (meilleur que 5cadbeb, même plage 540 Ma → aujourd'hui) :
+17/17 contrôles verts — les 12 de S3 et les 5 de S3b sur cette plage : C13 Gondwana 72 %,
+Pangée 100 % ; C14 calédonien, hercynien (s'abaissent ensuite), Himalaya, Andes, Alpes ;
+C15 roche nue jusqu'à 470 Ma, 22 % des terres éclairées vertes à 300 Ma (couvert zonal :
+forêts équatoriales et tempérées, steppes subtropicales ; photo d'aujourd'hui au Cénozoïque) ;
+C16 frise des 7 réunions (Vaalbara, Ur, Kenorland « hypothèse », Pannotia « débattue ») et
+ruban de la vie (genres marins, PBDB : 161 à l'Édiacarien, 833 à 520 Ma) ; C17 hors plage.
+Les 5 contrôles S3b ont été montrés en échec d'abord (`controles/echec-s3b-avant.txt`).
+
+Étape 2 (1,8 Ga → 540 Ma, mécanique des roches) : construite, **pas encore publiable**.
+- Workflow `chantier-terre-mecanique.yml` : Cao et al. 2024 (Zenodo 13628813) lu par
+  pyGPlates, topologies résolues tous les 2 Ma (19 min, en cache) ; mécanique (2 min) :
+  couche mince pondérée par la croûte (couplage 0,05 des marges actives), isostasie d'Airy,
+  érosion FastScape réécrite sur HEALPix (la roue pip de fastscapelib n'a pas HEALPix),
+  racines relaxées en 80 Ma (hypothèse), épaisseur 20–75 km. Diagnostic :
+  `donnees/diagnostic-mecanique.json` (> 2 000 m : 1,9 Mkm² à 1,6 Ga, 10,5 à 1 Ga, 18,8 à 600 Ma).
+- Page : segment C (nuage de points, relief mécanique interpolé par morceau de croûte,
+  raccord Cao → PALEOMAP de 620 à 540 Ma). Activé par `"publie": 1800` dans le manifeste.
+- Essai à 1,8 Ga (`controles/essai-plage-1800.txt`) : 13/17. Rouges : C4 fantômes 0,15–0,48 %
+  vers 575 Ma (raccord des rotations) ; C5 saut de 7,4 % vers 1 788,5 Ma (naissance de
+  croûte au début du modèle) ; C13 Rodinia 58 % (Nuna 80 % : vert) ; C14 Grenville monte à
+  4 749 m mais ne s'abaisse que de 615 m en 150 Ma (seuil 800).
+- Avant 1,8 Ga (Vaalbara, Ur, Kenorland, Archéen immergé) : pas commencé ; frise « à venir ».
+- Planche `chantiers/planches/terre-3.png` : page en essai à 1,8 Ga (2,7 Ga montre la borne
+  1,8 Ga) ; les continents protérozoïques, au limbe et sans relief lisible, ne sont pas
+  encore beaux.
+
+Prochaine étape : C5 (naissance de croûte à 1,8 Ga), C4 (raccord 620–540 Ma), Rodinia
+(croûte immergée qui coupe le bloc : épaisseur initiale, croûte juvénile), relaxation un
+peu plus rapide pour Grenville ; puis la caméra et le relief lisible ; puis l'avant-1,8 Ga.
 
 ## S4 — Climat et glaces
 Étape : attend S3.

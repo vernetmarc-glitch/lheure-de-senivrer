@@ -1,0 +1,20 @@
+plage publiée : 1800 Ma -> aujourd'hui
+OK    C2  accord terres/mers aujourd'hui = 98.45 % (seuil 95 %)
+OK    C3  bloc continental (> -200 m) d'un seul tenant : 320 Ma 100 %, 300 Ma 96 %, 280 Ma 100 %, 260 Ma 100 %, 240 Ma 100 %, 220 Ma 99 %, 200 Ma 99 % (seuil 80 %) ; indicateur, terres émergées : 320 Ma 82 %, 300 Ma 78 %, 280 Ma 81 %, 260 Ma 76 %, 240 Ma 99 %, 220 Ma 70 %, 200 Ma 98 %
+ÉCHEC C4  pixels plus sombres que leurs deux voisins, 5 passes : 0.427 %, 0.365 %, 0.479 %, 0.314 %, 0.152 % (pire à 575.0 Ma ; seuil 0,2 %)
+ÉCHEC C5  plus grand saut de surface émergée : 7.41 % (vers 1788.5 Ma ; seuil 1 %)
+OK    C6  1800 Ma→0 = 39.65 % (attendu 39.65 %) ; avant 1800 Ma hachuré = 60.35 % (attendu 60.35 %), « à venir » ; borne : t demandé 4540 -> 1800 Ma, glissière [0, 1800] ; Pangée+hercynien = 4.51 % (attendu 4.52 %)
+OK    C7  lat. subsolaire [23.44, 23.44, 23.44] ; calotte nord 0.319, sud 0.031 au terminateur
+OK    C8  anneau RVB [0.251, 0.39, 0.629] ; au-delà [0.023, 0.035, 0.057]
+OK    C9  glisser : lon 30.0→-4.6 ; lecture : 600→565.2 Ma
+OK    C10  terres ΔE 1.8 (rendu L*a*b* [60.2, 4.1, 23.3], Blue Marble [58.4, 4.1, 23.1]) ; mers ΔE 2.9 (rendu L*a*b* [4.0, 1.9, -8.7], Blue Marble [1.6, 1.7, -7.1]) ; L* mers 4.0 < terres 60.2
+OK    C11  64 px, hors du globe True, dans l'écran True ; arrêt : aiguille -146.0° (butée -146°) ; lecture : 1.5e+07 ans/s -> attendu 58.8°, aiguille 58.7° ; « Ma100 Ma10 Ga15 millions d'années par seconde »
+OK    C12  terres visibles éclairées : 0 Ma 95 %, 66 Ma 96 %, 250 Ma 97 %, 540 Ma 78 %, 700 Ma 98 %, 1000 Ma 73 %, 1600 Ma 89 % (seuil 60 %)
+ÉCHEC C13  plus grand bloc continental : Nuna 80 % (à 1470 Ma), Rodinia 58 % (à 770 Ma), Gondwana 72 % (à 500 Ma), Pangée 100 % (à 320 Ma) (seuil 70 %)
+ÉCHEC C14  Nuna 1620 Ma max 6470 m ; Grenville 1070 Ma max 4749 m, 90e c. 1072 -> 457 m à 920 Ma ✗ ; panafricain 620 Ma max 6343 m, 90e c. 5038 -> -3459 m à 470 Ma ; calédonien 420 Ma max 4010 m, 90e c. 2323 -> 1470 m à 270 Ma ; hercynien 300 Ma max 4886 m, 90e c. 2517 -> 572 m à 150 Ma ; Himalaya 0 Ma max 6156 m ; Andes 0 Ma max 4886 m ; Alpes 0 Ma max 2788 m
+OK    C15  terres éclairées vertes : 540 Ma 0.1 %, 500 Ma 0.0 %, 470 Ma 0.0 %, 420 Ma 0.1 %, 380 Ma 0.1 %, 340 Ma 1.7 %, 300 Ma 21.9 % (≤ 1 % jusqu'à 470 Ma ; +15 points de 420 à 300 Ma)
+OK    C16  7 réunions à leur âge, statuts signalés ; ruban : 198 étages, genres à 545 Ma 161, à 520 Ma 833
+OK    C17  hors de la plage affichée
+OK    C1  WebGL2 True ; 0 erreur(s) 
+
+13/17 contrôles passés
