@@ -1,0 +1,109 @@
+étape 2 — Tue Nov 24 18:28:55 UTC 2026
+etat-0.005-2 : 541 sorties, t = 278921 ans, naissance 147712.65214543467, 1 puits [1.044], rho_max 4.18e-14, fini False
+etat-0.01-2 : 524 sorties, t = 271494 ans, naissance 148692.5894327123, 1 puits [0.922], rho_max 4.81e-14, fini False
+etat-0.02-2 : 520 sorties, t = 248801 ans, naissance 150807.1909473641, 1 puits [0.746], rho_max 1.35e-13, fini False
+
+== trajectoire
+source : http://perso.ens-lyon.fr/isabelle.baraffe/BHAC15dir/BHAC15_tracks+structure
+BHAC15 tracks and internal structure for brown dwarfs and low mass star (0.01 Msun to 1.4 Msun)
+
+M/Ms: mass of the star in units of solar mass
+log t: age of the star (in yr)
+Teff: effective temperature (in K)
+L/Ls: log luminosity in units of solar luminosity (value used Ls=3.839d+33)
+g: log g  (surface gravity)
+R/Rs : radius of the star in units of solar radius    (value used Rs=6.96d10)
+log(Li/Li0): log of the ratio of surface lithium abundance to initial abundance
+log Tc : log of central temprature
+log ROc: log of central density (in gr/cc)
+Mrad: mass of radiative core (in solar mass)
+Rrad: radius of radiatif core (in solar radius)
+k2conv: convective gyration radius
+k2rad: radiative gyration radius
+
+
+------------------------------------------------------------------------
+NOTE: Adopted convention to calculate the gyration radii:
+
+k2conv=[ I/(R**2 * Mstar) ]**(1/2)
+
+with I the moment of inertia defined here by :
+
+I = 2/3 integral(r**2 * dm)
+with the integral over the mass of the convective region
+
+Same for k2rad, corresponding to the radiative zone.
+
+Example: To calculate the moment of inertia with the definition
+above for a 1 Msun star at t = 4.6 Gyr, the table gives
+
+k2conv= 8.993E-02
+k2rad= 2.519E-01
+
+k2**2 = k2conv**2 + k2rad**2 ~ 0.071 
+(which is the typical value found for the Sun)
+
+and the moment of inertia is:
+ ===> I = k2**2 * Mstar * R**2
+
+== var/etat-0.005-2
+>__________________________________________________________________________<
+
+ Run finished on 24/11/2026 at 18:25:12.4
+
+ Total wall time:   5 hr,  2 min,  10.16 s (=  1.8130E+04s)
+
+       |   |           |               | |   _|       | |         
+       __| __ \   _` | __|  __|   _` | | |  |    _ \  | |  /  __| 
+       |   | | | (   | |  \__ \  (   | | |  __| (   | |   < \__ \ 
+      \__|_| |_|\__,_|\__|____/ \__,_|_|_| _|  \___/ _|_|\_\____/ 
+
+>__________________________________________________________________________<
+ ------ BE sphere properties --------
+  Overdensity factor     =    2.0039953906537535     
+ particle numbers: (sphere, low-density medium, total):     103806      26656     130462
+ Shuffling: Shuffling to non-uniform sphere-in-box profile (e.g., a BE sphere in a background medium)
+ Free fall time   :   54.2        1.491E+05 yrs
+
+== var/etat-0.01-2
+>__________________________________________________________________________<
+
+ Run finished on 24/11/2026 at 18:27:35.2
+
+ Total wall time:   5 hr,  4 min,  32.17 s (=  1.8272E+04s)
+
+       |   |           |               | |   _|       | |         
+       __| __ \   _` | __|  __|   _` | | |  |    _ \  | |  /  __| 
+       |   | | | (   | |  \__ \  (   | | |  __| (   | |   < \__ \ 
+      \__|_| |_|\__,_|\__|____/ \__,_|_|_| _|  \___/ _|_|\_\____/ 
+
+>__________________________________________________________________________<
+ ------ BE sphere properties --------
+  Overdensity factor     =    2.0039953906537535     
+ particle numbers: (sphere, low-density medium, total):     103806      26656     130462
+ Shuffling: Shuffling to non-uniform sphere-in-box profile (e.g., a BE sphere in a background medium)
+ Free fall time   :   54.2        1.491E+05 yrs
+
+== var/etat-0.02-2
+>__________________________________________________________________________<
+
+ Run finished on 24/11/2026 at 18:25:05.1
+
+ Total wall time:   5 hr,  1 min,  46.64 s (=  1.8107E+04s)
+
+       |   |           |               | |   _|       | |         
+       __| __ \   _` | __|  __|   _` | | |  |    _ \  | |  /  __| 
+       |   | | | (   | |  \__ \  (   | | |  __| (   | |   < \__ \ 
+      \__|_| |_|\__,_|\__|____/ \__,_|_|_| _|  \___/ _|_|\_\____/ 
+
+>__________________________________________________________________________<
+ ------ BE sphere properties --------
+  Overdensity factor     =    2.0039953906537535     
+ particle numbers: (sphere, low-density medium, total):     103806      26656     130462
+ Shuffling: Shuffling to non-uniform sphere-in-box profile (e.g., a BE sphere in a background medium)
+ Free fall time   :   54.2        1.491E+05 yrs
+β = 0.005 : 541 sorties, jusqu'à 278921 ans, naissance 147713, score (1, 100000.0, 1.0435581758264028)
+β = 0.01 : 524 sorties, jusqu'à 271494 ans, naissance 148693, score (1, 100000.0, 0.9217270677983443)
+β = 0.02 : 520 sorties, jusqu'à 248801 ans, naissance 150807, score (1, 97993.72872776783, 0.7460493613079726)
+retenue : β = 0.005
+120 instants × 32768 points, 31.7 Mo
