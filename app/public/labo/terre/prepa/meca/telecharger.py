@@ -38,7 +38,8 @@ def get(url, dest=None, essais=4):
 ok = False
 for rec in ["13628813", "12800108"]:
     d = SRC / "cao" / rec; d.mkdir(parents=True, exist_ok=True)
-    raw = get(f"https://zenodo.org/api/records/{rec}")
+    # sources en cache : on ne redemande pas l'API (Zenodo répond parfois 403 aux robots)
+    raw = (d / "record.json").read_bytes() if (d / "record.json").exists() else get(f"https://zenodo.org/api/records/{rec}")
     if raw is None: continue
     (d / "record.json").write_bytes(raw); meta = json.loads(raw)
     log(f"== Cao {rec} : {meta['metadata'].get('title')} (version {meta['metadata'].get('version')})")
