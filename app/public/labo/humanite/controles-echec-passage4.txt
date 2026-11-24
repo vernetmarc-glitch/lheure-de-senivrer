@@ -1,0 +1,6 @@
+ÉCHEC  C18  pas de carte des entités dans la page
+ÉCHEC  C19  exception : operands could not be broadcast together with shapes (360,720) (0,720) 
+ÉCHEC  C20  exception : Page.evaluate: TypeError: window.__hum.etiquettesCiv is not a function
+ÉCHEC  C21  référence Natural Earth absente
+ÉCHEC  C22  mesures mal placées (-2349, -1823) ; avant −3000 : 589 an/s, après : 519 an/s (rapport 1.1) ; bouton « Époque historique » absent
+0/5 contrôles passés
