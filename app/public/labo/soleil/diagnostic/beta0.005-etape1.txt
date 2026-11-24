@@ -1,91 +1,91 @@
-beta0.005-etape1 — Tue Nov 24 13:23:38 UTC 2026
+beta0.005-etape1 — Tue Nov 24 23:21:50 UTC 2026
 /dev/root       145G   59G   86G  41% /
-sorties complètes : 1 ; instants extraits : 319
-18M	/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/etat/run
-118M	/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/etat/extrait
+sorties complètes : 1 ; instants extraits : 300
+17M	/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/etat/run
+116M	/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/etat/extrait
 == setup
   Overdensity factor     =    2.0039953906537535     
  particle numbers: (sphere, low-density medium, total):     103806      26656     130462
  Free fall time   :   54.2        1.491E+05 yrs
 == bilan (3 dernières lignes)
-{"num": 316, "t_an": 210841.2437047963, "masse": 1.5081440379156559, "mgaz": 0.5612970348534766, "mpuits": 0.9468470030621793, "Lx": -0.006407759966283015, "Ly": -0.003391221688341065, "Lz": 0.16219678181153646, "Lsphere": [2.7329559225025813e-05, -0.00012426927301607935, 0.16348708694165523], "msph
-{"num": 317, "t_an": 211253.84887838693, "masse": 1.5081440379156512, "mgaz": 0.5598982717761979, "mpuits": 0.9482457661394534, "Lx": -0.006428050306562746, "Ly": -0.003415122040997552, "Lz": 0.1622070610067283, "Lsphere": [3.4692785743037976e-05, -0.00011725545178048322, 0.16348580472895058], "msph
-{"num": 318, "t_an": 212079.05922556808, "masse": 1.508144037915641, "mgaz": 0.5570776255707762, "mpuits": 0.9510664123448647, "Lx": -0.0064579909041815545, "Ly": -0.0033664853633878374, "Lz": 0.16220047017359174, "Lsphere": [2.8390540904098676e-05, -0.00012034227484334773, 0.16348435785119492], "ms
+{"num": 297, "t_an": 195574.8522819441, "masse": 1.5081440379159372, "mgaz": 0.642367493208485, "mpuits": 0.8657765447074521, "Lx": -0.00568760691954709, "Ly": -0.003246735519894297, "Lz": 0.16254447672686048, "Lsphere": [1.3736847787707677e-05, -0.00010756808555955166, 0.16375746278599418], "mspher
+{"num": 298, "t_an": 196400.06262912528, "masse": 1.508144037915919, "mgaz": 0.6372695219929483, "mpuits": 0.8708745159229708, "Lx": -0.005695589493374792, "Ly": -0.0032709912401743084, "Lz": 0.1624903994817701, "Lsphere": [1.925327277451325e-05, -0.0001099009931661071, 0.1637491702480582], "msphere
+{"num": 299, "t_an": 197225.2729763065, "masse": 1.508144037915901, "mgaz": 0.632032830472227, "mpuits": 0.876111207443674, "Lx": -0.00572621987964504, "Ly": -0.0032658355582163372, "Lz": 0.16244308852504658, "Lsphere": [1.6692993331226855e-05, -0.00011817695007513204, 0.1637378400944465], "msphere"
 == extraction (erreurs)
-soleil_00279 t=   181546 ans  n=63851  puits=1  Mpuits=0.770  rho_max=9.79e-13
-soleil_00280 t=   182371 ans  n=63341  puits=1  Mpuits=0.776  rho_max=1.02e-12
-soleil_00281 t=   183197 ans  n=62807  puits=1  Mpuits=0.782  rho_max=9.97e-13
-soleil_00282 t=   184022 ans  n=62248  puits=1  Mpuits=0.789  rho_max=9.81e-13
-soleil_00283 t=   184847 ans  n=61696  puits=1  Mpuits=0.795  rho_max=8.27e-13
-soleil_00284 t=   185672 ans  n=61204  puits=1  Mpuits=0.801  rho_max=8.05e-13
-soleil_00285 t=   186498 ans  n=60734  puits=1  Mpuits=0.806  rho_max=7.36e-13
-soleil_00286 t=   187323 ans  n=60305  puits=1  Mpuits=0.811  rho_max=8.46e-13
-soleil_00287 t=   188148 ans  n=59872  puits=1  Mpuits=0.816  rho_max=8.56e-13
-soleil_00288 t=   188973 ans  n=59402  puits=1  Mpuits=0.821  rho_max=9.19e-13
-soleil_00289 t=   189798 ans  n=58878  puits=1  Mpuits=0.828  rho_max=8.58e-13
-soleil_00290 t=   190624 ans  n=58306  puits=1  Mpuits=0.834  rho_max=8.76e-13
-soleil_00291 t=   191449 ans  n=57710  puits=1  Mpuits=0.841  rho_max=8.35e-13
-soleil_00292 t=   192274 ans  n=57121  puits=1  Mpuits=0.848  rho_max=7.35e-13
-soleil_00293 t=   193099 ans  n=56565  puits=1  Mpuits=0.854  rho_max=6.67e-13
-soleil_00294 t=   193924 ans  n=56040  puits=1  Mpuits=0.860  rho_max=5.70e-13
-soleil_00295 t=   194750 ans  n=55562  puits=1  Mpuits=0.866  rho_max=5.11e-13
-soleil_00296 t=   195575 ans  n=55128  puits=1  Mpuits=0.871  rho_max=4.63e-13
-soleil_00297 t=   196400 ans  n=54748  puits=1  Mpuits=0.875  rho_max=4.36e-13
-soleil_00298 t=   197225 ans  n=54388  puits=1  Mpuits=0.879  rho_max=4.62e-13
-soleil_00299 t=   198050 ans  n=54042  puits=1  Mpuits=0.883  rho_max=4.77e-13
-soleil_00300 t=   198876 ans  n=53691  puits=1  Mpuits=0.887  rho_max=4.99e-13
-soleil_00301 t=   199701 ans  n=53318  puits=1  Mpuits=0.892  rho_max=4.95e-13
-soleil_00302 t=   200526 ans  n=52946  puits=1  Mpuits=0.896  rho_max=5.07e-13
-soleil_00303 t=   201351 ans  n=52560  puits=1  Mpuits=0.901  rho_max=5.06e-13
-soleil_00304 t=   202177 ans  n=52174  puits=1  Mpuits=0.905  rho_max=5.00e-13
-soleil_00305 t=   203002 ans  n=51773  puits=1  Mpuits=0.910  rho_max=4.91e-13
-soleil_00306 t=   203827 ans  n=51376  puits=1  Mpuits=0.914  rho_max=4.68e-13
-soleil_00307 t=   204652 ans  n=50988  puits=1  Mpuits=0.919  rho_max=4.35e-13
-soleil_00308 t=   205477 ans  n=50609  puits=1  Mpuits=0.923  rho_max=4.25e-13
-soleil_00309 t=   206303 ans  n=50244  puits=1  Mpuits=0.927  rho_max=4.17e-13
-soleil_00310 t=   207128 ans  n=49902  puits=1  Mpuits=0.931  rho_max=3.68e-13
-soleil_00311 t=   207953 ans  n=49563  puits=1  Mpuits=0.935  rho_max=3.38e-13
-soleil_00312 t=   208778 ans  n=49253  puits=1  Mpuits=0.939  rho_max=3.36e-13
-soleil_00313 t=   209603 ans  n=48959  puits=1  Mpuits=0.942  rho_max=2.92e-13
-soleil_00314 t=   210429 ans  n=48685  puits=1  Mpuits=0.945  rho_max=2.57e-13
-soleil_00315 t=   210635 ans  n=48623  puits=1  Mpuits=0.946  rho_max=2.70e-13
-soleil_00316 t=   210841 ans  n=48555  puits=1  Mpuits=0.947  rho_max=2.90e-13
-soleil_00317 t=   211254 ans  n=48434  puits=1  Mpuits=0.948  rho_max=2.78e-13
-soleil_00318 t=   212079 ans  n=48190  puits=1  Mpuits=0.951  rho_max=2.75e-13
+soleil_00260 t=   165042 ans  n=78106  puits=1  Mpuits=0.605  rho_max=1.59e-12
+soleil_00261 t=   165867 ans  n=77174  puits=1  Mpuits=0.616  rho_max=1.53e-12
+soleil_00262 t=   166692 ans  n=76278  puits=1  Mpuits=0.626  rho_max=1.52e-12
+soleil_00263 t=   167518 ans  n=75419  puits=1  Mpuits=0.636  rho_max=1.48e-12
+soleil_00264 t=   168343 ans  n=74593  puits=1  Mpuits=0.646  rho_max=1.46e-12
+soleil_00265 t=   169168 ans  n=73788  puits=1  Mpuits=0.655  rho_max=1.46e-12
+soleil_00266 t=   169993 ans  n=73010  puits=1  Mpuits=0.664  rho_max=1.45e-12
+soleil_00267 t=   170819 ans  n=72237  puits=1  Mpuits=0.673  rho_max=1.47e-12
+soleil_00268 t=   171644 ans  n=71478  puits=1  Mpuits=0.682  rho_max=1.42e-12
+soleil_00269 t=   172469 ans  n=70757  puits=1  Mpuits=0.690  rho_max=1.39e-12
+soleil_00270 t=   173294 ans  n=70049  puits=1  Mpuits=0.698  rho_max=1.29e-12
+soleil_00271 t=   174119 ans  n=69366  puits=1  Mpuits=0.706  rho_max=1.26e-12
+soleil_00272 t=   174945 ans  n=68718  puits=1  Mpuits=0.714  rho_max=1.21e-12
+soleil_00273 t=   175770 ans  n=68090  puits=1  Mpuits=0.721  rho_max=1.22e-12
+soleil_00274 t=   176595 ans  n=67455  puits=1  Mpuits=0.728  rho_max=1.23e-12
+soleil_00275 t=   177420 ans  n=66811  puits=1  Mpuits=0.736  rho_max=1.23e-12
+soleil_00276 t=   178245 ans  n=66174  puits=1  Mpuits=0.743  rho_max=1.06e-12
+soleil_00277 t=   179071 ans  n=65610  puits=1  Mpuits=0.750  rho_max=1.06e-12
+soleil_00278 t=   179896 ans  n=65067  puits=1  Mpuits=0.756  rho_max=1.13e-12
+soleil_00279 t=   180721 ans  n=64490  puits=1  Mpuits=0.763  rho_max=1.09e-12
+soleil_00280 t=   181546 ans  n=63874  puits=1  Mpuits=0.770  rho_max=1.02e-12
+soleil_00281 t=   182371 ans  n=63266  puits=1  Mpuits=0.777  rho_max=9.55e-13
+soleil_00282 t=   183197 ans  n=62711  puits=1  Mpuits=0.783  rho_max=7.98e-13
+soleil_00283 t=   184022 ans  n=62221  puits=1  Mpuits=0.789  rho_max=8.67e-13
+soleil_00284 t=   184847 ans  n=61735  puits=1  Mpuits=0.794  rho_max=9.59e-13
+soleil_00285 t=   185672 ans  n=61226  puits=1  Mpuits=0.800  rho_max=9.04e-13
+soleil_00286 t=   186498 ans  n=60686  puits=1  Mpuits=0.807  rho_max=8.57e-13
+soleil_00287 t=   187323 ans  n=60127  puits=1  Mpuits=0.813  rho_max=7.68e-13
+soleil_00288 t=   188148 ans  n=59573  puits=1  Mpuits=0.819  rho_max=7.10e-13
+soleil_00289 t=   188973 ans  n=59031  puits=1  Mpuits=0.826  rho_max=6.91e-13
+soleil_00290 t=   189798 ans  n=58511  puits=1  Mpuits=0.832  rho_max=6.74e-13
+soleil_00291 t=   190624 ans  n=58040  puits=1  Mpuits=0.837  rho_max=6.31e-13
+soleil_00292 t=   191449 ans  n=57607  puits=1  Mpuits=0.842  rho_max=5.95e-13
+soleil_00293 t=   192274 ans  n=57212  puits=1  Mpuits=0.847  rho_max=6.15e-13
+soleil_00294 t=   193099 ans  n=56826  puits=1  Mpuits=0.851  rho_max=6.45e-13
+soleil_00295 t=   193924 ans  n=56432  puits=1  Mpuits=0.856  rho_max=6.15e-13
+soleil_00296 t=   194750 ans  n=56007  puits=1  Mpuits=0.861  rho_max=5.95e-13
+soleil_00297 t=   195575 ans  n=55568  puits=1  Mpuits=0.866  rho_max=5.66e-13
+soleil_00298 t=   196400 ans  n=55127  puits=1  Mpuits=0.871  rho_max=6.28e-13
+soleil_00299 t=   197225 ans  n=54674  puits=1  Mpuits=0.876  rho_max=6.23e-13
 == phantom (fin du journal)
-|  0    3.000E-01       5743   11.92%    0.21% |
-|  1    1.500E-01       5323   11.05%    0.21% |
-|  2    7.500E-02       4847   10.06%    0.37% |
-|  3    3.750E-02       3782    7.85%    0.67% |
-|  4    1.875E-02       3034    6.30%    1.26% |
-|  5    9.375E-03       1916    3.98%    2.43% |
-|  6    4.687E-03       1099    2.28%    4.68% |
-|  7    2.344E-03        921    1.91%    9.08% |
-|  8    1.172E-03        928    1.93%   16.85% |
-|  9    5.859E-04      10015   20.78%   29.58% |
-| 10    2.930E-04      10572   21.94%   27.83% |
-| 11    1.465E-04         10    0.02%    6.84% |
+|  0    3.000E-01      18536   33.90%    0.19% |
+|  1    1.500E-01       5281    9.66%    0.15% |
+|  2    7.500E-02       1564    2.86%    0.29% |
+|  3    3.750E-02       1426    2.61%    0.59% |
+|  4    1.875E-02       2469    4.52%    1.04% |
+|  5    9.375E-03        118    0.22%    1.93% |
+|  6    4.687E-03       2138    3.91%    3.66% |
+|  7    2.344E-03       2818    5.15%    7.02% |
+|  8    1.172E-03        909    1.66%   13.51% |
+|  9    5.859E-04       5981   10.94%   24.91% |
+| 10    2.930E-04      11418   20.88%   31.69% |
+| 11    1.465E-04       2016    3.69%   15.01% |
 -------------------------------------------------
- 0.06M particles per second, IND TIMESTEPS efficiency: 68.83%
+ 0.06M particles per second, IND TIMESTEPS efficiency: 67.14%
 
- npart=    130462, n_alive=     48190, n_dead_or_accreted=     82272, nptmass=         1
- Etot=-9.193E-01, Ekin= 8.959E-01, Etherm= 4.037E-02, Epot=-1.856E+00
- Linm= 9.768E-05, Angm= 1.624E-01
- Centre of Mass =  1.014E-03, -2.749E-03, -5.268E-04
- density  (max)= 1.381E+02 (mean)= 1.967E+01 (max)= 2.747E-13 g/cm^3
+ npart=    130462, n_alive=     54674, n_dead_or_accreted=     75788, nptmass=         1
+ Etot=-1.062E+00, Ekin= 1.034E+00, Etherm= 4.037E-02, Epot=-2.137E+00
+ Linm= 7.392E-05, Angm= 1.626E-01
+ Centre of Mass =  1.489E-03, -5.264E-03, -1.301E-03
+ density  (max)= 3.133E+02 (mean)= 3.287E+01 (max)= 6.231E-13 g/cm^3
  alpha(max)= 1.000E+00
- RMS Mach #= 6.372E+00
+ RMS Mach #= 5.890E+00
 
 
- >> WALL TIME =   5 hr,  2 min,  15.39 s (=  1.8135E+04s)
+ >> WALL TIME =   4 hr, 55 min,  24.80 s (=  1.7725E+04s)
  >> NEXT DUMP WILL TRIP OVER MAX WALL TIME:   5 hr,  5 min,   0.00 s (=  1.8300E+04s)
  >> ABORTING... 
 
 >__________________________________________________________________________<
 
- Run finished on 24/11/2026 at 13:23:31.1
+ Run finished on 24/11/2026 at 23:20:43.5
 
- Total wall time:   5 hr,  2 min,  15.40 s (=  1.8135E+04s)
+ Total wall time:   4 hr, 55 min,  24.81 s (=  1.7725E+04s)
 
        |   |           |               | |   _|       | |         
        __| __ \   _` | __|  __|   _` | | |  |    _ \  | |  /  __| 
@@ -94,5 +94,5 @@ soleil_00318 t=   212079 ans  n=48190  puits=1  Mpuits=0.951  rho_max=2.75e-13
 
 >__________________________________________________________________________<
 == temps simulé
--------->   TIME =    77.10    : full dump written to file soleil_00318   <--------
- >> WALL TIME =   5 hr,  2 min,  15.39 s (=  1.8135E+04s)
+-------->   TIME =    71.70    : full dump written to file soleil_00299   <--------
+ >> WALL TIME =   4 hr, 55 min,  24.80 s (=  1.7725E+04s)
