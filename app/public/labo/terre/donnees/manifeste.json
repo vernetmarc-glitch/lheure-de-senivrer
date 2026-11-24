@@ -41,6 +41,7 @@
 ]
 },
 "C": {
+"_raccord_Ma": 160.0,
 "t0": 540,
 "t1": 1800,
 "rot": "rot-C.bin",
@@ -55,7 +56,7 @@
 "pasDebut": 8,
 "raccord": [
 540,
-620
+700
 ],
 "effacement": [
 540,
