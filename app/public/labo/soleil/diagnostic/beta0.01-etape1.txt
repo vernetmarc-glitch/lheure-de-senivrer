@@ -1,88 +1,91 @@
-beta0.01-etape1 — Tue Nov 24 08:07:45 UTC 2026
-/dev/root       145G   59G   86G  41% /
-sorties complètes : 1 ; instants extraits : 0
-12M	/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/etat/run
-4.0K	/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/etat/extrait
+beta0.01-etape1 — Tue Nov 24 13:20:41 UTC 2026
+/dev/mapper/cow-root  145G   56G   89G  39% /
+sorties complètes : 1 ; instants extraits : 316
+19M	/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/etat/run
+122M	/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/etat/extrait
 == setup
   Overdensity factor     =    2.0039953906537535     
  particle numbers: (sphere, low-density medium, total):     103806      26656     130462
  Free fall time   :   54.2        1.491E+05 yrs
 == bilan (3 dernières lignes)
+{"num": 313, "t_an": 209655.00383072344, "masse": 1.5081440379161166, "mgaz": 0.704144269117392, "mpuits": 0.8039997687987245, "Lx": -0.006284881856951043, "Ly": -0.003405475491698251, "Lz": 0.23094322840832063, "Lsphere": [-4.5386506388555974e-06, -0.00020744313339125735, 0.23157285282330647], "msp
+{"num": 314, "t_an": 210480.21417790462, "masse": 1.5081440379161057, "mgaz": 0.7011964626322177, "mpuits": 0.806947575283888, "Lx": -0.006332271389578604, "Ly": -0.0034038031364140497, "Lz": 0.23094119412104955, "Lsphere": [2.2340202114723124e-05, -0.00020799580716119258, 0.23156821695455104], "msp
+{"num": 315, "t_an": 211305.4245250858, "masse": 1.5081440379160953, "mgaz": 0.6984104965030923, "mpuits": 0.809733541413003, "Lx": -0.006365178208214872, "Ly": -0.0034065423211119775, "Lz": 0.23089156066853123, "Lsphere": [1.4616122860139238e-05, -0.00020380059147012206, 0.23157281245449174], "msph
 == extraction (erreurs)
-Traceback (most recent call last):
-  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/soleil/sim/extraire.py", line 20, in <module>
-    import sarracen
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/__init__.py", line 30, in <module>
-    from . import dust
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/__init__.py", line 1, in <module>
-    from ..dust.stokes_number import stokes_number_2fluid
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/stokes_number.py", line 2, in <module>
-    from sklearn.neighbors import KDTree
-ModuleNotFoundError: No module named 'sklearn'
-Traceback (most recent call last):
-  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/soleil/sim/extraire.py", line 20, in <module>
-    import sarracen
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/__init__.py", line 30, in <module>
-    from . import dust
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/__init__.py", line 1, in <module>
-    from ..dust.stokes_number import stokes_number_2fluid
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/stokes_number.py", line 2, in <module>
-    from sklearn.neighbors import KDTree
-ModuleNotFoundError: No module named 'sklearn'
-Traceback (most recent call last):
-  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/soleil/sim/extraire.py", line 20, in <module>
-    import sarracen
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/__init__.py", line 30, in <module>
-    from . import dust
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/__init__.py", line 1, in <module>
-    from ..dust.stokes_number import stokes_number_2fluid
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/stokes_number.py", line 2, in <module>
-    from sklearn.neighbors import KDTree
-ModuleNotFoundError: No module named 'sklearn'
-Traceback (most recent call last):
-  File "/home/runner/work/lheure-de-senivrer/lheure-de-senivrer/app/public/labo/soleil/sim/extraire.py", line 20, in <module>
-    import sarracen
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/__init__.py", line 30, in <module>
-    from . import dust
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/__init__.py", line 1, in <module>
-    from ..dust.stokes_number import stokes_number_2fluid
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/sarracen/dust/stokes_number.py", line 2, in <module>
-    from sklearn.neighbors import KDTree
-ModuleNotFoundError: No module named 'sklearn'
+soleil_00276 t=   179122 ans  n=74923  puits=1  Mpuits=0.642  rho_max=6.91e-13
+soleil_00277 t=   179947 ans  n=74491  puits=1  Mpuits=0.647  rho_max=6.83e-13
+soleil_00278 t=   180773 ans  n=74046  puits=1  Mpuits=0.652  rho_max=7.11e-13
+soleil_00279 t=   181598 ans  n=73598  puits=1  Mpuits=0.657  rho_max=7.12e-13
+soleil_00280 t=   182423 ans  n=73138  puits=1  Mpuits=0.663  rho_max=6.83e-13
+soleil_00281 t=   183248 ans  n=72675  puits=1  Mpuits=0.668  rho_max=7.07e-13
+soleil_00282 t=   184073 ans  n=72182  puits=1  Mpuits=0.674  rho_max=8.11e-13
+soleil_00283 t=   184899 ans  n=71659  puits=1  Mpuits=0.680  rho_max=8.19e-13
+soleil_00284 t=   185724 ans  n=71138  puits=1  Mpuits=0.686  rho_max=7.19e-13
+soleil_00285 t=   186549 ans  n=70619  puits=1  Mpuits=0.692  rho_max=7.23e-13
+soleil_00286 t=   187374 ans  n=70091  puits=1  Mpuits=0.698  rho_max=6.47e-13
+soleil_00287 t=   188200 ans  n=69586  puits=1  Mpuits=0.704  rho_max=6.11e-13
+soleil_00288 t=   189025 ans  n=69124  puits=1  Mpuits=0.709  rho_max=5.61e-13
+soleil_00289 t=   189850 ans  n=68699  puits=1  Mpuits=0.714  rho_max=5.15e-13
+soleil_00290 t=   190675 ans  n=68324  puits=1  Mpuits=0.718  rho_max=5.21e-13
+soleil_00291 t=   191500 ans  n=67966  puits=1  Mpuits=0.722  rho_max=5.11e-13
+soleil_00292 t=   192326 ans  n=67633  puits=1  Mpuits=0.726  rho_max=4.28e-13
+soleil_00293 t=   193151 ans  n=67324  puits=1  Mpuits=0.730  rho_max=4.32e-13
+soleil_00294 t=   193976 ans  n=67017  puits=1  Mpuits=0.733  rho_max=4.52e-13
+soleil_00295 t=   194801 ans  n=66715  puits=1  Mpuits=0.737  rho_max=4.33e-13
+soleil_00296 t=   195626 ans  n=66414  puits=1  Mpuits=0.740  rho_max=4.17e-13
+soleil_00297 t=   196452 ans  n=66118  puits=1  Mpuits=0.744  rho_max=4.40e-13
+soleil_00298 t=   197277 ans  n=65829  puits=1  Mpuits=0.747  rho_max=4.37e-13
+soleil_00299 t=   198102 ans  n=65533  puits=1  Mpuits=0.751  rho_max=4.96e-13
+soleil_00300 t=   198927 ans  n=65216  puits=1  Mpuits=0.754  rho_max=5.54e-13
+soleil_00301 t=   199752 ans  n=64888  puits=1  Mpuits=0.758  rho_max=4.80e-13
+soleil_00302 t=   200578 ans  n=64558  puits=1  Mpuits=0.762  rho_max=4.71e-13
+soleil_00303 t=   201403 ans  n=64232  puits=1  Mpuits=0.766  rho_max=4.69e-13
+soleil_00304 t=   202228 ans  n=63901  puits=1  Mpuits=0.769  rho_max=5.19e-13
+soleil_00305 t=   203053 ans  n=63556  puits=1  Mpuits=0.773  rho_max=5.14e-13
+soleil_00306 t=   203879 ans  n=63208  puits=1  Mpuits=0.777  rho_max=4.86e-13
+soleil_00307 t=   204704 ans  n=62856  puits=1  Mpuits=0.782  rho_max=4.89e-13
+soleil_00308 t=   205529 ans  n=62510  puits=1  Mpuits=0.786  rho_max=4.82e-13
+soleil_00309 t=   206354 ans  n=62168  puits=1  Mpuits=0.789  rho_max=4.36e-13
+soleil_00310 t=   207179 ans  n=61833  puits=1  Mpuits=0.793  rho_max=3.94e-13
+soleil_00311 t=   208005 ans  n=61503  puits=1  Mpuits=0.797  rho_max=3.61e-13
+soleil_00312 t=   208830 ans  n=61199  puits=1  Mpuits=0.801  rho_max=3.53e-13
+soleil_00313 t=   209655 ans  n=60912  puits=1  Mpuits=0.804  rho_max=3.31e-13
+soleil_00314 t=   210480 ans  n=60657  puits=1  Mpuits=0.807  rho_max=3.48e-13
+soleil_00315 t=   211305 ans  n=60416  puits=1  Mpuits=0.810  rho_max=3.31e-13
 == phantom (fin du journal)
-|  0    3.000E-01      54317   55.20%    0.40% |
-|  1    1.500E-01      13896   14.12%    0.20% |
-|  2    7.500E-02       4691    4.77%    0.29% |
-|  3    3.750E-02       4403    4.47%    0.47% |
-|  4    1.875E-02       3521    3.58%    0.84% |
-|  5    9.375E-03       2595    2.64%    1.48% |
-|  6    4.687E-03       2414    2.45%    2.60% |
-|  7    2.344E-03       1852    1.88%    4.63% |
-|  8    1.172E-03       1391    1.41%    8.33% |
-|  9    5.859E-04       1328    1.35%   15.23% |
-| 10    2.930E-04       1723    1.75%   27.12% |
-| 11    1.465E-04       6269    6.37%   38.42% |
+|  0    3.000E-01       5710    9.45%    0.21% |
+|  1    1.500E-01       5179    8.57%    0.19% |
+|  2    7.500E-02       6595   10.92%    0.37% |
+|  3    3.750E-02       3979    6.59%    0.69% |
+|  4    1.875E-02       2487    4.12%    1.31% |
+|  5    9.375E-03       1448    2.40%    2.53% |
+|  6    4.687E-03       1339    2.22%    4.97% |
+|  7    2.344E-03       1254    2.08%    9.34% |
+|  8    1.172E-03       3617    5.99%   17.52% |
+|  9    5.859E-04      16186   26.79%   30.23% |
+| 10    2.930E-04      12614   20.88%   26.81% |
+| 11    1.465E-04          8    0.01%    5.85% |
 -------------------------------------------------
- 0.05M particles per second, IND TIMESTEPS efficiency: 69.46%
+ 0.08M particles per second, IND TIMESTEPS efficiency: 77.51%
 
- npart=    130462, n_alive=     98400, n_dead_or_accreted=     32062, nptmass=         1
- Etot=-5.394E-01, Ekin= 5.059E-01, Etherm= 4.037E-02, Epot=-1.086E+00
- Linm= 1.293E-05, Angm= 2.324E-01
- Centre of Mass = -2.744E-03, -5.450E-03,  4.871E-03
- density  (max)= 1.016E+03 (mean)= 3.684E+01 (max)= 2.020E-12 g/cm^3
+ npart=    130462, n_alive=     60416, n_dead_or_accreted=     70046, nptmass=         1
+ Etot=-1.102E+00, Ekin= 1.066E+00, Etherm= 4.037E-02, Epot=-2.207E+00
+ Linm= 6.406E-05, Angm= 2.310E-01
+ Centre of Mass =  2.303E-03, -5.671E-03, -2.627E-03
+ density  (max)= 1.665E+02 (mean)= 2.117E+01 (max)= 3.313E-13 g/cm^3
  alpha(max)= 1.000E+00
- RMS Mach #= 3.251E+00
+ RMS Mach #= 6.767E+00
 
 
- >> WALL TIME = 33 min,  44.16 s (=  2.0242E+03s)
- >> NEXT DUMP WILL TRIP OVER MAX WALL TIME: 40 min,   0.00 s (=  2.4000E+03s)
+ >> WALL TIME =   4 hr, 58 min,  21.29 s (=  1.7901E+04s)
+ >> NEXT DUMP WILL TRIP OVER MAX WALL TIME:   5 hr,  5 min,   0.00 s (=  1.8300E+04s)
  >> ABORTING... 
 
 >__________________________________________________________________________<
 
- Run finished on 24/11/2026 at 08:07:22.1
+ Run finished on 24/11/2026 at 13:19:32.3
 
- Total wall time: 33 min,  44.18 s (=  2.0242E+03s)
+ Total wall time:   4 hr, 58 min,  21.29 s (=  1.7901E+04s)
 
        |   |           |               | |   _|       | |         
        __| __ \   _` | __|  __|   _` | | |  |    _ \  | |  /  __| 
@@ -91,5 +94,5 @@ ModuleNotFoundError: No module named 'sklearn'
 
 >__________________________________________________________________________<
 == temps simulé
--------->   TIME =    57.02    : full dump written to file soleil_00246   <--------
- >> WALL TIME = 33 min,  44.16 s (=  2.0242E+03s)
+-------->   TIME =    76.82    : full dump written to file soleil_00315   <--------
+ >> WALL TIME =   4 hr, 58 min,  21.29 s (=  1.7901E+04s)
