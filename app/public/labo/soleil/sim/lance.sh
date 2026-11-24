@@ -58,9 +58,10 @@ JOURNAL="phantom_$(date +%s).log"
 pid=$!
 while kill -0 $pid 2>/dev/null; do
   sleep 90
-  python3 "$ICI/extraire.py" . "$EXTRAIT" --nettoie --sauf-plus-recente | tail -1 || true
+  python3 "$ICI/extraire.py" . "$EXTRAIT" --nettoie --sauf-plus-recente >> "$EXTRAIT/../extraction.log" 2>&1 || echo "extraction en échec (voir extraction.log)"
 done
 wait $pid || echo "phantom s'est arrêté (code $?)"
-python3 "$ICI/extraire.py" . "$EXTRAIT" --nettoie | tail -3
+python3 "$ICI/extraire.py" . "$EXTRAIT" --nettoie >> "$EXTRAIT/../extraction.log" 2>&1 || echo "extraction finale en échec"
+tail -3 "$EXTRAIT/../extraction.log"
 tail -25 "$JOURNAL" | tee "$EXTRAIT/../fin_phantom.txt"
 df -h . | tail -1

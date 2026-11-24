@@ -5,7 +5,7 @@ set -uo pipefail
 ETAPE="$1"
 SIM=app/public/labo/soleil/sim
 DON=app/public/labo/soleil/donnees
-ls var || exit 0
+ls var || mkdir -p var
 python3 - <<'EOF' > resume.txt
 import glob, json, os
 for d in sorted(glob.glob("var/*")):

@@ -18,7 +18,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: chantier-soleil-v2   # le run 45114321078 (groupe « chantier-soleil ») ne s'annulait pas
+  group: chantier-soleil-v3   # les runs 45114321078 et 45160564099 ne s'annulaient pas
   cancel-in-progress: true
 
 env:
@@ -74,7 +74,10 @@ jobs:
       - name: Étape 1
         run: |
           chmod +x bin/*; mkdir -p etat; echo "${{ matrix.beta }}" > etat/beta
-          ETAT=$PWD/etat BETA=${{ matrix.beta }} PHANTOM=$PWD/bin bash $SIM/etape.sh
+          ETAT=$PWD/etat BETA=${{ matrix.beta }} PHANTOM=$PWD/bin TWALL=000:40 bash $SIM/etape.sh
+      - name: Diagnostic et allègement
+        if: always()
+        run: bash $SIM/diag.sh "$PWD/etat" "beta${{ matrix.beta }}-etape1"
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: 'etat-${{ matrix.beta }}-1', path: etat, retention-days: 5 }
@@ -114,6 +117,9 @@ jobs:
         run: |
           chmod +x bin/*
           ETAT=$PWD/etat BETA=${{ matrix.beta }} PHANTOM=$PWD/bin bash $SIM/etape.sh
+      - name: Diagnostic et allègement
+        if: always()
+        run: bash $SIM/diag.sh "$PWD/etat" "beta${{ matrix.beta }}-etape2"
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: 'etat-${{ matrix.beta }}-2', path: etat, retention-days: 5 }
@@ -153,6 +159,9 @@ jobs:
         run: |
           chmod +x bin/*
           ETAT=$PWD/etat BETA=${{ matrix.beta }} PHANTOM=$PWD/bin bash $SIM/etape.sh
+      - name: Diagnostic et allègement
+        if: always()
+        run: bash $SIM/diag.sh "$PWD/etat" "beta${{ matrix.beta }}-etape3"
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: 'etat-${{ matrix.beta }}-3', path: etat, retention-days: 5 }
