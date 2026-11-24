@@ -1,0 +1,2 @@
+"interval_no","interval_name","max_ma","min_ma","X_Ft","X_bL","X_FL","X_bt","sampled_in_bin","implied_in_bin","n_occs"
+"761","Ediacaran","635","538.8","0","0","160","0","160","1","1291"

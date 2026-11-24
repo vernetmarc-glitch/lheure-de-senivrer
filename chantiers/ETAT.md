@@ -1,4 +1,4 @@
-Maître actif : 2026-11-24 07:27 UTC
+Maître actif : 2026-11-24 12:44 UTC
 
 # État des chantiers
 
@@ -44,3 +44,4 @@ Départ (19/11/2026, 7 h 40) : `bake.py --check` sur `main` : 399 passés, 15 en
 - 23/11 ≈ 7 h 30 : limite de 5 h atteinte (remise à 10 h 40). Publiés : compteur et vidéo (S0), puis glaciers (S8, 10/10). 11 h 45 : reprise de S7, S3, S1 ; S6 et S8 au réveil suivant.
 - 23/11 soir : publiés S7 passage 3, S6 passages 2 et 3, S8 passage 3. Limite de 5 h atteinte vers 18 h (remise 21 h 40). 22 h 20 : reprise S7b, S3, et S6 passage 4 (civilisations, N38–N39). S1 : run Phantom 45160564099 toujours en cours.
 - 24/11 7 h 30 UTC : les réveils de la nuit ne se sont pas déclenchés (conversation inactive) ; reprise de S6 (passage 4), S3b, S1 (run Phantom en échec à 2 h 42) ; S7b attend son run 45271157024 ; maître de secours créé.
+- 24/11 midi : publiés S6 passage 4 (civilisations) et S3b étape 1 (Terre 540 Ma → 0, 17/17). S1 : runs Phantom relancés (sklearn manquait). Retour de Marc 13 h 44 sur S6 (fond teinté + front lichen sous les points).

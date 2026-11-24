@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La Terre vue de l'espace — un milliard d'années de continents</title>
+<meta name="theme-color" content="#04050a">
+<link rel="icon" href="data:,">
+<style>
+  :root { --nuit:#04050a; --texte:#e8e6df; --doux:#9a9fab; --accent:#cfe6ff;
+          --f-titre:"Cinzel","Times New Roman",serif; --f-corps:"Jost","Helvetica Neue",Arial,sans-serif; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--nuit); color:var(--texte);
+              font-family:var(--f-corps); -webkit-font-smoothing:antialiased; overflow:hidden; }
+  main { display:flex; flex-direction:column; height:100%; max-width:560px; margin:0 auto;
+         padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+  header { padding:18px 20px 0; height:142px; flex:0 0 142px; overflow:hidden; }
+  h1 { font-family:var(--f-titre); font-weight:500; font-size:13px; letter-spacing:.18em;
+       text-transform:uppercase; color:var(--doux); margin:0 0 10px; }
+  #quand { font-family:var(--f-titre); font-size:19px; font-weight:500; letter-spacing:.01em; margin:0; white-space:nowrap; }
+  #recit { font-size:15px; line-height:1.45; color:#cfd2d8; margin:6px 0 0; min-height:44px;
+           transition:opacity .6s; }
+  #scene { position:relative; flex:1 1 auto; min-height:0; }
+  #globe { position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
+  #globe:active { cursor:grabbing; }
+  footer { padding:0 20px 14px; }
+  #frise { position:relative; display:flex; height:16px; margin:4px 0 0; border-radius:2px; }
+  #frise .avenir { flex:0 0 calc(100% * 4000 / 4540); height:100%;
+       background-image:repeating-linear-gradient(135deg, rgba(232,230,223,.28) 0 1.5px, transparent 1.5px 6px);
+       border:1px solid rgba(232,230,223,.22); border-right:none; font-size:10px; letter-spacing:.12em;
+       color:var(--doux); display:flex; align-items:center; justify-content:center; text-transform:uppercase; }
+  #frise .publie { flex:0 0 calc(100% * 540 / 4540); height:100%; background:rgba(207,230,255,.55); }
+  .reunions { position:relative; height:24px; font-size:9.5px; color:#cfd2d8; letter-spacing:.02em; }
+  .reunions span { position:absolute; bottom:0; transform:translateX(-50%); white-space:nowrap; line-height:1;
+       padding-bottom:4px; border-bottom:1px solid rgba(232,230,223,.0); }
+  .reunions span::after { content:""; position:absolute; left:50%; bottom:-2px; width:1px; height:5px; background:rgba(232,230,223,.6); }
+  .reunions span.haut { bottom:11px; }
+  .reunions span.haut::after { height:16px; bottom:-13px; }
+  .reunions span[data-statut="hypothèse"], .reunions span[data-statut="débattue"] { color:var(--doux); font-style:italic; }
+  #ruban-vie { display:block; width:100%; height:16px; margin-top:2px; overflow:visible; }
+  .legende-vie { font-size:9.5px; color:#7fc8b0; margin-top:1px; height:12px; position:relative; }
+  #frise .pangee { position:absolute; top:-5px; height:26px; border-left:1px solid #e0a46b;
+       border-right:1px solid #e0a46b; background:rgba(224,164,107,.28); pointer-events:none; }
+  #frise .curseur { position:absolute; top:-8px; width:2px; height:32px; margin-left:-1px;
+       background:#fff; box-shadow:0 0 8px rgba(255,255,255,.8); pointer-events:none; }
+  .au-dessus { position:relative; height:16px; font-size:11px; color:#e0a46b; }
+  .au-dessus span { position:absolute; bottom:6px; white-space:nowrap; }
+  .reperes { position:relative; height:30px; font-size:11px; color:var(--doux); margin-top:6px; }
+  .reperes span { position:absolute; top:0; white-space:nowrap; line-height:1.25; }
+  .commandes { display:flex; align-items:center; gap:14px; margin-top:6px; }
+  #lecture { flex:0 0 44px; height:44px; border-radius:50%; border:1px solid rgba(232,230,223,.35);
+       background:transparent; color:var(--texte); font-size:16px; padding:0; cursor:pointer; }
+  #temps { flex:1; -webkit-appearance:none; appearance:none; height:28px; background:transparent; }
+  #temps::-webkit-slider-runnable-track { height:2px; background:rgba(232,230,223,.3); }
+  #temps::-moz-range-track { height:2px; background:rgba(232,230,223,.3); }
+  #temps::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+       background:var(--texte); margin-top:-9px; }
+  #temps::-moz-range-thumb { width:20px; height:20px; border-radius:50%; background:var(--texte); border:none; }
+  .bornes { display:flex; justify-content:space-between; font-size:11px; color:var(--doux); margin:-2px 58px 0 58px; }
+  .sources { font-size:10px; color:#6f7480; margin-top:8px; line-height:1.4; }
+  #attente { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+       color:var(--doux); font-size:13px; letter-spacing:.1em; pointer-events:none; transition:opacity .8s; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>La Terre vue de l'espace</h1>
+    <p id="quand">&nbsp;</p>
+    <p id="recit">&nbsp;</p>
+  </header>
+  <div id="scene"><canvas id="globe" aria-label="Globe terrestre, à faire tourner du doigt"></canvas></div>
+  <footer>
+    <div class="reunions" aria-label="Les grandes réunions des continents">
+      <span data-reunion="Vaalbara" data-t="3300" data-statut="hypothèse" title="Vaalbara, ≈ 3,6–2,8 Ga : hypothèse" style="left:calc(100% * 1240 / 4540)">Vaalbara</span>
+      <span data-reunion="Ur" data-t="3000" data-statut="hypothèse" class="haut" title="Ur, ≈ 3 Ga : hypothèse" style="left:calc(100% * 1540 / 4540)">Ur</span>
+      <span data-reunion="Kenorland" data-t="2500" data-statut="hypothèse" title="Kenorland, ≈ 2,7–2,1 Ga : hypothèse" style="left:calc(100% * 2040 / 4540)">Kenorland</span>
+      <span data-reunion="Nuna" data-t="1600" data-statut="modèle" class="haut" title="Nuna (Columbia), ≈ 1,6 Ga" style="left:calc(100% * 2940 / 4540)">Nuna</span>
+      <span data-reunion="Rodinia" data-t="900" data-statut="modèle" title="Rodinia, ≈ 0,9 Ga" style="left:calc(100% * 3640 / 4540)">Rodinia</span>
+      <span data-reunion="Pannotia" data-t="600" data-statut="débattue" class="haut" title="Pannotia, ≈ 600 Ma : existence débattue" style="left:calc(100% * 3940 / 4540)">Pannotia ?</span>
+      <span data-reunion="Pangée" data-t="300" data-statut="modèle" title="Pangée, ≈ 320–175 Ma" style="left:calc(100% * 4240 / 4540)">Pangée</span>
+    </div>
+    <div class="au-dessus"><span id="rep-pangee"></span></div>
+    <div id="frise" aria-label="Les 4,54 milliards d'années de la Terre">
+      <div class="avenir" title="4 milliards d'années encore à reconstituer">à venir</div>
+      <div class="publie" title="540 millions d'années reconstitués d'après les roches"></div>
+      <div class="pangee"></div>
+      <div class="curseur"></div>
+    </div>
+    <svg id="ruban-vie" viewBox="0 0 1000 16" preserveAspectRatio="none" role="img"
+         title="Le ruban de la vie : nombre de genres d'animaux marins (Paleobiology Database)"><path></path></svg>
+    <div class="legende-vie"><span id="leg-vie"></span></div>
+    <div class="reperes">
+      <span style="left:0">4,54 milliards d'années<br>naissance de la Terre</span>
+      <span id="rep-pub" style="left:calc(100% * 4000 / 4540);transform:translateX(-50%)">540 Ma</span>
+      <span style="right:0;text-align:right">aujourd'hui</span>
+    </div>
+    <div class="commandes">
+      <button id="lecture" aria-label="Lecture">▶</button>
+      <input id="temps" type="range" min="0" max="540" step="0.5" value="540" aria-label="Temps">
+    </div>
+    <div class="bornes"><span id="borne-pub">il y a 540 millions d'années</span><span>aujourd'hui</span></div>
+    <p class="sources" id="sources">Plaques : PALEOMAP, Scotese 2016. Relief : PaleoDEM, Scotese &amp; Wright 2018.
+      Avant 540 Ma : à venir (mécanique des roches, plaques de Cao et al. 2024).
+      Soleil du solstice de juin, sans nuages.</p>
+  </footer>
+</main>
+<div id="attente">chargement…</div>
+<script>
+"use strict";
+(() => {
+const TEST = new URLSearchParams(location.search).has("test");
+let SEGM = "M", T_PUB = 540;
+const T_TERRE = 4540,             // plage publiée : 540 Ma -> aujourd'hui
+      PANGEE = [380, 175];           // chaîne hercynienne (≈ 380 Ma) -> fin de la Pangée (≈ 175 Ma)
+const OBLIQUITE = 23.44, LON_SOLEIL = -10;            // solstice de juin : Soleil au zénith du tropique du Cancer
+const HMIN = -11000, HMAX = 9000;                      // codage 16 bits de la texture d'état
+const RECITS = [
+  [1800, "Il y a 1,8 milliard d'années. Les continents se cherchent ; à leurs coutures, des montagnes."],
+  [1600, "Nuna, le premier grand continent que l'on sache reconstituer."],
+  [1350, "Nuna se défait lentement ; ses morceaux dérivent des centaines de millions d'années."],
+  [1100, "Les morceaux se referment : la chaîne de Grenville se lève, Rodinia naît."],
+  [900,  "Rodinia. Presque toutes les terres serrées en un seul bloc, nues, sans une herbe."],
+  [760,  "Rodinia se fend. Des océans naissent dans ses fêlures."],
+  [640,  "Le froid s'en mêle ; au sud, le Gondwana s'assemble pièce à pièce."],
+  [540,  "Il y a 540 millions d'années. Dans les mers, la vie explose ; sur les terres, rien encore que la pierre nue."],
+  [440,  "Laurentia, Baltica, Avalonia : les petits continents du nord se rapprochent."],
+  [380,  "Le Gondwana remonte et heurte le nord : la chaîne hercynienne se lève, haute comme l'Himalaya."],
+  [330,  "La Pangée. Toutes les terres d'un seul tenant, d'un pôle à l'autre."],
+  [250,  "Un seul continent, un seul océan, Panthalassa. Le cœur des terres est un désert."],
+  [175,  "La Pangée se déchire. L'Atlantique s'ouvre comme une fermeture éclair."],
+  [100,  "L'Atlantique Sud s'élargit ; l'Inde file vers le nord."],
+  [55,   "L'Inde heurte l'Asie. L'Himalaya, puis les Alpes, se soulèvent."],
+  [15,   "La Terre prend le visage que nous lui connaissons."],
+  [0.4,  "Aujourd'hui. Ces 540 millions d'années ne sont qu'un huitième de l'histoire de la Terre."],
+];
+
+const $ = s => document.querySelector(s);
+const canvas = $("#globe");
+const gl = canvas.getContext("webgl2", { antialias: false, premultipliedAlpha: false,
+                                         preserveDrawingBuffer: TEST, alpha: false });
+const etat = { t: T_PUB, lon: 20, lat: 12, lecture: false, pret: false };
+
+// ------------------------------------------------------------------ shaders
+const VS = `#version 300 es
+in vec2 a; out vec2 uv; void main(){ uv = a * .5 + .5; gl_Position = vec4(a, 0., 1.); }`;
+
+const COMMUN = `#version 300 es
+precision highp float; precision highp int; precision highp sampler2D;
+const float PI = 3.14159265358979;
+vec3 versXYZ(float lat, float lon){ float a = radians(lat), o = radians(lon);
+  return vec3(cos(a)*cos(o), cos(a)*sin(o), sin(a)); }
+vec2 latLon(vec3 p){ return vec2(degrees(asin(clamp(p.z, -1., 1.))), degrees(atan(p.y, p.x))); }
+float hash3(vec3 p){ p = fract(p * .1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
+float bruit(vec3 x){   // bruit de valeur 3D lisse, dans [-1, 1]
+  vec3 i = floor(x), f = fract(x); f = f * f * (3. - 2. * f);
+  float n = mix(mix(mix(hash3(i), hash3(i + vec3(1,0,0)), f.x), mix(hash3(i + vec3(0,1,0)), hash3(i + vec3(1,1,0)), f.x), f.y),
+                mix(mix(hash3(i + vec3(0,0,1)), hash3(i + vec3(1,0,1)), f.x), mix(hash3(i + vec3(0,1,1)), hash3(i + vec3(1,1,1)), f.x), f.y), f.z);
+  return n * 2. - 1.; }
+`;
+
+// Passe de transport : chaque texel d'un état clé est un point, déplacé avec sa plaque de tk à t
+// (rotation totale de Merdith ou de PALEOMAP, interpolée entre deux Ma), écrit en
+// équirectangulaire ; le test de profondeur garde le plus haut. Aucune recherche inverse :
+// le déplacement peut être grand (plaques rapides du Néoprotérozoïque), rien ne se perd.
+const VS_PORTER = COMMUN + `
+uniform sampler2D cle; uniform sampler2D rot;
+uniform int rotCols, rotLarg; uniform float seg0, tk, t; uniform vec2 taille; uniform float tailleMax;
+uniform vec2 codeT, codeM;
+flat out float vh; flat out vec2 vpd; flat out vec3 vc; flat out float vfond; flat out float vw; flat out vec3 vq;
+vec4 Qf(int row, int c){ int k = row * rotCols + c; return texelFetch(rot, ivec2(k % rotLarg, k / rotLarg), 0); }
+vec4 Q(int row, float tt){
+  float u = clamp(tt - seg0, 0., float(rotCols - 1)); int c0 = int(floor(u)); float f = u - float(c0);
+  int c1 = min(c0 + 1, rotCols - 1);
+  vec4 a = Qf(row, c0), b = Qf(row, c1); if (dot(a, b) < 0.) b = -b; return normalize(mix(a, b, f)); }
+vec3 qr(vec4 q, vec3 v){ vec3 s = 2. * cross(q.xyz, v); return v + q.w * s + cross(q.xyz, s); }
+vec4 qc(vec4 q){ return vec4(-q.xyz, q.w); }
+float dec(float r){ float c = floor(r * 255. + .5);
+  return c >= 128. ? 10. + codeT.x * pow((c - 128.) / 127., 2.)
+                   : -10. - codeM.x * pow((127. - c) / 127., codeM.y); }
+void main(){
+  int W = int(taille.x), i = gl_VertexID % W, j = gl_VertexID / W;
+  vec4 c = texelFetch(cle, ivec2(i, j), 0);
+  int row = int(c.g * 255. + .5) + 256 * int(c.b * 255. + .5);
+  float h = dec(c.r); vh = h;
+  float lat0 = 90. - (float(j) + .5) * 180. / taille.y, lon0 = -180. + (float(i) + .5) * 360. / taille.x;
+  vec3 p = versXYZ(lat0, lon0);
+  vec3 pd = p;                                   // position actuelle du même morceau de croûte
+  if (row > 0) { pd = normalize(qr(qc(Q(row, tk)), p)); p = normalize(qr(Q(row, t), pd)); }
+  vpd = latLon(pd); vq = pd; vw = row > 0 ? 1. : 1e-5;   // fonds immobiles : presque sans poids
+  vec2 l = latLon(p);
+  gl_Position = vec4(l.y / 180., l.x / 90., 0., 1.);
+  // l'écart entre deux points voisins (un pas de grille, d'arc au plus) peut arriver dans
+  // n'importe quelle direction : en longitude il couvre 1/cos(lat) pixels
+  float etire = 1. / max(cos(radians(l.x)), 1e-3);
+  // chaque pixel prend le point le plus proche (rééchantillonnage au plus proche voisin,
+  // sans biais : ni les terres ni les mers ne gagnent par la taille du point)
+  vfond = row > 0 ? 0. : 1.;   // les fonds immobiles ne recouvrent jamais une plaque portée
+  vc = vec3((l.y / 180. * .5 + .5) * taille.x, (l.x / 90. * .5 + .5) * taille.y, etire);
+  gl_PointSize = min(tailleMax, ceil(etire) + 1.); }`;
+const FS_PORTER = COMMUN + `
+flat in float vh; flat in vec2 vpd; flat in vec3 vc; flat in float vfond; layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
+vec2 c16(float x){ float c = floor(clamp(x, 0., 1.) * 65535. + .5); return vec2(floor(c / 256.), mod(c, 256.)) / 255.; }
+void main(){
+  vec2 d = gl_FragCoord.xy - vc.xy;
+  // empreinte du point : large de 1/cos(lat) pixels, haute d'un pixel et demi (le carré
+  // de gl_PointSize débordait de dizaines de degrés en latitude près des pôles)
+  if (abs(d.y) > 1.5 || abs(d.x) > .5 * vc.z + 1.) discard;
+  d.x /= vc.z;
+  gl_FragDepth = .5 * vfond + .24 * clamp(length(d) / 4., 0., 1.);
+  o = vec4(c16((vh - (${HMIN}.)) / (${HMAX}. - (${HMIN}.))), 1., 1.);
+  o2 = vec4(c16((vpd.y + 180.) / 360.), c16((vpd.x + 90.) / 180.)); }`;
+// Segment M (1 Ga -> 540 Ma) : un seul nuage de points en coordonnées actuelles, transporté
+// d'un bloc par les rotations de Merdith (raccordées à PALEOMAP de 580 à 540 Ma) ; élévation
+// calculée à chaque instant (relief de 540 Ma qui s'efface vers un relief générique).
+const VS_POINTS_M = COMMUN + `
+uniform sampler2D m1, m2; uniform sampler2D rot;
+uniform int rotCols, rotLarg; uniform float seg0, t; uniform vec2 taille; uniform float tailleMax, pasDebut;
+uniform vec2 codeT, codeM, eff;
+uniform sampler2D mecaA, mecaB; uniform int chA, chB; uniform float wMeca, avecMeca, rotPas;
+flat out float vh; flat out vec2 vpd; flat out vec3 vc; flat out float vfond; flat out float vw;
+float canal(vec4 c, int k){ return k == 0 ? c.r : k == 1 ? c.g : c.b; }
+vec4 Qf(int row, int c){ int k = row * rotCols + c; return texelFetch(rot, ivec2(k % rotLarg, k / rotLarg), 0); }
+vec4 Q(int row, float tt){
+  float u = clamp((tt - seg0) / rotPas, 0., float(rotCols - 1)); int c0 = int(floor(u)); float f = u - float(c0);
+  int c1 = min(c0 + 1, rotCols - 1);
+  vec4 a = Qf(row, c0), b = Qf(row, c1); if (dot(a, b) < 0.) b = -b; return normalize(mix(a, b, f)); }
+vec3 qr(vec4 q, vec3 v){ vec3 s = 2. * cross(q.xyz, v); return v + q.w * s + cross(q.xyz, s); }
+float dec(float r){ float c = floor(r * 255. + .5);
+  return c >= 128. ? 10. + codeT.x * pow((c - 128.) / 127., 2.)
+                   : -10. - codeM.x * pow((127. - c) / 127., codeM.y); }
+void main(){
+  int W = int(taille.x), i = gl_VertexID % W, j = gl_VertexID / W;
+  vec4 a1 = texelFetch(m1, ivec2(i, j), 0), a2 = texelFetch(m2, ivec2(i, j), 0);
+  int dr = int(a1.b * 255. + .5);
+  bool typeA = (dr & 1) != 0, croute = (dr & 2) != 0, point = (dr & 4) != 0;
+  float a = smoothstep(0., 1., clamp((t - eff.x) / (eff.y - eff.x), 0., 1.));
+  // la croûte de Merdith apparaît (en remontant le temps : disparaît) à sa date de début ;
+  // on l'étale sur ± 20 Ma (une croûte se forme en dizaines de Ma) au lieu d'un saut
+  float vie = croute ? smoothstep(0., 1., clamp((a2.b * 255. * pasDebut - t) / 40. + .5, 0., 1.)) : 0.;
+  // relief : celui de la mécanique des roches (S3b), interpolé entre deux instants clés pour
+  // CE morceau de croûte ; à défaut, le relief générique de l'ancien segment
+  float hgen = avecMeca > .5 ? mix(dec(canal(texelFetch(mecaA, ivec2(i, j), 0), chA)),
+                                   dec(canal(texelFetch(mecaB, ivec2(i, j), 0), chB)), wMeca) : dec(a1.g);
+  float h0 = dec(a1.r);
+  // la croûte absente du PaleoDEM de 540 Ma (type b) n'y est pas émergée : elle monte avec a
+  // croûte qui n'existe pas encore : s'abaisse en plateau immergé (-200 m) puis s'efface par
+  // son poids ; viser -3000 m faisait plonger d'un coup les plaines basses sous la mer
+  float h = typeA ? mix(h0, mix(-200., hgen, vie), a) : mix(-3000., hgen, a * vie);
+  bool existe = point && (typeA ? (vie > 0. || a < .999) : vie > 0.);
+  // poids continu de chaque morceau (cumul pondéré : pas de bascule de visibilité entre
+  // morceaux superposés) ; la croûte seule entre en scène à mesure qu'elle émerge (a)
+  vw = typeA ? max(vie, 1. - a) : vie * a;
+  existe = existe && vw > 0.;
+  // priorité : PaleoDEM porté vivant > croûte seule > PaleoDEM porté qui s'enfonce
+  // entre croûte seule et PaleoDEM qui s'enfonce : le plus haut l'emporte (continu dans le temps)
+  vh = h; vfond = typeA && vie > 0. ? 0. : .5 + .45 * (1. - clamp((h + 3000.) / 8000., 0., 1.));
+  float lat0 = 90. - (float(j) + .5) * 180. / taille.y, lon0 = -180. + (float(i) + .5) * 360. / taille.x;
+  vec3 q = versXYZ(lat0, lon0); vpd = vec2(lat0, lon0);
+  int row = int(a2.r * 255. + .5) + 256 * int(a2.g * 255. + .5);
+  vec2 l = latLon(normalize(qr(Q(row, t), q)));
+  gl_Position = existe ? vec4(l.y / 180., l.x / 90., 0., 1.) : vec4(9., 9., 9., 1.);
+  // l'écart entre deux points voisins (un pas de grille, d'arc au plus) peut arriver dans
+  // n'importe quelle direction : en longitude il couvre 1/cos(lat) pixels
+  float etire = 1. / max(cos(radians(l.x)), 1e-3);
+  vc = vec3((l.y / 180. * .5 + .5) * taille.x, (l.x / 90. * .5 + .5) * taille.y, etire);
+  gl_PointSize = min(tailleMax, ceil(etire) + 1.); }`;
+// réduction : part de terres émergées par bloc (pour le barycentre des continents)
+const FS_REDUIT = COMMUN + `
+uniform sampler2D etat; uniform int bloc; out vec4 o;
+void main(){
+  ivec2 b = ivec2(gl_FragCoord.xy) * bloc; float n = 0.;
+  for (int j = 0; j < 32; j++) { if (j >= bloc) break;
+    for (int i = 0; i < 32; i++) { if (i >= bloc) break;
+      vec4 c = texelFetch(etat, b + ivec2(i, j), 0);
+      float h = (c.r * 255. * 256. + c.g * 255.) / 65535. * (${HMAX}. - (${HMIN}.)) + (${HMIN}.);
+      n += step(0., h); } }
+  o = vec4(n / float(bloc * bloc), 0., 0., 1.); }`;
+// cumul pondéré (segment P) : élévation et position actuelle (vecteur) moyennées
+const FS_CUMUL_P = COMMUN + `
+flat in float vh; flat in vec3 vc; flat in float vw; flat in vec3 vq;
+layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
+void main(){
+  vec2 d = gl_FragCoord.xy - vc.xy;
+  if (abs(d.y) > 1.5 || abs(d.x) > .5 * vc.z + 1.) discard;
+  d.x /= vc.z;
+  float k = vw * max(0., 1. - length(d) / 1.25);
+  if (k <= 1e-9) discard;
+  o = vec4(k * vh / 10000., k, 0., 0.); o2 = vec4(k * vq, 0.); }`;
+// les deux états clés cumulés, puis interpolation de leurs élévations co-localisées
+const FS_ETAT_C = COMMUN + `
+uniform sampler2D A, B, A2, B2; uniform float wB;
+layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
+vec2 c16(float x){ float c = floor(clamp(x, 0., 1.) * 65535. + .5); return vec2(floor(c / 256.), mod(c, 256.)) / 255.; }
+void main(){
+  ivec2 ij = ivec2(gl_FragCoord.xy);
+  vec4 a = texelFetch(A, ij, 0), b = texelFetch(B, ij, 0);
+  float ca = step(1e-5, a.g), cb = step(1e-5, b.g);
+  float ha = a.r / max(a.g, 1e-6) * 10000., hb = b.r / max(b.g, 1e-6) * 10000.;
+  float h = ca * cb > 0. ? mix(ha, hb, wB) : ca > 0. ? ha : cb > 0. ? hb : -4000.;
+  o = vec4(c16((h - (${HMIN}.)) / (${HMAX}. - (${HMIN}.))), 0., 1.);
+  vec3 q = (ca > 0. && (wB < .5 || cb == 0.)) ? texelFetch(A2, ij, 0).xyz : texelFetch(B2, ij, 0).xyz;
+  float lat = -90. + (float(ij.y) + .5) * 180. / float(textureSize(A, 0).y), lon = -180. + (float(ij.x) + .5) * 360. / float(textureSize(A, 0).x);
+  vec2 l = dot(q, q) > 0. ? latLon(normalize(q)) : vec2(lat, lon);
+  o2 = vec4(c16((l.y + 180.) / 360.), c16((l.x + 90.) / 180.)); }`;
+// cumul pondéré (segment M) : Σ w·h et Σ w, noyau au plus proche voisin adouci
+const FS_CUMUL = COMMUN + `
+flat in float vh; flat in vec3 vc; flat in float vw; flat in vec2 vpd;
+layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
+void main(){
+  vec2 d = gl_FragCoord.xy - vc.xy;
+  if (abs(d.y) > 1.5 || abs(d.x) > .5 * vc.z + 1.) discard;
+  d.x /= vc.z;
+  float k = vw * max(0., 1. - length(d) / 1.25);
+  if (k <= 1e-9) discard;
+  o = vec4(k * vh / 10000., k, 0., 0.); o2 = vec4(k * versXYZ(vpd.x, vpd.y), 0.); }`;
+const FS_RESOLU_M = COMMUN + `
+uniform sampler2D cumul, cumul2, fond, cumulP540; uniform vec2 taille, codeT, codeM, eff; uniform float t, wP;
+layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
+float dec(float r){ float c = floor(r * 255. + .5);
+  return c >= 128. ? 10. + codeT.x * pow((c - 128.) / 127., 2.)
+                   : -10. - codeM.x * pow((127. - c) / 127., codeM.y); }
+vec2 c16(float x){ float c = floor(clamp(x, 0., 1.) * 65535. + .5); return vec2(floor(c / 256.), mod(c, 256.)) / 255.; }
+void main(){
+  ivec2 ij = ivec2(gl_FragCoord.xy);
+  float h540 = dec(texelFetch(fond, ivec2(ij.x, int(taille.y) - 1 - ij.y), 0).r);
+  float a = smoothstep(0., 1., clamp((t - eff.x) / (eff.y - eff.x), 0., 1.));
+  float hb = mix(min(h540, -1000.), -4200., a), wb = 1e-7;   // fond immobile, presque sans poids
+  vec4 c = texelFetch(cumul, ij, 0);
+  float h = (c.r * 10000. + wb * hb) / (c.g + wb);
+  // raccord 540 Ma : le PaleoDEM porté directement (segment P) cède la place au nuage M sur
+  // 8 Ma : réunion des deux reliefs, celui du PaleoDEM s'abaissant (1500 m en 8 Ma)
+  vec4 p = texelFetch(cumulP540, ij, 0);
+  if (wP > 0. && p.g > 1e-5) h = max(h, p.r / p.g * 10000. - 1500. * (1. - wP) * (1. - wP));   // réunion qui s'enfonce
+  float lat = -90. + (float(ij.y) + .5) * 180. / taille.y, lon = -180. + (float(ij.x) + .5) * 360. / taille.x;
+  o = vec4(c16((h - (${HMIN}.)) / (${HMAX}. - (${HMIN}.))), 0., 1.);
+  vec3 q = texelFetch(cumul2, ij, 0).xyz;
+  vec2 l = (c.g > 1e-5 && dot(q, q) > 1e-12) ? latLon(normalize(q)) : vec2(lat, lon);
+  o2 = vec4(c16((l.y + 180.) / 360.), c16((l.x + 90.) / 180.)); }`;
+// fond immobile du segment M : les océans du PaleoDEM de 540 Ma, qui s'approfondissent
+const FS_FOND_M = COMMUN + `
+uniform sampler2D fond; uniform vec2 taille, codeT, codeM, eff; uniform float t;
+layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
+float dec(float r){ float c = floor(r * 255. + .5);
+  return c >= 128. ? 10. + codeT.x * pow((c - 128.) / 127., 2.)
+                   : -10. - codeM.x * pow((127. - c) / 127., codeM.y); }
+vec2 c16(float x){ float c = floor(clamp(x, 0., 1.) * 65535. + .5); return vec2(floor(c / 256.), mod(c, 256.)) / 255.; }
+void main(){
+  ivec2 ij = ivec2(gl_FragCoord.xy);
+  float h540 = dec(texelFetch(fond, ivec2(ij.x, int(taille.y) - 1 - ij.y), 0).r);
+  float a = smoothstep(0., 1., clamp((t - eff.x) / (eff.y - eff.x), 0., 1.));
+  float h = mix(min(h540, -1000.), -4200., a);
+  gl_FragDepth = .999;
+  float lat = -90. + (float(ij.y) + .5) * 180. / taille.y, lon = -180. + (float(ij.x) + .5) * 360. / taille.x;
+  o = vec4(c16((h - (${HMIN}.)) / (${HMAX}. - (${HMIN}.))), 1., 1.);
+  o2 = vec4(c16((lon + 180.) / 360.), c16((lat + 90.) / 180.)); }`;
+
+// Passe d'état : les deux états clés portés à l'instant t sont co-localisés ; on interpole
+// l'élévation (jamais deux images). Là où un seul des deux couvre (trou laissé derrière un
+// continent), on prend celui qui couvre.
+const FS_ETAT = COMMUN + `
+uniform sampler2D A, B, A2, B2; uniform float wB; in vec2 uv;
+layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
+float hh(vec4 c){ return (c.r * 255. * 256. + c.g * 255.) / 65535. * (${HMAX}. - (${HMIN}.)) + (${HMIN}.); }
+void main(){
+  ivec2 ij = ivec2(gl_FragCoord.xy);
+  vec4 a = texelFetch(A, ij, 0), b = texelFetch(B, ij, 0);
+  float ca = step(.5, a.b), cb = step(.5, b.b);
+  float h = ca * cb > 0. ? mix(hh(a), hh(b), wB) : ca > 0. ? hh(a) : cb > 0. ? hh(b) : -4000.;
+  o2 = (ca > 0. && (wB < .5 || cb == 0.)) ? texelFetch(A2, ij, 0) : texelFetch(B2, ij, 0);
+  // micro-relief des plaines côtières : les états clés codés sur 8 bits posent des plaines
+  // entières à une seule altitude, qui se noieraient toutes au même instant. Un relief
+  // lisse de ±25 m, attaché au morceau de croûte (sa position actuelle) et identique dans
+  // les deux états, étale la montée des eaux ; il s'éteint au-delà de 80 m (h -> h' monotone).
+  if (ca + cb > 0. && abs(h) < 80.) {
+    float lon = (o2.r * 255. * 256. + o2.g * 255.) / 65535. * 360. - 180.;
+    float lat = (o2.b * 255. * 256. + o2.a * 255.) / 65535. * 180. - 90.;
+    vec3 q = versXYZ(lat, lon);
+    h += 25. * (.65 * bruit(q * 24.) + .35 * bruit(q * 61. + 7.)) * (1. - smoothstep(0., 80., abs(h)));
+  }
+  float c = floor(clamp((h - (${HMIN}.)) / (${HMAX}. - (${HMIN}.)), 0., 1.) * 65535. + .5);
+  o = vec4(floor(c / 256.) / 255., mod(c, 256.) / 255., 0., 1.); }`;
+
+// Passe globe : vue lointaine (quasi orthographique), relief éclairé, mer teintée, atmosphère.
+const FS_GLOBE = COMMUN + `
+uniform sampler2D etat, actuel, surface; uniform float vegetation, photoPoids; uniform vec2 taille, ecran; uniform float rayon; uniform mat3 vue; uniform vec3 soleil;
+in vec2 uv; out vec4 o;
+float h(vec2 ll){   // ll = (lat, lon) degrés -> élévation (m), bilinéaire
+  float x = (ll.y + 180.) / 360. * taille.x - .5, y = (ll.x + 90.) / 180. * taille.y - .5;
+  float x0 = floor(x), y0 = floor(y); vec2 f = vec2(x - x0, y - y0);
+  int W = int(taille.x), H = int(taille.y);
+  int i0 = (int(x0) % W + W) % W, i1 = (i0 + 1) % W;
+  int j0 = clamp(int(y0), 0, H - 1), j1 = clamp(int(y0) + 1, 0, H - 1);
+  vec4 A = texelFetch(etat, ivec2(i0, j0), 0), B = texelFetch(etat, ivec2(i1, j0), 0);
+  vec4 C = texelFetch(etat, ivec2(i0, j1), 0), D = texelFetch(etat, ivec2(i1, j1), 0);
+  vec4 r = vec4(A.r, B.r, C.r, D.r) * 255. * 256. + vec4(A.g, B.g, C.g, D.g) * 255.;
+  r = r / 65535. * (${HMAX}. - ${HMIN}.) + ${HMIN}.;
+  return mix(mix(r.x, r.y, f.x), mix(r.z, r.w, f.x), f.y); }
+vec3 lin(vec3 c){ return pow(c, vec3(2.2)); }
+vec3 photo(vec2 ll){   // couleur de Blue Marble (juin) à la position actuelle du morceau de croûte
+  ivec2 ij = ivec2(clamp(floor((ll.y + 180.) / 360. * taille.x), 0., taille.x - 1.),
+                   clamp(floor((ll.x + 90.) / 180. * taille.y), 0., taille.y - 1.));
+  vec4 c = texelFetch(actuel, ij, 0);
+  float lon = (c.r * 255. * 256. + c.g * 255.) / 65535. * 360. - 180.;
+  float lat = (c.b * 255. * 256. + c.a * 255.) / 65535. * 180. - 90.;
+  return lin(texture(surface, vec2((lon + 180.) / 360., (90. - lat) / 180.)).rgb); }
+vec3 terre(float z, float pente){
+  vec3 c = mix(lin(vec3(.50,.43,.33)), lin(vec3(.60,.51,.39)), smoothstep(0., 600., z));
+  c = mix(c, lin(vec3(.55,.50,.45)), smoothstep(600., 2200., z));
+  c = mix(c, lin(vec3(.70,.67,.63)), smoothstep(2500., 5000., z));
+  return mix(c, lin(vec3(.45,.42,.40)), smoothstep(.04, .18, pente)); }
+// couverture végétale du passé (hypothèse climatique simple) : forêts dans la ceinture
+// équatoriale humide et aux latitudes tempérées, steppes et déserts sous les anticyclones
+// subtropicaux (circulation de Hadley) ; la photographie d'aujourd'hui prend le relais
+// au Cénozoïque.
+vec3 couvert(float lat, float z){
+  float al = abs(lat);
+  float humide = clamp(exp(-pow(lat / 13., 2.)) + .85 * exp(-pow((al - 52.) / 13., 2.)), 0., 1.);
+  humide *= 1. - smoothstep(66., 80., al);                       // toundra, glace
+  vec3 foret = lin(vec3(.16,.26,.11)), steppe = lin(vec3(.52,.47,.32));
+  vec3 c = mix(steppe, foret, humide);
+  return mix(c, lin(vec3(.50,.47,.42)), smoothstep(1800., 3500., z));   // hautes terres dénudées
+}
+vec3 mer(float z){
+  vec3 c = mix(lin(vec3(.16,.44,.52)), lin(vec3(.07,.24,.40)), smoothstep(-30., -260., z));
+  c = mix(c, lin(vec3(.03,.11,.24)), smoothstep(-260., -2500., z));
+  return mix(c, lin(vec3(.015,.06,.15)), smoothstep(-2500., -6000., z)); }
+void main(){
+  vec2 px = (uv - .5) * ecran / rayon;             // en rayons terrestres, y vers le haut
+  float r2 = dot(px, px);
+  vec3 S = soleil;
+  vec3 col;
+  if (r2 < 1.) {
+    vec3 n0 = vec3(px, sqrt(1. - r2));             // repère de vue
+    vec3 P = vue * n0;                              // repère terrestre
+    vec2 ll = latLon(P);
+    float d = 180. / taille.y;                      // pas de la texture (degrés)
+    float z = h(ll);
+    float cl = max(cos(radians(ll.x)), .02);
+    float m = 6371000. * radians(d);                // mètres par pas en latitude
+    float dzn = (h(ll + vec2(d, 0.)) - h(ll - vec2(d, 0.))) / (2. * m);
+    float dze = (h(ll + vec2(0., d / cl)) - h(ll - vec2(0., d / cl))) / (2. * m);
+    vec3 est = normalize(vec3(-P.y, P.x, 0.) + 1e-6), nord = cross(P, est);
+    float E = z > 0. ? 9. : 2.5;                    // exagération du relief (terres, fonds)
+    vec3 N = normalize(P - E * (dze * est + dzn * nord));
+    float pente = length(vec2(dze, dzn));
+    float mu = dot(P, S), dif = max(dot(N, S), 0.);
+    float jour = smoothstep(-.10, .12, mu);
+    vec3 alb, ph = photoPoids > .002 ? photo(ll) : vec3(0.);
+    if (z > 0.) {
+      alb = mix(terre(z, pente), couvert(ll.x, z), vegetation);
+      alb = mix(alb, ph, photoPoids); col = alb * (dif * 1.1 * jour + .015); }
+    else {
+      alb = mix(mer(z), ph, photoPoids);
+      vec3 V = vue * vec3(0., 0., 1.);
+      vec3 Hh = normalize(S + V);
+      float spec = pow(max(dot(P, Hh), 0.), 180.) * .35 * jour;
+      col = alb * (max(mu, 0.) * 1.1 * jour + .012) + vec3(.9, .85, .7) * spec;
+    }
+    // voile bleu vers le limbe, côté jour
+    float limbe = pow(1. - n0.z, 2.2);
+    col = mix(col, lin(vec3(.36,.56,.92)) * (jour * .9 + .02), clamp(limbe * .85, 0., .85) * (.25 + .75 * jour));
+  } else {
+    float r = sqrt(r2);
+    vec3 P = vue * vec3(px / r, 0.);
+    float jour = smoothstep(-.25, .35, dot(P, S));
+    float g = exp(-(r - 1.) / .010) * .75 + exp(-(r - 1.) / .035) * .12;
+    col = lin(vec3(.40,.62,1.)) * g * jour;
+  }
+  o = vec4(pow(col, vec3(1. / 2.2)), 1.); }`;
+
+function prog(fs, vs = VS) {
+  const p = gl.createProgram();
+  for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    gl.attachShader(p, s);
+  }
+  gl.bindAttribLocation(p, 0, "a"); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) { const a = gl.getActiveUniform(p, i); u[a.name] = gl.getUniformLocation(p, a.name); }
+  return { p, u };
+}
+
+// ------------------------------------------------------------------ données
+let man, pEtat, pGlobe, pPorter, pFondM, pPointsM, pCumulM, pResoluM, cumul = null, pCumulP, pEtatC, cumulP = null, texM = [], texEtat, texActuel, texSurface, fbEtat, rotTex = {}, porte = [], vaoVide, vaoPlein, pointMax = 64;
+const cles = { P: [], M: [] };          // par segment : [{t, f, blob, tex, usage}]
+let horloge = 0;
+
+// La surface d'aujourd'hui (Blue Marble, juin) suit ses plaques en remontant le temps et
+// s'efface vers les couleurs minérales (e-folding 10 Ma) : la vie du passé viendra (S4, S5).
+// Couleur de la vie sur les terres (N37) : roche nue jusqu'à ≈ 470 Ma (premières plantes
+// terrestres, cryptospores de l'Ordovicien moyen) ; mousses à peine visibles jusqu'à 420 Ma ;
+// verdissement net de 420 à 300 Ma (plantes vasculaires, premières forêts au Dévonien, forêts
+// houillères du Carbonifère) ; la couverture actuelle est atteinte peu à peu ensuite.
+function vegetation(t) {
+  const s = (a, b, x) => { const u = Math.min(Math.max((x - a) / (b - a), 0), 1); return u * u * (3 - 2 * u); };
+  if (t >= 470) return 0;
+  return 0.06 * s(470, 420, t) + 0.76 * s(420, 300, t) + 0.18 * s(300, 0, t);
+}
+async function chargerSurface() {
+  const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([90, 85, 70, 255]));
+  if (man.surface) {
+    const bm = await createImageBitmap(await (await fetch("donnees/" + man.surface)).blob(), { colorSpaceConversion: "none" });
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bm); bm.close && bm.close();
+  }
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return tex;
+}
+async function texRot(seg) {
+  const s = man.segments[seg];
+  const buf = await (await fetch(s.rot)).arrayBuffer();
+  const i16 = new Int16Array(buf); const n = s.rangees * s.cols;
+  const larg = 4096, haut = Math.ceil(n / larg);
+  const f = new Float32Array(larg * haut * 4);
+  for (let k = 0; k < n * 4; k++) f[k] = i16[k] / 32767;
+  const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, larg, haut, 0, gl.RGBA, gl.FLOAT, f);
+  for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+  rotTex[seg] = { tex, cols: s.cols, larg, t0: s.t0, pas: s.pasRot || 1 };
+}
+// relief de la mécanique des roches : 3 instants clés par image (R, G, B), chargés à la demande
+const mecaTex = {};
+function texMeca(k) {
+  const S = man.segments[SEGM];
+  if (!mecaTex[k]) mecaTex[k] = (async () => {
+    const bm = await createImageBitmap(await (await fetch("donnees/" + S.meca.fichiers[k])).blob(),
+                                       { premultiplyAlpha: "none", colorSpaceConversion: "none" });
+    const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bm); bm.close && bm.close();
+    for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+    return tex; })();
+  return mecaTex[k];
+}
+const mecaPret = {};
+function clesMeca(t, S) {
+  const f = Math.min(Math.max((t - S.meca.t0) / S.meca.pas, 0), S.meca.n - 1);
+  const k0 = Math.min(Math.floor(f), S.meca.n - 1), k1 = Math.min(k0 + 1, S.meca.n - 1);
+  return { f, k0, k1, a: Math.floor(k0 / 3), b: Math.floor(k1 / 3) };
+}
+async function mecaPour(t) {      // à attendre AVANT toute commande GL du calcul d'état
+  const S = man.segments[SEGM]; if (!S.meca) return;
+  const c = clesMeca(t, S);
+  for (const k of [c.a, c.b]) if (!mecaPret[k]) mecaPret[k] = await texMeca(k);
+}
+function uniformsMeca(u, t, S) {
+  const R = rotTex[SEGM]; gl.uniform1f(u.rotPas, R.pas);
+  if (!S.meca) { gl.uniform1f(u.avecMeca, 0); return; }
+  const { f, k0, k1, a, b } = clesMeca(t, S); const ta = mecaPret[a], tb = mecaPret[b];
+  gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, ta); gl.uniform1i(u.mecaA, 5);
+  gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, tb); gl.uniform1i(u.mecaB, 6);
+  gl.uniform1i(u.chA, k0 % 3); gl.uniform1i(u.chB, k1 % 3); gl.uniform1f(u.wMeca, f - k0); gl.uniform1f(u.avecMeca, 1);
+}
+
+async function blob(c) {
+  if (!c.blob) c.blob = c.chargement || (c.chargement = fetch(c.f).then(r => {
+    if (!r.ok) throw new Error("état clé absent : " + c.f); return r.blob(); }));
+  c.blob = await c.blob; return c.blob;
+}
+async function texture(c) {
+  c.usage = ++horloge;
+  if (c.tex) return c.tex;
+  if (c.prom) return c.prom;
+  c.prom = (async () => {
+    const bm = await createImageBitmap(await blob(c), { premultiplyAlpha: "none", colorSpaceConversion: "none" });
+    const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bm); bm.close && bm.close();
+    for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+    for (const q of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T]) gl.texParameteri(gl.TEXTURE_2D, q, gl.CLAMP_TO_EDGE);
+    c.tex = tex; c.prom = null; menage(); return tex;
+  })();
+  return c.prom;
+}
+function menage() {   // au plus 10 états clés en mémoire graphique
+  const t = [...cles.P, ...cles.M].filter(c => c.tex).sort((a, b) => b.usage - a.usage);
+  for (const c of t.slice(10)) { gl.deleteTexture(c.tex); c.tex = null; }
+}
+function encadrer(t) {     // états clés du segment P qui encadrent t (t ≤ 540 Ma)
+  const seg = "P", L = cles[seg];
+  let k = L.findIndex(c => c.t >= t); if (k < 0) k = L.length - 1;
+  const A = L[k], B = L[Math.max(k - 1, 0)];       // A plus ancien (tA ≥ t), B plus jeune
+  const wB = A.t === B.t ? 0 : (A.t - t) / (A.t - B.t);
+  return { seg, A, B, wB: poidsForce ?? Math.min(Math.max(wB, 0), 1) };
+}
+
+// ------------------------------------------------------------------ rendu
+let enCours = null, tCalcule = null, poidsForce = null;
+async function calculerEtatM(t) {
+  if (!cumul) return calculerEtatMProfondeur(t);
+  const fond = await texture(cles.P[cles.P.length - 1]); await mecaPour(t);          // PaleoDEM de 540 Ma
+  const R = rotTex[SEGM], S = man.segments[SEGM];
+  gl.bindFramebuffer(gl.FRAMEBUFFER, cumul.fb); gl.viewport(0, 0, man.W, man.H);
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+  gl.useProgram(pCumulM.p); let u = pCumulM.u;
+  gl.bindVertexArray(vaoVide);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texM[0]); gl.uniform1i(u.m1, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texM[1]); gl.uniform1i(u.m2, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, R.tex); gl.uniform1i(u.rot, 2);
+  gl.uniform1i(u.rotCols, R.cols); gl.uniform1i(u.rotLarg, R.larg); gl.uniform1f(u.seg0, R.t0);
+  gl.uniform1f(u.t, t); gl.uniform2f(u.taille, man.W, man.H); gl.uniform1f(u.tailleMax, pointMax);
+  gl.uniform1f(u.pasDebut, S.pasDebut); gl.uniform2f(u.eff, S.effacement[0], S.effacement[1]);
+  uniformsMeca(u, t, S);
+  gl.uniform2f(u.codeT, man.codage.terre[0], 0); gl.uniform2f(u.codeM, man.codage.mer[0], man.codage.mer[1]);
+  gl.drawArrays(gl.POINTS, 0, man.W * man.H);
+  const wP = 0;   // (raccord par réunion : désactivé, le noyau étroit suffit)
+  if (wP > 0) {                       // PaleoDEM de 540 Ma porté jusqu'à t, pour le raccord
+    gl.useProgram(pCumulP.p); const v = pCumulP.u, RP = rotTex.P;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, cumulP[1].fb); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, fond); gl.uniform1i(v.cle, 0);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, RP.tex); gl.uniform1i(v.rot, 1);
+    gl.uniform1i(v.rotCols, RP.cols); gl.uniform1i(v.rotLarg, RP.larg); gl.uniform1f(v.seg0, RP.t0);
+    gl.uniform1f(v.t, 540); gl.uniform1f(v.tk, 540); gl.uniform2f(v.taille, man.W, man.H); gl.uniform1f(v.tailleMax, pointMax);
+    gl.uniform2f(v.codeT, man.codage.terre[0], 0); gl.uniform2f(v.codeM, man.codage.mer[0], man.codage.mer[1]);
+    gl.drawArrays(gl.POINTS, 0, man.W * man.H);
+  }
+  gl.bindVertexArray(vaoPlein);
+  gl.disable(gl.BLEND);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat); gl.viewport(0, 0, man.W, man.H);
+  gl.useProgram(pResoluM.p); u = pResoluM.u;
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, cumulP ? cumulP[1].tex : cumul.tex); gl.uniform1i(u.cumulP540, 2);
+  gl.uniform1f(u.wP, wP);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, cumul.tex); gl.uniform1i(u.cumul, 0);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, cumul.tex2); gl.uniform1i(u.cumul2, 3);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, fond); gl.uniform1i(u.fond, 1);
+  gl.uniform2f(u.taille, man.W, man.H); gl.uniform1f(u.t, t); gl.uniform2f(u.eff, S.effacement[0], S.effacement[1]);
+  gl.uniform2f(u.codeT, man.codage.terre[0], 0); gl.uniform2f(u.codeM, man.codage.mer[0], man.codage.mer[1]);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  tCalcule = t;
+}
+// repli sans tampon flottant : test de profondeur (visibilité par priorité)
+async function calculerEtatMProfondeur(t) {
+  const fond = await texture(cles.P[cles.P.length - 1]); await mecaPour(t);
+  const R = rotTex[SEGM], S = man.segments[SEGM];
+  gl.bindFramebuffer(gl.FRAMEBUFFER, porte[1].fb); gl.viewport(0, 0, man.W, man.H);
+  gl.clearColor(0, 0, 0, 0); gl.clearDepth(1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, porte[0].fb);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS);
+  gl.useProgram(pFondM.p); let u = pFondM.u;
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, fond); gl.uniform1i(u.fond, 0);
+  gl.uniform2f(u.taille, man.W, man.H); gl.uniform1f(u.t, t); gl.uniform2f(u.eff, S.effacement[0], S.effacement[1]);
+  gl.uniform2f(u.codeT, man.codage.terre[0], 0); gl.uniform2f(u.codeM, man.codage.mer[0], man.codage.mer[1]);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.useProgram(pPointsM.p); u = pPointsM.u;
+  gl.bindVertexArray(vaoVide);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texM[0]); gl.uniform1i(u.m1, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texM[1]); gl.uniform1i(u.m2, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, R.tex); gl.uniform1i(u.rot, 2);
+  gl.uniform1i(u.rotCols, R.cols); gl.uniform1i(u.rotLarg, R.larg); gl.uniform1f(u.seg0, R.t0);
+  gl.uniform1f(u.t, t); gl.uniform2f(u.taille, man.W, man.H); gl.uniform1f(u.tailleMax, pointMax);
+  gl.uniform1f(u.pasDebut, S.pasDebut); gl.uniform2f(u.eff, S.effacement[0], S.effacement[1]);
+  uniformsMeca(u, t, S);
+  gl.uniform2f(u.codeT, man.codage.terre[0], 0); gl.uniform2f(u.codeM, man.codage.mer[0], man.codage.mer[1]);
+  gl.drawArrays(gl.POINTS, 0, man.W * man.H);
+  gl.bindVertexArray(vaoPlein);
+  gl.disable(gl.DEPTH_TEST);
+  melanger(0);
+  tCalcule = t;
+}
+function melanger(wB) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat); gl.viewport(0, 0, man.W, man.H);
+  gl.useProgram(pEtat.p);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, porte[0].tex); gl.uniform1i(pEtat.u.A, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, porte[1].tex); gl.uniform1i(pEtat.u.B, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, porte[0].tex2); gl.uniform1i(pEtat.u.A2, 2);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, porte[1].tex2); gl.uniform1i(pEtat.u.B2, 3);
+  gl.uniform1f(pEtat.u.wB, wB);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+async function calculerEtat(t) {
+  if (t > 540) return calculerEtatM(t);
+  // (calculerEtatP, cumul pondéré du segment P : gardé en réserve, le test de profondeur
+  //  au plus proche y est plus juste)
+  const e = encadrer(t);
+  const [ta, tb] = await Promise.all([texture(e.A), texture(e.B)]);
+  const R = rotTex[e.seg];
+  // 1. transport de chaque état clé vers t
+  gl.useProgram(pPorter.p); const u = pPorter.u;
+  gl.bindVertexArray(vaoVide);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, R.tex); gl.uniform1i(u.rot, 1);
+  gl.uniform1i(u.rotCols, R.cols); gl.uniform1i(u.rotLarg, R.larg); gl.uniform1f(u.seg0, R.t0);
+  gl.uniform1f(u.t, t); gl.uniform2f(u.taille, man.W, man.H); gl.uniform1f(u.tailleMax, pointMax);
+  gl.uniform2f(u.codeT, man.codage.terre[0], 0); gl.uniform2f(u.codeM, man.codage.mer[0], man.codage.mer[1]);
+  const paires = e.wB <= 0 ? [[ta, e.A.t, 0]] : e.wB >= 1 ? [[tb, e.B.t, 1]] : [[ta, e.A.t, 0], [tb, e.B.t, 1]];
+  for (let k = 0; k < 2; k++) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, porte[k].fb); gl.viewport(0, 0, man.W, man.H);
+    gl.clearColor(0, 0, 0, 0); gl.clearDepth(1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  }
+  for (const [tex, tk, k] of paires) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, porte[k].fb);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(u.cle, 0);
+    gl.uniform1f(u.tk, tk);
+    gl.drawArrays(gl.POINTS, 0, man.W * man.H);
+  }
+  gl.disable(gl.DEPTH_TEST);
+  gl.bindVertexArray(vaoPlein);
+  // 2. mélange des élévations co-localisées
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat); gl.viewport(0, 0, man.W, man.H);
+  gl.useProgram(pEtat.p);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, porte[0].tex); gl.uniform1i(pEtat.u.A, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, porte[1].tex); gl.uniform1i(pEtat.u.B, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, porte[0].tex2); gl.uniform1i(pEtat.u.A2, 2);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, porte[1].tex2); gl.uniform1i(pEtat.u.B2, 3);
+  gl.uniform1f(pEtat.u.wB, e.wB <= 0 ? 0 : e.wB >= 1 ? 1 : e.wB);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  tCalcule = t;
+}
+async function calculerEtatP(t) {
+  const e = encadrer(t);
+  const [ta, tb] = await Promise.all([texture(e.A), texture(e.B)]);
+  const R = rotTex[e.seg];
+  gl.useProgram(pCumulP.p); const u = pCumulP.u;
+  gl.bindVertexArray(vaoVide);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, R.tex); gl.uniform1i(u.rot, 1);
+  gl.uniform1i(u.rotCols, R.cols); gl.uniform1i(u.rotLarg, R.larg); gl.uniform1f(u.seg0, R.t0);
+  gl.uniform1f(u.t, t); gl.uniform2f(u.taille, man.W, man.H); gl.uniform1f(u.tailleMax, pointMax);
+  gl.uniform2f(u.codeT, man.codage.terre[0], 0); gl.uniform2f(u.codeM, man.codage.mer[0], man.codage.mer[1]);
+  const paires = e.wB <= 0 ? [[ta, e.A.t, 0]] : e.wB >= 1 ? [[tb, e.B.t, 1]] : [[ta, e.A.t, 0], [tb, e.B.t, 1]];
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+  for (let k = 0; k < 2; k++) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, cumulP[k].fb); gl.viewport(0, 0, man.W, man.H);
+    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+  for (const [tex, tk, k] of paires) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, cumulP[k].fb);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(u.cle, 0);
+    gl.uniform1f(u.tk, tk);
+    gl.drawArrays(gl.POINTS, 0, man.W * man.H);
+  }
+  gl.disable(gl.BLEND);
+  gl.bindVertexArray(vaoPlein);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat); gl.viewport(0, 0, man.W, man.H);
+  gl.useProgram(pEtatC.p); const v = pEtatC.u;
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, cumulP[0].tex); gl.uniform1i(v.A, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, cumulP[1].tex); gl.uniform1i(v.B, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, cumulP[0].tex2); gl.uniform1i(v.A2, 2);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, cumulP[1].tex2); gl.uniform1i(v.B2, 3);
+  gl.uniform1f(v.wB, e.wB <= 0 ? 0 : e.wB >= 1 ? 1 : e.wB);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  tCalcule = t;
+}
+// Caméra : par défaut elle regarde le point subsolaire de juin, tourné d'au plus 30° vers le
+// barycentre des continents (latitude bornée), pour que les terres visibles soient éclairées à toutes les époques ;
+// un glissement du doigt la libère pendant 8 s.
+const CAM = { auto: true, libreJusqua: 0, cible: null, dernier: 0 };
+let pReduit, fbReduit, texReduit, RW = 90, RH = 45;
+function barycentre() {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbReduit); gl.viewport(0, 0, RW, RH);
+  gl.useProgram(pReduit.p);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texEtat); gl.uniform1i(pReduit.u.etat, 0);
+  gl.uniform1i(pReduit.u.bloc, man.W / RW);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  const b = new Uint8Array(RW * RH * 4); gl.readPixels(0, 0, RW, RH, gl.RGBA, gl.UNSIGNED_BYTE, b);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  let x = 0, y = 0, z = 0;
+  for (let j = 0; j < RH; j++) { const la = (-90 + (j + .5) * 180 / RH) * Math.PI / 180, w = Math.cos(la);
+    for (let i = 0; i < RW; i++) { const f = b[(j * RW + i) * 4] / 255 * w; if (!f) continue;
+      const lo = (-180 + (i + .5) * 360 / RW) * Math.PI / 180;
+      x += f * Math.cos(la) * Math.cos(lo); y += f * Math.cos(la) * Math.sin(lo); z += f * Math.sin(la); } }
+  return [x, y, z];
+}
+function cibleCamera() {
+  const g = barycentre(), s = soleilXYZ(), n = Math.hypot(...g) || 1;
+  // depuis le point subsolaire, on tourne vers les continents d'au plus 30° : la face vue
+  // reste presque entièrement de jour, les continents y entrent autant que possible
+  const b = [g[0] / n, g[1] / n, g[2] / n], cs = Math.max(-1, Math.min(1, b[0] * s[0] + b[1] * s[1] + b[2] * s[2]));
+  const om = Math.acos(cs), f = om > 1e-6 ? Math.min(1, (30 * Math.PI / 180) / om) : 0;
+  const sa = Math.sin((1 - f) * om), sb = Math.sin(f * om), so = Math.sin(om) || 1;
+  const v = om > 1e-6 ? [0, 1, 2].map(k => (sa * s[k] + sb * b[k]) / so) : s;
+  const lat = Math.asin(v[2] / Math.hypot(...v)) * 180 / Math.PI, lon = Math.atan2(v[1], v[0]) * 180 / Math.PI;
+  return { lat: Math.max(-20, Math.min(55, lat)), lon };
+}
+function suivreCamera(now, immediat) {
+  if (!CAM.auto || now < CAM.libreJusqua || tCalcule === null) return;
+  if (immediat || now - CAM.dernier > 300) { CAM.cible = cibleCamera(); CAM.dernier = now; }
+  if (!CAM.cible) return;
+  const k = immediat ? 1 : 0.06;
+  let dl = ((CAM.cible.lon - etat.lon + 540) % 360) - 180;
+  etat.lon += dl * k; etat.lat += (CAM.cible.lat - etat.lat) * k;
+  if (Math.abs(dl) > 0.01 || Math.abs(CAM.cible.lat - etat.lat) > 0.01) sale = true;
+}
+function matVue() {
+  const la = etat.lat * Math.PI / 180, lo = etat.lon * Math.PI / 180;
+  const c = [Math.cos(la) * Math.cos(lo), Math.cos(la) * Math.sin(lo), Math.sin(la)];
+  const e = [-Math.sin(lo), Math.cos(lo), 0];
+  const n = [-Math.sin(la) * Math.cos(lo), -Math.sin(la) * Math.sin(lo), Math.cos(la)];
+  return new Float32Array([...e, ...n, ...c]);       // colonnes : est, nord, centre
+}
+function geometrie() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  }
+  return { dpr, w, h, r: Math.min(w * 0.37, h * 0.36) };   // place pour le compteur dans le coin
+}
+function soleilXYZ() {
+  const a = OBLIQUITE * Math.PI / 180, o = LON_SOLEIL * Math.PI / 180;
+  return [Math.cos(a) * Math.cos(o), Math.cos(a) * Math.sin(o), Math.sin(a)];
+}
+function dessinerGlobe() {
+  const g = geometrie();
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.useProgram(pGlobe.p); const u = pGlobe.u;
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texEtat); gl.uniform1i(u.etat, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texActuel); gl.uniform1i(u.actuel, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texSurface); gl.uniform1i(u.surface, 2);
+  { const tv = tCalcule ?? etat.t;   // photographie d'aujourd'hui : s'efface en ~10 Ma (dérive)
+    gl.uniform1f(u.vegetation, vegetation(tv)); gl.uniform1f(u.photoPoids, Math.exp(-tv / 10)); }
+  gl.uniform2f(u.taille, man.W, man.H); gl.uniform2f(u.ecran, canvas.width, canvas.height);
+  gl.uniform1f(u.rayon, g.r * g.dpr); gl.uniformMatrix3fv(u.vue, false, matVue());
+  gl.uniform3fv(u.soleil, soleilXYZ());
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+let sale = true, calculEnAttente = false;
+async function rendre() {
+  if (calculEnAttente) return;
+  if (tCalcule !== etat.t) {
+    calculEnAttente = true;
+    try { await calculerEtat(etat.t); } finally { calculEnAttente = false; }
+  }
+  dessinerGlobe(); sale = false;
+}
+
+// ------------------------------------------------------------------ textes et frise
+function formatT(t) {
+  if (t < 0.5) return "Aujourd'hui";
+  if (t >= 999.5) { const g = Math.round(t / 10) / 100;
+    return "Il y a " + g.toLocaleString("fr-FR") + (g >= 2 ? " milliards d'années" : " milliard d'années"); }
+  return "Il y a " + Math.round(t).toLocaleString("fr-FR") + " millions d'années";
+}
+function majTextes() {
+  $("#quand").textContent = formatT(etat.t);
+  let txt = RECITS[0][1];
+  for (const [t, s] of RECITS) if (etat.t <= t) txt = s;
+  if ($("#recit").textContent !== txt) $("#recit").textContent = txt;
+  $("#frise .curseur").style.left = (100 * (T_TERRE - etat.t) / T_TERRE) + "%";
+  $("#temps").value = String(T_PUB - etat.t);
+}
+let VIE = null;
+async function chargerVie() {     // genres d'animaux marins par étage (Paleobiology Database)
+  try { VIE = await (await fetch("donnees/genres-marins.json")).json(); } catch (e) { VIE = null; return; }
+  // données par étage : marches (valeur constante sur l'étage), sans lisser entre étages
+  const pts = [];
+  for (const [t0, t1, n] of [...VIE.etages].sort((a, b) => b[0] - a[0])) pts.push([t0, n], [t1 + 1e-6, n]);
+  const nmax = Math.max(...pts.map(p => p[1]));
+  const x = t => 1000 * (T_TERRE - t) / T_TERRE, y = n => 16 - 15 * Math.sqrt(n / nmax);
+  let d = `M${x(pts[0][0]).toFixed(1)},16`;
+  for (const [t, n] of pts) d += ` L${x(t).toFixed(1)},${y(n).toFixed(2)}`;
+  d += ` L${x(pts[pts.length - 1][0]).toFixed(1)},16 Z`;
+  const path = $("#ruban-vie path"); path.setAttribute("d", d);
+  path.setAttribute("fill", "rgba(127,200,176,.55)"); path.setAttribute("stroke", "rgba(127,200,176,.9)");
+  path.setAttribute("stroke-width", ".6"); path.setAttribute("vector-effect", "non-scaling-stroke");
+  const leg = $("#leg-vie"); leg.textContent = "↑ explosion cambrienne · la vie des mers, en genres";
+  leg.style.position = "absolute"; leg.style.right = (100 * 470 / T_TERRE) + "%"; leg.style.whiteSpace = "nowrap";
+  VIE.points = pts;
+}
+function reglerPlage() {
+  etat.t = T_PUB; lect.t0 = T_PUB; $("#temps").max = String(T_PUB);
+  $("#frise .avenir").style.flex = `0 0 calc(100% * ${T_TERRE - T_PUB} / ${T_TERRE})`;
+  $("#frise .publie").style.flex = `0 0 calc(100% * ${T_PUB} / ${T_TERRE})`;
+  const r = $("#rep-pub"); r.style.left = `calc(100% * ${T_TERRE - T_PUB} / ${T_TERRE})`;
+  r.textContent = T_PUB >= 1000 ? (T_PUB / 1000).toLocaleString("fr-FR") + " Ga" : T_PUB + " Ma";
+  $("#borne-pub").textContent = "il y a " + (T_PUB >= 1000 ? (T_PUB / 1000).toLocaleString("fr-FR") + " milliard d'années"
+                                                           : T_PUB + " millions d'années");
+  if (SEGM === "C" && T_PUB > 540) $("#sources").innerHTML = "Plaques : Cao et al. 2024 (1,8 Ga → 540 Ma), PALEOMAP, Scotese 2016 " +
+    "(540 Ma → aujourd'hui). Relief : avant 540 Ma, mécanique des roches (couche mince visqueuse, isostasie, érosion " +
+    "FastScape ; modèle grossier, épaisseurs initiales en hypothèse) ; ensuite PaleoDEM, Scotese &amp; Wright 2018. " +
+    "Vie : Paleobiology Database. Soleil du solstice de juin, sans nuages.";
+}
+function placerFrise() {
+  const pg = $("#frise .pangee");
+  pg.style.left = (100 * (T_TERRE - PANGEE[0]) / T_TERRE) + "%";
+  pg.style.width = (100 * (PANGEE[0] - PANGEE[1]) / T_TERRE) + "%";
+  const rp = $("#rep-pangee");
+  rp.textContent = "";   // la Pangée est nommée sur la ligne des réunions
+  rp.style.right = (100 * PANGEE[1] / T_TERRE) + "%";
+}
+
+// ------------------------------------------------------------------ interaction
+function interaction() {
+  let glisse = null;
+  canvas.addEventListener("pointerdown", e => { glisse = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointermove", e => {
+    if (!glisse) return;
+    const r = geometrie().r, k = 180 / Math.PI / r;
+    etat.lon -= (e.clientX - glisse.x) * k / Math.max(Math.cos(etat.lat * Math.PI / 180), .3);
+    etat.lat = Math.max(-85, Math.min(85, etat.lat + (e.clientY - glisse.y) * k));
+    glisse = { x: e.clientX, y: e.clientY }; sale = true; CAM.libreJusqua = performance.now() + 8000;
+  });
+  const fin = () => glisse = null;
+  canvas.addEventListener("pointerup", fin); canvas.addEventListener("pointercancel", fin);
+  $("#temps").addEventListener("input", e => { if (etat.lecture) lancer(false); etat.t = T_PUB - Number(e.target.value); majTextes(); sale = true; });
+  $("#lecture").addEventListener("click", () => lancer(!etat.lecture));
+  window.addEventListener("resize", () => sale = true);
+}
+function majBouton() { $("#lecture").textContent = etat.lecture ? "❚❚" : "▶";
+  $("#lecture").setAttribute("aria-label", etat.lecture ? "Pause" : "Lecture"); }
+
+const VITESSE = 15;            // Ma par seconde : les 540 Ma publiés en 36 s
+// La lecture est réglée sur l'horloge réelle : le curseur avance à vitesse exacte, même si
+// une image tarde ; le globe montre le dernier instant calculé.
+const lect = { t0: T_PUB, debut: 0 };
+function tCourant(now = performance.now()) {
+  return etat.lecture ? Math.max(0, lect.t0 - VITESSE * (now - lect.debut) / 1000) : etat.t;
+}
+function lancer(oui) {
+  if (oui) { if (etat.t <= 0) etat.t = T_PUB; lect.t0 = etat.t; lect.debut = performance.now(); }
+  else etat.t = tCourant();
+  etat.lecture = oui; majBouton();
+}
+let compteur = null, angleVitesse = null, ANGLE_BUTEE = null; const histoire = [];
+function majCompteur(now) {
+  if (!compteur) return;
+  histoire.push([now, etat.t]);
+  while (histoire.length > 2 && now - histoire[1][0] > 500) histoire.shift();
+  if (etat.lecture) { compteur.vitesse(VITESSE * 1e6, 1); return; }
+  const [n0, t0] = histoire[0], dts = (now - n0) / 1000;
+  const v = dts > 0.05 ? Math.abs(t0 - etat.t) * 1e6 / dts : 0;
+  compteur.vitesse(v > 1 ? v : 0, v > 1 ? (etat.t > t0 ? -1 : 1) : 0);
+}
+function boucle(now) {
+  if (etat.lecture) {
+    etat.t = tCourant(now);
+    if (etat.t <= 0) lancer(false);
+    majTextes(); sale = true;
+    precharger();
+  }
+  majCompteur(now);
+  suivreCamera(now, false);
+  if (sale) rendre();
+  requestAnimationFrame(boucle);
+}
+let prechargement = false;
+async function precharger() {      // télécharge les états clés à venir, dans l'ordre du temps
+  if (prechargement) return; prechargement = true;
+  try {
+    const tous = [...cles.M].reverse().concat([...cles.P].reverse());
+    const devant = tous.filter(c => c.t <= etat.t + 10 && !c.blob);
+    for (const c of devant.slice(0, 4)) await blob(c);
+  } catch (e) { console.warn(e); }
+  prechargement = false;
+}
+
+// ------------------------------------------------------------------ démarrage
+async function demarrer() {
+  if (!gl) { $("#attente").textContent = "WebGL2 indisponible sur cet appareil"; return; }
+  man = await (await fetch("donnees/manifeste.json")).json();
+  for (const c of man.cles) cles[c.seg].push({ t: c.t, f: "donnees/" + c.f });
+  SEGM = man.segments.C ? "C" : "M";
+  T_PUB = man.publie || 540;
+  for (const s of ["P", SEGM]) { (cles[s] || []).sort((a, b) => a.t - b.t); man.segments[s].rot = "donnees/" + man.segments[s].rot; }
+  pEtat = prog(FS_ETAT); pGlobe = prog(FS_GLOBE); pPorter = prog(FS_PORTER, VS_PORTER);
+  pReduit = prog(FS_REDUIT);
+  texReduit = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texReduit);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, RW, RH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  fbReduit = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbReduit);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texReduit, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  pFondM = prog(FS_FOND_M); pPointsM = prog(FS_PORTER, VS_POINTS_M);
+  if (gl.getExtension("EXT_color_buffer_float") || gl.getExtension("EXT_color_buffer_half_float")) {
+    pCumulM = prog(FS_CUMUL, VS_POINTS_M); pResoluM = prog(FS_RESOLU_M);
+    const f32 = gl.getExtension("EXT_color_buffer_float") && gl.getExtension("EXT_float_blend");
+    const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+    // 32 bits quand le mélange flottant existe : sommes exactes, image stable d'un rendu à l'autre
+    if (f32) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, man.W, man.H, 0, gl.RGBA, gl.FLOAT, null);
+    else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, man.W, man.H, 0, gl.RGBA, gl.HALF_FLOAT, null);
+    for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+    const tex2 = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex2);
+    if (f32) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, man.W, man.H, 0, gl.RGBA, gl.FLOAT, null);
+    else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, man.W, man.H, 0, gl.RGBA, gl.HALF_FLOAT, null);
+    for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+    const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, tex2, 0);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) cumul = { tex, tex2, fb };
+    pCumulP = prog(FS_CUMUL_P, VS_PORTER); pEtatC = prog(FS_ETAT_C);
+    const flot = () => { const x = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, x);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, man.W, man.H, 0, gl.RGBA, gl.HALF_FLOAT, null);
+      for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+      return x; };
+    const cp = [];
+    for (let k = 0; k < 2; k++) {
+      const t1 = flot(), t2 = flot(), f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t1, 0);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, t2, 0);
+      gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) cp.push({ tex: t1, tex2: t2, fb: f });
+    }
+    if (cp.length === 2 && cumul) cumulP = cp;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+  pointMax = Math.min(256, gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE)[1]);
+  vaoVide = gl.createVertexArray(); vaoPlein = gl.createVertexArray(); gl.bindVertexArray(vaoPlein);
+  const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  texEtat = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texEtat);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, man.W, man.H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+  const texCible = () => { const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, man.W, man.H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+    return tex; };
+  for (let k = 0; k < 2; k++) {
+    const tex = texCible(), tex2 = texCible();
+    const rb = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, man.W, man.H);
+    const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, tex2, 0);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    porte.push({ tex, tex2, fb });
+  }
+  fbEtat = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texEtat, 0);
+  texActuel = texCible();
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, texActuel, 0);
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+  texSurface = await chargerSurface();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  await Promise.all([texRot("P"), texRot(SEGM)]);
+  texM = await Promise.all(man.segments[SEGM].points.map(async f => {
+    const bm = await createImageBitmap(await (await fetch("donnees/" + f)).blob(), { premultiplyAlpha: "none", colorSpaceConversion: "none" });
+    const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bm); bm.close && bm.close();
+    for (const q of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, q, gl.NEAREST);
+    return tex; }));
+  reglerPlage(); placerFrise(); await chargerVie(); interaction(); majTextes();
+  const C = await import("../../commun/compteur.js");
+  angleVitesse = C.angleVitesse; ANGLE_BUTEE = C.ANGLE_BUTEE;
+  compteur = C.creeCompteur($("#scene"), { coin: "haut-droite", marge: 6, taille: "64px" });
+  await rendre();
+  suivreCamera(performance.now(), true); dessinerGlobe();
+  $("#attente").style.opacity = 0;
+  etat.pret = true; window.terre.pret = true;
+  requestAnimationFrame(boucle);
+  setTimeout(precharger, 500);
+}
+
+// ------------------------------------------------------------------ interface de mesure (contrôles)
+window.terre = {
+  pret: false,
+  async regler(o) {
+    if (o.t !== undefined) { etat.t = Math.min(T_PUB, Math.max(0, o.t)); lect.t0 = etat.t; lect.debut = performance.now(); }
+    if (o.lon !== undefined) { etat.lon = o.lon; CAM.auto = false; }
+    if (o.lat !== undefined) { etat.lat = o.lat; CAM.auto = false; }
+    if (o.auto) CAM.auto = true;
+    majTextes();
+    while (calculEnAttente) await new Promise(r => setTimeout(r, 5));
+    if (tCalcule !== etat.t) await calculerEtat(etat.t);
+    if (CAM.auto) { CAM.libreJusqua = 0; suivreCamera(performance.now(), true); }
+    dessinerGlobe(); sale = false; gl.finish();
+    await new Promise(r => requestAnimationFrame(() => r()));
+  },
+  etat: () => ({ t: tCourant(), lon: etat.lon, lat: etat.lat, lecture: etat.lecture, auto: CAM.auto }),
+  compteur: () => { const e = compteur.etat(); return { angle: e.angle, cible: e.cible, butee: ANGLE_BUTEE, v: e.vitesse }; },
+  angleVitesse: v => angleVitesse(v, 1),
+  lirePixels() {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat);
+    const b = new Uint8Array(man.W * man.H * 4);
+    gl.readPixels(0, 0, man.W, man.H, gl.RGBA, gl.UNSIGNED_BYTE, b);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); return b;
+  },
+  etatEquirect() {
+    const b = this.lirePixels(); let s = "";
+    for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+    return { w: man.W, h: man.H, rgba: btoa(s), hmin: HMIN, hmax: HMAX, basEnHaut: true };
+  },
+  aireTerres() {     // part de la surface du globe émergée (pondérée par l'aire)
+    const b = this.lirePixels(); let terre = 0, tout = 0;
+    for (let j = 0; j < man.H; j++) {
+      const w = Math.cos((-90 + (j + .5) * 180 / man.H) * Math.PI / 180);
+      for (let i = 0; i < man.W; i++) {
+        const k = (j * man.W + i) * 4, h = (b[k] * 256 + b[k + 1]) / 65535 * (HMAX - HMIN) + HMIN;
+        if (h > 0) terre += w; tout += w;
+      }
+    }
+    return terre / tout;
+  },
+  soleil: () => ({ lat: OBLIQUITE, lon: LON_SOLEIL }),
+  forcerPoids(w) { poidsForce = w; tCalcule = null; },   // diagnostic : un seul état clé porté
+  disque() { const g = geometrie(); return { cx: g.w / 2, cy: g.h / 2, r: g.r }; },
+  bornesPangee: () => PANGEE.slice(),
+  rubanVie: () => VIE ? VIE.points.map(p => p.slice()) : null,
+  actuelEquirect() {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbEtat); gl.readBuffer(gl.COLOR_ATTACHMENT1);
+    const b = new Uint8Array(man.W * man.H * 4);
+    gl.readPixels(0, 0, man.W, man.H, gl.RGBA, gl.UNSIGNED_BYTE, b);
+    gl.readBuffer(gl.COLOR_ATTACHMENT0); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+    return { w: man.W, h: man.H, rgba: btoa(s), basEnHaut: true };
+  },
+  plage: () => [T_PUB, 0],
+};
+demarrer().catch(e => { console.error(e); $("#attente").textContent = "erreur : " + e.message; });
+})();
+</script>
+</body>
+</html>
