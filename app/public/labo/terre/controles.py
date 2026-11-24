@@ -41,8 +41,9 @@ pas un aperçu. Chaque mesure passe par le même shader que le globe : l'état d
       continental (> -200 m) d'un seul tenant à un instant de sa fenêtre : Nuna 1650–1450 Ma,
       Rodinia 950–750 Ma, Gondwana 540–460 Ma, Pangée 320–200 Ma
   C14 montagnes (S3b, N35) : à chaque collision majeure, la croûte qui est aujourd'hui dans la
-      chaîne porte un relief ≥ 2 000 m (point le plus haut à moins de 400 km) ; 150 Ma plus
-      tard, ce relief s'est abaissé d'au moins 800 m (90e centile) : Trans-Hudson (1,78 Ga),
+      chaîne porte un relief ≥ 2 000 m (point le plus haut à moins de 400 km, au plus haut des
+      instants à ±40 Ma de l'âge nominal) ; 150 Ma après ce pic, ce relief s'est abaissé d'au
+      moins 800 m (90e centile) : Nuna (1,6 Ga, n'importe où : chaînes de l'assemblage),
       Grenville (1,05 Ga), panafricain (600 Ma), calédonien (420 Ma), hercynien (300 Ma) ;
       aujourd'hui Himalaya, Andes, Alpes
   C15 couleur de la vie (S3b, N37) : terres éclairées vertes (a* < -4) ≤ 1 % jusqu'à 470 Ma ;
@@ -510,7 +511,7 @@ async def main():
         # ---- C14 montagnes aux collisions
         if veut("C14"):
             det14, ok14 = [], True
-            for nom, lat_, lon_, tp in (("Trans-Hudson", 57, -100, 1780), ("Grenville", 46, -76, 1050),
+            for nom, lat_, lon_, tp in (("Nuna", None, None, 1600), ("Grenville", 46, -76, 1050),
                                         ("panafricain", -5, 37, 600), ("calédonien", 62, 8, 420),
                                         ("hercynien", 37, -81, 300), ("Himalaya", 30, 85, 0),
                                         ("Andes", -20, -68, 0), ("Alpes", 46.5, 10, 0)):
@@ -518,12 +519,19 @@ async def main():
                 if not await pg.evaluate("!!terre.actuelEquirect"):
                     ok14 = False; det14.append("la page ne donne pas la position actuelle de la croûte (terre.actuelEquirect)"); break
                 res = []
-                for t in ([tp, tp - 150] if tp >= 150 else [tp]):
-                    e = await etat(pg, float(t)); act = await actuel(pg)
-                    d = dist_km(act, lat_, lon_)
-                    zone = e[d < 400]
-                    res.append((t, float(zone.max()) if zone.size else -1e4,
-                                float(np.percentile(zone, 90)) if zone.size else -1e4))
+                # pic : le plus haut des instants à ±40 Ma de l'âge nominal (une collision dure des
+                # dizaines de Ma, et son âge varie d'un modèle à l'autre) ; puis 150 Ma après le pic
+                pics = [x for x in ((tp - 40, tp - 20, tp, tp + 20, tp + 40) if tp >= 40 else (tp,)) if dans(x)]
+                for t in pics:
+                    e = await etat(pg, float(t))
+                    if lat_ is None: zone = e.ravel()               # Nuna : n'importe où sur le globe
+                    else: zone = e[dist_km(await actuel(pg), lat_, lon_) < 400]
+                    r_ = (t, float(zone.max()) if zone.size else -1e4, float(np.percentile(zone, 90)) if zone.size else -1e4)
+                    if not res or r_[1] > res[0][1]: res = [r_]
+                if res[0][0] >= 150 and lat_ is not None:
+                    t = res[0][0] - 150; e = await etat(pg, float(t))
+                    zone = e[dist_km(await actuel(pg), lat_, lon_) < 400]
+                    res.append((t, float(zone.max()) if zone.size else -1e4, float(np.percentile(zone, 90)) if zone.size else -1e4))
                 ok = res[0][1] >= 2000 and (len(res) == 1 or res[0][2] - res[1][2] >= 800)
                 ok14 &= ok
                 det14.append(f"{nom} {res[0][0]:g} Ma max {res[0][1]:.0f} m" +

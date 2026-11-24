@@ -202,7 +202,8 @@ def main():
     w_aire = np.cos(np.radians(g.lat.ravel()[I])) * (np.radians(0.25) * R_KM) ** 2   # km²
     nz = bruit_spherique(V0)
 
-    # épaisseur initiale (hypothèse) : intérieurs à 38 km, marges amincies à 30 km
+    # épaisseur initiale (hypothèse) : intérieurs à 38 km (+375 m), marges en plateau continental
+    # (34,5 km : -150 m)
     vivant0 = debI >= T_HAUT
     m2 = np.zeros(N, bool); m2[I[vivant0]] = True; m2 = m2.reshape(g.H, g.W)
     rr = np.zeros(N, np.int64); rr[I] = rI; rr = rr.reshape(g.H, g.W)
@@ -211,7 +212,7 @@ def main():
         bord |= m2 & (np.roll(rr, 1, ax) != rr) & np.roll(m2, 1, ax)
     dist = ndimage.distance_transform_edt(~bord) * 0.25 * 111.0
     dist = dist.ravel()[I]
-    Hc = np.where(vivant0, 30.0 + 8.0 * (1 - np.exp(-dist / 150.0)) + 1.0 * nz, np.nan)
+    Hc = np.where(vivant0, 34.5 + 3.5 * (1 - np.exp(-dist / 150.0)) + 1.0 * nz, np.nan)
 
     PV, voisV, _ = geometrie(NV); e1, e2, Mp = operateur_divergence(PV, voisV)
     PE, voisE, dE = geometrie(NE); aireE = np.full(len(PE), 4 * np.pi * (R_KM * 1e3) ** 2 / len(PE))
@@ -229,7 +230,7 @@ def main():
     for t in range(T_HAUT, T_BAS - 1, -DT):
         vivant = debI >= t
         neuf = vivant & np.isnan(Hc)
-        Hc[neuf] = 31.0 + 1.0 * nz[neuf]                     # croûte juvénile (arcs) : hypothèse
+        Hc[neuf] = 33.5 + 1.0 * nz[neuf]                     # croûte juvénile (arcs, -300 m) : hypothèse
         Hc[~vivant] = np.nan
         a = np.where(vivant)[0]
         pos = qrot(QC[rI[a], t], V0[a])
@@ -314,6 +315,19 @@ def ecrire_paquet(g, N, I, rI, debI, croute, ids, QC, cles, nz):
     jx, ix = g.indices(qrot(QP[rowPC[ok1], 540], gv[ok1]))
     hv = h540[jx, ix]; garde = hv > -1000
     idx = np.where(ok1)[0][garde]; h0[idx] = hv[garde]; rP[idx] = rowPC[ok1][garde]
+    # terres du PaleoDEM de 540 Ma qu'aucun point n'atteint (hors des polygones PALEOMAP) :
+    # rattachées à la plaque de l'état clé (combler_plaques), ramenées au présent par elle
+    rows540 = cle540[..., 1] + 256 * cle540[..., 2]
+    couvert = np.zeros((g.H, g.W), bool); couvert[jx[garde], ix[garde]] = True
+    couvert = ndimage.binary_dilation(couvert, iterations=1)
+    hors = ~couvert & (h540 > -1000) & (rows540 > 0)
+    for r in np.unique(rows540[hors]):
+        libre = np.isnan(h0)
+        jy, iy = g.indices(qrot(np.broadcast_to(QP[r, 540], (int(libre.sum()), 4)), gv[libre]))
+        m_ = (rows540[jy, iy] == r) & hors[jy, iy]
+        k_ = np.where(libre)[0][m_]
+        h0[k_] = h540[jy[m_], iy[m_]]; rP[k_] = r
+    log(f"raccord : {int(hors.sum())} pixels de terre du PaleoDEM de 540 Ma hors polygones, rattachés")
     vuA = ~np.isnan(h0)
     rowC = np.zeros(N, np.int64); rowC[I] = rI
     typB = croute & ~vuA

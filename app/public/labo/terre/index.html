@@ -807,7 +807,7 @@ function geometrie() {
   if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
   }
-  return { dpr, w, h, r: Math.min(w, h) * 0.40 };
+  return { dpr, w, h, r: Math.min(w * 0.40, h * 0.36) };   // place pour le compteur dans le coin
 }
 function soleilXYZ() {
   const a = OBLIQUITE * Math.PI / 180, o = LON_SOLEIL * Math.PI / 180;
