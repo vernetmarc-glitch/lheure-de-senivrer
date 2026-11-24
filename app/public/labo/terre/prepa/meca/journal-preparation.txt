@@ -1,25 +1,25 @@
 [    0.0 s] fichiers .rot : 
-  cao/13628813/x/1.8Ga_model_GSF/1800_1000_rotfile.rot 
-  cao/13628813/x/1.8Ga_model_GSF/1000_0_rotfile.rot
+  cao/13628813/x/1.8Ga_model_GSF/1000_0_rotfile.rot 
+  cao/13628813/x/1.8Ga_model_GSF/1800_1000_rotfile.rot
 [    0.3 s] cao/13628813/x/1.8Ga_model_GSF/shapes_continents.gpmlz : 872 objets ; ClosedContinentalBoundary 651, UnclassifiedFeature 153, IslandArc 34, TerraneBoundary 15, Craton 5, ContinentalFragment 5
-[    0.4 s] cao/13628813/x/1.8Ga_model_GSF/1800-1000_plate_boundaries.gpml : 739 objets ; TopologicalClosedPlateBoundary 318, MidOceanRidge 196, SubductionZone 157, Transform 68
-[    1.0 s] cao/13628813/x/1.8Ga_model_GSF/250-0_plate_boundaries.gpml : 3510 objets ; TopologicalClosedPlateBoundary 2258, MidOceanRidge 682, SubductionZone 250, Transform 168, InferredPaleoBoundary 50, ContinentalRift 34
-[    1.0 s] cao/13628813/x/1.8Ga_model_GSF/Paleomagnetic_poles.gpml : 208 objets ; VirtualGeomagneticPole 208
-[    1.2 s] cao/13628813/x/1.8Ga_model_GSF/410-250_plate_boundaries.gpml : 903 objets ; TopologicalClosedPlateBoundary 556, SubductionZone 132, Transform 121, MidOceanRidge 84, ContinentalRift 6, OrogenicBelt 4
-[    1.2 s] cao/13628813/x/1.8Ga_model_GSF/TopologyBuildingBlocks.gpml : 255 objets ; UnclassifiedFeature 179, SubductionZone 33, ContinentalRift 13, Transform 10, Fault 8, MidOceanRidge 8
-[    1.9 s] cao/13628813/x/1.8Ga_model_GSF/static_polygons.gpmlz : 2417 objets ; Basin 1546, ClosedContinentalBoundary 652, UnclassifiedFeature 152, IslandArc 34, TerraneBoundary 15, Craton 5
+[    0.5 s] cao/13628813/x/1.8Ga_model_GSF/1800-1000_plate_boundaries.gpml : 739 objets ; TopologicalClosedPlateBoundary 318, MidOceanRidge 196, SubductionZone 157, Transform 68
+[    0.5 s] cao/13628813/x/1.8Ga_model_GSF/Paleomagnetic_poles.gpml : 208 objets ; VirtualGeomagneticPole 208
+[    0.9 s] cao/13628813/x/1.8Ga_model_GSF/1000-410_plate_boundaries.gpml : 2223 objets ; TopologicalClosedPlateBoundary 947, Transform 568, SubductionZone 414, MidOceanRidge 294
+[    1.7 s] cao/13628813/x/1.8Ga_model_GSF/250-0_plate_boundaries.gpml : 3510 objets ; TopologicalClosedPlateBoundary 2258, MidOceanRidge 682, SubductionZone 250, Transform 168, InferredPaleoBoundary 50, ContinentalRift 34
 [    2.5 s] cao/13628813/x/1.8Ga_model_GSF/shapes_coasts.gpmlz : 2045 objets ; ClosedContinentalBoundary 1638, UnclassifiedFeature 256, IslandArc 92, TerraneBoundary 25, ContinentalFragment 12, Coastline 8
-[    2.8 s] cao/13628813/x/1.8Ga_model_GSF/1000-410_plate_boundaries.gpml : 2223 objets ; TopologicalClosedPlateBoundary 947, Transform 568, SubductionZone 414, MidOceanRidge 294
+[    2.6 s] cao/13628813/x/1.8Ga_model_GSF/410-250_plate_boundaries.gpml : 903 objets ; TopologicalClosedPlateBoundary 556, SubductionZone 132, Transform 121, MidOceanRidge 84, ContinentalRift 6, OrogenicBelt 4
+[    2.7 s] cao/13628813/x/1.8Ga_model_GSF/TopologyBuildingBlocks.gpml : 255 objets ; UnclassifiedFeature 179, SubductionZone 33, ContinentalRift 13, Transform 10, Fault 8, MidOceanRidge 8
 [    3.2 s] cao/13628813/x/1.8Ga_model_GSF/COBfile_1800_0.gpml : 1355 objets ; ClosedContinentalBoundary 785, UnclassifiedFeature 377, ContinentalCrust 53, IslandArc 34, Coastline 24, PassiveContinentalBoundary 20
-[    3.2 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_metamorphic_gradient_smaller_than_375_SZ.gpml : 102 objets ; UnclassifiedFeature 102
-[   18.5 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_geochemistry_SIA-I_and-magnesian-type.gpmlz : 43364 objets ; UnclassifiedFeature 43364
-[   18.5 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_metamorphic_gradient_375_775_Orogen.gpml : 173 objets ; UnclassifiedFeature 173
-[   18.6 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_metamorphic_gradient_larger_than_775_rift.gpml : 328 objets ; UnclassifiedFeature 328
-[   18.6 s] topologies : ['1800-1000_plate_boundaries.gpml', '250-0_plate_boundaries.gpml', '410-250_plate_boundaries.gpml', '1000-410_plate_boundaries.gpml']
-[   18.6 s] statiques : ['static_polygons.gpmlz']
-[   18.6 s] continents : ['shapes_continents.gpmlz', 'COBfile_1800_0.gpml']
-[   18.9 s] polygones statiques : 2422 polygones, couverture 100.0 % des pixels
-[   19.1 s] croûte continentale : 2290 polygones, couverture 57.2 % des pixels
-[   20.5 s] topologies en cache : 901 instants
-[   69.5 s] rotations : 620 plaques × 1801 Ma
-[   69.7 s] fin
+[    4.0 s] cao/13628813/x/1.8Ga_model_GSF/static_polygons.gpmlz : 2417 objets ; Basin 1546, ClosedContinentalBoundary 652, UnclassifiedFeature 152, IslandArc 34, TerraneBoundary 15, Craton 5
+[    4.1 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_metamorphic_gradient_smaller_than_375_SZ.gpml : 102 objets ; UnclassifiedFeature 102
+[    4.1 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_metamorphic_gradient_larger_than_775_rift.gpml : 328 objets ; UnclassifiedFeature 328
+[    4.2 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_metamorphic_gradient_375_775_Orogen.gpml : 173 objets ; UnclassifiedFeature 173
+[   23.7 s] cao/13628813/x/1.8Ga_model_GSF/point_data/global_geochemistry_SIA-I_and-magnesian-type.gpmlz : 43364 objets ; UnclassifiedFeature 43364
+[   23.7 s] topologies : ['1800-1000_plate_boundaries.gpml', '1000-410_plate_boundaries.gpml', '250-0_plate_boundaries.gpml', '410-250_plate_boundaries.gpml']
+[   23.7 s] statiques : ['static_polygons.gpmlz']
+[   23.7 s] continents : ['shapes_continents.gpmlz', 'COBfile_1800_0.gpml']
+[   24.1 s] polygones statiques : 2422 polygones, couverture 100.0 % des pixels
+[   24.4 s] croûte continentale : 2290 polygones, couverture 57.2 % des pixels
+[   26.2 s] topologies en cache : 901 instants
+[   88.5 s] rotations : 620 plaques × 1801 Ma
+[   88.7 s] fin
