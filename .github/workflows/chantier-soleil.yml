@@ -17,9 +17,8 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: chantier-soleil-v3   # les runs 45114321078 et 45160564099 ne s'annulaient pas
-  cancel-in-progress: true
+# Pas de groupe de concurrence : dans ce dépôt, un run en cours ne s'annule pas
+# (constaté trois fois, 23–24/11) et le suivant restait bloqué en attente.
 
 env:
   PHANTOM_SHA: a9ecce42fde1974a336197a1c41d95835954fcc8
