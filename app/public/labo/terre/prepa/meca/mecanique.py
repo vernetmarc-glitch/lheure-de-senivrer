@@ -50,7 +50,8 @@ NV, NE = 64, 128                          # nside : vitesses, érosion
 LISSAGE = np.radians(5.0)                 # largeur à mi-hauteur du lissage des vitesses
 K_SPL, M_SPL = float(sys.argv[4]) if len(sys.argv) > 4 else 1.0e-4, 0.4
 KAPPA = 1500.0                            # km²/Ma, étalement de la croûte épaisse
-H_MAX, H_MIN = 75.0, 20.0                 # km : plateau du Tibet ; croûte amincie des rifts
+H_MAX, H_MIN = 75.0, 28.0                 # km : plateau du Tibet ; croûte amincie des rifts (-1,1 km)
+EXTENSION = 0.2
 V_MAX = 200.0
 RACCORD = 160.0                           # Ma : Cao -> PALEOMAP de 700 à 540 Ma                             # km/Ma (20 cm/an)
 COUPLAGE = 0.05
@@ -259,6 +260,9 @@ def main():
         div = divergence(vs, voisV, e1, e2, Mp)
         th, ph = hp.vec2ang(pos)
         dv = hp.get_interp_val(div, th, ph)
+        # l'extension d'une plaque se fait surtout à la dorsale (croûte océanique neuve) : la croûte
+        # continentale ne s'amincit que d'une fraction EXTENSION de la divergence lissée (rifts)
+        dv = np.where(dv > 0, EXTENSION * dv, dv)
         Hc[a] = np.clip(Hc[a] * np.exp(np.clip(-dv * DT, -0.3, 0.3)), H_MIN, H_MAX)
         # les racines des chaînes ne durent pas : effondrement gravitaire, fluage de la croûte
         # inférieure, délamination — la croûte épaissie revient vers 38 km en ~80 Ma
