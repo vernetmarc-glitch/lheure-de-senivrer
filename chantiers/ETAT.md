@@ -25,13 +25,18 @@ les données de la simulation à 1e5 particules ne sont pas encore déposées.
   concurrence neuf (`chantier-soleil-v2`) : l'ancien run 45114321078 ne s'annulait pas et
   bloquait le run 45159388255 en attente. Données attendues ≈ 16 h 30 UTC (étape 1), puis
   ≈ 21 h 30 et ≈ 2 h 30.
-- **Question au maître** : si tu as un jeton GitHub, annule les runs 45114321078 (ancien
-  code, échouera de même et pourrait déposer des données sans longueurs de lissage) et
-  45159388255 (doublon du nouveau). Sans cela, rien de grave : le dernier dépôt l'emporte,
-  je revérifie au prochain passage.
+- 24/11 : le run 45160564099 a échoué aux trois étapes. **Cause trouvée** grâce au diagnostic
+  que chaque tâche dépose désormais (`labo/soleil/diagnostic/`) : `sarracen` exige
+  scikit-learn, absent des machines GitHub → aucune sortie extraite, le disque se
+  remplissait. Corrigé (scikit-learn installé, rien n'est effacé avant d'être extrait,
+  diagnostic d'assemblage déposé même sans données, workflow sans groupe de concurrence).
+  Phantom, lui, va bien : en 34 min l'étoile était née (130 462 particules, ρ_max 2e-12).
+  Runs en cours : 45354550304 et son suivant (mêmes calculs ; le dernier dépôt l'emporte).
+  Premières données attendues ≈ 13 h 30 UTC le 24/11.
 - **Page** : WebGL2, densité de colonne en noyaux de largeur physique (h), couleur par la
   température (palette de la carte), ton à bornes fixes avec exposition liée au cadre
-  (loi fixe Σ ∝ 1/R, jamais tirée de l'image), caméra sur le rayon de 10 % de la masse,
+  (loi fixe Σ ∝ 1/R, jamais tirée de l'image ; acceptée par le maître le 24/11), passe
+  « myriade » : un point net par particule, éclat ∝ m/h² (constante fixe), caméra sur le rayon de 10 % de la masse,
   vue oblique à 50° (comme HL Tauri), rotation au doigt, curseur log de part et d'autre
   de la naissance (−150 000 ans → +100 Ma), luminosité BHAC15, dissipation du disque
   (e-fold 2,5 Ma, hypothèse), compteur commun (`commun/compteur.js`).
