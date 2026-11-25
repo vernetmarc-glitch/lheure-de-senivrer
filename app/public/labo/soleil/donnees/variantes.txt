@@ -1,3 +1,3 @@
-etat-0.005-2 : 497 sorties, t = 281500 ans, naissance 147712.65214543467, 1 puits [1.045], rho_max 4.18e-14, fini False
-etat-0.01-2 : 793 sorties, t = 322657 ans, naissance 148692.5894327123, 1 puits [0.959], rho_max 2.77e-14, fini True
-etat-0.02-2 : 555 sorties, t = 242663 ans, naissance 150807.1909473641, 1 puits [0.731], rho_max 1.70e-13, fini False
+etat-0.005-3 : 1908 sorties, t = 550145 ans, naissance 147712.65214543467, 1 puits [1.138], rho_max 9.50e-16, fini True
+etat-0.01-3 : 793 sorties, t = 322657 ans, naissance 148692.5894327123, 1 puits [0.959], rho_max 2.77e-14, fini True
+etat-0.02-3 : 818 sorties, t = 316056 ans, naissance 150807.1909473641, 1 puits [0.83], rho_max 4.39e-14, fini True
